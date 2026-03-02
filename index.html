@@ -446,6 +446,7 @@
             <button class="nav-tab" onclick="changeTab('historial')">🗂️ Historial</button>
             <button class="nav-tab" onclick="changeTab('analytics')">📈 Analytics</button>
             <button class="nav-tab" onclick="changeTab('productos')">🍽️ Productos</button>
+            <button class="nav-tab" onclick="changeTab('recetas')">📋 Recetas</button>
         </div>
 
         <!-- TAB: DASHBOARD -->
@@ -4074,5 +4075,567 @@ REGLAS IMPORTANTES:
         
         window.onload = init;
     </script>
+
+<!-- ============ MÓDULO RECETAS ============ -->
+<div id="recetas" class="tab-content">
+  <div class="analytics-section">
+    <div class="analytics-header">
+      <h2>📋 Gestión de Recetas</h2>
+      <p>Administra tus recetas por SKU, analiza rendimientos y aplica sugerencias de la IA</p>
+    </div>
+
+    <!-- Botones principales -->
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem;">
+      <button class="btn" onclick="abrirModalReceta()" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">➕ Nueva Receta</button>
+      <label style="background:linear-gradient(135deg,#43e97b,#38f9d7);color:white;padding:.75rem 1.5rem;border-radius:10px;cursor:pointer;font-size:1rem;">
+        📥 Importar Excel
+        <input type="file" id="importarExcelRecetas" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarRecetasExcel(event)">
+      </label>
+      <button class="btn" onclick="exportarRecetasExcel()" style="background:linear-gradient(135deg,#f093fb,#f5576c);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">📤 Exportar Excel</button>
+      <button class="btn" onclick="analizarRendimientosIA()" style="background:linear-gradient(135deg,#4facfe,#00f2fe);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">🧠 Analizar con IA</button>
+    </div>
+
+    <!-- Buscador -->
+    <div style="margin-bottom:1.5rem;">
+      <input type="text" id="buscarReceta" placeholder="🔍 Buscar receta por nombre o SKU..." oninput="filtrarRecetas()" style="width:100%;padding:.75rem 1rem;border-radius:10px;border:1px solid #ddd;font-size:1rem;">
+    </div>
+
+    <!-- Lista de recetas -->
+    <div id="listaRecetas" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1rem;"></div>
+  </div>
+
+  <!-- Panel de análisis IA -->
+  <div class="analytics-section" id="panelAnalisisIA" style="display:none;margin-top:1.5rem;">
+    <div class="analytics-header">
+      <h2>🧠 Análisis IA de Rendimientos</h2>
+    </div>
+    <div id="resultadoAnalisisIA" style="background:#f8f9ff;border-radius:12px;padding:1.5rem;line-height:1.7;"></div>
+    <div id="sugerenciasIA" style="margin-top:1rem;"></div>
+  </div>
+</div>
+
+<!-- Modal Nueva/Editar Receta -->
+<div id="modalReceta" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;overflow-y:auto;">
+  <div style="background:white;max-width:800px;margin:2rem auto;border-radius:20px;padding:2rem;position:relative;">
+    <button onclick="cerrarModalReceta()" style="position:absolute;top:1rem;right:1rem;background:none;border:none;font-size:1.5rem;cursor:pointer;">✕</button>
+    <h2 style="color:#667eea;margin-bottom:1.5rem;" id="tituloModalReceta">➕ Nueva Receta</h2>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+      <div>
+        <label style="font-weight:600;display:block;margin-bottom:.3rem;">SKU / Nombre del Plato *</label>
+        <input id="recetaNombre" type="text" placeholder="Ej: Carne al Jugo con Arroz" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;">
+      </div>
+      <div>
+        <label style="font-weight:600;display:block;margin-bottom:.3rem;">Gramaje por Plato (gr) *</label>
+        <input id="recetaGramaje" type="number" placeholder="Ej: 530" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;">
+      </div>
+      <div>
+        <label style="font-weight:600;display:block;margin-bottom:.3rem;">Gramaje Envase (gr)</label>
+        <input id="recetaEnvase" type="number" placeholder="Ej: 20" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;">
+      </div>
+      <div>
+        <label style="font-weight:600;display:block;margin-bottom:.3rem;">Rendimiento Esperado (%)</label>
+        <input id="recetaRendimiento" type="number" placeholder="Ej: 85" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;">
+      </div>
+    </div>
+
+    <!-- Componentes -->
+    <div style="margin-bottom:1rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
+        <h3 style="color:#764ba2;">🧩 Componentes del Plato</h3>
+        <button onclick="agregarComponente()" style="background:#667eea;color:white;padding:.4rem 1rem;border-radius:8px;border:none;cursor:pointer;">+ Componente</button>
+      </div>
+      <div id="listaComponentes"></div>
+    </div>
+
+    <div style="margin-bottom:1rem;">
+      <label style="font-weight:600;display:block;margin-bottom:.3rem;">📝 Observaciones</label>
+      <textarea id="recetaObservaciones" rows="3" placeholder="Notas importantes sobre la receta..." style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;resize:vertical;"></textarea>
+    </div>
+
+    <div style="display:flex;gap:1rem;justify-content:flex-end;">
+      <button onclick="cerrarModalReceta()" style="padding:.75rem 1.5rem;border-radius:10px;border:1px solid #ddd;cursor:pointer;">Cancelar</button>
+      <button onclick="guardarReceta()" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">💾 Guardar Receta</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Detalle Receta -->
+<div id="modalDetalleReceta" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;overflow-y:auto;">
+  <div style="background:white;max-width:900px;margin:2rem auto;border-radius:20px;padding:2rem;position:relative;">
+    <button onclick="document.getElementById('modalDetalleReceta').style.display='none'" style="position:absolute;top:1rem;right:1rem;background:none;border:none;font-size:1.5rem;cursor:pointer;">✕</button>
+    <div id="contenidoDetalleReceta"></div>
+  </div>
+</div>
+
+<script>
+// ============================================
+// MÓDULO DE RECETAS INTELIGENTE
+// ============================================
+
+let recetas = JSON.parse(localStorage.getItem('mes_recetas') || '[]');
+let recetaEditandoId = null;
+let componentesTemp = [];
+
+function guardarRecetasStorage() {
+  localStorage.setItem('mes_recetas', JSON.stringify(recetas));
+}
+
+// ---- MODAL RECETA ----
+function abrirModalReceta(id = null) {
+  recetaEditandoId = id;
+  componentesTemp = [];
+  document.getElementById('tituloModalReceta').textContent = id ? '✏️ Editar Receta' : '➕ Nueva Receta';
+
+  if (id) {
+    const r = recetas.find(x => x.id === id);
+    document.getElementById('recetaNombre').value = r.nombre;
+    document.getElementById('recetaGramaje').value = r.gramaje;
+    document.getElementById('recetaEnvase').value = r.envase || '';
+    document.getElementById('recetaRendimiento').value = r.rendimientoEsperado || '';
+    document.getElementById('recetaObservaciones').value = r.observaciones || '';
+    componentesTemp = JSON.parse(JSON.stringify(r.componentes || []));
+  } else {
+    document.getElementById('recetaNombre').value = '';
+    document.getElementById('recetaGramaje').value = '';
+    document.getElementById('recetaEnvase').value = '';
+    document.getElementById('recetaRendimiento').value = '';
+    document.getElementById('recetaObservaciones').value = '';
+    componentesTemp = [];
+  }
+
+  renderComponentesModal();
+  document.getElementById('modalReceta').style.display = 'block';
+}
+
+function cerrarModalReceta() {
+  document.getElementById('modalReceta').style.display = 'none';
+}
+
+function agregarComponente() {
+  componentesTemp.push({ nombre: '', gramajePorcion: 0, ingredientes: [] });
+  renderComponentesModal();
+}
+
+function eliminarComponente(idx) {
+  componentesTemp.splice(idx, 1);
+  renderComponentesModal();
+}
+
+function agregarIngrediente(compIdx) {
+  componentesTemp[compIdx].ingredientes.push({ nombre: '', cantidadBruta: 0, unidad: 'kg' });
+  renderComponentesModal();
+}
+
+function eliminarIngrediente(compIdx, ingIdx) {
+  componentesTemp[compIdx].ingredientes.splice(ingIdx, 1);
+  renderComponentesModal();
+}
+
+function renderComponentesModal() {
+  const cont = document.getElementById('listaComponentes');
+  if (componentesTemp.length === 0) {
+    cont.innerHTML = '<p style="color:#999;text-align:center;padding:1rem;">No hay componentes. Haz clic en "+ Componente" para agregar.</p>';
+    return;
+  }
+  cont.innerHTML = componentesTemp.map((comp, ci) => `
+    <div style="background:#f8f9ff;border-radius:12px;padding:1rem;margin-bottom:1rem;border-left:4px solid #667eea;">
+      <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:.75rem;">
+        <input value="${comp.nombre}" onchange="componentesTemp[${ci}].nombre=this.value" placeholder="Nombre del componente (Ej: Salsa, Arroz, Proteína)" style="flex:1;padding:.5rem;border-radius:8px;border:1px solid #ddd;">
+        <input type="number" value="${comp.gramajePorcion||''}" onchange="componentesTemp[${ci}].gramajePorcion=parseFloat(this.value)||0" placeholder="gr/plato" style="width:100px;padding:.5rem;border-radius:8px;border:1px solid #ddd;">
+        <button onclick="eliminarComponente(${ci})" style="background:#ff6b6b;color:white;border:none;border-radius:8px;padding:.4rem .7rem;cursor:pointer;">🗑️</button>
+      </div>
+      <div style="margin-left:1rem;">
+        <div style="font-size:.85rem;color:#666;margin-bottom:.4rem;">Ingredientes brutos:</div>
+        ${comp.ingredientes.map((ing, ii) => `
+          <div style="display:flex;gap:.4rem;margin-bottom:.4rem;align-items:center;">
+            <input value="${ing.nombre}" onchange="componentesTemp[${ci}].ingredientes[${ii}].nombre=this.value" placeholder="Ingrediente" style="flex:1;padding:.4rem;border-radius:6px;border:1px solid #ddd;font-size:.9rem;">
+            <input type="number" value="${ing.cantidadBruta||''}" onchange="componentesTemp[${ci}].ingredientes[${ii}].cantidadBruta=parseFloat(this.value)||0" placeholder="Cantidad" style="width:90px;padding:.4rem;border-radius:6px;border:1px solid #ddd;font-size:.9rem;">
+            <select onchange="componentesTemp[${ci}].ingredientes[${ii}].unidad=this.value" style="padding:.4rem;border-radius:6px;border:1px solid #ddd;font-size:.9rem;">
+              <option ${ing.unidad==='kg'?'selected':''}>kg</option>
+              <option ${ing.unidad==='gr'?'selected':''}>gr</option>
+              <option ${ing.unidad==='lt'?'selected':''}>lt</option>
+              <option ${ing.unidad==='un'?'selected':''}>un</option>
+            </select>
+            <button onclick="eliminarIngrediente(${ci},${ii})" style="background:#ffaaaa;border:none;border-radius:6px;padding:.3rem .6rem;cursor:pointer;">✕</button>
+          </div>
+        `).join('')}
+        <button onclick="agregarIngrediente(${ci})" style="background:#e8edff;color:#667eea;border:none;border-radius:6px;padding:.3rem .8rem;cursor:pointer;font-size:.85rem;margin-top:.3rem;">+ Ingrediente</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function guardarReceta() {
+  const nombre = document.getElementById('recetaNombre').value.trim();
+  const gramaje = parseFloat(document.getElementById('recetaGramaje').value) || 0;
+  if (!nombre || !gramaje) { alert('El nombre y gramaje son obligatorios'); return; }
+
+  const receta = {
+    id: recetaEditandoId || Date.now().toString(),
+    nombre,
+    gramaje,
+    envase: parseFloat(document.getElementById('recetaEnvase').value) || 0,
+    rendimientoEsperado: parseFloat(document.getElementById('recetaRendimiento').value) || 100,
+    observaciones: document.getElementById('recetaObservaciones').value,
+    componentes: JSON.parse(JSON.stringify(componentesTemp)),
+    historialRendimientos: recetaEditandoId ? (recetas.find(r=>r.id===recetaEditandoId)?.historialRendimientos || []) : [],
+    fechaCreacion: recetaEditandoId ? (recetas.find(r=>r.id===recetaEditandoId)?.fechaCreacion || new Date().toLocaleDateString('es-CL')) : new Date().toLocaleDateString('es-CL'),
+    version: recetaEditandoId ? ((recetas.find(r=>r.id===recetaEditandoId)?.version || 1) + 1) : 1
+  };
+
+  if (recetaEditandoId) {
+    const idx = recetas.findIndex(r => r.id === recetaEditandoId);
+    recetas[idx] = receta;
+  } else {
+    recetas.push(receta);
+  }
+
+  guardarRecetasStorage();
+  cerrarModalReceta();
+  renderListaRecetas();
+}
+
+function eliminarReceta(id) {
+  if (!confirm('¿Eliminar esta receta?')) return;
+  recetas = recetas.filter(r => r.id !== id);
+  guardarRecetasStorage();
+  renderListaRecetas();
+}
+
+// ---- RENDER LISTA ----
+function renderListaRecetas() {
+  const cont = document.getElementById('listaRecetas');
+  const filtro = (document.getElementById('buscarReceta')?.value || '').toLowerCase();
+  const lista = recetas.filter(r => r.nombre.toLowerCase().includes(filtro));
+
+  if (lista.length === 0) {
+    cont.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem;color:#999;"><div style="font-size:3rem;">📋</div><p>No hay recetas aún. Crea una nueva o importa desde Excel.</p></div>';
+    return;
+  }
+
+  cont.innerHTML = lista.map(r => {
+    const historial = r.historialRendimientos || [];
+    const ultRend = historial.length > 0 ? historial[historial.length-1].rendimientoReal : null;
+    const diff = ultRend ? (ultRend - r.rendimientoEsperado).toFixed(1) : null;
+    const diffColor = diff === null ? '#666' : (parseFloat(diff) >= 0 ? '#27ae60' : '#e74c3c');
+    const tieneSugerencia = historial.some(h => h.sugerencia && !h.aprobada);
+
+    return `
+      <div style="background:white;border-radius:15px;padding:1.5rem;box-shadow:0 4px 15px rgba(0,0,0,0.1);border-top:4px solid #667eea;position:relative;">
+        ${tieneSugerencia ? '<div style="position:absolute;top:.75rem;right:.75rem;background:#f39c12;color:white;border-radius:20px;padding:.2rem .6rem;font-size:.75rem;">⚠️ Sugerencia IA</div>' : ''}
+        <h3 style="color:#333;margin-bottom:.5rem;font-size:1.05rem;">${r.nombre}</h3>
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:.75rem;font-size:.85rem;color:#666;">
+          <span>🍽️ ${r.gramaje}gr + ${r.envase}gr envase</span>
+          <span>🧩 ${r.componentes.length} componentes</span>
+          <span>📅 v${r.version}</span>
+        </div>
+        <div style="display:flex;gap:.5rem;justify-content:space-between;align-items:center;background:#f8f9ff;border-radius:8px;padding:.5rem .75rem;margin-bottom:.75rem;font-size:.85rem;">
+          <span>🎯 Rend. esperado: <strong>${r.rendimientoEsperado}%</strong></span>
+          ${ultRend ? `<span>📊 Último real: <strong style="color:${diffColor}">${ultRend}% (${diff > 0 ? '+' : ''}${diff}%)</strong></span>` : '<span style="color:#aaa">Sin historial aún</span>'}
+        </div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+          <button onclick="verDetalleReceta('${r.id}')" style="flex:1;background:#e8edff;color:#667eea;border:none;border-radius:8px;padding:.5rem;cursor:pointer;font-size:.85rem;">👁️ Ver</button>
+          <button onclick="abrirModalReceta('${r.id}')" style="flex:1;background:#fff3e0;color:#f39c12;border:none;border-radius:8px;padding:.5rem;cursor:pointer;font-size:.85rem;">✏️ Editar</button>
+          <button onclick="registrarRendimiento('${r.id}')" style="flex:1;background:#e8fff0;color:#27ae60;border:none;border-radius:8px;padding:.5rem;cursor:pointer;font-size:.85rem;">📊 Rendimiento</button>
+          <button onclick="eliminarReceta('${r.id}')" style="background:#ffe8e8;color:#e74c3c;border:none;border-radius:8px;padding:.5rem .75rem;cursor:pointer;font-size:.85rem;">🗑️</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function filtrarRecetas() { renderListaRecetas(); }
+
+// ---- VER DETALLE ----
+function verDetalleReceta(id) {
+  const r = recetas.find(x => x.id === id);
+  const historial = r.historialRendimientos || [];
+
+  let html = `
+    <h2 style="color:#667eea;margin-bottom:.5rem;">${r.nombre}</h2>
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;color:#666;font-size:.9rem;margin-bottom:1.5rem;">
+      <span>🍽️ <strong>${r.gramaje + r.envase}gr</strong> total (${r.gramaje}gr + ${r.envase}gr envase)</span>
+      <span>🎯 Rendimiento esperado: <strong>${r.rendimientoEsperado}%</strong></span>
+      <span>📅 Versión <strong>${r.version}</strong> | Creada: ${r.fechaCreacion}</span>
+    </div>
+    <h3 style="color:#764ba2;margin-bottom:.75rem;">🧩 Componentes</h3>
+    ${r.componentes.map(c => `
+      <div style="background:#f8f9ff;border-radius:10px;padding:1rem;margin-bottom:.75rem;border-left:3px solid #667eea;">
+        <div style="font-weight:600;color:#333;margin-bottom:.5rem;">${c.nombre} — <span style="color:#667eea">${c.gramajePorcion}gr por plato</span></div>
+        <table style="width:100%;font-size:.85rem;border-collapse:collapse;">
+          <tr style="background:#e8edff;"><th style="padding:.3rem .5rem;text-align:left;">Ingrediente</th><th style="padding:.3rem .5rem;text-align:right;">Cantidad bruta</th><th style="padding:.3rem .5rem;text-align:right;">Unidad</th></tr>
+          ${c.ingredientes.map(i => `<tr style="border-bottom:1px solid #eee;"><td style="padding:.3rem .5rem;">${i.nombre}</td><td style="padding:.3rem .5rem;text-align:right;">${i.cantidadBruta}</td><td style="padding:.3rem .5rem;text-align:right;">${i.unidad}</td></tr>`).join('')}
+        </table>
+      </div>
+    `).join('')}
+    ${historial.length > 0 ? `
+      <h3 style="color:#764ba2;margin:1.5rem 0 .75rem;">📊 Historial de Rendimientos</h3>
+      <table style="width:100%;font-size:.85rem;border-collapse:collapse;background:#f8f9ff;border-radius:10px;overflow:hidden;">
+        <tr style="background:#667eea;color:white;"><th style="padding:.5rem;">Fecha</th><th style="padding:.5rem;">Platos</th><th style="padding:.5rem;">Rend. Real</th><th style="padding:.5rem;">Desviación</th><th style="padding:.5rem;">Estado</th></tr>
+        ${historial.map(h => {
+          const dev = (h.rendimientoReal - r.rendimientoEsperado).toFixed(1);
+          return `<tr style="border-bottom:1px solid #eee;text-align:center;">
+            <td style="padding:.4rem;">${h.fecha}</td>
+            <td style="padding:.4rem;">${h.platos}</td>
+            <td style="padding:.4rem;"><strong>${h.rendimientoReal}%</strong></td>
+            <td style="padding:.4rem;color:${parseFloat(dev)>=0?'#27ae60':'#e74c3c'}">${dev>0?'+':''}${dev}%</td>
+            <td style="padding:.4rem;">${h.sugerencia ? (h.aprobada ? '✅ Aprobada' : '⏳ Pendiente') : '—'}</td>
+          </tr>`;
+        }).join('')}
+      </table>
+    ` : ''}
+    ${historial.some(h => h.sugerencia && !h.aprobada) ? `
+      <div style="background:#fff8e1;border-radius:12px;padding:1.5rem;margin-top:1.5rem;border-left:4px solid #f39c12;">
+        <h3 style="color:#f39c12;margin-bottom:.75rem;">⚠️ Sugerencia IA Pendiente</h3>
+        <p style="margin-bottom:1rem;">${historial.filter(h=>h.sugerencia&&!h.aprobada).slice(-1)[0].sugerencia}</p>
+        <div style="display:flex;gap:.75rem;">
+          <button onclick="aprobarSugerenciaIA('${id}')" style="background:#27ae60;color:white;border:none;border-radius:8px;padding:.6rem 1.2rem;cursor:pointer;">✅ Aprobar y Aplicar</button>
+          <button onclick="rechazarSugerenciaIA('${id}')" style="background:#e74c3c;color:white;border:none;border-radius:8px;padding:.6rem 1.2rem;cursor:pointer;">❌ Rechazar</button>
+        </div>
+      </div>
+    ` : ''}
+  `;
+
+  document.getElementById('contenidoDetalleReceta').innerHTML = html;
+  document.getElementById('modalDetalleReceta').style.display = 'block';
+}
+
+// ---- REGISTRAR RENDIMIENTO ----
+function registrarRendimiento(id) {
+  const r = recetas.find(x => x.id === id);
+  const platos = prompt(`📊 ${r.nombre}\n\n¿Cuántos platos se produjeron?`);
+  if (!platos || isNaN(platos)) return;
+  const kgReales = prompt(`¿Cuántos kg reales se obtuvieron?`);
+  if (!kgReales || isNaN(kgReales)) return;
+
+  const platosNum = parseInt(platos);
+  const kgRealesNum = parseFloat(kgReales);
+  const kgEsperados = (platosNum * r.gramaje) / 1000;
+  const rendimientoReal = Math.round((kgRealesNum / kgEsperados) * 100 * 10) / 10;
+  const desviacion = rendimientoReal - r.rendimientoEsperado;
+
+  const entrada = {
+    fecha: new Date().toLocaleDateString('es-CL'),
+    platos: platosNum,
+    kgEsperados: Math.round(kgEsperados * 10) / 10,
+    kgReales: kgRealesNum,
+    rendimientoReal,
+    sugerencia: null,
+    aprobada: false
+  };
+
+  if (!r.historialRendimientos) r.historialRendimientos = [];
+  r.historialRendimientos.push(entrada);
+
+  // Si hay desviación significativa, pedir sugerencia a IA
+  if (Math.abs(desviacion) >= 3) {
+    generarSugerenciaIA(id, entrada, desviacion);
+  } else {
+    guardarRecetasStorage();
+    renderListaRecetas();
+    alert(`✅ Rendimiento registrado: ${rendimientoReal}%\n${Math.abs(desviacion) < 3 ? '✅ Dentro del rango esperado' : ''}`);
+  }
+}
+
+async function generarSugerenciaIA(id, entrada, desviacion) {
+  const r = recetas.find(x => x.id === id);
+  const historial = r.historialRendimientos || [];
+
+  const prompt = `Eres un experto en producción de cocina industrial. Analiza este caso:
+
+RECETA: ${r.nombre}
+Rendimiento esperado: ${r.rendimientoEsperado}%
+Rendimiento real obtenido: ${entrada.rendimientoReal}%
+Desviación: ${desviacion > 0 ? '+' : ''}${desviacion.toFixed(1)}%
+Platos producidos: ${entrada.platos}
+Kg esperados: ${entrada.kgEsperados} kg
+Kg reales: ${entrada.kgReales} kg
+
+COMPONENTES DE LA RECETA:
+${r.componentes.map(c => `- ${c.nombre}: ${c.gramajePorcion}gr/plato, ingredientes: ${c.ingredientes.map(i => `${i.nombre} ${i.cantidadBruta}${i.unidad}`).join(', ')}`).join('\n')}
+
+HISTORIAL ÚLTIMAS PRODUCCIONES: ${historial.slice(-5).map(h => `${h.fecha}: ${h.rendimientoReal}%`).join(', ')}
+
+Genera una explicación concisa (máximo 3 párrafos) de:
+1. Por qué ocurrió esta desviación (causas probables)
+2. Qué componente o ingrediente específico ajustar y en qué porcentaje
+3. Acción concreta a tomar para la próxima producción`;
+
+  try {
+    const apiUrl = 'https://mes-cocina-proxy.josmelayala2013.workers.dev';
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 800,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+    const sugerencia = data.content[0].text;
+
+    r.historialRendimientos[r.historialRendimientos.length - 1].sugerencia = sugerencia;
+    guardarRecetasStorage();
+    renderListaRecetas();
+
+    // Mostrar sugerencia inmediatamente
+    verDetalleReceta(id);
+
+    alert(`⚠️ Desviación detectada: ${desviacion > 0 ? '+' : ''}${desviacion.toFixed(1)}%\n\nLa IA generó una sugerencia. Revisa el detalle de la receta para aprobarla o rechazarla.`);
+  } catch(e) {
+    guardarRecetasStorage();
+    renderListaRecetas();
+    alert(`✅ Rendimiento registrado: ${entrada.rendimientoReal}%\n⚠️ No se pudo generar sugerencia IA. Verifica tu conexión.`);
+  }
+}
+
+function aprobarSugerenciaIA(id) {
+  const r = recetas.find(x => x.id === id);
+  const pendiente = r.historialRendimientos.filter(h => h.sugerencia && !h.aprobada);
+  pendiente.forEach(h => h.aprobada = true);
+
+  // Actualizar rendimiento esperado con promedio de últimos 3
+  const ultimos = r.historialRendimientos.slice(-3);
+  const promedio = ultimos.reduce((s, h) => s + h.rendimientoReal, 0) / ultimos.length;
+  r.rendimientoEsperado = Math.round(promedio * 10) / 10;
+
+  guardarRecetasStorage();
+  document.getElementById('modalDetalleReceta').style.display = 'none';
+  renderListaRecetas();
+  alert(`✅ Sugerencia aprobada. Rendimiento esperado actualizado a ${r.rendimientoEsperado}%`);
+}
+
+function rechazarSugerenciaIA(id) {
+  const r = recetas.find(x => x.id === id);
+  r.historialRendimientos.filter(h => h.sugerencia && !h.aprobada).forEach(h => h.aprobada = true);
+  guardarRecetasStorage();
+  document.getElementById('modalDetalleReceta').style.display = 'none';
+  renderListaRecetas();
+}
+
+// ---- ANÁLISIS GENERAL IA ----
+async function analizarRendimientosIA() {
+  if (recetas.length === 0) { alert('No hay recetas cargadas aún'); return; }
+
+  const panel = document.getElementById('panelAnalisisIA');
+  const resultado = document.getElementById('resultadoAnalisisIA');
+  panel.style.display = 'block';
+  resultado.innerHTML = '🧠 Analizando rendimientos con IA... <span style="animation:spin 1s linear infinite;display:inline-block">⏳</span>';
+  panel.scrollIntoView({ behavior: 'smooth' });
+
+  const resumen = recetas.map(r => {
+    const hist = r.historialRendimientos || [];
+    const promRend = hist.length > 0 ? (hist.reduce((s,h)=>s+h.rendimientoReal,0)/hist.length).toFixed(1) : 'sin datos';
+    return `- ${r.nombre}: esperado ${r.rendimientoEsperado}%, promedio real ${promRend}%, ${hist.length} producciones registradas`;
+  }).join('\n');
+
+  const prompt = `Eres un experto en Lean Manufacturing aplicado a cocina industrial. Analiza el siguiente resumen de rendimientos de producción:
+
+${resumen}
+
+Proporciona:
+1. Un diagnóstico general del estado de los rendimientos
+2. Las 3 recetas con mayor desviación y sus causas probables
+3. Recomendaciones específicas de mejora para cada receta problemática
+4. Una conclusión con los próximos pasos prioritarios
+
+Sé específico y práctico. Usa datos concretos del resumen.`;
+
+  try {
+    const apiUrl = 'https://mes-cocina-proxy.josmelayala2013.workers.dev';
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1500,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+    resultado.innerHTML = data.content[0].text.replace(/\n/g, '<br>');
+  } catch(e) {
+    resultado.innerHTML = '❌ Error al conectar con la IA. Verifica tu conexión.';
+  }
+}
+
+// ---- IMPORTAR EXCEL ----
+function importarRecetasExcel(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      // Intentar parsear como CSV simple
+      const text = e.target.result;
+      const lines = text.split('\n').filter(l => l.trim());
+      
+      if (lines.length < 2) { alert('El archivo no tiene datos suficientes'); return; }
+
+      let importadas = 0;
+      // Formato esperado CSV: Nombre,Gramaje,GramajeEnvase,RendimientoEsperado
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(',').map(c => c.trim().replace(/"/g,''));
+        if (!cols[0]) continue;
+
+        const existe = recetas.find(r => r.nombre.toLowerCase() === cols[0].toLowerCase());
+        if (!existe) {
+          recetas.push({
+            id: Date.now().toString() + i,
+            nombre: cols[0],
+            gramaje: parseFloat(cols[1]) || 0,
+            envase: parseFloat(cols[2]) || 0,
+            rendimientoEsperado: parseFloat(cols[3]) || 100,
+            componentes: [],
+            historialRendimientos: [],
+            fechaCreacion: new Date().toLocaleDateString('es-CL'),
+            version: 1,
+            observaciones: cols[4] || ''
+          });
+          importadas++;
+        }
+      }
+
+      guardarRecetasStorage();
+      renderListaRecetas();
+      alert(`✅ ${importadas} recetas importadas correctamente.\n\nPuedes editar cada receta para agregar los componentes e ingredientes detallados.`);
+    } catch(err) {
+      alert('❌ Error al leer el archivo. Asegúrate de que sea un CSV con formato: Nombre, Gramaje, GramajeEnvase, RendimientoEsperado');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// ---- EXPORTAR EXCEL ----
+function exportarRecetasExcel() {
+  if (recetas.length === 0) { alert('No hay recetas para exportar'); return; }
+
+  let csv = 'Nombre,Gramaje(gr),Envase(gr),Rendimiento Esperado(%),Componentes,Versión,Fecha Creación\n';
+  recetas.forEach(r => {
+    const comps = r.componentes.map(c => c.nombre).join(' | ');
+    csv += `"${r.nombre}",${r.gramaje},${r.envase},${r.rendimientoEsperado},"${comps}",${r.version},"${r.fechaCreacion}"\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `recetas_MES_${new Date().toLocaleDateString('es-CL').replace(/\//g,'-')}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Inicializar al cargar
+window.addEventListener('load', () => {
+  setTimeout(() => renderListaRecetas(), 500);
+});
+</script>
+
 </body>
 </html>
