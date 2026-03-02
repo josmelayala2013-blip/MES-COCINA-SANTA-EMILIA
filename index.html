@@ -4122,7 +4122,11 @@ REGLAS IMPORTANTES:
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
       <div>
-        <label style="font-weight:600;display:block;margin-bottom:.3rem;">SKU / Nombre del Plato *</label>
+        <label style="font-weight:600;display:block;margin-bottom:.3rem;">SKU *</label>
+        <input id="recetaSku" type="text" placeholder="Ej: CAJ-001" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;">
+      </div>
+      <div>
+        <label style="font-weight:600;display:block;margin-bottom:.3rem;">Nombre del Plato *</label>
         <input id="recetaNombre" type="text" placeholder="Ej: Carne al Jugo con Arroz" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;">
       </div>
       <div>
@@ -4189,6 +4193,7 @@ function abrirModalReceta(id = null) {
 
   if (id) {
     const r = recetas.find(x => x.id === id);
+    document.getElementById('recetaSku').value = r.sku || '';
     document.getElementById('recetaNombre').value = r.nombre;
     document.getElementById('recetaGramaje').value = r.gramaje;
     document.getElementById('recetaEnvase').value = r.envase || '';
@@ -4196,6 +4201,7 @@ function abrirModalReceta(id = null) {
     document.getElementById('recetaObservaciones').value = r.observaciones || '';
     componentesTemp = JSON.parse(JSON.stringify(r.componentes || []));
   } else {
+    document.getElementById('recetaSku').value = '';
     document.getElementById('recetaNombre').value = '';
     document.getElementById('recetaGramaje').value = '';
     document.getElementById('recetaEnvase').value = '';
@@ -4267,12 +4273,14 @@ function renderComponentesModal() {
 }
 
 function guardarReceta() {
+  const sku = document.getElementById('recetaSku').value.trim();
   const nombre = document.getElementById('recetaNombre').value.trim();
   const gramaje = parseFloat(document.getElementById('recetaGramaje').value) || 0;
-  if (!nombre || !gramaje) { alert('El nombre y gramaje son obligatorios'); return; }
+  if (!sku || !nombre || !gramaje) { alert('El SKU, nombre y gramaje son obligatorios'); return; }
 
   const receta = {
     id: recetaEditandoId || Date.now().toString(),
+    sku,
     nombre,
     gramaje,
     envase: parseFloat(document.getElementById('recetaEnvase').value) || 0,
@@ -4325,6 +4333,7 @@ function renderListaRecetas() {
       <div style="background:white;border-radius:15px;padding:1.5rem;box-shadow:0 4px 15px rgba(0,0,0,0.1);border-top:4px solid #667eea;position:relative;">
         ${tieneSugerencia ? '<div style="position:absolute;top:.75rem;right:.75rem;background:#f39c12;color:white;border-radius:20px;padding:.2rem .6rem;font-size:.75rem;">⚠️ Sugerencia IA</div>' : ''}
         <h3 style="color:#333;margin-bottom:.5rem;font-size:1.05rem;">${r.nombre}</h3>
+        <div style="font-size:.8rem;color:#667eea;font-weight:600;margin-bottom:.4rem;">🏷️ ${r.sku || 'Sin SKU'}</div>
         <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:.75rem;font-size:.85rem;color:#666;">
           <span>🍽️ ${r.gramaje}gr + ${r.envase}gr envase</span>
           <span>🧩 ${r.componentes.length} componentes</span>
@@ -4354,6 +4363,7 @@ function verDetalleReceta(id) {
 
   let html = `
     <h2 style="color:#667eea;margin-bottom:.5rem;">${r.nombre}</h2>
+    <div style="font-size:.9rem;color:#764ba2;font-weight:600;margin-bottom:.5rem;">🏷️ SKU: ${r.sku || 'Sin SKU'}</div>
     <div style="display:flex;gap:1rem;flex-wrap:wrap;color:#666;font-size:.9rem;margin-bottom:1.5rem;">
       <span>🍽️ <strong>${r.gramaje + r.envase}gr</strong> total (${r.gramaje}gr + ${r.envase}gr envase)</span>
       <span>🎯 Rendimiento esperado: <strong>${r.rendimientoEsperado}%</strong></span>
@@ -4578,24 +4588,25 @@ function importarRecetasExcel(event) {
       if (lines.length < 2) { alert('El archivo no tiene datos suficientes'); return; }
 
       let importadas = 0;
-      // Formato esperado CSV: Nombre,Gramaje,GramajeEnvase,RendimientoEsperado
+      // Formato CSV: SKU,Nombre,Gramaje,GramajeEnvase,RendimientoEsperado,Observaciones
       for (let i = 1; i < lines.length; i++) {
         const cols = lines[i].split(',').map(c => c.trim().replace(/"/g,''));
         if (!cols[0]) continue;
 
-        const existe = recetas.find(r => r.nombre.toLowerCase() === cols[0].toLowerCase());
+        const existe = recetas.find(r => r.sku === cols[0] || r.nombre.toLowerCase() === (cols[1]||'').toLowerCase());
         if (!existe) {
           recetas.push({
             id: Date.now().toString() + i,
-            nombre: cols[0],
-            gramaje: parseFloat(cols[1]) || 0,
-            envase: parseFloat(cols[2]) || 0,
-            rendimientoEsperado: parseFloat(cols[3]) || 100,
+            sku: cols[0],
+            nombre: cols[1] || cols[0],
+            gramaje: parseFloat(cols[2]) || 0,
+            envase: parseFloat(cols[3]) || 0,
+            rendimientoEsperado: parseFloat(cols[4]) || 100,
             componentes: [],
             historialRendimientos: [],
             fechaCreacion: new Date().toLocaleDateString('es-CL'),
             version: 1,
-            observaciones: cols[4] || ''
+            observaciones: cols[5] || ''
           });
           importadas++;
         }
@@ -4616,10 +4627,10 @@ function importarRecetasExcel(event) {
 function exportarRecetasExcel() {
   if (recetas.length === 0) { alert('No hay recetas para exportar'); return; }
 
-  let csv = 'Nombre,Gramaje(gr),Envase(gr),Rendimiento Esperado(%),Componentes,Versión,Fecha Creación\n';
+  let csv = 'SKU,Nombre,Gramaje(gr),Envase(gr),Rendimiento Esperado(%),Componentes,Versión,Fecha Creación\n';
   recetas.forEach(r => {
     const comps = r.componentes.map(c => c.nombre).join(' | ');
-    csv += `"${r.nombre}",${r.gramaje},${r.envase},${r.rendimientoEsperado},"${comps}",${r.version},"${r.fechaCreacion}"\n`;
+    csv += `"${r.sku||''}","${r.nombre}",${r.gramaje},${r.envase},${r.rendimientoEsperado},"${comps}",${r.version},"${r.fechaCreacion}"\n`;
   });
 
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
