@@ -3739,16 +3739,16 @@ REGLAS IMPORTANTES:
                     }));
 
                 // Usar proxy CORS para evitar bloqueos
-                const proxyUrl = 'https://corsproxy.io/?';
-                const apiUrl = 'https://api.anthropic.com/v1/messages';
+                const apiUrl = 'https://mes-cocina-proxy.josmelayala2013.workers.dev';
                 
-                const response = await fetch(proxyUrl + encodeURIComponent(apiUrl), {
+                
+               const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 
-                        'Content-Type': 'application/json',
-                        'x-api-key': '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',
-                        'anthropic-version': '2023-06-01',
-                        'anthropic-dangerous-direct-browser-access': 'true'
+                      
+                        
+                        
+                        
                     },
                     body: JSON.stringify({
                         model: 'claude-sonnet-4-5-20250929',
