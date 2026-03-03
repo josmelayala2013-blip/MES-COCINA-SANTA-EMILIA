@@ -4215,12 +4215,26 @@ let componentesTemp = [];
 
 function guardarRecetasStorage() {
   localStorage.setItem('mes_recetas', JSON.stringify(recetas));
-  // Sincronizar con Firebase
-  if (window.db && window.firestoreLoaded) {
-    try {
-      const { doc, setDoc } = window.firestoreFunctions;
-      setDoc(doc(window.db, 'mes-data', 'recetas'), { recetas, ultimaActualizacion: new Date().toISOString() });
-    } catch(e) { console.log('Firebase recetas:', e); }
+  sincronizarRecetasFirebase();
+}
+
+async function sincronizarRecetasFirebase(intentos = 0) {
+  // Esperar hasta 5 segundos a que Firebase esté listo
+  if (!window.db || !window.firestoreLoaded) {
+    if (intentos < 10) {
+      setTimeout(() => sincronizarRecetasFirebase(intentos + 1), 500);
+    }
+    return;
+  }
+  try {
+    const { doc, setDoc } = window.firestoreFunctions;
+    await setDoc(doc(window.db, 'mes-data', 'recetas'), { 
+      recetas, 
+      ultimaActualizacion: new Date().toISOString() 
+    });
+    console.log('✅ Recetas sincronizadas con Firebase:', recetas.length);
+  } catch(e) { 
+    console.error('❌ Error Firebase recetas:', e); 
   }
 }
 
@@ -4874,20 +4888,32 @@ function toggleEstadoOP(id) {
 // Inicializar al cargar
 window.addEventListener('load', () => {
   setTimeout(async () => {
-    // Intentar cargar recetas desde Firebase primero
-    if (window.db && window.firestoreLoaded) {
-      try {
-        const { doc, getDoc } = window.firestoreFunctions;
-        const docSnap = await getDoc(doc(window.db, 'mes-data', 'recetas'));
-        if (docSnap.exists() && docSnap.data().recetas) {
-          recetas = docSnap.data().recetas;
-          localStorage.setItem('mes_recetas', JSON.stringify(recetas));
-        }
-      } catch(e) { console.log('Cargando recetas desde localStorage'); }
-    }
+    // Intentar cargar recetas desde Firebase con reintentos
+    await cargarRecetasFirebase();
     renderListaRecetas();
-  }, 1500);
+  }, 2000);
 });
+
+async function cargarRecetasFirebase(intentos = 0) {
+  if (!window.db || !window.firestoreLoaded) {
+    if (intentos < 10) {
+      await new Promise(r => setTimeout(r, 500));
+      return cargarRecetasFirebase(intentos + 1);
+    }
+    return;
+  }
+  try {
+    const { doc, getDoc } = window.firestoreFunctions;
+    const docSnap = await getDoc(doc(window.db, 'mes-data', 'recetas'));
+    if (docSnap.exists() && docSnap.data().recetas && docSnap.data().recetas.length > 0) {
+      recetas = docSnap.data().recetas;
+      localStorage.setItem('mes_recetas', JSON.stringify(recetas));
+      console.log('✅ Recetas cargadas desde Firebase:', recetas.length);
+    }
+  } catch(e) { 
+    console.error('Error cargando recetas Firebase:', e); 
+  }
+}
 </script>
 
 </body>
