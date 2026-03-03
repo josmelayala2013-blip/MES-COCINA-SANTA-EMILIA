@@ -839,61 +839,65 @@
                 <button class="close-btn" onclick="closeModal('iniciarProduccion')">&times;</button>
             </div>
 
-            <!-- MODO: Vincular con OP -->
-            <div id="modoOP" style="margin-bottom:1.5rem;">
-                <div class="alert alert-info">🔗 Selecciona una OP del planificador para asignación automática, o ingresa manualmente.</div>
-                <div class="form-group">
-                    <label>🔗 Vincular con OP del Planificador:</label>
-                    <select id="opVinculadaSelect" onchange="cargarPlanDesdeOP()" style="width:100%;padding:.6rem;border-radius:8px;border:2px solid #c7d2fe;font-size:1rem;background:#f0f4ff;">
-                        <option value="">— Sin vincular (ingreso manual) —</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- PLAN AUTOMÁTICO POR OP -->
-            <div id="planAutoOP" style="display:none;margin-bottom:1.5rem;">
-                <h3 style="color:#667eea;margin-bottom:1rem;">⚙️ Asignación de Equipos por Componente</h3>
-                <div id="tablaAsignacionEquipos"></div>
-                <button onclick="iniciarTodosEquiposOP()" style="width:100%;background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;border-radius:10px;padding:1rem;font-size:1.1rem;font-weight:700;cursor:pointer;margin-top:.75rem;">
-                    🚀 INICIAR TODOS LOS EQUIPOS
+            <!-- TABS -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1.5rem;">
+                <button id="tabOP" onclick="switchModoProduccion('op')"
+                    style="padding:.75rem;border-radius:8px;border:2px solid #667eea;background:#667eea;color:white;font-weight:700;cursor:pointer;font-size:.95rem;">
+                    🔗 Vincular con OP
+                </button>
+                <button id="tabManual" onclick="switchModoProduccion('manual')"
+                    style="padding:.75rem;border-radius:8px;border:2px solid #667eea;background:white;color:#667eea;font-weight:700;cursor:pointer;font-size:.95rem;">
+                    ✏️ Producción Manual
                 </button>
             </div>
 
-            <!-- MODO MANUAL -->
-            <div id="modoManual">
-                <div style="border-top:2px dashed #e5e7eb;padding-top:1rem;margin-top:1rem;">
-                    <p style="color:#999;font-size:.9rem;margin-bottom:1rem;">— O ingresa manualmente —</p>
-                    <div class="form-group">
-                        <label>1️⃣ N° Orden de Producción (OP):</label>
-                        <input type="text" id="numeroOP" placeholder="Ej: OP-2025-001" required>
-                    </div>
-                    <div class="form-group">
-                        <label>2️⃣ Selecciona el Equipo:</label>
-                        <div class="equipment-selector" id="equipmentSelector"></div>
-                    </div>
-                    <div class="form-group">
-                        <label>3️⃣ Producto:</label>
-                        <select id="productoSelect" required>
-                            <option value="">Selecciona un producto...</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>4️⃣ Kg Programados:</label>
-                        <input type="number" id="kgProgramados" placeholder="Ej: 120" min="1" step="0.1" required>
-                    </div>
-                    <div class="form-group">
-                        <label>5️⃣ Operador/Maestro:</label>
-                        <select id="operadorSelect" required>
-                            <option value="">Selecciona operador...</option>
-                            <option value="Maestro 1">Maestro 1</option>
-                            <option value="Maestro 2">Maestro 2</option>
-                            <option value="Ayudante 1">Ayudante 1</option>
-                        </select>
-                    </div>
-                    <button class="btn btn-primary btn-full" onclick="iniciarProduccion()">
-                        🚀 INICIAR PRODUCCIÓN
-                    </button>
+            <!-- MODO OP VINCULADA -->
+            <div id="modoOP">
+                <div class="form-group">
+                    <label>Selecciona la OP del día:</label>
+                    <select id="opVinculadaSelect" onchange="cargarPlanDesdeOP()" style="width:100%;padding:.6rem;border-radius:8px;border:2px solid #c7d2fe;font-size:1rem;background:#f0f4ff;">
+                        <option value="">— Selecciona una OP —</option>
+                    </select>
                 </div>
+                <div id="planAutoOP" style="display:none;">
+                    <h3 style="color:#667eea;margin-bottom:1rem;">⚙️ Asignación de Equipos por Componente</h3>
+                    <div id="tablaAsignacionEquipos"></div>
+                </div>
+            </div>
+
+            <!-- MODO MANUAL -->
+            <div id="modoManual" style="display:none;">
+                <div class="form-group">
+                    <label>1️⃣ N° OP (opcional):</label>
+                    <input type="text" id="numeroOP" placeholder="Ej: OP-2025-001 (o dejar vacío si es producción aislada)">
+                </div>
+                <div class="form-group">
+                    <label>2️⃣ Selecciona el Equipo:</label>
+                    <div class="equipment-selector" id="equipmentSelector"></div>
+                </div>
+                <div class="form-group">
+                    <label>3️⃣ Preparación:</label>
+                    <select id="productoSelect" required>
+                        <option value="">Selecciona una preparación...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>4️⃣ Kg Programados:</label>
+                    <input type="number" id="kgProgramados" placeholder="Ej: 120" min="1" step="0.1" required>
+                </div>
+                <div class="form-group">
+                    <label>5️⃣ Operador/Maestro:</label>
+                    <select id="operadorSelect" required>
+                        <option value="">Selecciona operador...</option>
+                        <option value="Maestro 1">Maestro 1</option>
+                        <option value="Maestro 2">Maestro 2</option>
+                        <option value="Ayudante 1">Ayudante 1</option>
+                        <option value="Ayudante 2">Ayudante 2</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary btn-full" onclick="iniciarProduccion()">
+                    🚀 INICIAR PRODUCCIÓN
+                </button>
             </div>
         </div>
     </div>
@@ -1918,7 +1922,86 @@
         // INICIAR PRODUCCIÓN
         // ============================================
         
-        function cargarSelectorOPsModal() {
+        function switchModoProduccion(modo) {
+            const modoOP = document.getElementById('modoOP');
+            const modoManual = document.getElementById('modoManual');
+            const tabOP = document.getElementById('tabOP');
+            const tabManual = document.getElementById('tabManual');
+
+            if (modo === 'op') {
+                modoOP.style.display = 'block';
+                modoManual.style.display = 'none';
+                tabOP.style.background = '#667eea';
+                tabOP.style.color = 'white';
+                tabManual.style.background = 'white';
+                tabManual.style.color = '#667eea';
+            } else {
+                modoOP.style.display = 'none';
+                modoManual.style.display = 'block';
+                tabManual.style.background = '#667eea';
+                tabManual.style.color = 'white';
+                tabOP.style.background = 'white';
+                tabOP.style.color = '#667eea';
+                renderEquipmentSelector();
+                renderProductos();
+            }
+        }
+
+        function cargarPlanDesdeOP() {
+            const opId = document.getElementById('opVinculadaSelect').value;
+            const planDiv = document.getElementById('planAutoOP');
+
+            if (!opId) { planDiv.style.display = 'none'; return; }
+
+            const op = ordenesProduccion.find(x => x.id === opId);
+            if (!op) return;
+
+            planDiv.style.display = 'block';
+
+            const tabla = document.getElementById('tablaAsignacionEquipos');
+            const asignaciones = op.componentes.map((comp, idx) => {
+                const tipoEquipo = mapearTipoEquipo(comp.equipoSugerido || sugerirEquipoPorComponente(comp.nombre, comp.kgTerminados));
+                const equiposDisp = equipos.filter(e => e.tipo === tipoEquipo && e.estado === 'disponible');
+                const equiposOcup = equipos.filter(e => e.tipo === tipoEquipo && e.estado !== 'disponible');
+                const hayDisponible = equiposDisp.length > 0;
+                return { comp, tipoEquipo, equiposDisp, equiposOcup, hayDisponible, idx };
+            });
+
+            tabla.innerHTML = asignaciones.map(({ comp, equiposDisp, equiposOcup, hayDisponible, idx }) => `
+                <div style="background:${hayDisponible ? '#f0fff4' : '#fff8f0'};border-radius:10px;padding:1rem;margin-bottom:.75rem;border-left:4px solid ${hayDisponible ? '#10b981' : '#f59e0b'};">
+                    <div style="font-weight:700;color:#333;margin-bottom:.6rem;">${comp.nombre} — <span style="color:#10b981;">${comp.kgTerminados} kg</span></div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:.75rem;align-items:end;">
+                        <div>
+                            <label style="font-size:.8rem;color:#666;display:block;margin-bottom:.3rem;">⚙️ Equipo:</label>
+                            <select id="equipoComp_${idx}" style="width:100%;padding:.4rem .6rem;border-radius:6px;border:2px solid ${hayDisponible ? '#10b981' : '#f59e0b'};font-size:.9rem;background:white;">
+                                ${hayDisponible
+                                    ? equiposDisp.map(e => `<option value="${e.id}">${e.nombre} (${e.capacidad}) ✅</option>`).join('')
+                                    : `<option value="" disabled>❌ Sin equipos disponibles</option>`}
+                                ${equiposOcup.map(e => `<option value="${e.id}" disabled>${e.nombre} 🔴 Ocupado</option>`).join('')}
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size:.8rem;color:#666;display:block;margin-bottom:.3rem;">👤 Operador:</label>
+                            <select id="operadorComp_${idx}" style="width:100%;padding:.4rem .6rem;border-radius:6px;border:2px solid #c7d2fe;font-size:.9rem;background:white;">
+                                <option value="">Selecciona...</option>
+                                <option>Maestro 1</option>
+                                <option>Maestro 2</option>
+                                <option>Ayudante 1</option>
+                                <option>Ayudante 2</option>
+                            </select>
+                        </div>
+                        <button id="btnIniciarComp_${idx}" onclick="iniciarComponenteOP(${idx})"
+                            style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:8px;padding:.5rem 1rem;cursor:pointer;font-size:.9rem;font-weight:600;white-space:nowrap;">
+                            ▶️ Iniciar
+                        </button>
+                    </div>
+                    <div id="estadoComp_${idx}" style="margin-top:.5rem;font-size:.8rem;color:#999;"></div>
+                </div>
+            `).join('');
+
+            window._asignacionesOP = asignaciones;
+            window._opActualId = opId;
+        }
             const sel = document.getElementById('opVinculadaSelect');
             if (!sel) return;
             const hoy = getHoy();
@@ -1929,16 +2012,6 @@
             });
         }
 
-        function cargarPlanDesdeOP() {
-            const opId = document.getElementById('opVinculadaSelect').value;
-            const planDiv = document.getElementById('planAutoOP');
-            const modoManual = document.getElementById('modoManual');
-
-            if (!opId) {
-                planDiv.style.display = 'none';
-                modoManual.style.display = 'block';
-                return;
-            }
 
             const op = ordenesProduccion.find(x => x.id === opId);
             if (!op) return;
@@ -1961,7 +2034,7 @@
             tabla.innerHTML = asignaciones.map(({ comp, equiposDisp, equiposOcup, hayDisponible, idx }) => `
                 <div style="background:${hayDisponible ? '#f0fff4' : '#fff8f0'};border-radius:10px;padding:1rem;margin-bottom:.75rem;border-left:4px solid ${hayDisponible ? '#10b981' : '#f59e0b'};">
                     <div style="font-weight:700;color:#333;margin-bottom:.6rem;">${comp.nombre} — <span style="color:#10b981;">${comp.kgTerminados} kg</span></div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:.75rem;align-items:end;">
                         <div>
                             <label style="font-size:.8rem;color:#666;display:block;margin-bottom:.3rem;">⚙️ Equipo:</label>
                             <select id="equipoComp_${idx}" style="width:100%;padding:.4rem .6rem;border-radius:6px;border:2px solid ${hayDisponible ? '#10b981' : '#f59e0b'};font-size:.9rem;background:white;">
@@ -1982,7 +2055,12 @@
                                 <option>Ayudante 2</option>
                             </select>
                         </div>
+                        <button id="btnIniciarComp_${idx}" onclick="iniciarComponenteOP(${idx})" 
+                            style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:8px;padding:.5rem 1rem;cursor:pointer;font-size:.9rem;font-weight:600;white-space:nowrap;">
+                            ▶️ Iniciar
+                        </button>
                     </div>
+                    <div id="estadoComp_${idx}" style="margin-top:.5rem;font-size:.8rem;color:#999;"></div>
                 </div>
             `).join('');
 
@@ -1996,6 +2074,57 @@
             if (s.includes('horno')) return 'horno';
             if (s.includes('marmita')) return 'marmita';
             return 'sartenBasculante';
+        }
+
+        function iniciarComponenteOP(idx) {
+            const equipoId = parseInt(document.getElementById(`equipoComp_${idx}`)?.value);
+            const operador = document.getElementById(`operadorComp_${idx}`)?.value;
+            const estadoDiv = document.getElementById(`estadoComp_${idx}`);
+            const btnIniciar = document.getElementById(`btnIniciarComp_${idx}`);
+
+            if (!equipoId) { alert('Selecciona un equipo'); return; }
+            if (!operador) { alert('Selecciona un operador'); return; }
+
+            const op = ordenesProduccion.find(x => x.id === window._opActualId);
+            if (!op) return;
+
+            const comp = window._asignacionesOP[idx].comp;
+            const equipo = equipos.find(e => e.id === equipoId);
+
+            if (!equipo || equipo.estado !== 'disponible') {
+                alert(`❌ ${equipo?.nombre || 'Equipo'} no está disponible`); return;
+            }
+
+            equipo.estado = 'activa';
+            equipo.produccion = {
+                numeroOP: op.numeroOp || op.nombre,
+                producto: `${comp.nombre} — ${op.nombre}`,
+                kgProgramados: comp.kgTerminados,
+                operador,
+                inicio: new Date().toISOString(),
+                fase: 'coccion',
+                opVinculadaId: op.id,
+                componente: comp.nombre
+            };
+
+            // Marcar OP en producción
+            if (op.estado === 'pendiente') {
+                op.estado = 'en-produccion';
+                op.inicioProduccion = new Date().toISOString();
+                guardarOPs();
+            }
+
+            guardarDatos();
+            renderEquipos();
+            updateStats();
+
+            // Actualizar UI del botón
+            btnIniciar.disabled = true;
+            btnIniciar.style.background = '#10b981';
+            btnIniciar.textContent = '✅ Iniciado';
+            estadoDiv.innerHTML = `<span style="color:#10b981;font-weight:600;">✅ ${equipo.nombre} — ${operador} — ${new Date().toLocaleTimeString('es-CL')}</span>`;
+
+            mostrarNotificacion(`✅ ${comp.nombre} iniciado en ${equipo.nombre}`, 'success');
         }
 
         function iniciarTodosEquiposOP() {
@@ -2326,14 +2455,31 @@
             proceso.tiempoAbatimientoFormateado = formatTime(tiempoAbatimiento);
             proceso.finalizadoCompleto = new Date().toISOString();
 
-            // Marcar OP vinculada como completada automáticamente
+            // Marcar OP vinculada como completada solo cuando todos los componentes terminen
             if (proceso.opVinculadaId) {
                 const op = ordenesProduccion.find(x => x.id === proceso.opVinculadaId);
                 if (op) {
-                    op.estado = 'completada';
-                    op.kgRealesFinales = kgFinales;
-                    op.finProduccion = new Date().toISOString();
-                    guardarOPs();
+                    // Verificar si quedan equipos activos vinculados a esta OP
+                    const equiposActivosOP = equipos.filter(e => 
+                        e.produccion && e.produccion.opVinculadaId === proceso.opVinculadaId
+                    );
+                    const procesosActivosOP = procesosAbatimiento.filter((p, i) => 
+                        p.opVinculadaId === proceso.opVinculadaId && i !== procesoActual
+                    );
+
+                    if (equiposActivosOP.length === 0 && procesosActivosOP.length === 0) {
+                        // Todos los componentes terminaron → OP completada
+                        op.estado = 'completada';
+                        op.kgRealesFinales = kgFinales;
+                        op.finProduccion = new Date().toISOString();
+                        guardarOPs();
+                        setTimeout(() => renderListaOPs(), 500);
+                        mostrarNotificacion(`✅ OP ${op.numeroOp || op.nombre} completada`, 'success');
+                    } else {
+                        // Aún hay componentes en curso
+                        op.kgRealesFinales = (op.kgRealesFinales || 0) + kgFinales;
+                        guardarOPs();
+                    }
                 }
             }
 
@@ -5088,8 +5234,8 @@ function renderListaOPs() {
   const cont = document.getElementById('listaOPs');
   if (!cont) return;
 
-  const fecha = document.getElementById('fechaPlan')?.value || '';
-  const ops = fecha ? ordenesProduccion.filter(op => op.fecha === fecha) : ordenesProduccion;
+  const fecha = document.getElementById('fechaPlan')?.value || getHoy();
+  const ops = ordenesProduccion.filter(op => op.fecha === fecha);
 
   if (ops.length === 0) {
     cont.innerHTML = '<div style="text-align:center;color:#999;padding:1.5rem;">No hay Órdenes de Producción para esta fecha. Agrega una arriba.</div>';
@@ -5108,7 +5254,7 @@ function renderListaOPs() {
         <div>
           <div style="font-weight:700;font-size:1rem;color:#333;">${op.sku ? '<span style="color:#667eea">'+op.sku+'</span> — ' : ''}${op.nombre}</div>
           <div style="font-size:.85rem;color:#666;margin-top:.2rem;">
-            🧾 <strong>${op.numeroOp || 'Sin N° OP'}</strong> · 📅 ${op.fecha} · ${op.platos.toLocaleString()} platos × ${op.gramaje}gr · 📦 <strong>${op.kgTotalesTerminados} kg</strong> totales${op.equipoAsignado ? ' · ⚙️ '+op.equipoAsignado : ''}
+            🧾 <strong>${op.numeroOp || 'Sin N° OP'}</strong> · 📅 ${op.fecha} · ${op.platos.toLocaleString()} platos × ${op.gramaje}gr · 📦 <strong>${op.kgTotalesTerminados} kg</strong> totales
           </div>
         </div>
         <div style="display:flex;gap:.5rem;align-items:center;">
@@ -5119,17 +5265,20 @@ function renderListaOPs() {
       </div>
       ${op.componentes.length > 0 ? `
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.5rem;">
-        ${op.componentes.map(c => `
-          <div style="background:white;border-radius:8px;padding:.6rem .75rem;border-left:3px solid #667eea;">
+        ${op.componentes.map(c => {
+          const equipoSugerido = c.equipoSugerido || sugerirEquipoPorComponente(c.nombre, c.kgTerminados);
+          const equipoEnCurso = equipos.find(e => e.produccion && e.produccion.opVinculadaId === op.id && e.produccion.componente === c.nombre);
+          return `
+          <div style="background:white;border-radius:8px;padding:.6rem .75rem;border-left:3px solid ${equipoEnCurso ? '#10b981' : '#667eea'};">
             <div style="font-size:.8rem;color:#666;font-weight:600;">${c.nombre}</div>
-            <div style="font-weight:700;color:#10b981;font-size:1rem;">${c.kgTerminados} kg terminados</div>
-            <div style="font-size:.75rem;background:#e8edff;color:#4f46e5;padding:.15rem .4rem;border-radius:4px;display:inline-block;margin:.2rem 0;">⚙️ ${c.equipoSugerido || sugerirEquipoPorComponente(c.nombre, c.kgTerminados)}</div>
+            <div style="font-weight:700;color:#10b981;font-size:1rem;">${c.kgTerminados} kg</div>
+            <div style="font-size:.75rem;background:#e8edff;color:#4f46e5;padding:.15rem .4rem;border-radius:4px;display:inline-block;margin:.2rem 0;">⚙️ ${equipoEnCurso ? equipoEnCurso.nombre+' 🟢' : equipoSugerido}</div>
             <div style="font-size:.75rem;color:#999;margin-top:.2rem;">${c.ingredientes.map(i=>i.nombre+': '+i.cantidadTotal+' '+i.unidad).join(' · ')}</div>
-          </div>
-        `).join('')}
+          </div>`;
+        }).join('')}
       </div>` : ''}
     </div>
-  `}).join('');
+  `;}).join('');
 }
 
 function toggleEstadoOP(id) {
