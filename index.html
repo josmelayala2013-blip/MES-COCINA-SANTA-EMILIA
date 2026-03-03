@@ -3138,7 +3138,7 @@
             if (tabName === 'historial') cargarHistorialFecha();
             else if (tabName === 'procesos') renderProcesosActivos();
             else if (tabName === 'analytics') actualizarAnalytics();
-            else if (tabName === 'planificador') { initPlanificador(); renderSelectorPlanProductos(); renderPlanVisual(); cargarSelectorOPs(); renderListaOPs(); }
+            else if (tabName === 'planificador') { initPlanificador(); renderSelectorPlanProductos(); renderPlanVisual(); setTimeout(() => { cargarSelectorOPs(); renderListaOPs(); }, 1500); }
             else if (tabName === 'ejecutivo') actualizarVistaEjecutivo();
         }
 
