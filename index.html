@@ -447,6 +447,7 @@
             <button class="nav-tab" onclick="changeTab('analytics')">📈 Analytics</button>
             <button class="nav-tab" onclick="changeTab('productos')">🍽️ Productos</button>
             <button class="nav-tab" onclick="changeTab('recetas')">📋 Recetas</button>
+            <button class="nav-tab" onclick="changeTab('personal')">👥 Personal</button>
         </div>
 
         <!-- TAB: DASHBOARD -->
@@ -889,10 +890,6 @@
                     <label>5️⃣ Operador/Maestro:</label>
                     <select id="operadorSelect" required>
                         <option value="">Selecciona operador...</option>
-                        <option value="Maestro 1">Maestro 1</option>
-                        <option value="Maestro 2">Maestro 2</option>
-                        <option value="Ayudante 1">Ayudante 1</option>
-                        <option value="Ayudante 2">Ayudante 2</option>
                     </select>
                 </div>
                 <button class="btn btn-primary btn-full" onclick="iniciarProduccion()">
@@ -972,6 +969,12 @@
             </div>
             <div id="envasadoInfo"></div>
             <div class="form-group">
+                <label>Operario Envasado:</label>
+                <select id="operadorEnvasado" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;">
+                    <option value="">Selecciona operario...</option>
+                </select>
+            </div>
+            <div class="form-group">
                 <label>Kg Enviados a Abatimiento:</label>
                 <input type="number" id="kgAbatimiento" placeholder="Ej: 115" min="0" step="0.1" required>
             </div>
@@ -993,6 +996,12 @@
                 <button class="close-btn" onclick="closeModal('finalizarAbatimiento')">&times;</button>
             </div>
             <div id="abatimientoInfo"></div>
+            <div class="form-group">
+                <label>Operario Abatimiento:</label>
+                <select id="operadorAbatimiento" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;">
+                    <option value="">Selecciona operario...</option>
+                </select>
+            </div>
             <div class="form-group">
                 <label>Kg Finales:</label>
                 <input type="number" id="kgFinales" placeholder="Ej: 113" min="0" step="0.1" required>
@@ -1848,6 +1857,16 @@
                     renderEquipmentSelector();
                     renderProductos();
                     cargarSelectorOPsModal();
+                    const sel = document.getElementById('operadorSelect');
+                    if (sel) sel.innerHTML = '<option value="">Selecciona operador...</option>' + getOpcionesPersonal('cocina');
+                }
+                if (modalName === 'finalizarEnvasado') {
+                    const sel = document.getElementById('operadorEnvasado');
+                    if (sel) sel.innerHTML = '<option value="">Selecciona operario...</option>' + getOpcionesPersonal('envasado');
+                }
+                if (modalName === 'finalizarAbatimiento') {
+                    const sel = document.getElementById('operadorAbatimiento');
+                    if (sel) sel.innerHTML = '<option value="">Selecciona operario...</option>' + getOpcionesPersonal('abatimiento');
                 }
             }
         }
@@ -1984,10 +2003,7 @@
                             <label style="font-size:.8rem;color:#666;display:block;margin-bottom:.3rem;">👤 Operador:</label>
                             <select id="operadorComp_${idx}" style="width:100%;padding:.4rem .6rem;border-radius:6px;border:2px solid #c7d2fe;font-size:.9rem;background:white;">
                                 <option value="">Selecciona...</option>
-                                <option>Maestro 1</option>
-                                <option>Maestro 2</option>
-                                <option>Ayudante 1</option>
-                                <option>Ayudante 2</option>
+                                ${getOpcionesPersonal('cocina')}
                             </select>
                         </div>
                         <button id="btnIniciarComp_${idx}" onclick="iniciarComponenteOP(${idx})"
@@ -3415,6 +3431,11 @@
             if (tabName === 'historial') cargarHistorialFecha();
             else if (tabName === 'procesos') renderProcesosActivos();
             else if (tabName === 'analytics') actualizarAnalytics();
+            else if (tabName === 'personal') { 
+                renderListaPersonal('cocina'); 
+                renderListaPersonal('envasado'); 
+                renderListaPersonal('abatimiento'); 
+            }
             else if (tabName === 'planificador') { initPlanificador(); renderSelectorPlanProductos(); renderPlanVisual(); setTimeout(() => { cargarSelectorOPs(); renderListaOPs(); }, 1500); }
             else if (tabName === 'ejecutivo') actualizarVistaEjecutivo();
         }
@@ -4475,6 +4496,63 @@ REGLAS IMPORTANTES:
   </div>
 </div>
 
+<!-- TAB: PERSONAL -->
+<div id="personal" class="tab-content">
+  <div class="analytics-section">
+    <h2 style="color:#667eea;margin-bottom:.5rem;">👥 Gestión de Personal</h2>
+    <p style="color:#666;margin-bottom:1.5rem;">Administra el personal por área. Los nombres aparecerán automáticamente en todos los selectores del MES.</p>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;">
+
+      <!-- COCINA -->
+      <div style="background:white;border-radius:15px;padding:1.5rem;box-shadow:0 4px 15px rgba(0,0,0,0.08);border-top:4px solid #667eea;">
+        <h3 style="color:#667eea;margin-bottom:1rem;">👨‍🍳 Cocina</h3>
+        <div id="listaPersonalCocina"></div>
+        <div style="display:flex;gap:.5rem;margin-top:1rem;">
+          <input id="nuevoPersonalCocina" type="text" placeholder="Nombre del cocinero..." 
+            style="flex:1;padding:.6rem;border-radius:8px;border:2px solid #c7d2fe;font-size:.9rem;"
+            onkeypress="if(event.key==='Enter') agregarPersonal('cocina')">
+          <button onclick="agregarPersonal('cocina')" 
+            style="background:#667eea;color:white;border:none;border-radius:8px;padding:.6rem 1rem;cursor:pointer;font-weight:600;">
+            ➕
+          </button>
+        </div>
+      </div>
+
+      <!-- ENVASADO -->
+      <div style="background:white;border-radius:15px;padding:1.5rem;box-shadow:0 4px 15px rgba(0,0,0,0.08);border-top:4px solid #10b981;">
+        <h3 style="color:#10b981;margin-bottom:1rem;">📦 Envasado</h3>
+        <div id="listaPersonalEnvasado"></div>
+        <div style="display:flex;gap:.5rem;margin-top:1rem;">
+          <input id="nuevoPersonalEnvasado" type="text" placeholder="Nombre del operario..." 
+            style="flex:1;padding:.6rem;border-radius:8px;border:2px solid #a7f3d0;font-size:.9rem;"
+            onkeypress="if(event.key==='Enter') agregarPersonal('envasado')">
+          <button onclick="agregarPersonal('envasado')" 
+            style="background:#10b981;color:white;border:none;border-radius:8px;padding:.6rem 1rem;cursor:pointer;font-weight:600;">
+            ➕
+          </button>
+        </div>
+      </div>
+
+      <!-- ABATIMIENTO -->
+      <div style="background:white;border-radius:15px;padding:1.5rem;box-shadow:0 4px 15px rgba(0,0,0,0.08);border-top:4px solid #3b82f6;">
+        <h3 style="color:#3b82f6;margin-bottom:1rem;">❄️ Abatimiento</h3>
+        <div id="listaPersonalAbatimiento"></div>
+        <div style="display:flex;gap:.5rem;margin-top:1rem;">
+          <input id="nuevoPersonalAbatimiento" type="text" placeholder="Nombre del operario..." 
+            style="flex:1;padding:.6rem;border-radius:8px;border:2px solid #bfdbfe;font-size:.9rem;"
+            onkeypress="if(event.key==='Enter') agregarPersonal('abatimiento')">
+          <button onclick="agregarPersonal('abatimiento')" 
+            style="background:#3b82f6;color:white;border:none;border-radius:8px;padding:.6rem 1rem;cursor:pointer;font-weight:600;">
+            ➕
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <!-- Modal Detalle Receta -->
 <div id="modalDetalleReceta" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;overflow-y:auto;">
   <div style="background:white;max-width:900px;margin:2rem auto;border-radius:20px;padding:2rem;position:relative;">
@@ -5238,10 +5316,131 @@ function toggleEstadoOP(id) {
   }
 }
 
+// ============================================
+// MÓDULO DE PERSONAL
+// ============================================
+
+let personal = JSON.parse(localStorage.getItem('mes_personal') || JSON.stringify({
+  cocina: ['Maestro 1', 'Maestro 2', 'Ayudante 1'],
+  envasado: ['Operario Env 1', 'Operario Env 2'],
+  abatimiento: ['Operario Abat 1']
+}));
+
+function guardarPersonal() {
+  localStorage.setItem('mes_personal', JSON.stringify(personal));
+  if (window.db && window.firestoreLoaded) {
+    try {
+      const { doc, setDoc } = window.firestoreFunctions;
+      setDoc(doc(window.db, 'mes-data', 'personal'), { personal, ultimaActualizacion: new Date().toISOString() });
+    } catch(e) {}
+  }
+  // Actualizar todos los selectores de operador abiertos
+  actualizarSelectoresPersonal();
+}
+
+async function cargarPersonalFirebase() {
+  if (!window.db || !window.firestoreLoaded) return;
+  try {
+    const { doc, getDoc } = window.firestoreFunctions;
+    const docSnap = await getDoc(doc(window.db, 'mes-data', 'personal'));
+    if (docSnap.exists() && docSnap.data().personal) {
+      personal = docSnap.data().personal;
+      localStorage.setItem('mes_personal', JSON.stringify(personal));
+    }
+  } catch(e) {}
+}
+
+function renderListaPersonal(area) {
+  const cont = document.getElementById(`listaPersonal${area.charAt(0).toUpperCase() + area.slice(1)}`);
+  if (!cont) return;
+  const colores = { cocina: '#667eea', envasado: '#10b981', abatimiento: '#3b82f6' };
+  const color = colores[area];
+  const lista = personal[area] || [];
+
+  if (lista.length === 0) {
+    cont.innerHTML = '<div style="color:#999;font-size:.9rem;padding:.5rem 0;">Sin personal registrado</div>';
+    return;
+  }
+
+  cont.innerHTML = lista.map((nombre, idx) => `
+    <div style="display:flex;align-items:center;gap:.5rem;padding:.5rem 0;border-bottom:1px solid #f3f4f6;">
+      <div id="view_${area}_${idx}" style="flex:1;font-size:.95rem;color:#333;">${nombre}</div>
+      <input id="edit_${area}_${idx}" type="text" value="${nombre}" 
+        style="flex:1;padding:.3rem .5rem;border-radius:6px;border:1px solid #c7d2fe;display:none;font-size:.9rem;"
+        onkeypress="if(event.key==='Enter') guardarEdicionPersonal('${area}',${idx})">
+      <button onclick="editarPersonal('${area}',${idx})" id="btnEdit_${area}_${idx}"
+        style="background:#e8edff;color:#667eea;border:none;border-radius:6px;padding:.3rem .5rem;cursor:pointer;font-size:.8rem;">✏️</button>
+      <button onclick="guardarEdicionPersonal('${area}',${idx})" id="btnSave_${area}_${idx}"
+        style="background:#d1fae5;color:#065f46;border:none;border-radius:6px;padding:.3rem .5rem;cursor:pointer;font-size:.8rem;display:none;">💾</button>
+      <button onclick="eliminarPersonal('${area}',${idx})"
+        style="background:#ffe8e8;color:#e74c3c;border:none;border-radius:6px;padding:.3rem .5rem;cursor:pointer;font-size:.8rem;">🗑️</button>
+    </div>
+  `).join('');
+}
+
+function editarPersonal(area, idx) {
+  document.getElementById(`view_${area}_${idx}`).style.display = 'none';
+  document.getElementById(`edit_${area}_${idx}`).style.display = 'block';
+  document.getElementById(`btnEdit_${area}_${idx}`).style.display = 'none';
+  document.getElementById(`btnSave_${area}_${idx}`).style.display = 'block';
+  document.getElementById(`edit_${area}_${idx}`).focus();
+}
+
+function guardarEdicionPersonal(area, idx) {
+  const val = document.getElementById(`edit_${area}_${idx}`).value.trim();
+  if (!val) return;
+  personal[area][idx] = val;
+  guardarPersonal();
+  renderListaPersonal(area);
+}
+
+function agregarPersonal(area) {
+  const input = document.getElementById(`nuevoPersonal${area.charAt(0).toUpperCase() + area.slice(1)}`);
+  const nombre = input.value.trim();
+  if (!nombre) return;
+  if (personal[area].includes(nombre)) { alert('Ese nombre ya existe'); return; }
+  personal[area].push(nombre);
+  guardarPersonal();
+  renderListaPersonal(area);
+  input.value = '';
+}
+
+function eliminarPersonal(area, idx) {
+  if (!confirm(`¿Eliminar a ${personal[area][idx]}?`)) return;
+  personal[area].splice(idx, 1);
+  guardarPersonal();
+  renderListaPersonal(area);
+}
+
+function actualizarSelectoresPersonal() {
+  // Actualizar selectores de operador en modales abiertos
+  const selectoresCocina = ['operadorSelect', ...Array.from({length:10}, (_,i) => `operadorComp_${i}`)];
+  selectoresCocina.forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const valorActual = sel.value;
+    sel.innerHTML = '<option value="">Selecciona operador...</option>';
+    (personal.cocina || []).forEach(n => sel.innerHTML += `<option value="${n}">${n}</option>`);
+    sel.value = valorActual;
+  });
+
+  const selectoresEnvasado = document.querySelectorAll('.selector-envasado');
+  selectoresEnvasado.forEach(sel => {
+    const valorActual = sel.value;
+    sel.innerHTML = '<option value="">Selecciona operario...</option>';
+    (personal.envasado || []).forEach(n => sel.innerHTML += `<option value="${n}">${n}</option>`);
+    sel.value = valorActual;
+  });
+}
+
+function getOpcionesPersonal(area) {
+  return (personal[area] || []).map(n => `<option value="${n}">${n}</option>`).join('');
+}
+
 // Inicializar al cargar
 window.addEventListener('load', () => {
   setTimeout(async () => {
-    // Intentar cargar recetas desde Firebase con reintentos
+    await cargarPersonalFirebase();
     await cargarRecetasFirebase();
     renderListaRecetas();
   }, 2000);
