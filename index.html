@@ -4894,27 +4894,45 @@ function previewOP() {
 
 function sugerirEquipoPorComponente(nombreComponente, kgTerminados) {
   const n = nombreComponente.toLowerCase();
-  // Proteínas → Horno Rational
-  if (n.includes('prote') || n.includes('pollo lamin') || n.includes('asad') || n.includes('horno')) {
+
+  // HORNO RATIONAL → proteínas cocidas al horno
+  if (n.includes('lamin') || n.includes('asad') || n.includes('wok') || 
+      n.includes('salteado') || n.includes('plancha') || n.includes('pechuga') ||
+      n.includes('horno') || n.includes('gratin') || n.includes('rostiz')) {
     return '🍖 Horno Rational';
   }
-  // Desmechadas → Marmita
-  if (n.includes('desmech') || n.includes('vacuno') || n.includes('mechad')) {
+
+  // MARMITA → desmechadas, estofados, mechadas
+  if (n.includes('desmech') || n.includes('mechad') || n.includes('estofad') ||
+      n.includes('vacuno') || n.includes('cocido')) {
     return '🥘 Marmita';
   }
-  // Salsas → Sartén Basculante
-  if (n.includes('salsa') || n.includes('jugo') || n.includes('crema') || n.includes('salse')) {
+
+  // SALSAS → Sartén Basculante
+  if (n.includes('salsa') || n.includes('jugo') || n.includes('crema') || 
+      n.includes('salse') || n.includes('tomat') || n.includes('curry')) {
     return '🔥 Sartén Basculante';
   }
-  // Pastas → Sartén Basculante
-  if (n.includes('pasta') || n.includes('fettuc') || n.includes('spaghet') || n.includes('tallar')) {
+
+  // PASTAS → Sartén Basculante
+  if (n.includes('pasta') || n.includes('fettuc') || n.includes('spaghet') || 
+      n.includes('tallar') || n.includes('penne') || n.includes('macarr')) {
     return '🔥 Sartén Basculante';
   }
-  // Arroces: ≤100kg → Sartén, >100kg → Marmita
-  if (n.includes('arroz') || n.includes('acompa')) {
+
+  // ARROCES → según kg
+  if (n.includes('arroz') || n.includes('acompa') || n.includes('cereal')) {
     return kgTerminados <= 100 ? '🔥 Sartén Basculante' : '🥘 Marmita';
   }
-  // Default por kg
+
+  // PROTEÍNA GENÉRICA → Horno
+  if (n.includes('prote') || n.includes('pollo') || n.includes('cerdo') || 
+      n.includes('pavo') || n.includes('salmón') || n.includes('salmon') ||
+      n.includes('merluza') || n.includes('pescad') || n.includes('filete')) {
+    return '🍖 Horno Rational';
+  }
+
+  // DEFAULT por kg
   return kgTerminados <= 100 ? '🔥 Sartén Basculante' : '🥘 Marmita';
 }
 
