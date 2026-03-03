@@ -833,53 +833,77 @@
     
     <!-- MODAL: INICIAR PRODUCCIÓN -->
     <div id="modalIniciarProduccion" class="modal">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width:700px;">
             <div class="modal-header">
                 <h2>▶️ Iniciar Producción</h2>
                 <button class="close-btn" onclick="closeModal('iniciarProduccion')">&times;</button>
             </div>
-            <div class="alert alert-info">
-                ℹ️ Completa todos los datos para iniciar la producción
+
+            <!-- MODO: Vincular con OP -->
+            <div id="modoOP" style="margin-bottom:1.5rem;">
+                <div class="alert alert-info">🔗 Selecciona una OP del planificador para asignación automática, o ingresa manualmente.</div>
+                <div class="form-group">
+                    <label>🔗 Vincular con OP del Planificador:</label>
+                    <select id="opVinculadaSelect" onchange="cargarPlanDesdeOP()" style="width:100%;padding:.6rem;border-radius:8px;border:2px solid #c7d2fe;font-size:1rem;background:#f0f4ff;">
+                        <option value="">— Sin vincular (ingreso manual) —</option>
+                    </select>
+                </div>
             </div>
 
-            <!-- SELECTOR DE OP DEL PLANIFICADOR -->
-            <div class="form-group" id="grupoOpVinculada">
-                <label>🔗 Vincular con OP del Planificador (opcional):</label>
-                <select id="opVinculadaSelect" onchange="preCargarDesdeOP()" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;font-size:1rem;background:#f0f4ff;">
-                    <option value="">— Sin vincular (ingreso manual) —</option>
-                </select>
+            <!-- PLAN AUTOMÁTICO POR OP -->
+            <div id="planAutoOP" style="display:none;margin-bottom:1.5rem;">
+                <h3 style="color:#667eea;margin-bottom:1rem;">⚙️ Asignación de Equipos por Componente</h3>
+                <div id="tablaAsignacionEquipos"></div>
+                <div class="form-group" style="margin-top:1rem;">
+                    <label>👤 Operador Principal:</label>
+                    <select id="operadorSelectOP" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;">
+                        <option value="">Selecciona operador...</option>
+                        <option>Maestro 1</option>
+                        <option>Maestro 2</option>
+                        <option>Ayudante 1</option>
+                    </select>
+                </div>
+                <button onclick="iniciarTodosEquiposOP()" style="width:100%;background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;border-radius:10px;padding:1rem;font-size:1.1rem;font-weight:700;cursor:pointer;margin-top:.5rem;">
+                    🚀 INICIAR TODOS LOS EQUIPOS
+                </button>
             </div>
 
-            <div class="form-group">
-                <label>1️⃣ N° Orden de Producción (OP): <span style="color: red;">*</span></label>
-                <input type="text" id="numeroOP" placeholder="Ej: OP-2025-001" required>
+            <!-- MODO MANUAL -->
+            <div id="modoManual">
+                <div style="border-top:2px dashed #e5e7eb;padding-top:1rem;margin-top:1rem;">
+                    <p style="color:#999;font-size:.9rem;margin-bottom:1rem;">— O ingresa manualmente —</p>
+                    <div class="form-group">
+                        <label>1️⃣ N° Orden de Producción (OP):</label>
+                        <input type="text" id="numeroOP" placeholder="Ej: OP-2025-001" required>
+                    </div>
+                    <div class="form-group">
+                        <label>2️⃣ Selecciona el Equipo:</label>
+                        <div class="equipment-selector" id="equipmentSelector"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>3️⃣ Producto:</label>
+                        <select id="productoSelect" required>
+                            <option value="">Selecciona un producto...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>4️⃣ Kg Programados:</label>
+                        <input type="number" id="kgProgramados" placeholder="Ej: 120" min="1" step="0.1" required>
+                    </div>
+                    <div class="form-group">
+                        <label>5️⃣ Operador/Maestro:</label>
+                        <select id="operadorSelect" required>
+                            <option value="">Selecciona operador...</option>
+                            <option value="Maestro 1">Maestro 1</option>
+                            <option value="Maestro 2">Maestro 2</option>
+                            <option value="Ayudante 1">Ayudante 1</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary btn-full" onclick="iniciarProduccion()">
+                        🚀 INICIAR PRODUCCIÓN
+                    </button>
+                </div>
             </div>
-            <div class="form-group">
-                <label>2️⃣ Selecciona el Equipo:</label>
-                <div class="equipment-selector" id="equipmentSelector"></div>
-            </div>
-            <div class="form-group">
-                <label>3️⃣ Producto:</label>
-                <select id="productoSelect" required>
-                    <option value="">Selecciona un producto...</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>4️⃣ Kg Programados:</label>
-                <input type="number" id="kgProgramados" placeholder="Ej: 120" min="1" step="0.1" required>
-            </div>
-            <div class="form-group">
-                <label>5️⃣ Operador/Maestro:</label>
-                <select id="operadorSelect" required>
-                    <option value="">Selecciona operador...</option>
-                    <option value="Maestro 1">Maestro 1</option>
-                    <option value="Maestro 2">Maestro 2</option>
-                    <option value="Ayudante 1">Ayudante 1</option>
-                </select>
-            </div>
-            <button class="btn btn-primary btn-full" onclick="iniciarProduccion()">
-                🚀 INICIAR PRODUCCIÓN
-            </button>
         </div>
     </div>
 
@@ -1914,69 +1938,120 @@
             });
         }
 
-        function preCargarDesdeOP() {
+        function cargarPlanDesdeOP() {
             const opId = document.getElementById('opVinculadaSelect').value;
-            if (!opId) return;
+            const planDiv = document.getElementById('planAutoOP');
+            const modoManual = document.getElementById('modoManual');
+
+            if (!opId) {
+                planDiv.style.display = 'none';
+                modoManual.style.display = 'block';
+                return;
+            }
 
             const op = ordenesProduccion.find(x => x.id === opId);
             if (!op) return;
 
-            // Prellenar número de OP
-            document.getElementById('numeroOP').value = op.numeroOp || op.sku || op.nombre;
+            // Ocultar modo manual
+            modoManual.style.display = 'none';
+            planDiv.style.display = 'block';
 
-            // Asignar equipo más eficiente según componentes
-            asignarEquipoInteligenteOP(op);
+            // Construir tabla de asignación de equipos por componente
+            const tabla = document.getElementById('tablaAsignacionEquipos');
+            const asignaciones = op.componentes.map((comp, idx) => {
+                const tipoEquipo = mapearTipoEquipo(comp.equipoSugerido || sugerirEquipoPorComponente(comp.nombre, comp.kgTerminados));
+                const equiposDisp = equipos.filter(e => e.tipo === tipoEquipo && e.estado === 'disponible');
+                const equiposOcup = equipos.filter(e => e.tipo === tipoEquipo && e.estado !== 'disponible');
+                const hayDisponible = equiposDisp.length > 0;
 
-            // Prellenar producto si existe en la lista
-            const prodSelect = document.getElementById('productoSelect');
-            for (let opt of prodSelect.options) {
-                if (opt.value.toLowerCase().includes(op.nombre.toLowerCase()) ||
-                    op.nombre.toLowerCase().includes(opt.value.toLowerCase())) {
-                    prodSelect.value = opt.value;
-                    break;
-                }
-            }
+                return { comp, tipoEquipo, equiposDisp, equiposOcup, hayDisponible, idx };
+            });
 
-            // Prellenar kg totales
-            document.getElementById('kgProgramados').value = op.kgTotalesTerminados;
+            tabla.innerHTML = asignaciones.map(({ comp, equiposDisp, equiposOcup, hayDisponible, idx }) => `
+                <div style="background:${hayDisponible ? '#f0fff4' : '#fff8f0'};border-radius:10px;padding:1rem;margin-bottom:.75rem;border-left:4px solid ${hayDisponible ? '#10b981' : '#f59e0b'};">
+                    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem;">
+                        <div>
+                            <div style="font-weight:700;color:#333;">${comp.nombre}</div>
+                            <div style="font-size:.85rem;color:#666;">📦 ${comp.kgTerminados} kg terminados</div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
+                            <span style="font-size:.85rem;color:#666;">⚙️ Equipo:</span>
+                            <select id="equipoComp_${idx}" style="padding:.4rem .6rem;border-radius:6px;border:2px solid ${hayDisponible ? '#10b981' : '#f59e0b'};font-size:.9rem;background:white;">
+                                ${hayDisponible
+                                    ? equiposDisp.map(e => `<option value="${e.id}">${e.nombre} (${e.capacidad}) ✅</option>`).join('')
+                                    : `<option value="" disabled>❌ Sin equipos disponibles</option>`
+                                }
+                                ${equiposOcup.map(e => `<option value="${e.id}" disabled>${e.nombre} 🔴 Ocupado</option>`).join('')}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Guardar asignaciones en window para usar al iniciar
+            window._asignacionesOP = asignaciones;
+            window._opActualId = opId;
         }
 
-        function asignarEquipoInteligenteOP(op) {
-            // Determinar tipo de equipo según componentes de la receta
-            const receta = recetas.find(r => r.id === op.recetaId);
-            if (!receta) return;
+        function mapearTipoEquipo(sugerido) {
+            const s = sugerido.toLowerCase();
+            if (s.includes('horno')) return 'horno';
+            if (s.includes('marmita')) return 'marmita';
+            return 'sartenBasculante';
+        }
 
-            // Buscar equipos disponibles ordenados por capacidad
-            const equiposDisponibles = equipos.filter(e => e.estado === 'disponible');
-            if (equiposDisponibles.length === 0) return;
+        function iniciarTodosEquiposOP() {
+            const operador = document.getElementById('operadorSelectOP').value;
+            if (!operador) { alert('Selecciona un operador'); return; }
 
-            // Lógica: proteínas → horno, desmechadas → marmita, resto → sartén
-            const nombreLower = op.nombre.toLowerCase();
-            let tipoPreferido = 'sartenbasculante';
-            if (nombreLower.includes('pollo') || nombreLower.includes('vacuno') ||
-                nombreLower.includes('carne') || nombreLower.includes('desmechad')) {
-                tipoPreferido = 'marmita';
+            const op = ordenesProduccion.find(x => x.id === window._opActualId);
+            if (!op) return;
+
+            const asignaciones = window._asignacionesOP;
+            let iniciados = 0;
+            let errores = [];
+
+            asignaciones.forEach(({ comp, idx }) => {
+                const equipoId = parseInt(document.getElementById(`equipoComp_${idx}`)?.value);
+                if (!equipoId) {
+                    errores.push(comp.nombre);
+                    return;
+                }
+
+                const equipo = equipos.find(e => e.id === equipoId);
+                if (!equipo || equipo.estado !== 'disponible') {
+                    errores.push(`${comp.nombre} (equipo no disponible)`);
+                    return;
+                }
+
+                equipo.estado = 'activa';
+                equipo.produccion = {
+                    numeroOP: op.numeroOp || op.nombre,
+                    producto: `${comp.nombre} — ${op.nombre}`,
+                    kgProgramados: comp.kgTerminados,
+                    operador,
+                    inicio: new Date().toISOString(),
+                    fase: 'coccion',
+                    opVinculadaId: op.id,
+                    componente: comp.nombre
+                };
+                iniciados++;
+            });
+
+            if (errores.length > 0) {
+                alert(`⚠️ No se pudieron iniciar: ${errores.join(', ')}\n\nVerifica que los equipos estén disponibles.`);
             }
-            if (nombreLower.includes('horno') || nombreLower.includes('laminad') ||
-                nombreLower.includes('asad') || nombreLower.includes('protein')) {
-                tipoPreferido = 'horno';
-            }
 
-            // Buscar equipo del tipo preferido con mayor capacidad disponible
-            let mejorEquipo = equiposDisponibles.find(e =>
-                e.tipo && e.tipo.toLowerCase().replace(/\s/g,'').includes(tipoPreferido)
-            );
-
-            // Si no hay del tipo preferido, tomar el primero disponible
-            if (!mejorEquipo) mejorEquipo = equiposDisponibles[0];
-
-            if (mejorEquipo) {
-                // Simular click en el equipo
-                equipoSeleccionado = mejorEquipo.id;
-                document.querySelectorAll('.equipment-option').forEach(el => {
-                    el.classList.remove('selected');
-                    if (parseInt(el.dataset.id) === mejorEquipo.id) el.classList.add('selected');
-                });
+            if (iniciados > 0) {
+                // Actualizar estado OP
+                op.estado = 'en-produccion';
+                op.inicioProduccion = new Date().toISOString();
+                guardarOPs();
+                guardarDatos();
+                renderEquipos();
+                updateStats();
+                closeModal('iniciarProduccion');
+                mostrarNotificacion(`✅ ${iniciados} equipo(s) iniciados para ${op.numeroOp}`, 'success');
             }
         }
 
