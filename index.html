@@ -2002,11 +2002,13 @@
             window._asignacionesOP = asignaciones;
             window._opActualId = opId;
         }
+
+        function cargarSelectorOPsModal() {
             const sel = document.getElementById('opVinculadaSelect');
             if (!sel) return;
             const hoy = getHoy();
             const opsHoy = ordenesProduccion.filter(op => op.fecha === hoy && op.estado !== 'completada');
-            sel.innerHTML = '<option value="">— Sin vincular (ingreso manual) —</option>';
+            sel.innerHTML = '<option value="">— Selecciona una OP —</option>';
             opsHoy.forEach(op => {
                 sel.innerHTML += `<option value="${op.id}">${op.numeroOp || 'Sin N°'} — ${op.sku ? op.sku+' · ' : ''}${op.nombre} (${op.platos.toLocaleString()} platos · ${op.kgTotalesTerminados} kg)</option>`;
             });
