@@ -711,6 +711,32 @@
             <div id="ganttEquipos"></div>
         </div>
 
+        <!-- ÓRDENES DE PRODUCCIÓN CON CÁLCULO AUTOMÁTICO -->
+        <div style="background:white;border-radius:15px;padding:1.5rem;margin-bottom:1.5rem;box-shadow:0 4px 15px rgba(0,0,0,0.08);border-top:4px solid #667eea;">
+            <h3 style="color:#667eea;margin-bottom:1rem;font-size:1.1rem;">🧾 ÓRDENES DE PRODUCCIÓN — Cálculo Automático por Receta</h3>
+
+            <!-- Agregar OP -->
+            <div style="display:grid;grid-template-columns:2fr 1fr auto;gap:1rem;align-items:end;margin-bottom:1rem;">
+                <div>
+                    <label style="font-weight:600;display:block;margin-bottom:.4rem;color:#4f46e5;">SKU / Receta:</label>
+                    <select id="opSkuSelect" onchange="previewOP()" style="width:100%;padding:.75rem;border:2px solid #c7d2fe;border-radius:8px;font-size:1rem;">
+                        <option value="">Selecciona una receta cargada...</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-weight:600;display:block;margin-bottom:.4rem;color:#4f46e5;">N° de Platos:</label>
+                    <input type="number" id="opPlatos" placeholder="Ej: 1000" min="1" oninput="previewOP()" style="width:100%;padding:.75rem;border:2px solid #c7d2fe;border-radius:8px;font-size:1rem;">
+                </div>
+                <button onclick="agregarOP()" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:8px;padding:.75rem 1.5rem;cursor:pointer;font-size:1rem;font-weight:600;">➕ Agregar OP</button>
+            </div>
+
+            <!-- Preview cálculo automático -->
+            <div id="previewCalculoOP" style="display:none;background:#f0f4ff;border-radius:12px;padding:1.25rem;margin-bottom:1rem;border-left:4px solid #667eea;"></div>
+
+            <!-- Lista de OPs del día -->
+            <div id="listaOPs"></div>
+        </div>
+
         <!-- AGREGAR AL PLAN -->
         <div style="background:linear-gradient(135deg, #f0f4ff, #faf5ff); border-radius:15px; padding:1.5rem; margin-bottom:1.5rem; border:2px solid #c7d2fe;">
             <h3 style="color:#667eea; margin-bottom:1rem; font-size:1.1rem;">➕ AGREGAR AL PLAN</h3>
@@ -3112,7 +3138,7 @@
             if (tabName === 'historial') cargarHistorialFecha();
             else if (tabName === 'procesos') renderProcesosActivos();
             else if (tabName === 'analytics') actualizarAnalytics();
-            else if (tabName === 'planificador') { initPlanificador(); renderSelectorPlanProductos(); renderPlanVisual(); }
+            else if (tabName === 'planificador') { initPlanificador(); renderSelectorPlanProductos(); renderPlanVisual(); cargarSelectorOPs(); renderListaOPs(); }
             else if (tabName === 'ejecutivo') actualizarVistaEjecutivo();
         }
 
@@ -3149,6 +3175,7 @@
                     procesosAbatimiento,
                     historialPorFecha,
                     planDiario,
+                    recetas: typeof recetas !== 'undefined' ? recetas : [],
                     ultimaActualizacion: new Date().toISOString(),
                     dispositivo: navigator.userAgent.substring(0, 50)
                 });
@@ -3180,6 +3207,11 @@
                     procesosAbatimiento = data.procesosAbatimiento || [];
                     historialPorFecha = data.historialPorFecha || {};
                     planDiario = data.planDiario || {};
+                    if (data.recetas && typeof recetas !== 'undefined') {
+                        recetas = data.recetas;
+                        localStorage.setItem('mes_recetas', JSON.stringify(recetas));
+                        if (typeof renderListaRecetas === 'function') renderListaRecetas();
+                    }
                     
                     console.log('✅ Datos cargados desde Firebase');
                     mostrarNotificacion('✅ Datos sincronizados desde la nube', 'success');
@@ -4183,6 +4215,13 @@ let componentesTemp = [];
 
 function guardarRecetasStorage() {
   localStorage.setItem('mes_recetas', JSON.stringify(recetas));
+  // Sincronizar con Firebase
+  if (window.db && window.firestoreLoaded) {
+    try {
+      const { doc, setDoc } = window.firestoreFunctions;
+      setDoc(doc(window.db, 'mes-data', 'recetas'), { recetas, ultimaActualizacion: new Date().toISOString() });
+    } catch(e) { console.log('Firebase recetas:', e); }
+  }
 }
 
 // ---- MODAL RECETA ----
@@ -4642,9 +4681,212 @@ function exportarRecetasExcel() {
   URL.revokeObjectURL(url);
 }
 
+// ============================================
+// ÓRDENES DE PRODUCCIÓN CON CÁLCULO AUTOMÁTICO
+// ============================================
+
+let ordenesProduccion = JSON.parse(localStorage.getItem('mes_ops') || '[]');
+
+function guardarOPs() {
+  localStorage.setItem('mes_ops', JSON.stringify(ordenesProduccion));
+  if (window.db && window.firestoreLoaded) {
+    try {
+      const { doc, setDoc } = window.firestoreFunctions;
+      setDoc(doc(window.db, 'mes-data', 'ordenes-produccion'), { ops: ordenesProduccion, ultimaActualizacion: new Date().toISOString() });
+    } catch(e) {}
+  }
+}
+
+function cargarSelectorOPs() {
+  const sel = document.getElementById('opSkuSelect');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Selecciona una receta cargada...</option>';
+  recetas.forEach(r => {
+    sel.innerHTML += `<option value="${r.id}">${r.sku ? r.sku + ' — ' : ''}${r.nombre}</option>`;
+  });
+}
+
+function previewOP() {
+  const recetaId = document.getElementById('opSkuSelect').value;
+  const platos = parseInt(document.getElementById('opPlatos').value) || 0;
+  const preview = document.getElementById('previewCalculoOP');
+
+  if (!recetaId || !platos) { preview.style.display = 'none'; return; }
+
+  const r = recetas.find(x => x.id === recetaId);
+  if (!r) { preview.style.display = 'none'; return; }
+
+  const calculo = calcularRecetaParaPlatos(r, platos);
+  preview.style.display = 'block';
+  preview.innerHTML = `
+    <div style="font-weight:700;color:#667eea;font-size:1rem;margin-bottom:.75rem;">
+      📋 ${r.sku ? r.sku + ' — ' : ''}${r.nombre} × ${platos.toLocaleString()} platos
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.75rem;margin-bottom:.75rem;">
+      <div style="background:white;border-radius:8px;padding:.75rem;text-align:center;">
+        <div style="font-size:.8rem;color:#666;">🍽️ Gramaje por plato</div>
+        <div style="font-size:1.3rem;font-weight:700;color:#333;">${r.gramaje + (r.envase||0)} gr</div>
+      </div>
+      <div style="background:white;border-radius:8px;padding:.75rem;text-align:center;">
+        <div style="font-size:.8rem;color:#666;">📦 Kg totales terminados</div>
+        <div style="font-size:1.3rem;font-weight:700;color:#10b981;">${calculo.kgTotalesTerminados} kg</div>
+      </div>
+      <div style="background:white;border-radius:8px;padding:.75rem;text-align:center;">
+        <div style="font-size:.8rem;color:#666;">🎯 Rendimiento esperado</div>
+        <div style="font-size:1.3rem;font-weight:700;color:#f59e0b;">${r.rendimientoEsperado}%</div>
+      </div>
+    </div>
+    ${calculo.componentes.length > 0 ? `
+    <div style="font-weight:600;color:#444;margin-bottom:.5rem;">📊 Desglose por Componente:</div>
+    <table style="width:100%;border-collapse:collapse;font-size:.9rem;background:white;border-radius:8px;overflow:hidden;">
+      <tr style="background:#667eea;color:white;">
+        <th style="padding:.5rem .75rem;text-align:left;">Componente</th>
+        <th style="padding:.5rem .75rem;text-align:right;">gr/plato</th>
+        <th style="padding:.5rem .75rem;text-align:right;">Kg terminados</th>
+        <th style="padding:.5rem .75rem;text-align:left;">Ingredientes crudos necesarios</th>
+      </tr>
+      ${calculo.componentes.map((c,i) => `
+        <tr style="border-bottom:1px solid #eee;background:${i%2===0?'#f8f9ff':'white'};">
+          <td style="padding:.5rem .75rem;font-weight:600;">${c.nombre}</td>
+          <td style="padding:.5rem .75rem;text-align:right;">${c.gramajePorcion} gr</td>
+          <td style="padding:.5rem .75rem;text-align:right;color:#10b981;font-weight:700;">${c.kgTerminados} kg</td>
+          <td style="padding:.5rem .75rem;font-size:.8rem;color:#666;">${c.ingredientes.map(i => `${i.nombre}: ${i.cantidadTotal} ${i.unidad}`).join(' · ')}</td>
+        </tr>
+      `).join('')}
+    </table>` : '<div style="color:#999;font-size:.9rem;">⚠️ Esta receta no tiene componentes cargados. Edítala para agregar los componentes.</div>'}
+  `;
+}
+
+function calcularRecetaParaPlatos(r, platos) {
+  const kgTotalesTerminados = Math.round((platos * r.gramaje / 1000) * 10) / 10;
+
+  const componentes = (r.componentes || []).map(comp => {
+    const kgTerminados = Math.round((platos * comp.gramajePorcion / 1000) * 10) / 10;
+    const ingredientes = (comp.ingredientes || []).map(ing => {
+      let cantidadTotal;
+      if (ing.unidad === 'gr') {
+        cantidadTotal = Math.round((platos * ing.cantidadBruta / 1000) * 100) / 100 + ' kg';
+        return { nombre: ing.nombre, cantidadTotal: Math.round((platos * ing.cantidadBruta / 1000) * 100) / 100, unidad: 'kg' };
+      } else if (ing.unidad === 'kg') {
+        cantidadTotal = Math.round(platos * ing.cantidadBruta * 100) / 100;
+        return { nombre: ing.nombre, cantidadTotal, unidad: 'kg' };
+      } else {
+        cantidadTotal = Math.round(platos * ing.cantidadBruta * 100) / 100;
+        return { nombre: ing.nombre, cantidadTotal, unidad: ing.unidad };
+      }
+    });
+    return { nombre: comp.nombre, gramajePorcion: comp.gramajePorcion, kgTerminados, ingredientes };
+  });
+
+  return { kgTotalesTerminados, componentes };
+}
+
+function agregarOP() {
+  const recetaId = document.getElementById('opSkuSelect').value;
+  const platos = parseInt(document.getElementById('opPlatos').value) || 0;
+  if (!recetaId || !platos) { alert('Selecciona una receta e ingresa la cantidad de platos'); return; }
+
+  const r = recetas.find(x => x.id === recetaId);
+  const calculo = calcularRecetaParaPlatos(r, platos);
+  const fecha = document.getElementById('fechaPlan')?.value || new Date().toLocaleDateString('es-CL');
+
+  const op = {
+    id: Date.now().toString(),
+    fecha,
+    recetaId,
+    sku: r.sku || '',
+    nombre: r.nombre,
+    platos,
+    gramaje: r.gramaje,
+    envase: r.envase || 0,
+    kgTotalesTerminados: calculo.kgTotalesTerminados,
+    componentes: calculo.componentes,
+    rendimientoEsperado: r.rendimientoEsperado,
+    estado: 'pendiente',
+    fechaCreacion: new Date().toLocaleString('es-CL')
+  };
+
+  ordenesProduccion.push(op);
+  guardarOPs();
+  renderListaOPs();
+
+  // Limpiar formulario
+  document.getElementById('opSkuSelect').value = '';
+  document.getElementById('opPlatos').value = '';
+  document.getElementById('previewCalculoOP').style.display = 'none';
+}
+
+function eliminarOP(id) {
+  if (!confirm('¿Eliminar esta Orden de Producción?')) return;
+  ordenesProduccion = ordenesProduccion.filter(op => op.id !== id);
+  guardarOPs();
+  renderListaOPs();
+}
+
+function renderListaOPs() {
+  const cont = document.getElementById('listaOPs');
+  if (!cont) return;
+
+  const fecha = document.getElementById('fechaPlan')?.value || '';
+  const ops = fecha ? ordenesProduccion.filter(op => op.fecha === fecha) : ordenesProduccion;
+
+  if (ops.length === 0) {
+    cont.innerHTML = '<div style="text-align:center;color:#999;padding:1.5rem;">No hay Órdenes de Producción para esta fecha. Agrega una arriba.</div>';
+    return;
+  }
+
+  cont.innerHTML = ops.map(op => `
+    <div style="background:#f8f9ff;border-radius:12px;padding:1.25rem;margin-bottom:1rem;border-left:4px solid ${op.estado==='completada'?'#10b981':'#667eea'};">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem;">
+        <div>
+          <div style="font-weight:700;font-size:1rem;color:#333;">${op.sku ? '<span style="color:#667eea">'+op.sku+'</span> — ' : ''}${op.nombre}</div>
+          <div style="font-size:.85rem;color:#666;margin-top:.2rem;">📅 ${op.fecha} · ${op.platos.toLocaleString()} platos × ${op.gramaje}gr · 📦 <strong>${op.kgTotalesTerminados} kg</strong> totales</div>
+        </div>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span style="background:${op.estado==='completada'?'#d1fae5':'#e8edff'};color:${op.estado==='completada'?'#065f46':'#4f46e5'};padding:.2rem .75rem;border-radius:20px;font-size:.8rem;font-weight:600;">${op.estado==='completada'?'✅ Completada':'⏳ Pendiente'}</span>
+          <button onclick="toggleEstadoOP('${op.id}')" style="background:#e8edff;color:#667eea;border:none;border-radius:6px;padding:.3rem .6rem;cursor:pointer;font-size:.8rem;">✓</button>
+          <button onclick="eliminarOP('${op.id}')" style="background:#ffe8e8;color:#e74c3c;border:none;border-radius:6px;padding:.3rem .6rem;cursor:pointer;font-size:.8rem;">🗑️</button>
+        </div>
+      </div>
+      ${op.componentes.length > 0 ? `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.5rem;">
+        ${op.componentes.map(c => `
+          <div style="background:white;border-radius:8px;padding:.6rem .75rem;">
+            <div style="font-size:.8rem;color:#666;">${c.nombre}</div>
+            <div style="font-weight:700;color:#10b981;font-size:1rem;">${c.kgTerminados} kg terminados</div>
+            <div style="font-size:.75rem;color:#999;">${c.ingredientes.map(i=>i.nombre+': '+i.cantidadTotal+' '+i.unidad).join(' · ')}</div>
+          </div>
+        `).join('')}
+      </div>` : ''}
+    </div>
+  `).join('');
+}
+
+function toggleEstadoOP(id) {
+  const op = ordenesProduccion.find(x => x.id === id);
+  if (op) {
+    op.estado = op.estado === 'completada' ? 'pendiente' : 'completada';
+    guardarOPs();
+    renderListaOPs();
+  }
+}
+
 // Inicializar al cargar
 window.addEventListener('load', () => {
-  setTimeout(() => renderListaRecetas(), 500);
+  setTimeout(async () => {
+    // Intentar cargar recetas desde Firebase primero
+    if (window.db && window.firestoreLoaded) {
+      try {
+        const { doc, getDoc } = window.firestoreFunctions;
+        const docSnap = await getDoc(doc(window.db, 'mes-data', 'recetas'));
+        if (docSnap.exists() && docSnap.data().recetas) {
+          recetas = docSnap.data().recetas;
+          localStorage.setItem('mes_recetas', JSON.stringify(recetas));
+        }
+      } catch(e) { console.log('Cargando recetas desde localStorage'); }
+    }
+    renderListaRecetas();
+  }, 1500);
 });
 </script>
 
