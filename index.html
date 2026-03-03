@@ -837,6 +837,15 @@
             <div class="alert alert-info">
                 ℹ️ Completa todos los datos para iniciar la producción
             </div>
+
+            <!-- SELECTOR DE OP DEL PLANIFICADOR -->
+            <div class="form-group" id="grupoOpVinculada">
+                <label>🔗 Vincular con OP del Planificador (opcional):</label>
+                <select id="opVinculadaSelect" onchange="preCargarDesdeOP()" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;font-size:1rem;background:#f0f4ff;">
+                    <option value="">— Sin vincular (ingreso manual) —</option>
+                </select>
+            </div>
+
             <div class="form-group">
                 <label>1️⃣ N° Orden de Producción (OP): <span style="color: red;">*</span></label>
                 <input type="text" id="numeroOP" placeholder="Ej: OP-2025-001" required>
@@ -1815,6 +1824,7 @@
                 if (modalName === 'iniciarProduccion') {
                     renderEquipmentSelector();
                     renderProductos();
+                    cargarSelectorOPsModal();
                 }
             }
         }
@@ -1889,6 +1899,83 @@
         // INICIAR PRODUCCIÓN
         // ============================================
         
+        function cargarSelectorOPsModal() {
+            const sel = document.getElementById('opVinculadaSelect');
+            if (!sel) return;
+            const hoy = getHoy();
+            const opsHoy = ordenesProduccion.filter(op => op.fecha === hoy && op.estado !== 'completada');
+            sel.innerHTML = '<option value="">— Sin vincular (ingreso manual) —</option>';
+            opsHoy.forEach(op => {
+                sel.innerHTML += `<option value="${op.id}">${op.sku ? op.sku + ' — ' : ''}${op.nombre} (${op.platos.toLocaleString()} platos · ${op.kgTotalesTerminados} kg)</option>`;
+            });
+        }
+
+        function preCargarDesdeOP() {
+            const opId = document.getElementById('opVinculadaSelect').value;
+            if (!opId) return;
+
+            const op = ordenesProduccion.find(x => x.id === opId);
+            if (!op) return;
+
+            // Prellenar número de OP con SKU
+            document.getElementById('numeroOP').value = op.sku || op.nombre;
+
+            // Asignar equipo más eficiente según componentes
+            asignarEquipoInteligenteOP(op);
+
+            // Prellenar producto si existe en la lista
+            const prodSelect = document.getElementById('productoSelect');
+            for (let opt of prodSelect.options) {
+                if (opt.value.toLowerCase().includes(op.nombre.toLowerCase()) ||
+                    op.nombre.toLowerCase().includes(opt.value.toLowerCase())) {
+                    prodSelect.value = opt.value;
+                    break;
+                }
+            }
+
+            // Prellenar kg totales
+            document.getElementById('kgProgramados').value = op.kgTotalesTerminados;
+        }
+
+        function asignarEquipoInteligenteOP(op) {
+            // Determinar tipo de equipo según componentes de la receta
+            const receta = recetas.find(r => r.id === op.recetaId);
+            if (!receta) return;
+
+            // Buscar equipos disponibles ordenados por capacidad
+            const equiposDisponibles = equipos.filter(e => e.estado === 'disponible');
+            if (equiposDisponibles.length === 0) return;
+
+            // Lógica: proteínas → horno, desmechadas → marmita, resto → sartén
+            const nombreLower = op.nombre.toLowerCase();
+            let tipoPreferido = 'sartenbasculante';
+            if (nombreLower.includes('pollo') || nombreLower.includes('vacuno') ||
+                nombreLower.includes('carne') || nombreLower.includes('desmechad')) {
+                tipoPreferido = 'marmita';
+            }
+            if (nombreLower.includes('horno') || nombreLower.includes('laminad') ||
+                nombreLower.includes('asad') || nombreLower.includes('protein')) {
+                tipoPreferido = 'horno';
+            }
+
+            // Buscar equipo del tipo preferido con mayor capacidad disponible
+            let mejorEquipo = equiposDisponibles.find(e =>
+                e.tipo && e.tipo.toLowerCase().replace(/\s/g,'').includes(tipoPreferido)
+            );
+
+            // Si no hay del tipo preferido, tomar el primero disponible
+            if (!mejorEquipo) mejorEquipo = equiposDisponibles[0];
+
+            if (mejorEquipo) {
+                // Simular click en el equipo
+                equipoSeleccionado = mejorEquipo.id;
+                document.querySelectorAll('.equipment-option').forEach(el => {
+                    el.classList.remove('selected');
+                    if (parseInt(el.dataset.id) === mejorEquipo.id) el.classList.add('selected');
+                });
+            }
+        }
+
         function iniciarProduccion() {
             if (!equipoSeleccionado) {
                 alert('Selecciona un equipo');
@@ -1918,8 +2005,21 @@
                 kgProgramados,
                 operador,
                 inicio: new Date().toISOString(),
-                fase: 'coccion'
+                fase: 'coccion',
+                opVinculadaId: document.getElementById('opVinculadaSelect')?.value || null
             };
+
+            // Actualizar estado de la OP vinculada a "En Producción"
+            const opVinculadaId = document.getElementById('opVinculadaSelect')?.value;
+            if (opVinculadaId) {
+                const op = ordenesProduccion.find(x => x.id === opVinculadaId);
+                if (op) {
+                    op.estado = 'en-produccion';
+                    op.equipoAsignado = equipo.nombre;
+                    op.inicioProduccion = new Date().toISOString();
+                    guardarOPs();
+                }
+            }
 
             guardarDatos();
             renderEquipos();
@@ -1930,6 +2030,8 @@
             document.getElementById('productoSelect').value = '';
             document.getElementById('kgProgramados').value = '';
             document.getElementById('operadorSelect').value = '';
+            if (document.getElementById('opVinculadaSelect')) 
+                document.getElementById('opVinculadaSelect').value = '';
         }
 
         // ============================================
@@ -2151,6 +2253,17 @@
             proceso.tiempoAbatimiento = tiempoAbatimiento;
             proceso.tiempoAbatimientoFormateado = formatTime(tiempoAbatimiento);
             proceso.finalizadoCompleto = new Date().toISOString();
+
+            // Marcar OP vinculada como completada automáticamente
+            if (proceso.opVinculadaId) {
+                const op = ordenesProduccion.find(x => x.id === proceso.opVinculadaId);
+                if (op) {
+                    op.estado = 'completada';
+                    op.kgRealesFinales = kgFinales;
+                    op.finProduccion = new Date().toISOString();
+                    guardarOPs();
+                }
+            }
 
             // GUARDAR EN HISTORIAL POR FECHA
             const fecha = getHoy();
@@ -4849,16 +4962,22 @@ function renderListaOPs() {
     return;
   }
 
-  cont.innerHTML = ops.map(op => `
-    <div style="background:#f8f9ff;border-radius:12px;padding:1.25rem;margin-bottom:1rem;border-left:4px solid ${op.estado==='completada'?'#10b981':'#667eea'};">
+  cont.innerHTML = ops.map(op => {
+    const colorBorde = op.estado === 'completada' ? '#10b981' : op.estado === 'en-produccion' ? '#f59e0b' : '#667eea';
+    const badgeColor = op.estado === 'completada' ? '#d1fae5' : op.estado === 'en-produccion' ? '#fef3c7' : '#e8edff';
+    const badgeText = op.estado === 'completada' ? '#065f46' : op.estado === 'en-produccion' ? '#92400e' : '#4f46e5';
+    const badgeLabel = op.estado === 'completada' ? '✅ Completada' : op.estado === 'en-produccion' ? '🔄 En Producción' : '⏳ Pendiente';
+
+    return `
+    <div style="background:#f8f9ff;border-radius:12px;padding:1.25rem;margin-bottom:1rem;border-left:4px solid ${colorBorde};">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem;">
         <div>
           <div style="font-weight:700;font-size:1rem;color:#333;">${op.sku ? '<span style="color:#667eea">'+op.sku+'</span> — ' : ''}${op.nombre}</div>
-          <div style="font-size:.85rem;color:#666;margin-top:.2rem;">📅 ${op.fecha} · ${op.platos.toLocaleString()} platos × ${op.gramaje}gr · 📦 <strong>${op.kgTotalesTerminados} kg</strong> totales</div>
+          <div style="font-size:.85rem;color:#666;margin-top:.2rem;">📅 ${op.fecha} · ${op.platos.toLocaleString()} platos × ${op.gramaje}gr · 📦 <strong>${op.kgTotalesTerminados} kg</strong> totales${op.equipoAsignado ? ' · ⚙️ '+op.equipoAsignado : ''}</div>
         </div>
         <div style="display:flex;gap:.5rem;align-items:center;">
-          <span style="background:${op.estado==='completada'?'#d1fae5':'#e8edff'};color:${op.estado==='completada'?'#065f46':'#4f46e5'};padding:.2rem .75rem;border-radius:20px;font-size:.8rem;font-weight:600;">${op.estado==='completada'?'✅ Completada':'⏳ Pendiente'}</span>
-          <button onclick="toggleEstadoOP('${op.id}')" style="background:#e8edff;color:#667eea;border:none;border-radius:6px;padding:.3rem .6rem;cursor:pointer;font-size:.8rem;">✓</button>
+          <span style="background:${badgeColor};color:${badgeText};padding:.2rem .75rem;border-radius:20px;font-size:.8rem;font-weight:600;">${badgeLabel}</span>
+          ${op.estado !== 'completada' ? `<button onclick="toggleEstadoOP('${op.id}')" style="background:#e8edff;color:#667eea;border:none;border-radius:6px;padding:.3rem .6rem;cursor:pointer;font-size:.8rem;">✓</button>` : ''}
           <button onclick="eliminarOP('${op.id}')" style="background:#ffe8e8;color:#e74c3c;border:none;border-radius:6px;padding:.3rem .6rem;cursor:pointer;font-size:.8rem;">🗑️</button>
         </div>
       </div>
@@ -4873,7 +4992,7 @@ function renderListaOPs() {
         `).join('')}
       </div>` : ''}
     </div>
-  `).join('');
+  `}).join('');
 }
 
 function toggleEstadoOP(id) {
