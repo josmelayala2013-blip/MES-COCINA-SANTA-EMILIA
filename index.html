@@ -2417,28 +2417,41 @@
             proceso.tiempoAbatimientoFormateado = formatTime(tiempoAbatimiento);
             proceso.finalizadoCompleto = new Date().toISOString();
 
-            // Marcar OP vinculada como completada solo cuando todos los componentes terminen
+            // Marcar OP vinculada como completada cuando todos los componentes terminen
             if (proceso.opVinculadaId) {
                 const op = ordenesProduccion.find(x => x.id === proceso.opVinculadaId);
-                if (op) {
-                    // Verificar si quedan equipos activos vinculados a esta OP
-                    const equiposActivosOP = equipos.filter(e => 
-                        e.produccion && e.produccion.opVinculadaId === proceso.opVinculadaId
-                    );
-                    const procesosActivosOP = procesosAbatimiento.filter((p, i) => 
-                        p.opVinculadaId === proceso.opVinculadaId && i !== procesoActual
-                    );
+                if (op && op.estado !== 'completada') {
+                    // Contar cuántos componentes tiene la OP
+                    const totalComponentes = op.componentes ? op.componentes.length : 1;
 
-                    if (equiposActivosOP.length === 0 && procesosActivosOP.length === 0) {
-                        // Todos los componentes terminaron → OP completada
+                    // Contar cuántos ya terminaron (están en historial con esta opVinculadaId)
+                    const hoy = getHoy();
+                    const historialHoy = historialPorFecha[hoy] || [];
+                    // +1 porque el proceso actual todavía no está en historial
+                    const yaTerminados = historialHoy.filter(h => h.opVinculadaId === proceso.opVinculadaId).length + 1;
+
+                    // Verificar si quedan procesos activos (envasado o abatimiento) de esta OP
+                    const envasadosActivos = procesosEnvasado.filter(p => p.opVinculadaId === proceso.opVinculadaId).length;
+                    const abatimientosActivos = procesosAbatimiento.filter((p, i) => 
+                        p.opVinculadaId === proceso.opVinculadaId && i !== procesoActual
+                    ).length;
+                    const equiposAun = equipos.filter(e => 
+                        e.produccion && e.produccion.opVinculadaId === proceso.opVinculadaId
+                    ).length;
+
+                    const todosTerminados = envasadosActivos === 0 && abatimientosActivos === 0 && equiposAun === 0;
+
+                    if (todosTerminados) {
                         op.estado = 'completada';
-                        op.kgRealesFinales = kgFinales;
+                        op.kgRealesFinales = (op.kgRealesFinales || 0) + kgFinales;
                         op.finProduccion = new Date().toISOString();
                         guardarOPs();
-                        setTimeout(() => renderListaOPs(), 500);
+                        setTimeout(() => {
+                            renderListaOPs();
+                            cargarSelectorOPsModal(); // Quitar del selector
+                        }, 500);
                         mostrarNotificacion(`✅ OP ${op.numeroOp || op.nombre} completada`, 'success');
                     } else {
-                        // Aún hay componentes en curso
                         op.kgRealesFinales = (op.kgRealesFinales || 0) + kgFinales;
                         guardarOPs();
                     }
