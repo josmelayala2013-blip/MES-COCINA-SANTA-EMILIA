@@ -716,7 +716,11 @@
             <h3 style="color:#667eea;margin-bottom:1rem;font-size:1.1rem;">🧾 ÓRDENES DE PRODUCCIÓN — Cálculo Automático por Receta</h3>
 
             <!-- Agregar OP -->
-            <div style="display:grid;grid-template-columns:2fr 1fr auto;gap:1rem;align-items:end;margin-bottom:1rem;">
+            <div style="display:grid;grid-template-columns:1fr 2fr 1fr auto;gap:1rem;align-items:end;margin-bottom:1rem;">
+                <div>
+                    <label style="font-weight:600;display:block;margin-bottom:.4rem;color:#4f46e5;">N° OP:</label>
+                    <input type="text" id="opNumero" placeholder="Ej: OP-2025-001" style="width:100%;padding:.75rem;border:2px solid #c7d2fe;border-radius:8px;font-size:1rem;">
+                </div>
                 <div>
                     <label style="font-weight:600;display:block;margin-bottom:.4rem;color:#4f46e5;">SKU / Receta:</label>
                     <select id="opSkuSelect" onchange="previewOP()" style="width:100%;padding:.75rem;border:2px solid #c7d2fe;border-radius:8px;font-size:1rem;">
@@ -1906,7 +1910,7 @@
             const opsHoy = ordenesProduccion.filter(op => op.fecha === hoy && op.estado !== 'completada');
             sel.innerHTML = '<option value="">— Sin vincular (ingreso manual) —</option>';
             opsHoy.forEach(op => {
-                sel.innerHTML += `<option value="${op.id}">${op.sku ? op.sku + ' — ' : ''}${op.nombre} (${op.platos.toLocaleString()} platos · ${op.kgTotalesTerminados} kg)</option>`;
+                sel.innerHTML += `<option value="${op.id}">${op.numeroOp || 'Sin N°'} — ${op.sku ? op.sku+' · ' : ''}${op.nombre} (${op.platos.toLocaleString()} platos · ${op.kgTotalesTerminados} kg)</option>`;
             });
         }
 
@@ -1917,8 +1921,8 @@
             const op = ordenesProduccion.find(x => x.id === opId);
             if (!op) return;
 
-            // Prellenar número de OP con SKU
-            document.getElementById('numeroOP').value = op.sku || op.nombre;
+            // Prellenar número de OP
+            document.getElementById('numeroOP').value = op.numeroOp || op.sku || op.nombre;
 
             // Asignar equipo más eficiente según componentes
             asignarEquipoInteligenteOP(op);
@@ -4864,24 +4868,54 @@ function previewOP() {
       </div>
     </div>
     ${calculo.componentes.length > 0 ? `
-    <div style="font-weight:600;color:#444;margin-bottom:.5rem;">📊 Desglose por Componente:</div>
+    <div style="font-weight:600;color:#444;margin-bottom:.5rem;">📊 Desglose por Componente + Equipo Sugerido:</div>
     <table style="width:100%;border-collapse:collapse;font-size:.9rem;background:white;border-radius:8px;overflow:hidden;">
       <tr style="background:#667eea;color:white;">
         <th style="padding:.5rem .75rem;text-align:left;">Componente</th>
         <th style="padding:.5rem .75rem;text-align:right;">gr/plato</th>
         <th style="padding:.5rem .75rem;text-align:right;">Kg terminados</th>
-        <th style="padding:.5rem .75rem;text-align:left;">Ingredientes crudos necesarios</th>
+        <th style="padding:.5rem .75rem;text-align:left;">⚙️ Equipo Sugerido</th>
+        <th style="padding:.5rem .75rem;text-align:left;">Ingredientes crudos</th>
       </tr>
-      ${calculo.componentes.map((c,i) => `
+      ${calculo.componentes.map((c,i) => {
+        const equipoSugerido = sugerirEquipoPorComponente(c.nombre, c.kgTerminados);
+        return `
         <tr style="border-bottom:1px solid #eee;background:${i%2===0?'#f8f9ff':'white'};">
           <td style="padding:.5rem .75rem;font-weight:600;">${c.nombre}</td>
           <td style="padding:.5rem .75rem;text-align:right;">${c.gramajePorcion} gr</td>
           <td style="padding:.5rem .75rem;text-align:right;color:#10b981;font-weight:700;">${c.kgTerminados} kg</td>
+          <td style="padding:.5rem .75rem;"><span style="background:#e8edff;color:#4f46e5;padding:.2rem .6rem;border-radius:6px;font-size:.85rem;">${equipoSugerido}</span></td>
           <td style="padding:.5rem .75rem;font-size:.8rem;color:#666;">${c.ingredientes.map(i => `${i.nombre}: ${i.cantidadTotal} ${i.unidad}`).join(' · ')}</td>
-        </tr>
-      `).join('')}
-    </table>` : '<div style="color:#999;font-size:.9rem;">⚠️ Esta receta no tiene componentes cargados. Edítala para agregar los componentes.</div>'}
+        </tr>`;
+      }).join('')}
+    </table>` : '<div style="color:#999;font-size:.9rem;">⚠️ Esta receta no tiene componentes. Edítala para agregar los componentes.</div>'}
   `;
+}
+
+function sugerirEquipoPorComponente(nombreComponente, kgTerminados) {
+  const n = nombreComponente.toLowerCase();
+  // Proteínas → Horno Rational
+  if (n.includes('prote') || n.includes('pollo lamin') || n.includes('asad') || n.includes('horno')) {
+    return '🍖 Horno Rational';
+  }
+  // Desmechadas → Marmita
+  if (n.includes('desmech') || n.includes('vacuno') || n.includes('mechad')) {
+    return '🥘 Marmita';
+  }
+  // Salsas → Sartén Basculante
+  if (n.includes('salsa') || n.includes('jugo') || n.includes('crema') || n.includes('salse')) {
+    return '🔥 Sartén Basculante';
+  }
+  // Pastas → Sartén Basculante
+  if (n.includes('pasta') || n.includes('fettuc') || n.includes('spaghet') || n.includes('tallar')) {
+    return '🔥 Sartén Basculante';
+  }
+  // Arroces: ≤100kg → Sartén, >100kg → Marmita
+  if (n.includes('arroz') || n.includes('acompa')) {
+    return kgTerminados <= 100 ? '🔥 Sartén Basculante' : '🥘 Marmita';
+  }
+  // Default por kg
+  return kgTerminados <= 100 ? '🔥 Sartén Basculante' : '🥘 Marmita';
 }
 
 function calcularRecetaParaPlatos(r, platos) {
@@ -4909,16 +4943,31 @@ function calcularRecetaParaPlatos(r, platos) {
 }
 
 function agregarOP() {
+  const numeroOp = document.getElementById('opNumero').value.trim();
   const recetaId = document.getElementById('opSkuSelect').value;
   const platos = parseInt(document.getElementById('opPlatos').value) || 0;
+
+  if (!numeroOp) { alert('Ingresa el N° de OP'); return; }
   if (!recetaId || !platos) { alert('Selecciona una receta e ingresa la cantidad de platos'); return; }
+
+  // Verificar que el N° OP no esté duplicado
+  if (ordenesProduccion.find(op => op.numeroOp === numeroOp)) {
+    alert(`Ya existe una OP con el número ${numeroOp}`); return;
+  }
 
   const r = recetas.find(x => x.id === recetaId);
   const calculo = calcularRecetaParaPlatos(r, platos);
   const fecha = document.getElementById('fechaPlan')?.value || new Date().toLocaleDateString('es-CL');
 
+  // Agregar equipo sugerido a cada componente
+  const componentesConEquipo = calculo.componentes.map(c => ({
+    ...c,
+    equipoSugerido: sugerirEquipoPorComponente(c.nombre, c.kgTerminados)
+  }));
+
   const op = {
     id: Date.now().toString(),
+    numeroOp,
     fecha,
     recetaId,
     sku: r.sku || '',
@@ -4927,7 +4976,7 @@ function agregarOP() {
     gramaje: r.gramaje,
     envase: r.envase || 0,
     kgTotalesTerminados: calculo.kgTotalesTerminados,
-    componentes: calculo.componentes,
+    componentes: componentesConEquipo,
     rendimientoEsperado: r.rendimientoEsperado,
     estado: 'pendiente',
     fechaCreacion: new Date().toLocaleString('es-CL')
@@ -4938,6 +4987,7 @@ function agregarOP() {
   renderListaOPs();
 
   // Limpiar formulario
+  document.getElementById('opNumero').value = '';
   document.getElementById('opSkuSelect').value = '';
   document.getElementById('opPlatos').value = '';
   document.getElementById('previewCalculoOP').style.display = 'none';
@@ -4973,7 +5023,9 @@ function renderListaOPs() {
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem;">
         <div>
           <div style="font-weight:700;font-size:1rem;color:#333;">${op.sku ? '<span style="color:#667eea">'+op.sku+'</span> — ' : ''}${op.nombre}</div>
-          <div style="font-size:.85rem;color:#666;margin-top:.2rem;">📅 ${op.fecha} · ${op.platos.toLocaleString()} platos × ${op.gramaje}gr · 📦 <strong>${op.kgTotalesTerminados} kg</strong> totales${op.equipoAsignado ? ' · ⚙️ '+op.equipoAsignado : ''}</div>
+          <div style="font-size:.85rem;color:#666;margin-top:.2rem;">
+            🧾 <strong>${op.numeroOp || 'Sin N° OP'}</strong> · 📅 ${op.fecha} · ${op.platos.toLocaleString()} platos × ${op.gramaje}gr · 📦 <strong>${op.kgTotalesTerminados} kg</strong> totales${op.equipoAsignado ? ' · ⚙️ '+op.equipoAsignado : ''}
+          </div>
         </div>
         <div style="display:flex;gap:.5rem;align-items:center;">
           <span style="background:${badgeColor};color:${badgeText};padding:.2rem .75rem;border-radius:20px;font-size:.8rem;font-weight:600;">${badgeLabel}</span>
@@ -4982,12 +5034,13 @@ function renderListaOPs() {
         </div>
       </div>
       ${op.componentes.length > 0 ? `
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.5rem;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.5rem;">
         ${op.componentes.map(c => `
-          <div style="background:white;border-radius:8px;padding:.6rem .75rem;">
-            <div style="font-size:.8rem;color:#666;">${c.nombre}</div>
+          <div style="background:white;border-radius:8px;padding:.6rem .75rem;border-left:3px solid #667eea;">
+            <div style="font-size:.8rem;color:#666;font-weight:600;">${c.nombre}</div>
             <div style="font-weight:700;color:#10b981;font-size:1rem;">${c.kgTerminados} kg terminados</div>
-            <div style="font-size:.75rem;color:#999;">${c.ingredientes.map(i=>i.nombre+': '+i.cantidadTotal+' '+i.unidad).join(' · ')}</div>
+            <div style="font-size:.75rem;background:#e8edff;color:#4f46e5;padding:.15rem .4rem;border-radius:4px;display:inline-block;margin:.2rem 0;">⚙️ ${c.equipoSugerido || sugerirEquipoPorComponente(c.nombre, c.kgTerminados)}</div>
+            <div style="font-size:.75rem;color:#999;margin-top:.2rem;">${c.ingredientes.map(i=>i.nombre+': '+i.cantidadTotal+' '+i.unidad).join(' · ')}</div>
           </div>
         `).join('')}
       </div>` : ''}
