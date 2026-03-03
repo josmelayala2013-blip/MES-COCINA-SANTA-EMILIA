@@ -4971,9 +4971,9 @@ function sugerirEquipoPorComponente(nombreComponente, kgTerminados) {
   const n = nombreComponente.toLowerCase();
 
   // HORNO RATIONAL → proteínas cocidas al horno
-  if (n.includes('lamin') || n.includes('asad') || n.includes('wok') || 
-      n.includes('salteado') || n.includes('plancha') || n.includes('pechuga') ||
-      n.includes('horno') || n.includes('gratin') || n.includes('rostiz')) {
+  if (n.includes('lamin') || n.includes('asad') || n.includes('salteado') || 
+      n.includes('plancha') || n.includes('pechuga') || n.includes('horno') || 
+      n.includes('gratin') || n.includes('rostiz')) {
     return '🍖 Horno Rational';
   }
 
@@ -4983,10 +4983,9 @@ function sugerirEquipoPorComponente(nombreComponente, kgTerminados) {
     return '🥘 Marmita';
   }
 
-  // SALSAS → Sartén Basculante
-  if (n.includes('salsa') || n.includes('jugo') || n.includes('crema') || 
-      n.includes('salse') || n.includes('tomat') || n.includes('curry')) {
-    return '🔥 Sartén Basculante';
+  // SALSAS (salsa, jugo, crema, wok) → Sartén ≤110kg / Marmita >110kg
+  if (n.includes('salsa') || n.includes('jugo') || n.includes('crema') || n.includes('wok')) {
+    return kgTerminados <= 110 ? '🔥 Sartén Basculante' : '🥘 Marmita';
   }
 
   // PASTAS → Sartén Basculante
@@ -4995,20 +4994,20 @@ function sugerirEquipoPorComponente(nombreComponente, kgTerminados) {
     return '🔥 Sartén Basculante';
   }
 
-  // ARROCES → según kg
+  // ARROCES → ≤110kg Sartén / >110kg Marmita
   if (n.includes('arroz') || n.includes('acompa') || n.includes('cereal')) {
-    return kgTerminados <= 100 ? '🔥 Sartén Basculante' : '🥘 Marmita';
+    return kgTerminados <= 110 ? '🔥 Sartén Basculante' : '🥘 Marmita';
   }
 
-  // PROTEÍNA GENÉRICA → Horno
+  // PROTEÍNA GENÉRICA (pollo, cerdo, pescado, etc) → Horno
   if (n.includes('prote') || n.includes('pollo') || n.includes('cerdo') || 
       n.includes('pavo') || n.includes('salmón') || n.includes('salmon') ||
       n.includes('merluza') || n.includes('pescad') || n.includes('filete')) {
     return '🍖 Horno Rational';
   }
 
-  // DEFAULT por kg
-  return kgTerminados <= 100 ? '🔥 Sartén Basculante' : '🥘 Marmita';
+  // DEFAULT → ≤110kg Sartén / >110kg Marmita
+  return kgTerminados <= 110 ? '🔥 Sartén Basculante' : '🥘 Marmita';
 }
 
 function calcularRecetaParaPlatos(r, platos) {
