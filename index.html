@@ -4355,6 +4355,7 @@ function guardarReceta() {
   guardarRecetasStorage();
   cerrarModalReceta();
   renderListaRecetas();
+  cargarSelectorOPsSimple();
 }
 
 function eliminarReceta(id) {
@@ -4712,19 +4713,11 @@ function guardarOPs() {
 }
 
 async function cargarSelectorOPs() {
-  const sel = document.getElementById('opSkuSelect');
-  if (!sel) return;
-
-  // Si no hay recetas en memoria, intentar cargar desde Firebase
   if (recetas.length === 0) {
     await cargarRecetasFirebase();
     renderListaRecetas();
   }
-
-  sel.innerHTML = '<option value="">Selecciona una receta cargada...</option>';
-  recetas.forEach(r => {
-    sel.innerHTML += `<option value="${r.id}">${r.sku ? r.sku + ' — ' : ''}${r.nombre}</option>`;
-  });
+  cargarSelectorOPsSimple();
 }
 
 function previewOP() {
@@ -4916,10 +4909,21 @@ async function cargarRecetasFirebase(intentos = 0) {
       recetas = docSnap.data().recetas;
       localStorage.setItem('mes_recetas', JSON.stringify(recetas));
       console.log('✅ Recetas cargadas desde Firebase:', recetas.length);
+      // Actualizar selector de OPs si está visible
+      cargarSelectorOPsSimple();
     }
   } catch(e) { 
     console.error('Error cargando recetas Firebase:', e); 
   }
+}
+
+function cargarSelectorOPsSimple() {
+  const sel = document.getElementById('opSkuSelect');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Selecciona una receta cargada...</option>';
+  recetas.forEach(r => {
+    sel.innerHTML += `<option value="${r.id}">${r.sku ? r.sku + ' — ' : ''}${r.nombre}</option>`;
+  });
 }
 </script>
 
