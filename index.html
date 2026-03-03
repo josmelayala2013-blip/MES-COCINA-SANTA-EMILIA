@@ -3879,6 +3879,8 @@
             const listaEl = document.getElementById('planLista');
             const resumenEl = document.getElementById('planResumen');
 
+            if (!listaEl || !resumenEl) return;
+
             // Calcular totales
             const totalKgPlan = plan.reduce((s, p) => s + p.kg, 0);
             const capacidadTotal = equipos.reduce((s, e) => {
