@@ -4970,14 +4970,7 @@ function previewOP() {
 function sugerirEquipoPorComponente(nombreComponente, kgTerminados) {
   const n = nombreComponente.toLowerCase();
 
-  // HORNO RATIONAL → proteínas cocidas al horno
-  if (n.includes('lamin') || n.includes('asad') || n.includes('salteado') || 
-      n.includes('plancha') || n.includes('pechuga') || n.includes('horno') || 
-      n.includes('gratin') || n.includes('rostiz')) {
-    return '🍖 Horno Rational';
-  }
-
-  // MARMITA → desmechadas, estofados, mechadas
+  // MARMITA → desmechadas, estofados, mechadas (evaluar primero)
   if (n.includes('desmech') || n.includes('mechad') || n.includes('estofad') ||
       n.includes('vacuno') || n.includes('cocido')) {
     return '🥘 Marmita';
@@ -4988,21 +4981,24 @@ function sugerirEquipoPorComponente(nombreComponente, kgTerminados) {
     return kgTerminados <= 110 ? '🔥 Sartén Basculante' : '🥘 Marmita';
   }
 
-  // PASTAS → Sartén Basculante
-  if (n.includes('pasta') || n.includes('fettuc') || n.includes('spaghet') || 
-      n.includes('tallar') || n.includes('penne') || n.includes('macarr')) {
-    return '🔥 Sartén Basculante';
-  }
-
   // ARROCES → ≤110kg Sartén / >110kg Marmita
   if (n.includes('arroz') || n.includes('acompa') || n.includes('cereal')) {
     return kgTerminados <= 110 ? '🔥 Sartén Basculante' : '🥘 Marmita';
   }
 
-  // PROTEÍNA GENÉRICA (pollo, cerdo, pescado, etc) → Horno
-  if (n.includes('prote') || n.includes('pollo') || n.includes('cerdo') || 
-      n.includes('pavo') || n.includes('salmón') || n.includes('salmon') ||
-      n.includes('merluza') || n.includes('pescad') || n.includes('filete')) {
+  // PASTAS → siempre Sartén Basculante
+  if (n.includes('pasta') || n.includes('fettuc') || n.includes('spaghet') || 
+      n.includes('tallar') || n.includes('penne') || n.includes('macarr')) {
+    return '🔥 Sartén Basculante';
+  }
+
+  // HORNO RATIONAL → proteínas al horno
+  if (n.includes('lamin') || n.includes('asad') || n.includes('salteado') || 
+      n.includes('plancha') || n.includes('pechuga') || n.includes('horno') || 
+      n.includes('gratin') || n.includes('rostiz') || n.includes('prote') || 
+      n.includes('pollo') || n.includes('cerdo') || n.includes('pavo') || 
+      n.includes('salmón') || n.includes('salmon') || n.includes('merluza') || 
+      n.includes('pescad') || n.includes('filete')) {
     return '🍖 Horno Rational';
   }
 
