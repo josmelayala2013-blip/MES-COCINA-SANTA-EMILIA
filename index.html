@@ -439,6 +439,7 @@
 
         <div class="nav-tabs">
             <button class="nav-tab active" onclick="changeTab('dashboard')">📊 Dashboard</button>
+            <button class="nav-tab" onclick="changeTab('gantt')">📅 Gantt</button>
             <button class="nav-tab" onclick="changeTab('ejecutivo')">👔 Vista Ejecutivo</button>
             <button class="nav-tab" onclick="changeTab('procesos')">🔄 Procesos Activos</button>
             <button class="nav-tab" onclick="changeTab('planificador')">📅 Planificador</button>
@@ -448,7 +449,6 @@
             <button class="nav-tab" onclick="changeTab('productos')">🍽️ Productos</button>
             <button class="nav-tab" onclick="changeTab('recetas')">📋 Recetas</button>
             <button class="nav-tab" onclick="changeTab('personal')">👥 Personal</button>
-            <button class="nav-tab" onclick="changeTab('gantt')">📊 Gantt</button>
         </div>
 
         <!-- TAB: DASHBOARD -->
@@ -5559,46 +5559,58 @@ function ganttTiempoCoccionProducto(producto) {
 function ganttGetBloques(fecha) {
     const bloques = [];
 
-    // 1. Equipos activos
+    // 1. Equipos activos / en limpieza
     equipos.forEach(eq => {
         if (!eq.produccion || !eq.produccion.inicio) return;
-        if (ganttFechaDeISO(eq.produccion.inicio) !== fecha) return;
+        const fechaBloque = new Date(eq.produccion.inicio).toISOString().split('T')[0];
+        if (fechaBloque !== fecha) return;
 
-        const inicioH   = ganttISOtoDecimal(eq.produccion.inicio);
+        const inicioH  = ganttISOtoDecimal(eq.produccion.inicio);
+        // Tiempo de cocción: usar aprendido o 2h por defecto
         const durAprendida = ganttTiempoCoccionProducto(eq.produccion.producto || '');
-        const durH      = durAprendida || 2;
-        const finH      = Math.min(inicioH + durH, GANTT_HORA_FIN);
-        const limpMin   = ganttTiempoLimpiezaEquipo(eq.id);
-        const finLimpH  = Math.min(finH + limpMin / 60, GANTT_HORA_FIN);
+        const durH     = durAprendida || 2;
+        const finH     = Math.min(inicioH + durH, GANTT_HORA_FIN);
+        const limpMin  = ganttTiempoLimpiezaEquipo(eq.id);
+        const finLimpH = Math.min(finH + limpMin / 60, GANTT_HORA_FIN);
 
         bloques.push({
             equipoId: eq.id,
             producto: eq.produccion.producto || 'Producción',
-            inicio: inicioH,
-            fin: finH,
+            inicio:   inicioH,
+            fin:      finH,
             finLimpieza: finLimpH,
             limpMin,
-            estado: eq.estado === 'limpieza' ? 'limpieza' : 'activa',
+            estado:   eq.estado === 'limpieza' ? 'limpieza' : 'activa',
             operador: eq.produccion.operador || '',
-            kg: eq.produccion.kgProgramados || 0,
-            op: eq.produccion.numeroOP || '',
+            kg:       eq.produccion.kgProgramados || 0,
+            op:       eq.produccion.numeroOP || '',
             esActivo: true
         });
     });
 
-    // 2. Historial completados
+    // 2. Historial del día (completados)
     const hist = historialPorFecha[fecha] || [];
     hist.forEach(h => {
         if (!h.inicio) return;
-        if (ganttFechaDeISO(h.inicio) !== fecha) return;
-        const eqId = h.equipoId || equipos.find(e => e.nombre === h.equipo)?.id;
+        const fechaH = new Date(h.inicio).toISOString().split('T')[0];
+        if (fechaH !== fecha) return;
+
+        // Resolver equipoId: puede ser número o nombre
+        let eqId = h.equipoId;
+        if (!eqId && h.equipo) {
+            const eq = equipos.find(e => e.nombre === h.equipo);
+            eqId = eq ? eq.id : null;
+        }
         if (!eqId) return;
+        eqId = parseInt(eqId) || eqId; // normalizar a número si corresponde
 
         const inicioH  = ganttISOtoDecimal(h.inicio);
         const finH     = h.finCoccion
             ? Math.min(ganttISOtoDecimal(h.finCoccion), GANTT_HORA_FIN)
             : Math.min(inicioH + 2, GANTT_HORA_FIN);
-        const limpMin  = h.tiempoLimpieza ? Math.round(h.tiempoLimpieza / 60) : ganttTiempoLimpiezaEquipo(eqId);
+        const limpMin  = h.tiempoLimpieza
+            ? Math.round(h.tiempoLimpieza / 60)
+            : ganttTiempoLimpiezaEquipo(eqId);
         const finLimpH = h.finLimpieza
             ? Math.min(ganttISOtoDecimal(h.finLimpieza), GANTT_HORA_FIN)
             : Math.min(finH + limpMin / 60, GANTT_HORA_FIN);
@@ -5606,14 +5618,14 @@ function ganttGetBloques(fecha) {
         bloques.push({
             equipoId: eqId,
             producto: h.producto || 'Producción',
-            inicio: inicioH,
-            fin: finH,
+            inicio:   inicioH,
+            fin:      finH,
             finLimpieza: finLimpH,
             limpMin,
-            estado: 'completada',
+            estado:   'completada',
             operador: h.operador || '',
-            kg: h.kgProgramados || h.kgFinales || 0,
-            op: h.numeroOP || '',
+            kg:       h.kgProgramados || h.kgFinales || 0,
+            op:       h.numeroOP || '',
             esActivo: false
         });
     });
@@ -5652,6 +5664,15 @@ function renderGantt() {
 
     // Notificaciones de alerta (solo hoy)
     if (esHoy) ganttVerificarAlertas(bloques, horaActual);
+
+    // Si no hay equipos cargados
+    if (!equipos || equipos.length === 0) {
+        cont.innerHTML = `<div style="padding:3rem;text-align:center;color:#94a3b8;">
+            <div style="font-size:2rem;">📊</div>
+            <div style="font-weight:600;margin-top:.5rem;">No hay equipos registrados</div>
+        </div>`;
+        return;
+    }
 
     let html = `<div style="display:flex;min-width:${labelW + equipos.length * GANTT_COL_W}px;position:relative;user-select:none;">`;
 
