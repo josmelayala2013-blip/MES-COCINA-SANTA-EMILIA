@@ -5492,9 +5492,13 @@ function actualizarSelectoresPersonal() {
 // MÓDULO GANTT DE PRODUCCIÓN CON ALERTAS
 // ============================================
 
-let ganttFecha     = getHoy();
+let ganttFecha     = null; // se inicializa al abrir la pestaña
 let ganttTimer     = null;
-let ganttAlertados = new Set(); // IDs de equipos ya alertados (sonido)
+let ganttAlertados = new Set();
+
+function ganttGetHoy() {
+    return new Date().toISOString().split('T')[0];
+}
 
 const GANTT_HORA_INICIO  = 6;
 const GANTT_HORA_FIN     = 22;
@@ -5512,7 +5516,7 @@ function ganttNavDia(delta) {
 }
 
 function ganttIrHoy() {
-    ganttFecha = getHoy();
+    ganttFecha = ganttGetHoy();
     renderGantt();
 }
 
@@ -5531,9 +5535,9 @@ function ganttFechaDeISO(iso) {
 
 // Obtiene tiempo promedio de limpieza del historial para un equipo
 function ganttTiempoLimpiezaEquipo(equipoId) {
-    const hist = Object.values(historialPorFecha).flat();
+    const hist = Object.values(window.historialPorFecha).flat();
     const limpiezas = hist.filter(h =>
-        (h.equipoId === equipoId || equipos.find(e => e.id === equipoId)?.nombre === h.equipo)
+        (h.equipoId === equipoId || window.equipos.find(e => e.id === equipoId)?.nombre === h.equipo)
         && h.tiempoLimpieza
     );
     if (limpiezas.length === 0) return 20; // default 20 min
@@ -5543,7 +5547,7 @@ function ganttTiempoLimpiezaEquipo(equipoId) {
 
 // Obtiene tiempo promedio de cocción del historial para un producto
 function ganttTiempoCoccionProducto(producto) {
-    const hist = Object.values(historialPorFecha).flat();
+    const hist = Object.values(window.historialPorFecha).flat();
     const coincidencias = hist.filter(h =>
         h.producto && h.producto.toLowerCase().includes(producto.toLowerCase().split('—')[0].trim())
         && h.finCoccion && h.inicio
@@ -5561,7 +5565,7 @@ function ganttGetBloques(fecha) {
     const bloques = [];
 
     // 1. Equipos activos / en limpieza
-    equipos.forEach(eq => {
+    window.equipos.forEach(eq => {
         if (!eq.produccion || !eq.produccion.inicio) return;
         const fechaBloque = new Date(eq.produccion.inicio).toISOString().split('T')[0];
         if (fechaBloque !== fecha) return;
@@ -5590,7 +5594,7 @@ function ganttGetBloques(fecha) {
     });
 
     // 2. Historial del día (completados)
-    const hist = historialPorFecha[fecha] || [];
+    const hist = window.historialPorFecha[fecha] || [];
     hist.forEach(h => {
         if (!h.inicio) return;
         const fechaH = new Date(h.inicio).toISOString().split('T')[0];
@@ -5599,7 +5603,7 @@ function ganttGetBloques(fecha) {
         // Resolver equipoId: puede ser número o nombre
         let eqId = h.equipoId;
         if (!eqId && h.equipo) {
-            const eq = equipos.find(e => e.nombre === h.equipo);
+            const eq = window.equipos.find(e => e.nombre === h.equipo);
             eqId = eq ? eq.id : null;
         }
         if (!eqId) return;
@@ -5647,7 +5651,7 @@ function renderGantt() {
     const labelEl = document.getElementById('ganttFechaLabel');
     if (!labelEl) return;
 
-    const hoy   = getHoy();
+    const hoy   = ganttGetHoy();
     const esHoy = ganttFecha === hoy;
     const d     = new Date(ganttFecha + 'T12:00:00');
     labelEl.textContent = esHoy
@@ -5666,16 +5670,16 @@ function renderGantt() {
     // Notificaciones de alerta (solo hoy)
     if (esHoy) ganttVerificarAlertas(bloques, horaActual);
 
-    // Si no hay equipos cargados
-    if (!equipos || equipos.length === 0) {
+    // Si no hay window.equipos cargados
+    if (!window.equipos || window.equipos.length === 0) {
         cont.innerHTML = `<div style="padding:3rem;text-align:center;color:#94a3b8;">
             <div style="font-size:2rem;">📊</div>
-            <div style="font-weight:600;margin-top:.5rem;">No hay equipos registrados</div>
+            <div style="font-weight:600;margin-top:.5rem;">No hay window.equipos registrados</div>
         </div>`;
         return;
     }
 
-    let html = `<div style="display:flex;min-width:${labelW + equipos.length * GANTT_COL_W}px;position:relative;user-select:none;">`;
+    let html = `<div style="display:flex;min-width:${labelW + window.equipos.length * GANTT_COL_W}px;position:relative;user-select:none;">`;
 
     // Columna horas
     html += `<div style="width:${labelW}px;flex-shrink:0;border-right:2px solid #e5e7eb;position:sticky;left:0;z-index:5;background:white;">`;
@@ -5690,8 +5694,8 @@ function renderGantt() {
     }
     html += `</div>`;
 
-    // Columnas equipos
-    equipos.forEach(eq => {
+    // Columnas window.equipos
+    window.equipos.forEach(eq => {
         const eqBloques = bloques.filter(b => b.equipoId === eq.id);
         const iconos = { horno:'🍖', marmita:'🥘', sartenBasculante:'🔥' };
         const icono  = iconos[eq.tipo] || '⚙️';
@@ -5873,7 +5877,7 @@ function ganttVerificarAlertas(bloques, horaActual) {
 
         if ((alerta === 'roja' || alerta === 'amarilla') && !ganttAlertados.has(key)) {
             ganttAlertados.add(key);
-            const eq      = equipos.find(e => e.id === b.equipoId);
+            const eq      = window.equipos.find(e => e.id === b.equipoId);
             const restMin = Math.round((b.fin - horaActual) * 60);
             const msg     = alerta === 'roja'
                 ? `🔴 ¡URGENTE! ${eq?.nombre || 'Equipo'} — "${b.producto.split('—')[0].trim()}" termina en ${restMin} min`
@@ -5887,7 +5891,7 @@ function iniciarGanttTimer() {
     if (ganttTimer) clearInterval(ganttTimer);
     ganttTimer = setInterval(() => {
         if (document.getElementById('gantt')?.classList.contains('active')) {
-            if (ganttFecha === getHoy()) {
+            if (ganttFecha === ganttGetHoy()) {
                 const ahora      = new Date();
                 const horaActual = ahora.getHours() + ahora.getMinutes()/60 + ahora.getSeconds()/3600;
                 ganttRenderLinea(horaActual);
