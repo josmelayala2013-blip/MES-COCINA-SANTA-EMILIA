@@ -3494,14 +3494,20 @@
             else if (tabName === 'procesos') renderProcesosActivos();
             else if (tabName === 'analytics') actualizarAnalytics();
             else if (tabName === 'personal') { 
-                renderListaPersonal('cocina'); 
-                renderListaPersonal('envasado'); 
-                renderListaPersonal('abatimiento'); 
+                // Cargar desde Firebase primero, luego renderizar
+                cargarPersonalFirebase().then(() => {
+                    renderListaPersonal('cocina'); 
+                    renderListaPersonal('envasado'); 
+                    renderListaPersonal('abatimiento');
+                });
             }
             else if (tabName === 'gantt') {
                 ganttFecha = ganttFecha || getHoy();
                 renderGantt();
                 iniciarGanttTimer();
+            }
+            else if (tabName === 'recetas') {
+                cargarRecetasFirebase().then(() => renderListaRecetas());
             }
             else if (tabName === 'planificador') { initPlanificador(); renderSelectorPlanProductos(); renderPlanVisual(); setTimeout(() => { cargarSelectorOPs(); renderListaOPs(); }, 1500); }
             else if (tabName === 'ejecutivo') actualizarVistaEjecutivo();
@@ -5252,16 +5258,28 @@ function guardarPersonal() {
   actualizarSelectoresPersonal();
 }
 
-async function cargarPersonalFirebase() {
-  if (!window.db || !window.firestoreLoaded) return;
+async function cargarPersonalFirebase(intentos = 0) {
+  if (!window.db || !window.firestoreLoaded) {
+    if (intentos < 10) {
+      await new Promise(r => setTimeout(r, 500));
+      return cargarPersonalFirebase(intentos + 1);
+    }
+    return;
+  }
   try {
     const { doc, getDoc } = window.firestoreFunctions;
     const docSnap = await getDoc(doc(window.db, 'mes-data', 'personal'));
     if (docSnap.exists() && docSnap.data().personal) {
       personal = docSnap.data().personal;
       localStorage.setItem('mes_personal', JSON.stringify(personal));
+      // Si la pestaña personal está visible, actualizar
+      if (document.getElementById('personal')?.classList.contains('active')) {
+        renderListaPersonal('cocina');
+        renderListaPersonal('envasado');
+        renderListaPersonal('abatimiento');
+      }
     }
-  } catch(e) {}
+  } catch(e) { console.error('Error cargando personal:', e); }
 }
 
 function renderListaPersonal(area) {
@@ -5310,8 +5328,11 @@ function guardarEdicionPersonal(area, idx) {
 
 function agregarPersonal(area) {
   const input = document.getElementById(`nuevoPersonal${area.charAt(0).toUpperCase() + area.slice(1)}`);
+  if (!input) return;
   const nombre = input.value.trim();
   if (!nombre) return;
+  // Asegurar que el área existe
+  if (!personal[area]) personal[area] = [];
   if (personal[area].includes(nombre)) { alert('Ese nombre ya existe'); return; }
   personal[area].push(nombre);
   guardarPersonal();
@@ -5774,7 +5795,13 @@ window.addEventListener('load', () => {
     await cargarPersonalFirebase();
     await cargarRecetasFirebase();
     renderListaRecetas();
-  }, 2000);
+    // Re-renderizar personal si la pestaña está activa
+    if (document.getElementById('personal')?.classList.contains('active')) {
+      renderListaPersonal('cocina');
+      renderListaPersonal('envasado');
+      renderListaPersonal('abatimiento');
+    }
+  }, 3000); // más tiempo para que Firebase esté listo
 });
 
 async function cargarRecetasFirebase(intentos = 0) {
