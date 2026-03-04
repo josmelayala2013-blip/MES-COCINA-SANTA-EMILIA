@@ -865,108 +865,87 @@
                 <p style="color:#999; font-size:0.8rem; margin-top:0.5rem;">💡 También puedes preguntarle sobre el estado actual de producción, retrasos, o pedir consejos de optimización</p>
             </div>
         </div>
-    </div>
-
-    <!-- MODALES (todos los modales del v2.0) -->
-
-<!-- MODALES -->
-    
-    <!-- MODAL: INICIAR PRODUCCIÓN -->
 
         <!-- TAB: RECETAS -->
         <div id="recetas" class="tab-content">
-  <div class="analytics-section">
-    <div class="analytics-header">
-      <h2>📋 Gestión de Recetas</h2>
-      <p>Administra tus recetas por SKU, analiza rendimientos y aplica sugerencias de la IA</p>
-    </div>
-
-    <!-- Botones principales -->
-    <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem;">
-      <button class="btn" onclick="abrirModalReceta()" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">➕ Nueva Receta</button>
-      <label style="background:linear-gradient(135deg,#43e97b,#38f9d7);color:white;padding:.75rem 1.5rem;border-radius:10px;cursor:pointer;font-size:1rem;">
-        📥 Importar Excel
-        <input type="file" id="importarExcelRecetas" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarRecetasExcel(event)">
-      </label>
-      <button class="btn" onclick="exportarRecetasExcel()" style="background:linear-gradient(135deg,#f093fb,#f5576c);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">📤 Exportar Excel</button>
-      <button class="btn" onclick="analizarRendimientosIA()" style="background:linear-gradient(135deg,#4facfe,#00f2fe);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">🧠 Analizar con IA</button>
-    </div>
-
-    <!-- Buscador -->
-    <div style="margin-bottom:1.5rem;">
-      <input type="text" id="buscarReceta" placeholder="🔍 Buscar receta por nombre o SKU..." oninput="filtrarRecetas()" style="width:100%;padding:.75rem 1rem;border-radius:10px;border:1px solid #ddd;font-size:1rem;">
-    </div>
-
-    <!-- Lista de recetas -->
-    <div id="listaRecetas" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1rem;"></div>
-  </div>
-
-  <!-- Panel de análisis IA -->
-  <div class="analytics-section" id="panelAnalisisIA" style="display:none;margin-top:1.5rem;">
-    <div class="analytics-header">
-      <h2>🧠 Análisis IA de Rendimientos</h2>
-    </div>
-    <div id="resultadoAnalisisIA" style="background:#f8f9ff;border-radius:12px;padding:1.5rem;line-height:1.7;"></div>
-    <div id="sugerenciasIA" style="margin-top:1rem;"></div>
-  </div>
+          <div class="analytics-section">
+            <div class="analytics-header">
+              <h2>📋 Gestión de Recetas</h2>
+              <p>Administra tus recetas por SKU, analiza rendimientos y aplica sugerencias de la IA</p>
+            </div>
+            <!-- Botones principales -->
+            <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem;">
+              <button class="btn" onclick="abrirModalReceta()" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;">➕ Nueva Receta</button>
+              <label style="background:linear-gradient(135deg,#43e97b,#38f9d7);color:white;padding:.75rem 1.5rem;border-radius:10px;cursor:pointer;font-weight:600;">
+                📥 Importar Excel
+                <input type="file" id="importarExcelRecetas" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarRecetasExcel(this)">
+              </label>
+              <button class="btn" onclick="exportarRecetasExcel()" style="background:linear-gradient(135deg,#f093fb,#f5576c);color:white;">📤 Exportar Excel</button>
+              <button class="btn" onclick="analizarRendimientosIA()" style="background:linear-gradient(135deg,#4facfe,#00f2fe);color:white;">🧠 Analizar con IA</button>
+            </div>
+            <!-- Buscador -->
+            <div style="margin-bottom:1.5rem;">
+              <input type="text" id="buscarReceta" placeholder="🔍 Buscar receta por nombre o SKU..." oninput="renderListaRecetas()" style="width:100%;padding:.75rem 1rem;border-radius:10px;border:2px solid #e5e7eb;font-size:1rem;box-sizing:border-box;">
+            </div>
+            <!-- Lista de recetas -->
+            <div id="listaRecetas" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1.5rem;"></div>
+          </div>
+          <!-- Panel de análisis IA -->
+          <div class="analytics-section" id="panelAnalisisIA" style="display:none;margin-top:1.5rem;">
+            <div class="analytics-header"><h2>🧠 Análisis IA de Rendimientos</h2></div>
+            <div id="resultadoAnalisisIA" style="background:#f8f9ff;border-radius:12px;padding:1.5rem;line-height:1.6;"></div>
+            <div id="sugerenciasIA" style="margin-top:1rem;"></div>
+          </div>
         </div>
 
         <!-- TAB: PERSONAL -->
         <div id="personal" class="tab-content">
-  <div class="analytics-section">
-    <h2 style="color:#667eea;margin-bottom:.5rem;">👥 Gestión de Personal</h2>
-    <p style="color:#666;margin-bottom:1.5rem;">Administra el personal por área. Los nombres aparecerán automáticamente en todos los selectores del MES.</p>
-
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;">
-
-      <!-- COCINA -->
-      <div style="background:white;border-radius:15px;padding:1.5rem;box-shadow:0 4px 15px rgba(0,0,0,0.08);border-top:4px solid #667eea;">
-        <h3 style="color:#667eea;margin-bottom:1rem;">👨‍🍳 Cocina</h3>
-        <div id="listaPersonalCocina"></div>
-        <div style="display:flex;gap:.5rem;margin-top:1rem;">
-          <input id="nuevoPersonalCocina" type="text" placeholder="Nombre del cocinero..." 
-            style="flex:1;padding:.6rem;border-radius:8px;border:2px solid #c7d2fe;font-size:.9rem;"
-            onkeypress="if(event.key==='Enter') agregarPersonal('cocina')">
-          <button onclick="agregarPersonal('cocina')" 
-            style="background:#667eea;color:white;border:none;border-radius:8px;padding:.6rem 1rem;cursor:pointer;font-weight:600;">
-            ➕
-          </button>
+          <div class="analytics-section">
+            <h2 style="color:#667eea;margin-bottom:.5rem;">👥 Gestión de Personal</h2>
+            <p style="color:#666;margin-bottom:1.5rem;">Administra el personal por área. Los nombres aparecerán automáticamente en todos los selectores del MES.</p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;">
+              <!-- COCINA -->
+              <div style="background:white;border-radius:15px;padding:1.5rem;box-shadow:0 4px 15px rgba(0,0,0,0.08);border-top:4px solid #667eea;">
+                <h3 style="color:#667eea;margin-bottom:1rem;">👨‍🍳 Cocina</h3>
+                <div id="listaPersonalCocina"></div>
+                <div style="display:flex;gap:.5rem;margin-top:1rem;">
+                  <input id="nuevoPersonalCocina" type="text" placeholder="Nombre del cocinero..."
+                    style="flex:1;padding:.6rem;border-radius:8px;border:2px solid #c7d2fe;font-size:.9rem;"
+                    onkeypress="if(event.key==='Enter') agregarPersonal('cocina')">
+                  <button onclick="agregarPersonal('cocina')"
+                    style="background:#667eea;color:white;border:none;border-radius:8px;padding:.6rem 1rem;cursor:pointer;font-weight:600;">➕</button>
+                </div>
+              </div>
+              <!-- ENVASADO -->
+              <div style="background:white;border-radius:15px;padding:1.5rem;box-shadow:0 4px 15px rgba(0,0,0,0.08);border-top:4px solid #10b981;">
+                <h3 style="color:#10b981;margin-bottom:1rem;">📦 Envasado</h3>
+                <div id="listaPersonalEnvasado"></div>
+                <div style="display:flex;gap:.5rem;margin-top:1rem;">
+                  <input id="nuevoPersonalEnvasado" type="text" placeholder="Nombre del operario..."
+                    style="flex:1;padding:.6rem;border-radius:8px;border:2px solid #a7f3d0;font-size:.9rem;"
+                    onkeypress="if(event.key==='Enter') agregarPersonal('envasado')">
+                  <button onclick="agregarPersonal('envasado')"
+                    style="background:#10b981;color:white;border:none;border-radius:8px;padding:.6rem 1rem;cursor:pointer;font-weight:600;">➕</button>
+                </div>
+              </div>
+              <!-- ABATIMIENTO -->
+              <div style="background:white;border-radius:15px;padding:1.5rem;box-shadow:0 4px 15px rgba(0,0,0,0.08);border-top:4px solid #3b82f6;">
+                <h3 style="color:#3b82f6;margin-bottom:1rem;">❄️ Abatimiento</h3>
+                <div id="listaPersonalAbatimiento"></div>
+                <div style="display:flex;gap:.5rem;margin-top:1rem;">
+                  <input id="nuevoPersonalAbatimiento" type="text" placeholder="Nombre del operario..."
+                    style="flex:1;padding:.6rem;border-radius:8px;border:2px solid #bfdbfe;font-size:.9rem;"
+                    onkeypress="if(event.key==='Enter') agregarPersonal('abatimiento')">
+                  <button onclick="agregarPersonal('abatimiento')"
+                    style="background:#3b82f6;color:white;border:none;border-radius:8px;padding:.6rem 1rem;cursor:pointer;font-weight:600;">➕</button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-
-      <!-- ENVASADO -->
-      <div style="background:white;border-radius:15px;padding:1.5rem;box-shadow:0 4px 15px rgba(0,0,0,0.08);border-top:4px solid #10b981;">
-        <h3 style="color:#10b981;margin-bottom:1rem;">📦 Envasado</h3>
-        <div id="listaPersonalEnvasado"></div>
-        <div style="display:flex;gap:.5rem;margin-top:1rem;">
-          <input id="nuevoPersonalEnvasado" type="text" placeholder="Nombre del operario..." 
-            style="flex:1;padding:.6rem;border-radius:8px;border:2px solid #a7f3d0;font-size:.9rem;"
-            onkeypress="if(event.key==='Enter') agregarPersonal('envasado')">
-          <button onclick="agregarPersonal('envasado')" 
-            style="background:#10b981;color:white;border:none;border-radius:8px;padding:.6rem 1rem;cursor:pointer;font-weight:600;">
-            ➕
-          </button>
-        </div>
-      </div>
-
-      <!-- ABATIMIENTO -->
-      <div style="background:white;border-radius:15px;padding:1.5rem;box-shadow:0 4px 15px rgba(0,0,0,0.08);border-top:4px solid #3b82f6;">
-        <h3 style="color:#3b82f6;margin-bottom:1rem;">❄️ Abatimiento</h3>
-        <div id="listaPersonalAbatimiento"></div>
-        <div style="display:flex;gap:.5rem;margin-top:1rem;">
-          <input id="nuevoPersonalAbatimiento" type="text" placeholder="Nombre del operario..." 
-            style="flex:1;padding:.6rem;border-radius:8px;border:2px solid #bfdbfe;font-size:.9rem;"
-            onkeypress="if(event.key==='Enter') agregarPersonal('abatimiento')">
-          <button onclick="agregarPersonal('abatimiento')" 
-            style="background:#3b82f6;color:white;border:none;border-radius:8px;padding:.6rem 1rem;cursor:pointer;font-weight:600;">
-            ➕
-          </button>
-        </div>
-      </div>
 
     </div>
-  </div>
-        </div>
+    
     <div id="modalIniciarProduccion" class="modal">
         <div class="modal-content" style="max-width:700px;">
             <div class="modal-header">
