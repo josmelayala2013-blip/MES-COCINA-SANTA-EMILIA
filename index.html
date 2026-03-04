@@ -820,7 +820,7 @@
     </div>
         </div>
 
-                <div id="asistente" class="tab-content">
+        <div id="asistente" class="tab-content">
             <div class="analytics-section">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
                     <div>
@@ -4551,13 +4551,7 @@ REGLAS IMPORTANTES:
         });
 
 
-        // INICIAR APLICACIÓN
-        // ============================================
-        
-        window.onload = init;
-    </script>
 
-<script>
 // ============================================
 // MÓDULO DE RECETAS INTELIGENTE
 // ============================================
@@ -5911,7 +5905,13 @@ function cargarSelectorOPsSimple() {
     sel.innerHTML += `<option value="${r.id}">${r.sku ? r.sku + ' — ' : ''}${r.nombre}</option>`;
   });
 }
-</script>
+
+        // INICIAR APLICACIÓN
+        // ============================================
+        
+        window.onload = init;
+    </script>
+
 
 
 
