@@ -456,6 +456,42 @@
             <div class="equipment-grid" id="equipmentGrid"></div>
         </div>
 
+        <!-- TAB: GANTT -->
+        <div id="gantt" class="tab-content">
+  <div style="padding:1.5rem;">
+
+    <!-- HEADER CONTROLES -->
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
+      <div>
+        <h2 style="color:#667eea;margin:0;">📊 Gantt de Producción</h2>
+        <p style="color:#666;font-size:.85rem;margin:.3rem 0 0;">Timeline en tiempo real por equipo</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;">
+        <button onclick="ganttNavDia(-1)" style="background:#e8edff;color:#667eea;border:none;border-radius:8px;padding:.5rem .9rem;cursor:pointer;font-size:1.1rem;font-weight:700;">‹</button>
+        <div id="ganttFechaLabel" style="background:white;border:2px solid #c7d2fe;border-radius:8px;padding:.4rem 1rem;font-weight:700;color:#333;font-size:.95rem;min-width:140px;text-align:center;"></div>
+        <button onclick="ganttNavDia(1)" style="background:#e8edff;color:#667eea;border:none;border-radius:8px;padding:.5rem .9rem;cursor:pointer;font-size:1.1rem;font-weight:700;">›</button>
+        <button onclick="ganttIrHoy()" style="background:#667eea;color:white;border:none;border-radius:8px;padding:.5rem 1rem;cursor:pointer;font-weight:600;font-size:.9rem;">Hoy</button>
+      </div>
+    </div>
+
+    <!-- LEYENDA -->
+    <div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:1rem;">
+      <div style="display:flex;align-items:center;gap:.4rem;"><div style="width:14px;height:14px;border-radius:3px;background:#667eea;"></div><span style="font-size:.8rem;color:#666;">Cocción activa</span></div>
+      <div style="display:flex;align-items:center;gap:.4rem;"><div style="width:14px;height:14px;border-radius:3px;background:#10b981;"></div><span style="font-size:.8rem;color:#666;">Completada</span></div>
+      <div style="display:flex;align-items:center;gap:.4rem;"><div style="width:14px;height:14px;border-radius:3px;background:#f59e0b;"></div><span style="font-size:.8rem;color:#666;">En limpieza</span></div>
+      <div style="display:flex;align-items:center;gap:.4rem;"><div style="width:3px;height:14px;background:#ef4444;"></div><span style="font-size:.8rem;color:#666;">Tiempo actual</span></div>
+    </div>
+
+    <!-- GANTT CONTAINER -->
+    <div style="background:white;border-radius:15px;box-shadow:0 4px 20px rgba(0,0,0,0.08);overflow:hidden;">
+      <div id="ganttContainer" style="overflow-x:auto;position:relative;">
+        <!-- Se renderiza con JS -->
+      </div>
+    </div>
+
+  </div>
+        </div>
+
         <!-- TAB: VISTA EJECUTIVO -->
         <div id="ejecutivo" class="tab-content">
             <div class="analytics-section">
@@ -4573,41 +4609,6 @@ REGLAS IMPORTANTES:
   </div>
 </div>
 
-<!-- TAB: GANTT -->
-<div id="gantt" class="tab-content">
-  <div style="padding:1.5rem;">
-
-    <!-- HEADER CONTROLES -->
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
-      <div>
-        <h2 style="color:#667eea;margin:0;">📊 Gantt de Producción</h2>
-        <p style="color:#666;font-size:.85rem;margin:.3rem 0 0;">Timeline en tiempo real por equipo</p>
-      </div>
-      <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;">
-        <button onclick="ganttNavDia(-1)" style="background:#e8edff;color:#667eea;border:none;border-radius:8px;padding:.5rem .9rem;cursor:pointer;font-size:1.1rem;font-weight:700;">‹</button>
-        <div id="ganttFechaLabel" style="background:white;border:2px solid #c7d2fe;border-radius:8px;padding:.4rem 1rem;font-weight:700;color:#333;font-size:.95rem;min-width:140px;text-align:center;"></div>
-        <button onclick="ganttNavDia(1)" style="background:#e8edff;color:#667eea;border:none;border-radius:8px;padding:.5rem .9rem;cursor:pointer;font-size:1.1rem;font-weight:700;">›</button>
-        <button onclick="ganttIrHoy()" style="background:#667eea;color:white;border:none;border-radius:8px;padding:.5rem 1rem;cursor:pointer;font-weight:600;font-size:.9rem;">Hoy</button>
-      </div>
-    </div>
-
-    <!-- LEYENDA -->
-    <div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:1rem;">
-      <div style="display:flex;align-items:center;gap:.4rem;"><div style="width:14px;height:14px;border-radius:3px;background:#667eea;"></div><span style="font-size:.8rem;color:#666;">Cocción activa</span></div>
-      <div style="display:flex;align-items:center;gap:.4rem;"><div style="width:14px;height:14px;border-radius:3px;background:#10b981;"></div><span style="font-size:.8rem;color:#666;">Completada</span></div>
-      <div style="display:flex;align-items:center;gap:.4rem;"><div style="width:14px;height:14px;border-radius:3px;background:#f59e0b;"></div><span style="font-size:.8rem;color:#666;">En limpieza</span></div>
-      <div style="display:flex;align-items:center;gap:.4rem;"><div style="width:3px;height:14px;background:#ef4444;"></div><span style="font-size:.8rem;color:#666;">Tiempo actual</span></div>
-    </div>
-
-    <!-- GANTT CONTAINER -->
-    <div style="background:white;border-radius:15px;box-shadow:0 4px 20px rgba(0,0,0,0.08);overflow:hidden;">
-      <div id="ganttContainer" style="overflow-x:auto;position:relative;">
-        <!-- Se renderiza con JS -->
-      </div>
-    </div>
-
-  </div>
-</div>
 
 <!-- Modal Detalle Receta -->
 <div id="modalDetalleReceta" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;overflow-y:auto;">
