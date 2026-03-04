@@ -448,6 +448,7 @@
             <button class="nav-tab" onclick="changeTab('productos')">🍽️ Productos</button>
             <button class="nav-tab" onclick="changeTab('recetas')">📋 Recetas</button>
             <button class="nav-tab" onclick="changeTab('personal')">👥 Personal</button>
+            <button class="nav-tab" onclick="changeTab('gantt')">📊 Gantt</button>
         </div>
 
         <!-- TAB: DASHBOARD -->
@@ -2187,7 +2188,8 @@
             guardarDatos();
             renderEquipos();
             updateStats();
-            closeModal('iniciarProduccion');
+            // Actualizar Gantt si está visible
+            if (document.getElementById('gantt')?.classList.contains('active')) renderGantt();
 
             document.getElementById('numeroOP').value = '';
             document.getElementById('productoSelect').value = '';
@@ -3449,6 +3451,11 @@
                 renderListaPersonal('envasado'); 
                 renderListaPersonal('abatimiento'); 
             }
+            else if (tabName === 'gantt') {
+                ganttFecha = ganttFecha || getHoy();
+                renderGantt();
+                iniciarGanttTimer();
+            }
             else if (tabName === 'planificador') { initPlanificador(); renderSelectorPlanProductos(); renderPlanVisual(); setTimeout(() => { cargarSelectorOPs(); renderListaOPs(); }, 1500); }
             else if (tabName === 'ejecutivo') actualizarVistaEjecutivo();
         }
@@ -4566,6 +4573,42 @@ REGLAS IMPORTANTES:
   </div>
 </div>
 
+<!-- TAB: GANTT -->
+<div id="gantt" class="tab-content">
+  <div style="padding:1.5rem;">
+
+    <!-- HEADER CONTROLES -->
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
+      <div>
+        <h2 style="color:#667eea;margin:0;">📊 Gantt de Producción</h2>
+        <p style="color:#666;font-size:.85rem;margin:.3rem 0 0;">Timeline en tiempo real por equipo</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;">
+        <button onclick="ganttNavDia(-1)" style="background:#e8edff;color:#667eea;border:none;border-radius:8px;padding:.5rem .9rem;cursor:pointer;font-size:1.1rem;font-weight:700;">‹</button>
+        <div id="ganttFechaLabel" style="background:white;border:2px solid #c7d2fe;border-radius:8px;padding:.4rem 1rem;font-weight:700;color:#333;font-size:.95rem;min-width:140px;text-align:center;"></div>
+        <button onclick="ganttNavDia(1)" style="background:#e8edff;color:#667eea;border:none;border-radius:8px;padding:.5rem .9rem;cursor:pointer;font-size:1.1rem;font-weight:700;">›</button>
+        <button onclick="ganttIrHoy()" style="background:#667eea;color:white;border:none;border-radius:8px;padding:.5rem 1rem;cursor:pointer;font-weight:600;font-size:.9rem;">Hoy</button>
+      </div>
+    </div>
+
+    <!-- LEYENDA -->
+    <div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:1rem;">
+      <div style="display:flex;align-items:center;gap:.4rem;"><div style="width:14px;height:14px;border-radius:3px;background:#667eea;"></div><span style="font-size:.8rem;color:#666;">Cocción activa</span></div>
+      <div style="display:flex;align-items:center;gap:.4rem;"><div style="width:14px;height:14px;border-radius:3px;background:#10b981;"></div><span style="font-size:.8rem;color:#666;">Completada</span></div>
+      <div style="display:flex;align-items:center;gap:.4rem;"><div style="width:14px;height:14px;border-radius:3px;background:#f59e0b;"></div><span style="font-size:.8rem;color:#666;">En limpieza</span></div>
+      <div style="display:flex;align-items:center;gap:.4rem;"><div style="width:3px;height:14px;background:#ef4444;"></div><span style="font-size:.8rem;color:#666;">Tiempo actual</span></div>
+    </div>
+
+    <!-- GANTT CONTAINER -->
+    <div style="background:white;border-radius:15px;box-shadow:0 4px 20px rgba(0,0,0,0.08);overflow:hidden;">
+      <div id="ganttContainer" style="overflow-x:auto;position:relative;">
+        <!-- Se renderiza con JS -->
+      </div>
+    </div>
+
+  </div>
+</div>
+
 <!-- Modal Detalle Receta -->
 <div id="modalDetalleReceta" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;overflow-y:auto;">
   <div style="background:white;max-width:900px;margin:2rem auto;border-radius:20px;padding:2rem;position:relative;">
@@ -5448,6 +5491,276 @@ function actualizarSelectoresPersonal() {
 
 function getOpcionesPersonal(area) {
   return (personal[area] || []).map(n => `<option value="${n}">${n}</option>`).join('');
+}
+
+// ============================================
+// MÓDULO GANTT DE PRODUCCIÓN
+// ============================================
+
+let ganttFecha = getHoy();
+let ganttTimer = null;
+
+const GANTT_HORA_INICIO = 6;   // 06:00
+const GANTT_HORA_FIN    = 22;  // 22:00
+const GANTT_TOTAL_HORAS = GANTT_HORA_FIN - GANTT_HORA_INICIO;
+const GANTT_COL_W       = 180; // px por equipo
+const GANTT_HORA_H      = 60;  // px por hora
+
+function ganttNavDia(delta) {
+    const d = new Date(ganttFecha + 'T12:00:00');
+    d.setDate(d.getDate() + delta);
+    ganttFecha = d.toISOString().split('T')[0];
+    renderGantt();
+}
+
+function ganttIrHoy() {
+    ganttFecha = getHoy();
+    renderGantt();
+}
+
+function ganttHoraToY(horaDecimal) {
+    return (horaDecimal - GANTT_HORA_INICIO) * GANTT_HORA_H;
+}
+
+function ganttISOtoDecimal(iso) {
+    const d = new Date(iso);
+    return d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600;
+}
+
+function ganttFechaDeISO(iso) {
+    return new Date(iso).toISOString().split('T')[0];
+}
+
+// Recolecta todos los bloques de producción para una fecha dada
+function ganttGetBloques(fecha) {
+    const bloques = []; // { equipoId, producto, inicio, fin, estado, operador, kg, op }
+
+    // 1. Equipos activos HOY
+    equipos.forEach(eq => {
+        if (!eq.produccion) return;
+        const inicio = eq.produccion.inicio;
+        if (!inicio) return;
+        if (ganttFechaDeISO(inicio) !== fecha) return;
+
+        const inicioH = ganttISOtoDecimal(inicio);
+        // fin estimado: si hay tiempo aprendido úsalo, si no 2h por defecto
+        const durH = 2;
+        const finH = Math.min(inicioH + durH, GANTT_HORA_FIN);
+
+        bloques.push({
+            equipoId: eq.id,
+            producto: eq.produccion.producto || 'Producción',
+            inicio: inicioH,
+            fin: finH,
+            estado: eq.estado === 'limpieza' ? 'limpieza' : 'activa',
+            operador: eq.produccion.operador || '',
+            kg: eq.produccion.kgProgramados || 0,
+            op: eq.produccion.numeroOP || '',
+            raw: eq.produccion
+        });
+    });
+
+    // 2. Historial del día (completados)
+    const hist = historialPorFecha[fecha] || [];
+    hist.forEach(h => {
+        if (!h.equipoId && !h.equipo) return;
+        const eqId = h.equipoId || (equipos.find(e => e.nombre === h.equipo)?.id);
+        if (!eqId) return;
+        if (!h.inicio) return;
+        if (ganttFechaDeISO(h.inicio) !== fecha) return;
+
+        const inicioH = ganttISOtoDecimal(h.inicio);
+        const finH = h.finalizadoCompleto
+            ? Math.min(ganttISOtoDecimal(h.finalizadoCompleto), GANTT_HORA_FIN)
+            : Math.min(inicioH + 2, GANTT_HORA_FIN);
+
+        bloques.push({
+            equipoId: eqId,
+            producto: h.producto || 'Producción',
+            inicio: inicioH,
+            fin: finH,
+            estado: 'completada',
+            operador: h.operador || '',
+            kg: h.kgProgramados || h.kgFinales || 0,
+            op: h.numeroOP || '',
+            raw: h
+        });
+    });
+
+    return bloques;
+}
+
+function renderGantt() {
+    // Actualizar label fecha
+    const labelEl = document.getElementById('ganttFechaLabel');
+    if (!labelEl) return;
+    const hoy = getHoy();
+    const esHoy = ganttFecha === hoy;
+    const d = new Date(ganttFecha + 'T12:00:00');
+    const opciones = { weekday: 'long', day: 'numeric', month: 'long' };
+    const fechaStr = d.toLocaleDateString('es-CL', opciones);
+    labelEl.textContent = esHoy ? `Hoy — ${fechaStr}` : fechaStr;
+
+    const cont = document.getElementById('ganttContainer');
+    if (!cont) return;
+
+    const totalH = GANTT_TOTAL_HORAS * GANTT_HORA_H;
+    const colW   = GANTT_COL_W;
+    const labelW = 70; // ancho columna de horas
+
+    const bloques = ganttGetBloques(ganttFecha);
+
+    // Construir HTML
+    let html = `<div style="display:flex;min-width:${labelW + equipos.length * colW}px;position:relative;">`;
+
+    // Columna de horas (izquierda fija)
+    html += `<div style="width:${labelW}px;flex-shrink:0;border-right:2px solid #e5e7eb;">`;
+    html += `<div style="height:48px;background:#f8f9ff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center;font-size:.75rem;color:#999;font-weight:600;">HORA</div>`;
+    for (let h = GANTT_HORA_INICIO; h <= GANTT_HORA_FIN; h++) {
+        html += `<div style="height:${GANTT_HORA_H}px;border-bottom:1px solid #f1f5f9;display:flex;align-items:flex-start;padding:.3rem .4rem;font-size:.75rem;color:#94a3b8;font-weight:600;">${String(h).padStart(2,'0')}:00</div>`;
+    }
+    html += `</div>`;
+
+    // Columnas por equipo
+    equipos.forEach(eq => {
+        const eqBloques = bloques.filter(b => b.equipoId === eq.id);
+        const iconos = { horno: '🍖', marmita: '🥘', sartenBasculante: '🔥' };
+        const icono = iconos[eq.tipo] || '⚙️';
+
+        html += `<div style="width:${colW}px;flex-shrink:0;border-right:1px solid #e5e7eb;position:relative;">`;
+
+        // Header equipo
+        html += `<div style="height:48px;background:#f8f9ff;border-bottom:2px solid #c7d2fe;display:flex;align-items:center;justify-content:center;gap:.4rem;padding:0 .5rem;">
+            <span style="font-size:1.1rem;">${icono}</span>
+            <div>
+                <div style="font-size:.8rem;font-weight:700;color:#333;">${eq.nombre}</div>
+                <div style="font-size:.7rem;color:#94a3b8;">${eq.capacidad}</div>
+            </div>
+        </div>`;
+
+        // Área de timeline
+        html += `<div style="position:relative;height:${totalH}px;">`;
+
+        // Líneas de hora
+        for (let h = 0; h <= GANTT_TOTAL_HORAS; h++) {
+            const y = h * GANTT_HORA_H;
+            const isMajor = h % 2 === 0;
+            html += `<div style="position:absolute;left:0;right:0;top:${y}px;height:1px;background:${isMajor ? '#e5e7eb' : '#f8f9ff'};"></div>`;
+        }
+
+        // Bloques de producción
+        eqBloques.forEach(b => {
+            const y1 = ganttHoraToY(Math.max(b.inicio, GANTT_HORA_INICIO));
+            const y2 = ganttHoraToY(Math.min(b.fin, GANTT_HORA_FIN));
+            const bH = Math.max(y2 - y1, 24);
+
+            const colores = {
+                activa:     { bg: '#eef2ff', border: '#667eea', text: '#4338ca', badge: '#667eea' },
+                completada: { bg: '#f0fdf4', border: '#10b981', text: '#065f46', badge: '#10b981' },
+                limpieza:   { bg: '#fffbeb', border: '#f59e0b', text: '#92400e', badge: '#f59e0b' },
+            };
+            const c = colores[b.estado] || colores.activa;
+
+            const durMin = Math.round((b.fin - b.inicio) * 60);
+            const hrs = Math.floor(durMin / 60);
+            const mins = durMin % 60;
+            const durStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
+
+            html += `
+            <div style="position:absolute;left:4px;right:4px;top:${y1}px;height:${bH}px;
+                background:${c.bg};border-left:4px solid ${c.border};border-radius:0 6px 6px 0;
+                padding:.25rem .4rem;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08);z-index:2;">
+                <div style="font-size:.75rem;font-weight:700;color:${c.text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${b.producto}</div>
+                ${bH > 38 ? `<div style="font-size:.68rem;color:#64748b;margin-top:.1rem;">⏱ ${durStr} · 📦 ${b.kg}kg</div>` : ''}
+                ${bH > 55 && b.operador ? `<div style="font-size:.68rem;color:#64748b;">👤 ${b.operador}</div>` : ''}
+                ${bH > 70 && b.op ? `<div style="font-size:.65rem;color:${c.border};font-weight:600;">${b.op}</div>` : ''}
+            </div>`;
+        });
+
+        html += `</div></div>`; // cierra timeline y columna
+    });
+
+    html += `</div>`; // cierra flex
+
+    cont.innerHTML = html;
+
+    // Línea de tiempo actual (solo si es hoy)
+    if (esHoy) {
+        ganttRenderLinea();
+    }
+}
+
+function ganttRenderLinea() {
+    const cont = document.getElementById('ganttContainer');
+    if (!cont) return;
+
+    // Eliminar línea anterior
+    const prev = document.getElementById('ganttLineaActual');
+    if (prev) prev.remove();
+
+    const ahora = new Date();
+    const horaActual = ahora.getHours() + ahora.getMinutes() / 60 + ahora.getSeconds() / 3600;
+
+    if (horaActual < GANTT_HORA_INICIO || horaActual > GANTT_HORA_FIN) return;
+
+    const y = ganttHoraToY(horaActual) + 48; // +48 por el header
+    const labelW = 70;
+
+    const linea = document.createElement('div');
+    linea.id = 'ganttLineaActual';
+    linea.style.cssText = `
+        position:absolute;
+        left:${labelW}px;right:0;
+        top:${y}px;
+        height:2px;
+        background:#ef4444;
+        z-index:10;
+        pointer-events:none;
+    `;
+
+    // Bolita en el extremo izquierdo
+    const dot = document.createElement('div');
+    dot.style.cssText = `
+        position:absolute;
+        left:-6px;top:-5px;
+        width:12px;height:12px;
+        background:#ef4444;
+        border-radius:50%;
+        border:2px solid white;
+        box-shadow:0 0 0 2px #ef4444;
+    `;
+    linea.appendChild(dot);
+
+    // Label hora
+    const timeLabel = document.createElement('div');
+    timeLabel.style.cssText = `
+        position:absolute;
+        right:8px;top:-10px;
+        background:#ef4444;
+        color:white;
+        font-size:.7rem;
+        font-weight:700;
+        padding:.1rem .4rem;
+        border-radius:4px;
+    `;
+    timeLabel.textContent = ahora.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+    linea.appendChild(timeLabel);
+
+    cont.style.position = 'relative';
+    cont.appendChild(linea);
+
+    // Scroll automático a la línea actual
+    const scrollTop = Math.max(0, y - 150);
+    cont.scrollTop = scrollTop;
+}
+
+function iniciarGanttTimer() {
+    if (ganttTimer) clearInterval(ganttTimer);
+    ganttTimer = setInterval(() => {
+        if (document.getElementById('gantt')?.classList.contains('active')) {
+            if (ganttFecha === getHoy()) ganttRenderLinea();
+        }
+    }, 30000); // actualiza cada 30 segundos
 }
 
 // Inicializar al cargar
