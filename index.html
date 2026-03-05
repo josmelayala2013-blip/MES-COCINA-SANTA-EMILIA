@@ -5867,6 +5867,36 @@ function cargarSelectorOPsSimple() {
             equipos.forEach(eq => {
                 if (!eq.produccion || !eq.produccion.inicio) return;
 
+                // Si está en espera, solo actualizar cuenta regresiva hasta el inicio
+                if (eq.produccion.enEspera || eq.estado === 'en_espera') {
+                    const inicio = new Date(eq.produccion.inicio);
+                    const segHastaInicio = Math.round((inicio - ahora) / 1000);
+                    const badge = document.getElementById('ganttBadge_' + eq.id);
+                    const inner = document.getElementById('ganttInner_' + eq.id);
+                    const bloque = document.getElementById('ganttBloque_' + eq.id);
+                    const hStr = String(inicio.getHours()).padStart(2,'0') + ':' + String(inicio.getMinutes()).padStart(2,'0');
+                    if (badge) {
+                        badge.textContent = segHastaInicio > 0
+                            ? '⏳ Inicia en ' + formatearCronometro(segHastaInicio)
+                            : '⏳ Inicia a las ' + hStr;
+                        badge.style.background = '#7c3aed';
+                        badge.style.animation = 'ganttParpadeo 2s ease-in-out infinite';
+                    }
+                    if (inner) {
+                        inner.textContent = segHastaInicio > 0
+                            ? '⏳ en ' + formatearCronometro(segHastaInicio)
+                            : '⏳ ' + hStr;
+                        inner.style.color = '#5b21b6';
+                    }
+                    if (bloque) {
+                        bloque.style.background = '#ede9fe';
+                        bloque.style.borderLeftColor = '#7c3aed';
+                        bloque.style.borderStyle = 'dashed';
+                        bloque.style.animation = '';
+                    }
+                    return; // no correr cronómetro de cocción
+                }
+
                 // Usar tiempoCoccionMin guardado al iniciar (solo cocción)
                 let durMin = eq.produccion.tiempoCoccionMin || 60;
 
