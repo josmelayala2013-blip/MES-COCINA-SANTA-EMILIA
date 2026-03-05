@@ -5538,8 +5538,9 @@ function cargarSelectorOPsSimple() {
             const body = document.getElementById('ganttBody');
             if (!body) return;
             let html = '';
-            for (let h = 8; h <= 25; h++) {
-                const hora = String(h).padStart(2, '0') + ':00';
+            const horas = [8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,0,1];
+            horas.forEach(h => {
+                const hora = h === 24 ? '00:00' : String(h).padStart(2, '0') + ':00';
                 const bg = h % 2 === 0 ? '#fafafa' : '#ffffff';
                 html += `<tr>
                     <td style="padding:.5rem .6rem;border:1px solid #e5e7eb;background:#f8f9ff;font-size:.78rem;font-weight:700;color:#94a3b8;white-space:nowrap;">${hora}</td>
@@ -5551,7 +5552,7 @@ function cargarSelectorOPsSimple() {
                     <td style="border:1px solid #e5e7eb;background:${bg};height:40px;"></td>
                     <td style="border:1px solid #e5e7eb;background:${bg};height:40px;"></td>
                 </tr>`;
-            }
+            });
             body.innerHTML = html;
         }
 
@@ -5577,11 +5578,15 @@ function cargarSelectorOPsSimple() {
             const ahora = new Date();
             const h = ahora.getHours();
             const m = ahora.getMinutes();
-            if (h < 8 || h > 25) return;
+            // Permitir 8-23 y 0-1 AM
+            if (h > 1 && h < 8) return;
 
-            // Calcular en qué fila estamos (cada fila = 1 hora = 40px)
-            // Fila 0 = 08:00, fila 1 = 09:00, etc.
-            const filaIndex = h - 8;
+            // Calcular índice de fila según el orden del grid [8..23,24→0,0→17,1→18]
+            let filaIndex;
+            if (h >= 8) filaIndex = h - 8;       // 8→0, 9→1 ... 23→15, 24→16
+            else if (h === 0) filaIndex = 16;     // medianoche
+            else if (h === 1) filaIndex = 17;     // 1 AM
+            else return;
             const filas = body.querySelectorAll('tr');
             if (!filas[filaIndex]) return;
 
@@ -5629,7 +5634,7 @@ function cargarSelectorOPsSimple() {
 
                 const inicio = new Date(eq.produccion.inicio);
                 const hInicio = inicio.getHours() + inicio.getMinutes() / 60;
-                if (hInicio < HORA_INICIO || hInicio > 25) return;
+                if (hInicio < HORA_INICIO || hInicio > 24) return;
 
                 // Obtener tiempo de cocción: usar promedio aprendido si existe, si no el manual
                 let durMin = eq.produccion.tiempoCoccionMin || 60; // solo cocción
