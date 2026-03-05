@@ -3632,7 +3632,7 @@
                 renderListaPersonal('abatimiento'); 
             }
             else if (tabName === 'planificador') { initPlanificador(); renderSelectorPlanProductos(); renderPlanVisual(); setTimeout(() => { cargarSelectorOPs(); renderListaOPs(); }, 1500); }
-            else if (tabName === 'gantt') { renderGanttGrid(); iniciarLineaHora(); }
+            else if (tabName === 'gantt') { renderGanttGrid(); iniciarLineaHora(); renderGanttBloques(); }
             else if (tabName === 'ejecutivo') actualizarVistaEjecutivo();
         }
 
@@ -5554,6 +5554,7 @@ function cargarSelectorOPsSimple() {
         }
 
         function actualizarLineaHora() {
+            renderGanttBloques();
             const body = document.getElementById('ganttBody');
             if (!body) return;
 
@@ -5601,6 +5602,102 @@ function cargarSelectorOPsSimple() {
             linea.appendChild(label);
 
             contenedor.appendChild(linea);
+        }
+
+
+        // GANTT - Pintar bloques de producción activa
+        function renderGanttBloques() {
+            const body = document.getElementById('ganttBody');
+            if (!body) return;
+
+            // Limpiar bloques anteriores
+            body.querySelectorAll('.gantt-bloque').forEach(b => b.remove());
+
+            const HORA_INICIO = 8;
+            const FILA_H = 40; // px por hora
+            const theadH = body.closest('table').querySelector('thead').offsetHeight || 40;
+
+            equipos.forEach((eq, colIndex) => {
+                if (!eq.produccion || !eq.produccion.inicio) return;
+
+                const inicio = new Date(eq.produccion.inicio);
+                const hInicio = inicio.getHours() + inicio.getMinutes() / 60;
+                if (hInicio < HORA_INICIO || hInicio > 22) return;
+
+                // Obtener tiempo de cocción: usar promedio aprendido si existe, si no el manual
+                const prod = productos.find(p => p.nombre === eq.produccion.producto);
+                let durMin = 60; // default
+                if (prod) {
+                    durMin = (prod.vsm && prod.vsm.promCoccion) ? prod.vsm.promCoccion : (prod.tiempoCoccionMin || 60);
+                }
+
+                const hFin = hInicio + durMin / 60;
+                const ahora = new Date();
+                const hAhora = ahora.getHours() + ahora.getMinutes() / 60;
+                const minRestantes = Math.round((hFin - hAhora) * 60);
+
+                // Posición y altura en px
+                const top = theadH + (hInicio - HORA_INICIO) * FILA_H;
+                const altura = Math.max((durMin / 60) * FILA_H, 24);
+
+                // Color según tiempo restante
+                let bgColor, borderColor;
+                if (minRestantes <= 0) {
+                    bgColor = '#f1f5f9'; borderColor = '#94a3b8'; // excedido
+                } else if (minRestantes <= 5) {
+                    bgColor = '#fef2f2'; borderColor = '#ef4444'; // rojo urgente
+                } else if (minRestantes <= 20) {
+                    bgColor = '#fffbeb'; borderColor = '#f59e0b'; // amarillo precaución
+                } else {
+                    bgColor = '#eef2ff'; borderColor = '#667eea'; // azul normal
+                }
+
+                // Texto tiempo restante
+                let restanteTexto = '';
+                if (minRestantes <= 0) {
+                    restanteTexto = '⚫ Tiempo excedido';
+                } else {
+                    const h = Math.floor(minRestantes / 60);
+                    const m = minRestantes % 60;
+                    restanteTexto = h > 0 ? h + 'h ' + m + 'm restantes' : m + ' min restantes';
+                }
+
+                // Calcular columna (colIndex + 1 porque col 0 es la hora)
+                // Necesitamos insertar como overlay sobre la celda correcta
+                const contenedor = body.closest('div');
+                contenedor.style.position = 'relative';
+
+                // Ancho de la columna de horas
+                const horaColW = 70;
+                // Ancho de cada columna de equipo
+                const colW = (contenedor.offsetWidth - horaColW) / equipos.length;
+                const left = horaColW + colIndex * colW + 4;
+                const width = colW - 8;
+
+                const bloque = document.createElement('div');
+                bloque.className = 'gantt-bloque';
+                bloque.style.cssText = [
+                    'position:absolute',
+                    'top:' + top + 'px',
+                    'left:' + left + 'px',
+                    'width:' + width + 'px',
+                    'height:' + altura + 'px',
+                    'background:' + bgColor,
+                    'border-left:4px solid ' + borderColor,
+                    'border-radius:0 6px 6px 0',
+                    'padding:.25rem .4rem',
+                    'overflow:hidden',
+                    'z-index:5',
+                    'box-shadow:0 2px 6px rgba(0,0,0,0.1)'
+                ].join(';');
+
+                bloque.innerHTML = [
+                    '<div style="font-size:.75rem;font-weight:700;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + eq.produccion.producto + '</div>',
+                    altura > 35 ? '<div style="font-size:.68rem;color:' + borderColor + ';font-weight:600;">' + restanteTexto + '</div>' : ''
+                ].join('');
+
+                contenedor.appendChild(bloque);
+            });
         }
 
         window.onload = init;
