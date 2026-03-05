@@ -439,7 +439,6 @@
 
         <div class="nav-tabs">
             <button class="nav-tab active" onclick="changeTab('dashboard')">📊 Dashboard</button>
-            <button class="nav-tab" onclick="changeTab('gantt')">📅 Gantt</button>
             <button class="nav-tab" onclick="changeTab('ejecutivo')">👔 Vista Ejecutivo</button>
             <button class="nav-tab" onclick="changeTab('procesos')">🔄 Procesos Activos</button>
             <button class="nav-tab" onclick="changeTab('planificador')">📅 Planificador</button>
@@ -454,42 +453,6 @@
         <!-- TAB: DASHBOARD -->
         <div id="dashboard" class="tab-content active">
             <div class="equipment-grid" id="equipmentGrid"></div>
-        </div>
-
-        <!-- TAB: GANTT -->
-        <div id="gantt" class="tab-content">
-  <div style="padding:1.5rem;">
-
-    <!-- HEADER CONTROLES -->
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
-      <div>
-        <h2 style="color:#667eea;margin:0;">📊 Gantt de Producción</h2>
-        <p style="color:#666;font-size:.85rem;margin:.3rem 0 0;">Timeline en tiempo real por equipo</p>
-      </div>
-      <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;">
-        <button onclick="ganttNavDia(-1)" style="background:#e8edff;color:#667eea;border:none;border-radius:8px;padding:.5rem .9rem;cursor:pointer;font-size:1.1rem;font-weight:700;">‹</button>
-        <div id="ganttFechaLabel" style="background:white;border:2px solid #c7d2fe;border-radius:8px;padding:.4rem 1rem;font-weight:700;color:#333;font-size:.95rem;min-width:140px;text-align:center;"></div>
-        <button onclick="ganttNavDia(1)" style="background:#e8edff;color:#667eea;border:none;border-radius:8px;padding:.5rem .9rem;cursor:pointer;font-size:1.1rem;font-weight:700;">›</button>
-        <button onclick="ganttIrHoy()" style="background:#667eea;color:white;border:none;border-radius:8px;padding:.5rem 1rem;cursor:pointer;font-weight:600;font-size:.9rem;">Hoy</button>
-      </div>
-    </div>
-
-    <!-- LEYENDA -->
-    <div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:1rem;">
-      <div style="display:flex;align-items:center;gap:.4rem;"><div style="width:14px;height:14px;border-radius:3px;background:#667eea;"></div><span style="font-size:.8rem;color:#666;">Cocción activa</span></div>
-      <div style="display:flex;align-items:center;gap:.4rem;"><div style="width:14px;height:14px;border-radius:3px;background:#10b981;"></div><span style="font-size:.8rem;color:#666;">Completada</span></div>
-      <div style="display:flex;align-items:center;gap:.4rem;"><div style="width:14px;height:14px;border-radius:3px;background:#f59e0b;"></div><span style="font-size:.8rem;color:#666;">En limpieza</span></div>
-      <div style="display:flex;align-items:center;gap:.4rem;"><div style="width:3px;height:14px;background:#ef4444;"></div><span style="font-size:.8rem;color:#666;">Tiempo actual</span></div>
-    </div>
-
-    <!-- GANTT CONTAINER -->
-    <div style="background:white;border-radius:15px;box-shadow:0 4px 20px rgba(0,0,0,0.08);overflow:hidden;">
-      <div id="ganttContainer" style="overflow-x:auto;position:relative;">
-        <!-- Se renderiza con JS -->
-      </div>
-    </div>
-
-  </div>
         </div>
 
         <!-- TAB: VISTA EJECUTIVO -->
@@ -692,10 +655,7 @@
         </div>
 
         <!-- TAB: PLANIFICADOR VISUAL MEJORADO -->
-
-        <!-- TAB: ASISTENTE IA -->
-        <!-- TAB: PLANIFICADOR -->
-        <div id="planificador" class="tab-content">
+<div id="planificador" class="tab-content">
     <div class="analytics-section">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
             <h2 style="color:#667eea;">📅 Planificador Visual</h2>
@@ -818,8 +778,9 @@
             </button>
         </div>
     </div>
-        </div>
+</div>
 
+        <!-- TAB: ASISTENTE IA -->
         <div id="asistente" class="tab-content">
             <div class="analytics-section">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
@@ -865,87 +826,13 @@
                 <p style="color:#999; font-size:0.8rem; margin-top:0.5rem;">💡 También puedes preguntarle sobre el estado actual de producción, retrasos, o pedir consejos de optimización</p>
             </div>
         </div>
-
-        <!-- TAB: RECETAS -->
-        <div id="recetas" class="tab-content">
-          <div class="analytics-section">
-            <div class="analytics-header">
-              <h2>📋 Gestión de Recetas</h2>
-              <p>Administra tus recetas por SKU, analiza rendimientos y aplica sugerencias de la IA</p>
-            </div>
-            <!-- Botones principales -->
-            <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem;">
-              <button class="btn" onclick="abrirModalReceta()" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;">➕ Nueva Receta</button>
-              <label style="background:linear-gradient(135deg,#43e97b,#38f9d7);color:white;padding:.75rem 1.5rem;border-radius:10px;cursor:pointer;font-weight:600;">
-                📥 Importar Excel
-                <input type="file" id="importarExcelRecetas" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarRecetasExcel(this)">
-              </label>
-              <button class="btn" onclick="exportarRecetasExcel()" style="background:linear-gradient(135deg,#f093fb,#f5576c);color:white;">📤 Exportar Excel</button>
-              <button class="btn" onclick="analizarRendimientosIA()" style="background:linear-gradient(135deg,#4facfe,#00f2fe);color:white;">🧠 Analizar con IA</button>
-            </div>
-            <!-- Buscador -->
-            <div style="margin-bottom:1.5rem;">
-              <input type="text" id="buscarReceta" placeholder="🔍 Buscar receta por nombre o SKU..." oninput="renderListaRecetas()" style="width:100%;padding:.75rem 1rem;border-radius:10px;border:2px solid #e5e7eb;font-size:1rem;box-sizing:border-box;">
-            </div>
-            <!-- Lista de recetas -->
-            <div id="listaRecetas" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1.5rem;"></div>
-          </div>
-          <!-- Panel de análisis IA -->
-          <div class="analytics-section" id="panelAnalisisIA" style="display:none;margin-top:1.5rem;">
-            <div class="analytics-header"><h2>🧠 Análisis IA de Rendimientos</h2></div>
-            <div id="resultadoAnalisisIA" style="background:#f8f9ff;border-radius:12px;padding:1.5rem;line-height:1.6;"></div>
-            <div id="sugerenciasIA" style="margin-top:1rem;"></div>
-          </div>
-        </div>
-
-        <!-- TAB: PERSONAL -->
-        <div id="personal" class="tab-content">
-          <div class="analytics-section">
-            <h2 style="color:#667eea;margin-bottom:.5rem;">👥 Gestión de Personal</h2>
-            <p style="color:#666;margin-bottom:1.5rem;">Administra el personal por área. Los nombres aparecerán automáticamente en todos los selectores del MES.</p>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;">
-              <!-- COCINA -->
-              <div style="background:white;border-radius:15px;padding:1.5rem;box-shadow:0 4px 15px rgba(0,0,0,0.08);border-top:4px solid #667eea;">
-                <h3 style="color:#667eea;margin-bottom:1rem;">👨‍🍳 Cocina</h3>
-                <div id="listaPersonalCocina"></div>
-                <div style="display:flex;gap:.5rem;margin-top:1rem;">
-                  <input id="nuevoPersonalCocina" type="text" placeholder="Nombre del cocinero..."
-                    style="flex:1;padding:.6rem;border-radius:8px;border:2px solid #c7d2fe;font-size:.9rem;"
-                    onkeypress="if(event.key==='Enter') agregarPersonal('cocina')">
-                  <button onclick="agregarPersonal('cocina')"
-                    style="background:#667eea;color:white;border:none;border-radius:8px;padding:.6rem 1rem;cursor:pointer;font-weight:600;">➕</button>
-                </div>
-              </div>
-              <!-- ENVASADO -->
-              <div style="background:white;border-radius:15px;padding:1.5rem;box-shadow:0 4px 15px rgba(0,0,0,0.08);border-top:4px solid #10b981;">
-                <h3 style="color:#10b981;margin-bottom:1rem;">📦 Envasado</h3>
-                <div id="listaPersonalEnvasado"></div>
-                <div style="display:flex;gap:.5rem;margin-top:1rem;">
-                  <input id="nuevoPersonalEnvasado" type="text" placeholder="Nombre del operario..."
-                    style="flex:1;padding:.6rem;border-radius:8px;border:2px solid #a7f3d0;font-size:.9rem;"
-                    onkeypress="if(event.key==='Enter') agregarPersonal('envasado')">
-                  <button onclick="agregarPersonal('envasado')"
-                    style="background:#10b981;color:white;border:none;border-radius:8px;padding:.6rem 1rem;cursor:pointer;font-weight:600;">➕</button>
-                </div>
-              </div>
-              <!-- ABATIMIENTO -->
-              <div style="background:white;border-radius:15px;padding:1.5rem;box-shadow:0 4px 15px rgba(0,0,0,0.08);border-top:4px solid #3b82f6;">
-                <h3 style="color:#3b82f6;margin-bottom:1rem;">❄️ Abatimiento</h3>
-                <div id="listaPersonalAbatimiento"></div>
-                <div style="display:flex;gap:.5rem;margin-top:1rem;">
-                  <input id="nuevoPersonalAbatimiento" type="text" placeholder="Nombre del operario..."
-                    style="flex:1;padding:.6rem;border-radius:8px;border:2px solid #bfdbfe;font-size:.9rem;"
-                    onkeypress="if(event.key==='Enter') agregarPersonal('abatimiento')">
-                  <button onclick="agregarPersonal('abatimiento')"
-                    style="background:#3b82f6;color:white;border:none;border-radius:8px;padding:.6rem 1rem;cursor:pointer;font-weight:600;">➕</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
     </div>
+
+    <!-- MODALES (todos los modales del v2.0) -->
+
+<!-- MODALES -->
     
+    <!-- MODAL: INICIAR PRODUCCIÓN -->
     <div id="modalIniciarProduccion" class="modal">
         <div class="modal-content" style="max-width:700px;">
             <div class="modal-header">
@@ -1315,17 +1202,6 @@
             setInterval(updateTimers, 1000);
             setInterval(checkAlertas, 1000);
             
-            // Exponer variables globales para módulos externos
-            window._mes = {
-                getEquipos: () => equipos,
-                getHistorial: () => historialPorFecha,
-                getProductos: () => productos,
-                getOPs: () => ordenesProduccion,
-                getHoy: getHoy,
-                mostrarNotificacion: mostrarNotificacion,
-                tiemposAprendidos: tiemposAprendidos
-            };
-
             // Mostrar indicador de Firebase
             setTimeout(() => {
                 if (window.firestoreLoaded) {
@@ -2311,8 +2187,7 @@
             guardarDatos();
             renderEquipos();
             updateStats();
-            // Actualizar Gantt si está visible
-            if (document.getElementById('gantt')?.classList.contains('active')) renderGantt();
+            closeModal('iniciarProduccion');
 
             document.getElementById('numeroOP').value = '';
             document.getElementById('productoSelect').value = '';
@@ -3570,20 +3445,9 @@
             else if (tabName === 'procesos') renderProcesosActivos();
             else if (tabName === 'analytics') actualizarAnalytics();
             else if (tabName === 'personal') { 
-                // Cargar desde Firebase primero, luego renderizar
-                cargarPersonalFirebase().then(() => {
-                    renderListaPersonal('cocina'); 
-                    renderListaPersonal('envasado'); 
-                    renderListaPersonal('abatimiento');
-                });
-            }
-            else if (tabName === 'gantt') {
-                ganttFecha = ganttFecha || getHoy();
-                renderGantt();
-                iniciarGanttTimer();
-            }
-            else if (tabName === 'recetas') {
-                cargarRecetasFirebase().then(() => renderListaRecetas());
+                renderListaPersonal('cocina'); 
+                renderListaPersonal('envasado'); 
+                renderListaPersonal('abatimiento'); 
             }
             else if (tabName === 'planificador') { initPlanificador(); renderSelectorPlanProductos(); renderPlanVisual(); setTimeout(() => { cargarSelectorOPs(); renderListaOPs(); }, 1500); }
             else if (tabName === 'ejecutivo') actualizarVistaEjecutivo();
@@ -4550,8 +4414,167 @@ REGLAS IMPORTANTES:
             if (btn) btn.remove();
         });
 
+        // ============================================
+        // INICIAR APLICACIÓN
+        // ============================================
+        
+        window.onload = init;
+    </script>
 
+<!-- ============ MÓDULO RECETAS ============ -->
+<div id="recetas" class="tab-content">
+  <div class="analytics-section">
+    <div class="analytics-header">
+      <h2>📋 Gestión de Recetas</h2>
+      <p>Administra tus recetas por SKU, analiza rendimientos y aplica sugerencias de la IA</p>
+    </div>
 
+    <!-- Botones principales -->
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem;">
+      <button class="btn" onclick="abrirModalReceta()" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">➕ Nueva Receta</button>
+      <label style="background:linear-gradient(135deg,#43e97b,#38f9d7);color:white;padding:.75rem 1.5rem;border-radius:10px;cursor:pointer;font-size:1rem;">
+        📥 Importar Excel
+        <input type="file" id="importarExcelRecetas" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarRecetasExcel(event)">
+      </label>
+      <button class="btn" onclick="exportarRecetasExcel()" style="background:linear-gradient(135deg,#f093fb,#f5576c);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">📤 Exportar Excel</button>
+      <button class="btn" onclick="analizarRendimientosIA()" style="background:linear-gradient(135deg,#4facfe,#00f2fe);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">🧠 Analizar con IA</button>
+    </div>
+
+    <!-- Buscador -->
+    <div style="margin-bottom:1.5rem;">
+      <input type="text" id="buscarReceta" placeholder="🔍 Buscar receta por nombre o SKU..." oninput="filtrarRecetas()" style="width:100%;padding:.75rem 1rem;border-radius:10px;border:1px solid #ddd;font-size:1rem;">
+    </div>
+
+    <!-- Lista de recetas -->
+    <div id="listaRecetas" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1rem;"></div>
+  </div>
+
+  <!-- Panel de análisis IA -->
+  <div class="analytics-section" id="panelAnalisisIA" style="display:none;margin-top:1.5rem;">
+    <div class="analytics-header">
+      <h2>🧠 Análisis IA de Rendimientos</h2>
+    </div>
+    <div id="resultadoAnalisisIA" style="background:#f8f9ff;border-radius:12px;padding:1.5rem;line-height:1.7;"></div>
+    <div id="sugerenciasIA" style="margin-top:1rem;"></div>
+  </div>
+</div>
+
+<!-- Modal Nueva/Editar Receta -->
+<div id="modalReceta" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;overflow-y:auto;">
+  <div style="background:white;max-width:800px;margin:2rem auto;border-radius:20px;padding:2rem;position:relative;">
+    <button onclick="cerrarModalReceta()" style="position:absolute;top:1rem;right:1rem;background:none;border:none;font-size:1.5rem;cursor:pointer;">✕</button>
+    <h2 style="color:#667eea;margin-bottom:1.5rem;" id="tituloModalReceta">➕ Nueva Receta</h2>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+      <div>
+        <label style="font-weight:600;display:block;margin-bottom:.3rem;">SKU *</label>
+        <input id="recetaSku" type="text" placeholder="Ej: CAJ-001" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;">
+      </div>
+      <div>
+        <label style="font-weight:600;display:block;margin-bottom:.3rem;">Nombre del Plato *</label>
+        <input id="recetaNombre" type="text" placeholder="Ej: Carne al Jugo con Arroz" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;">
+      </div>
+      <div>
+        <label style="font-weight:600;display:block;margin-bottom:.3rem;">Gramaje por Plato (gr) *</label>
+        <input id="recetaGramaje" type="number" placeholder="Ej: 530" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;">
+      </div>
+      <div>
+        <label style="font-weight:600;display:block;margin-bottom:.3rem;">Gramaje Envase (gr)</label>
+        <input id="recetaEnvase" type="number" placeholder="Ej: 20" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;">
+      </div>
+      <div>
+        <label style="font-weight:600;display:block;margin-bottom:.3rem;">Rendimiento Esperado (%)</label>
+        <input id="recetaRendimiento" type="number" placeholder="Ej: 85" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;">
+      </div>
+    </div>
+
+    <!-- Componentes -->
+    <div style="margin-bottom:1rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
+        <h3 style="color:#764ba2;">🧩 Componentes del Plato</h3>
+        <button onclick="agregarComponente()" style="background:#667eea;color:white;padding:.4rem 1rem;border-radius:8px;border:none;cursor:pointer;">+ Componente</button>
+      </div>
+      <div id="listaComponentes"></div>
+    </div>
+
+    <div style="margin-bottom:1rem;">
+      <label style="font-weight:600;display:block;margin-bottom:.3rem;">📝 Observaciones</label>
+      <textarea id="recetaObservaciones" rows="3" placeholder="Notas importantes sobre la receta..." style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;resize:vertical;"></textarea>
+    </div>
+
+    <div style="display:flex;gap:1rem;justify-content:flex-end;">
+      <button onclick="cerrarModalReceta()" style="padding:.75rem 1.5rem;border-radius:10px;border:1px solid #ddd;cursor:pointer;">Cancelar</button>
+      <button onclick="guardarReceta()" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">💾 Guardar Receta</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB: PERSONAL -->
+<div id="personal" class="tab-content">
+  <div class="analytics-section">
+    <h2 style="color:#667eea;margin-bottom:.5rem;">👥 Gestión de Personal</h2>
+    <p style="color:#666;margin-bottom:1.5rem;">Administra el personal por área. Los nombres aparecerán automáticamente en todos los selectores del MES.</p>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;">
+
+      <!-- COCINA -->
+      <div style="background:white;border-radius:15px;padding:1.5rem;box-shadow:0 4px 15px rgba(0,0,0,0.08);border-top:4px solid #667eea;">
+        <h3 style="color:#667eea;margin-bottom:1rem;">👨‍🍳 Cocina</h3>
+        <div id="listaPersonalCocina"></div>
+        <div style="display:flex;gap:.5rem;margin-top:1rem;">
+          <input id="nuevoPersonalCocina" type="text" placeholder="Nombre del cocinero..." 
+            style="flex:1;padding:.6rem;border-radius:8px;border:2px solid #c7d2fe;font-size:.9rem;"
+            onkeypress="if(event.key==='Enter') agregarPersonal('cocina')">
+          <button onclick="agregarPersonal('cocina')" 
+            style="background:#667eea;color:white;border:none;border-radius:8px;padding:.6rem 1rem;cursor:pointer;font-weight:600;">
+            ➕
+          </button>
+        </div>
+      </div>
+
+      <!-- ENVASADO -->
+      <div style="background:white;border-radius:15px;padding:1.5rem;box-shadow:0 4px 15px rgba(0,0,0,0.08);border-top:4px solid #10b981;">
+        <h3 style="color:#10b981;margin-bottom:1rem;">📦 Envasado</h3>
+        <div id="listaPersonalEnvasado"></div>
+        <div style="display:flex;gap:.5rem;margin-top:1rem;">
+          <input id="nuevoPersonalEnvasado" type="text" placeholder="Nombre del operario..." 
+            style="flex:1;padding:.6rem;border-radius:8px;border:2px solid #a7f3d0;font-size:.9rem;"
+            onkeypress="if(event.key==='Enter') agregarPersonal('envasado')">
+          <button onclick="agregarPersonal('envasado')" 
+            style="background:#10b981;color:white;border:none;border-radius:8px;padding:.6rem 1rem;cursor:pointer;font-weight:600;">
+            ➕
+          </button>
+        </div>
+      </div>
+
+      <!-- ABATIMIENTO -->
+      <div style="background:white;border-radius:15px;padding:1.5rem;box-shadow:0 4px 15px rgba(0,0,0,0.08);border-top:4px solid #3b82f6;">
+        <h3 style="color:#3b82f6;margin-bottom:1rem;">❄️ Abatimiento</h3>
+        <div id="listaPersonalAbatimiento"></div>
+        <div style="display:flex;gap:.5rem;margin-top:1rem;">
+          <input id="nuevoPersonalAbatimiento" type="text" placeholder="Nombre del operario..." 
+            style="flex:1;padding:.6rem;border-radius:8px;border:2px solid #bfdbfe;font-size:.9rem;"
+            onkeypress="if(event.key==='Enter') agregarPersonal('abatimiento')">
+          <button onclick="agregarPersonal('abatimiento')" 
+            style="background:#3b82f6;color:white;border:none;border-radius:8px;padding:.6rem 1rem;cursor:pointer;font-weight:600;">
+            ➕
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Modal Detalle Receta -->
+<div id="modalDetalleReceta" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;overflow-y:auto;">
+  <div style="background:white;max-width:900px;margin:2rem auto;border-radius:20px;padding:2rem;position:relative;">
+    <button onclick="document.getElementById('modalDetalleReceta').style.display='none'" style="position:absolute;top:1rem;right:1rem;background:none;border:none;font-size:1.5rem;cursor:pointer;">✕</button>
+    <div id="contenidoDetalleReceta"></div>
+  </div>
+</div>
+
+<script>
 // ============================================
 // MÓDULO DE RECETAS INTELIGENTE
 // ============================================
@@ -5328,28 +5351,16 @@ function guardarPersonal() {
   actualizarSelectoresPersonal();
 }
 
-async function cargarPersonalFirebase(intentos = 0) {
-  if (!window.db || !window.firestoreLoaded) {
-    if (intentos < 10) {
-      await new Promise(r => setTimeout(r, 500));
-      return cargarPersonalFirebase(intentos + 1);
-    }
-    return;
-  }
+async function cargarPersonalFirebase() {
+  if (!window.db || !window.firestoreLoaded) return;
   try {
     const { doc, getDoc } = window.firestoreFunctions;
     const docSnap = await getDoc(doc(window.db, 'mes-data', 'personal'));
     if (docSnap.exists() && docSnap.data().personal) {
       personal = docSnap.data().personal;
       localStorage.setItem('mes_personal', JSON.stringify(personal));
-      // Si la pestaña personal está visible, actualizar
-      if (document.getElementById('personal')?.classList.contains('active')) {
-        renderListaPersonal('cocina');
-        renderListaPersonal('envasado');
-        renderListaPersonal('abatimiento');
-      }
     }
-  } catch(e) { console.error('Error cargando personal:', e); }
+  } catch(e) {}
 }
 
 function renderListaPersonal(area) {
@@ -5398,11 +5409,8 @@ function guardarEdicionPersonal(area, idx) {
 
 function agregarPersonal(area) {
   const input = document.getElementById(`nuevoPersonal${area.charAt(0).toUpperCase() + area.slice(1)}`);
-  if (!input) return;
   const nombre = input.value.trim();
   if (!nombre) return;
-  // Asegurar que el área existe
-  if (!personal[area]) personal[area] = [];
   if (personal[area].includes(nombre)) { alert('Ese nombre ya existe'); return; }
   personal[area].push(nombre);
   guardarPersonal();
@@ -5436,427 +5444,10 @@ function actualizarSelectoresPersonal() {
     (personal.envasado || []).forEach(n => sel.innerHTML += `<option value="${n}">${n}</option>`);
     sel.value = valorActual;
   });
-// ============================================
-// MÓDULO GANTT DE PRODUCCIÓN CON ALERTAS
-// ============================================
-
-let ganttFecha     = null; // se inicializa al abrir la pestaña
-let ganttTimer     = null;
-let ganttAlertados = new Set();
-
-function ganttGetHoy() {
-    return window._mes ? window._mes.getHoy() : new Date().toISOString().split('T')[0];
-}
-function ganttEquipos() {
-    return window._mes ? window._mes.getEquipos() : [];
-}
-function ganttHistorial() {
-    return window._mes ? window._mes.getHistorial() : {};
 }
 
-const GANTT_HORA_INICIO  = 6;
-const GANTT_HORA_FIN     = 22;
-const GANTT_TOTAL_HORAS  = GANTT_HORA_FIN - GANTT_HORA_INICIO;
-const GANTT_COL_W        = 190;
-const GANTT_HORA_H       = 64;
-const ALERTA_AMARILLA    = 20; // minutos antes del fin
-const ALERTA_ROJA        = 5;  // minutos antes del fin
-
-function ganttNavDia(delta) {
-    const d = new Date(ganttFecha + 'T12:00:00');
-    d.setDate(d.getDate() + delta);
-    ganttFecha = d.toISOString().split('T')[0];
-    renderGantt();
-}
-
-function ganttIrHoy() {
-    ganttFecha = ganttGetHoy();
-    renderGantt();
-}
-
-function ganttHoraToY(h) {
-    return (h - GANTT_HORA_INICIO) * GANTT_HORA_H;
-}
-
-function ganttISOtoDecimal(iso) {
-    const d = new Date(iso);
-    return d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600;
-}
-
-function ganttFechaDeISO(iso) {
-    return new Date(iso).toISOString().split('T')[0];
-}
-
-// Obtiene tiempo promedio de limpieza del historial para un equipo
-function ganttTiempoLimpiezaEquipo(equipoId) {
-    const hist = Object.values(ganttHistorial()).flat();
-    const limpiezas = hist.filter(h =>
-        (h.equipoId === equipoId || ganttEquipos().find(e => e.id === equipoId)?.nombre === h.equipo)
-        && h.tiempoLimpieza
-    );
-    if (limpiezas.length === 0) return 20; // default 20 min
-    const promSeg = limpiezas.reduce((s, h) => s + h.tiempoLimpieza, 0) / limpiezas.length;
-    return Math.round(promSeg / 60);
-}
-
-// Obtiene tiempo promedio de cocción del historial para un producto
-function ganttTiempoCoccionProducto(producto) {
-    const hist = Object.values(ganttHistorial()).flat();
-    const coincidencias = hist.filter(h =>
-        h.producto && h.producto.toLowerCase().includes(producto.toLowerCase().split('—')[0].trim())
-        && h.finCoccion && h.inicio
-    );
-    if (coincidencias.length === 0) return null;
-    const promsH = coincidencias.map(h => {
-        const ini = ganttISOtoDecimal(h.inicio);
-        const fin = ganttISOtoDecimal(h.finCoccion);
-        return fin - ini;
-    });
-    return promsH.reduce((s, v) => s + v, 0) / promsH.length;
-}
-
-function ganttGetBloques(fecha) {
-    const bloques = [];
-
-    // 1. Equipos activos / en limpieza
-    ganttEquipos().forEach(eq => {
-        if (!eq.produccion || !eq.produccion.inicio) return;
-        const fechaBloque = new Date(eq.produccion.inicio).toISOString().split('T')[0];
-        if (fechaBloque !== fecha) return;
-
-        const inicioH  = ganttISOtoDecimal(eq.produccion.inicio);
-        // Tiempo de cocción: usar aprendido o 2h por defecto
-        const durAprendida = ganttTiempoCoccionProducto(eq.produccion.producto || '');
-        const durH     = durAprendida || 2;
-        const finH     = Math.min(inicioH + durH, GANTT_HORA_FIN);
-        const limpMin  = ganttTiempoLimpiezaEquipo(eq.id);
-        const finLimpH = Math.min(finH + limpMin / 60, GANTT_HORA_FIN);
-
-        bloques.push({
-            equipoId: eq.id,
-            producto: eq.produccion.producto || 'Producción',
-            inicio:   inicioH,
-            fin:      finH,
-            finLimpieza: finLimpH,
-            limpMin,
-            estado:   eq.estado === 'limpieza' ? 'limpieza' : 'activa',
-            operador: eq.produccion.operador || '',
-            kg:       eq.produccion.kgProgramados || 0,
-            op:       eq.produccion.numeroOP || '',
-            esActivo: true
-        });
-    });
-
-    // 2. Historial del día (completados)
-    const hist = ganttHistorial()[fecha] || [];
-    hist.forEach(h => {
-        if (!h.inicio) return;
-        const fechaH = new Date(h.inicio).toISOString().split('T')[0];
-        if (fechaH !== fecha) return;
-
-        // Resolver equipoId: puede ser número o nombre
-        let eqId = h.equipoId;
-        if (!eqId && h.equipo) {
-            const eq = ganttEquipos().find(e => e.nombre === h.equipo);
-            eqId = eq ? eq.id : null;
-        }
-        if (!eqId) return;
-        eqId = parseInt(eqId) || eqId; // normalizar a número si corresponde
-
-        const inicioH  = ganttISOtoDecimal(h.inicio);
-        const finH     = h.finCoccion
-            ? Math.min(ganttISOtoDecimal(h.finCoccion), GANTT_HORA_FIN)
-            : Math.min(inicioH + 2, GANTT_HORA_FIN);
-        const limpMin  = h.tiempoLimpieza
-            ? Math.round(h.tiempoLimpieza / 60)
-            : ganttTiempoLimpiezaEquipo(eqId);
-        const finLimpH = h.finLimpieza
-            ? Math.min(ganttISOtoDecimal(h.finLimpieza), GANTT_HORA_FIN)
-            : Math.min(finH + limpMin / 60, GANTT_HORA_FIN);
-
-        bloques.push({
-            equipoId: eqId,
-            producto: h.producto || 'Producción',
-            inicio:   inicioH,
-            fin:      finH,
-            finLimpieza: finLimpH,
-            limpMin,
-            estado:   'completada',
-            operador: h.operador || '',
-            kg:       h.kgProgramados || h.kgFinales || 0,
-            op:       h.numeroOP || '',
-            esActivo: false
-        });
-    });
-
-    return bloques;
-}
-
-// Calcula estado de alerta en base a tiempo restante
-function ganttEstadoAlerta(finH, horaActual) {
-    const restMin = (finH - horaActual) * 60;
-    if (horaActual > finH)        return 'excedido';
-    if (restMin <= ALERTA_ROJA)   return 'roja';
-    if (restMin <= ALERTA_AMARILLA) return 'amarilla';
-    return 'normal';
-}
-
-function renderGantt() {
-    const labelEl = document.getElementById('ganttFechaLabel');
-    if (!labelEl) return;
-
-    const hoy   = ganttGetHoy();
-    const esHoy = ganttFecha === hoy;
-    const d     = new Date(ganttFecha + 'T12:00:00');
-    labelEl.textContent = esHoy
-        ? `Hoy — ${d.toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long' })}`
-        : d.toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long' });
-
-    const cont = document.getElementById('ganttContainer');
-    if (!cont) return;
-
-    const ahora     = new Date();
-    const horaActual = esHoy ? (ahora.getHours() + ahora.getMinutes()/60 + ahora.getSeconds()/3600) : -1;
-    const totalPx   = GANTT_TOTAL_HORAS * GANTT_HORA_H;
-    const labelW    = 72;
-    const bloques   = ganttGetBloques(ganttFecha);
-
-    // Notificaciones de alerta (solo hoy)
-    if (esHoy) ganttVerificarAlertas(bloques, horaActual);
-
-    // Si no hay ganttEquipos() cargados
-    if (!ganttEquipos() || equipos.length === 0) {
-        cont.innerHTML = `<div style="padding:3rem;text-align:center;color:#94a3b8;">
-            <div style="font-size:2rem;">📊</div>
-            <div style="font-weight:600;margin-top:.5rem;">No hay ganttEquipos() registrados</div>
-        </div>`;
-        return;
-    }
-
-    let html = `<div style="display:flex;min-width:${labelW + equipos.length * GANTT_COL_W}px;position:relative;user-select:none;">`;
-
-    // Columna horas
-    html += `<div style="width:${labelW}px;flex-shrink:0;border-right:2px solid #e5e7eb;position:sticky;left:0;z-index:5;background:white;">`;
-    html += `<div style="height:52px;background:#f8f9ff;border-bottom:2px solid #c7d2fe;display:flex;align-items:center;justify-content:center;">
-        <span style="font-size:.7rem;color:#94a3b8;font-weight:700;letter-spacing:.05em;">HORA</span>
-    </div>`;
-    for (let h = GANTT_HORA_INICIO; h <= GANTT_HORA_FIN; h++) {
-        const isNow = esHoy && Math.abs(h - horaActual) < 0.5;
-        html += `<div style="height:${GANTT_HORA_H}px;border-bottom:1px solid #f1f5f9;display:flex;align-items:flex-start;padding:.35rem .5rem;">
-            <span style="font-size:.78rem;font-weight:${isNow?'800':'600'};color:${isNow?'#ef4444':'#94a3b8'};">${String(h).padStart(2,'0')}:00</span>
-        </div>`;
-    }
-    html += `</div>`;
-
-    // Columnas ganttEquipos()
-    ganttEquipos().forEach(eq => {
-        const eqBloques = bloques.filter(b => b.equipoId === eq.id);
-        const iconos = { horno:'🍖', marmita:'🥘', sartenBasculante:'🔥' };
-        const icono  = iconos[eq.tipo] || '⚙️';
-        const disponible = eq.estado === 'disponible';
-
-        html += `<div style="width:${GANTT_COL_W}px;flex-shrink:0;border-right:1px solid #e5e7eb;position:relative;">`;
-
-        // Header equipo
-        html += `<div style="height:52px;background:${disponible?'#f0fdf4':'#f8f9ff'};border-bottom:2px solid ${disponible?'#10b981':'#c7d2fe'};
-            display:flex;align-items:center;justify-content:center;gap:.5rem;padding:0 .6rem;">
-            <span style="font-size:1.2rem;">${icono}</span>
-            <div>
-                <div style="font-size:.82rem;font-weight:700;color:#1e293b;">${eq.nombre}</div>
-                <div style="font-size:.68rem;color:#64748b;">${eq.capacidad} · <span style="color:${disponible?'#10b981':'#f59e0b'};font-weight:600;">${disponible?'Disponible':'Ocupado'}</span></div>
-            </div>
-        </div>`;
-
-        // Timeline
-        html += `<div style="position:relative;height:${totalPx}px;background:#fafafa;">`;
-
-        // Líneas de hora fondo
-        for (let h = 0; h <= GANTT_TOTAL_HORAS; h++) {
-            const y = h * GANTT_HORA_H;
-            html += `<div style="position:absolute;left:0;right:0;top:${y}px;height:1px;background:${h%2===0?'#e2e8f0':'#f1f5f9'};"></div>`;
-        }
-
-        // Zona de alerta de fondo (amarilla/roja) si hay bloque activo hoy
-        if (esHoy) {
-            eqBloques.filter(b => b.esActivo).forEach(b => {
-                const alerta = ganttEstadoAlerta(b.fin, horaActual);
-                if (alerta === 'amarilla' || alerta === 'roja') {
-                    const yAlerta = ganttHoraToY(horaActual);
-                    const yFin    = ganttHoraToY(b.fin);
-                    const pulso   = alerta === 'roja' ? 'animation:ganttPulso 1s ease-in-out infinite;' : '';
-                    html += `<div style="position:absolute;left:0;right:0;top:${yAlerta}px;height:${Math.max(yFin-yAlerta,4)}px;
-                        background:${alerta==='roja'?'rgba(239,68,68,0.12)':'rgba(245,158,11,0.1)'};
-                        border-left:3px solid ${alerta==='roja'?'#ef4444':'#f59e0b'};
-                        ${pulso}z-index:1;"></div>`;
-                }
-            });
-        }
-
-        // Bloques de producción
-        eqBloques.forEach(b => {
-            const y1 = ganttHoraToY(Math.max(b.inicio, GANTT_HORA_INICIO));
-            const y2 = ganttHoraToY(Math.min(b.fin, GANTT_HORA_FIN));
-            const bH = Math.max(y2 - y1, 28);
-
-            // Estado de alerta
-            const alerta = (b.esActivo && esHoy) ? ganttEstadoAlerta(b.fin, horaActual) : null;
-
-            // Colores según estado y alerta
-            let bg, border, textColor;
-            if (b.estado === 'completada') {
-                bg = '#f0fdf4'; border = '#10b981'; textColor = '#065f46';
-            } else if (b.estado === 'limpieza') {
-                bg = '#fffbeb'; border = '#f59e0b'; textColor = '#92400e';
-            } else if (alerta === 'roja') {
-                bg = '#fef2f2'; border = '#ef4444'; textColor = '#991b1b';
-            } else if (alerta === 'amarilla') {
-                bg = '#fffbeb'; border = '#f59e0b'; textColor = '#92400e';
-            } else if (alerta === 'excedido') {
-                bg = '#f1f5f9'; border = '#94a3b8'; textColor = '#475569';
-            } else {
-                bg = '#eef2ff'; border = '#667eea'; textColor = '#4338ca';
-            }
-
-            // Tiempo restante
-            let restanteHTML = '';
-            if (b.esActivo && esHoy && horaActual < b.fin) {
-                const restMin = Math.round((b.fin - horaActual) * 60);
-                const rHrs  = Math.floor(restMin / 60);
-                const rMins = restMin % 60;
-                const restStr = rHrs > 0 ? `${rHrs}h ${rMins}m` : `${rMins} min`;
-                const icAlerta = alerta === 'roja' ? '🔴' : alerta === 'amarilla' ? '🟡' : '🟢';
-                restanteHTML = `<div style="margin-top:.2rem;background:${border};color:white;border-radius:4px;padding:.1rem .4rem;
-                    font-size:.72rem;font-weight:700;display:inline-block;">${icAlerta} ${restStr} restantes</div>`;
-            } else if (b.esActivo && esHoy && alerta === 'excedido') {
-                const excMin = Math.round((horaActual - b.fin) * 60);
-                restanteHTML = `<div style="margin-top:.2rem;background:#94a3b8;color:white;border-radius:4px;padding:.1rem .4rem;
-                    font-size:.72rem;font-weight:700;display:inline-block;">⚫ +${excMin} min excedido</div>`;
-            }
-
-            const durMin = Math.round((b.fin - b.inicio) * 60);
-            const dHrs   = Math.floor(durMin / 60);
-            const dMins  = durMin % 60;
-            const durStr = dHrs > 0 ? `${dHrs}h ${dMins}m` : `${dMins}m`;
-
-            html += `
-            <div style="position:absolute;left:5px;right:5px;top:${y1}px;height:${bH}px;
-                background:${bg};border-left:5px solid ${border};border-radius:0 8px 8px 0;
-                padding:.3rem .45rem;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,0.09);z-index:3;">
-                <div style="font-size:.78rem;font-weight:700;color:${textColor};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${b.producto}</div>
-                ${bH > 40 ? `<div style="font-size:.68rem;color:#64748b;">⏱ ${durStr} &nbsp;·&nbsp; 📦 ${b.kg}kg</div>` : ''}
-                ${bH > 55 && b.operador ? `<div style="font-size:.68rem;color:#64748b;">👤 ${b.operador}</div>` : ''}
-                ${bH > 65 && b.op ? `<div style="font-size:.65rem;color:${border};font-weight:600;">${b.op}</div>` : ''}
-                ${bH > 80 ? restanteHTML : ''}
-            </div>`;
-
-            // Bloque de limpieza (naranja) después del bloque activo/completado
-            if (b.fin < b.finLimpieza && b.fin >= GANTT_HORA_INICIO) {
-                const yL1 = ganttHoraToY(Math.max(b.fin, GANTT_HORA_INICIO));
-                const yL2 = ganttHoraToY(Math.min(b.finLimpieza, GANTT_HORA_FIN));
-                const lH  = Math.max(yL2 - yL1, 20);
-                html += `
-                <div style="position:absolute;left:5px;right:5px;top:${yL1}px;height:${lH}px;
-                    background:#fff7ed;border-left:5px solid #f97316;border-radius:0 8px 8px 0;
-                    padding:.25rem .45rem;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.07);z-index:3;">
-                    <div style="font-size:.72rem;font-weight:700;color:#c2410c;">🧹 Limpieza</div>
-                    ${lH > 35 ? `<div style="font-size:.67rem;color:#9a3412;">~${b.limpMin} min</div>` : ''}
-                </div>`;
-            }
-        });
-
-        html += `</div></div>`; // cierra timeline y columna
-    });
-
-    html += `</div>`;
-    cont.innerHTML = html;
-
-    // Inyectar animación CSS pulso si no existe
-    if (!document.getElementById('ganttCSS')) {
-        const style = document.createElement('style');
-        style.id = 'ganttCSS';
-        style.textContent = `
-            @keyframes ganttPulso {
-                0%,100% { opacity:1; }
-                50%      { opacity:.4; }
-            }
-        `;
-        document.head.appendChild(style);
-    }
-
-    // Línea de tiempo actual
-    if (esHoy) ganttRenderLinea(horaActual);
-}
-
-function ganttRenderLinea(horaActual) {
-    const cont = document.getElementById('ganttContainer');
-    if (!cont) return;
-    const prev = document.getElementById('ganttLineaActual');
-    if (prev) prev.remove();
-    if (horaActual < GANTT_HORA_INICIO || horaActual > GANTT_HORA_FIN) return;
-
-    const y       = ganttHoraToY(horaActual) + 52; // +52 header
-    const labelW  = 72;
-    const ahora   = new Date();
-
-    const linea   = document.createElement('div');
-    linea.id      = 'ganttLineaActual';
-    linea.style.cssText = `position:absolute;left:${labelW}px;right:0;top:${y}px;
-        height:2px;background:#ef4444;z-index:20;pointer-events:none;`;
-
-    const dot = document.createElement('div');
-    dot.style.cssText = `position:absolute;left:-7px;top:-6px;width:14px;height:14px;
-        background:#ef4444;border-radius:50%;border:2px solid white;
-        box-shadow:0 0 0 3px rgba(239,68,68,.35);`;
-    linea.appendChild(dot);
-
-    const lbl = document.createElement('div');
-    lbl.style.cssText = `position:absolute;right:10px;top:-11px;background:#ef4444;color:white;
-        font-size:.72rem;font-weight:800;padding:.15rem .5rem;border-radius:5px;
-        box-shadow:0 2px 6px rgba(239,68,68,.4);`;
-    lbl.textContent = ahora.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
-    linea.appendChild(lbl);
-
-    cont.style.position = 'relative';
-    cont.appendChild(linea);
-
-    // Auto-scroll centrado en la línea
-    const scrollTarget = Math.max(0, y - cont.clientHeight / 2);
-    cont.scrollTop = scrollTarget;
-}
-
-function ganttVerificarAlertas(bloques, horaActual) {
-    bloques.filter(b => b.esActivo).forEach(b => {
-        const alerta = ganttEstadoAlerta(b.fin, horaActual);
-        const key    = `${b.equipoId}_${alerta}`;
-
-        if ((alerta === 'roja' || alerta === 'amarilla') && !ganttAlertados.has(key)) {
-            ganttAlertados.add(key);
-            const eq      = ganttEquipos().find(e => e.id === b.equipoId);
-            const restMin = Math.round((b.fin - horaActual) * 60);
-            const msg     = alerta === 'roja'
-                ? `🔴 ¡URGENTE! ${eq?.nombre || 'Equipo'} — "${b.producto.split('—')[0].trim()}" termina en ${restMin} min`
-                : `🟡 Aviso: ${eq?.nombre || 'Equipo'} — "${b.producto.split('—')[0].trim()}" termina en ${restMin} min`;
-            mostrarNotificacion(msg, alerta === 'roja' ? 'error' : 'warning');
-        }
-    });
-}
-
-function iniciarGanttTimer() {
-    if (ganttTimer) clearInterval(ganttTimer);
-    ganttTimer = setInterval(() => {
-        if (document.getElementById('gantt')?.classList.contains('active')) {
-            if (ganttFecha === ganttGetHoy()) {
-                const ahora      = new Date();
-                const horaActual = ahora.getHours() + ahora.getMinutes()/60 + ahora.getSeconds()/3600;
-                ganttRenderLinea(horaActual);
-                // Verificar alertas cada tick
-                const bloques = ganttGetBloques(ganttFecha);
-                ganttVerificarAlertas(bloques, horaActual);
-                // Re-render completo cada 5 min para actualizar contadores
-                if (ahora.getSeconds() < 15 && ahora.getMinutes() % 5 === 0) renderGantt();
-            }
-        }
-    }, 15000); // cada 15 segundos
+function getOpcionesPersonal(area) {
+  return (personal[area] || []).map(n => `<option value="${n}">${n}</option>`).join('');
 }
 
 // Inicializar al cargar
@@ -5865,13 +5456,7 @@ window.addEventListener('load', () => {
     await cargarPersonalFirebase();
     await cargarRecetasFirebase();
     renderListaRecetas();
-    // Re-renderizar personal si la pestaña está activa
-    if (document.getElementById('personal')?.classList.contains('active')) {
-      renderListaPersonal('cocina');
-      renderListaPersonal('envasado');
-      renderListaPersonal('abatimiento');
-    }
-  }, 3000); // más tiempo para que Firebase esté listo
+  }, 2000);
 });
 
 async function cargarRecetasFirebase(intentos = 0) {
@@ -5905,76 +5490,7 @@ function cargarSelectorOPsSimple() {
     sel.innerHTML += `<option value="${r.id}">${r.sku ? r.sku + ' — ' : ''}${r.nombre}</option>`;
   });
 }
-
-        // INICIAR APLICACIÓN
-        // ============================================
-        
-        window.onload = init;
-    </script>
-
-
-
-
-<!-- Modal Nueva/Editar Receta -->
-<div id="modalReceta" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;overflow-y:auto;">
-  <div style="background:white;max-width:800px;margin:2rem auto;border-radius:20px;padding:2rem;position:relative;">
-    <button onclick="cerrarModalReceta()" style="position:absolute;top:1rem;right:1rem;background:none;border:none;font-size:1.5rem;cursor:pointer;">✕</button>
-    <h2 style="color:#667eea;margin-bottom:1.5rem;" id="tituloModalReceta">➕ Nueva Receta</h2>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
-      <div>
-        <label style="font-weight:600;display:block;margin-bottom:.3rem;">SKU *</label>
-        <input id="recetaSku" type="text" placeholder="Ej: CAJ-001" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;">
-      </div>
-      <div>
-        <label style="font-weight:600;display:block;margin-bottom:.3rem;">Nombre del Plato *</label>
-        <input id="recetaNombre" type="text" placeholder="Ej: Carne al Jugo con Arroz" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;">
-      </div>
-      <div>
-        <label style="font-weight:600;display:block;margin-bottom:.3rem;">Gramaje por Plato (gr) *</label>
-        <input id="recetaGramaje" type="number" placeholder="Ej: 530" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;">
-      </div>
-      <div>
-        <label style="font-weight:600;display:block;margin-bottom:.3rem;">Gramaje Envase (gr)</label>
-        <input id="recetaEnvase" type="number" placeholder="Ej: 20" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;">
-      </div>
-      <div>
-        <label style="font-weight:600;display:block;margin-bottom:.3rem;">Rendimiento Esperado (%)</label>
-        <input id="recetaRendimiento" type="number" placeholder="Ej: 85" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;">
-      </div>
-    </div>
-
-    <!-- Componentes -->
-    <div style="margin-bottom:1rem;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
-        <h3 style="color:#764ba2;">🧩 Componentes del Plato</h3>
-        <button onclick="agregarComponente()" style="background:#667eea;color:white;padding:.4rem 1rem;border-radius:8px;border:none;cursor:pointer;">+ Componente</button>
-      </div>
-      <div id="listaComponentes"></div>
-    </div>
-
-    <div style="margin-bottom:1rem;">
-      <label style="font-weight:600;display:block;margin-bottom:.3rem;">📝 Observaciones</label>
-      <textarea id="recetaObservaciones" rows="3" placeholder="Notas importantes sobre la receta..." style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;resize:vertical;"></textarea>
-    </div>
-
-    <div style="display:flex;gap:1rem;justify-content:flex-end;">
-      <button onclick="cerrarModalReceta()" style="padding:.75rem 1.5rem;border-radius:10px;border:1px solid #ddd;cursor:pointer;">Cancelar</button>
-      <button onclick="guardarReceta()" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">💾 Guardar Receta</button>
-    </div>
-  </div>
-</div>
-
-
-
-<!-- Modal Detalle Receta -->
-<div id="modalDetalleReceta" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;overflow-y:auto;">
-  <div style="background:white;max-width:900px;margin:2rem auto;border-radius:20px;padding:2rem;position:relative;">
-    <button onclick="document.getElementById('modalDetalleReceta').style.display='none'" style="position:absolute;top:1rem;right:1rem;background:none;border:none;font-size:1.5rem;cursor:pointer;">✕</button>
-    <div id="contenidoDetalleReceta"></div>
-  </div>
-</div>
-
+</script>
 
 </body>
 </html>
