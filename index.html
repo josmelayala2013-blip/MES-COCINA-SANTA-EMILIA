@@ -5722,9 +5722,39 @@ function cargarSelectorOPsSimple() {
                     'box-shadow:0 2px 6px rgba(0,0,0,0.1)'
                 ].join(';');
 
+                // Calcular texto cuenta regresiva
+                const hh = Math.floor(Math.max(minRestantes,0) / 60);
+                const mm2 = Math.max(minRestantes,0) % 60;
+                const cuentaStr = minRestantes <= 0 ? '⏱ Tiempo excedido'
+                    : hh > 0 ? '⏱ ' + hh + 'h ' + String(mm2).padStart(2,'0') + 'm'
+                    : '⏱ ' + mm2 + ' min';
+
+                // Badge encima del bloque
+                const badge = document.createElement('div');
+                badge.style.cssText = [
+                    'position:absolute',
+                    'top:' + (top - 22) + 'px',
+                    'left:' + left + 'px',
+                    'width:' + width + 'px',
+                    'background:' + borderColor,
+                    'color:white',
+                    'font-size:.68rem',
+                    'font-weight:800',
+                    'padding:.15rem .4rem',
+                    'border-radius:4px 4px 0 0',
+                    'text-align:center',
+                    'white-space:nowrap',
+                    'overflow:hidden',
+                    'z-index:6'
+                ].join(';');
+                badge.className = 'gantt-bloque';
+                badge.textContent = cuentaStr;
+                contenedor.appendChild(badge);
+
+                // Contenido dentro del bloque
                 bloque.innerHTML = [
-                    '<div style="font-size:.75rem;font-weight:700;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + eq.produccion.producto + '</div>',
-                    altura > 35 ? '<div style="font-size:.68rem;color:' + borderColor + ';font-weight:600;">' + restanteTexto + '</div>' : ''
+                    '<div style="font-size:.78rem;font-weight:700;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + eq.produccion.producto + '</div>',
+                    altura > 38 ? '<div style="font-size:.72rem;color:' + borderColor + ';font-weight:700;margin-top:.15rem;">' + cuentaStr + '</div>' : ''
                 ].join('');
 
                 contenedor.appendChild(bloque);
