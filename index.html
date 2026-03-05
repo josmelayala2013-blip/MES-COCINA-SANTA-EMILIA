@@ -402,6 +402,11 @@
             from { transform: translateX(100%); opacity: 0; }
             to   { transform: translateX(0);    opacity: 1; }
         }
+
+        @keyframes ganttParpadeo {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
     </style>
 </head>
 <body>
@@ -5827,17 +5832,27 @@ function cargarSelectorOPsSimple() {
                 const bloque = document.getElementById('ganttBloque_' + eq.id);
                 if (bloque) {
                     if (diffSeg <= 0) {
-                        bloque.style.background = '#fef2f2';
-                        bloque.style.borderLeftColor = '#ef4444';
-                    } else if (diffSeg <= 300) {
-                        bloque.style.background = '#fef2f2';
-                        bloque.style.borderLeftColor = '#ef4444';
-                    } else if (diffSeg <= 1200) {
-                        bloque.style.background = '#fffbeb';
-                        bloque.style.borderLeftColor = '#f59e0b';
+                        // Excedido: rojo y titilando
+                        bloque.style.background = '#ef4444';
+                        bloque.style.borderLeftColor = '#b91c1c';
+                        bloque.style.animation = 'ganttParpadeo 1s ease-in-out infinite';
+                        // Texto en blanco
+                        bloque.querySelectorAll('div').forEach(d => d.style.color = 'white');
                     } else {
-                        bloque.style.background = '#f0fdf4';
-                        bloque.style.borderLeftColor = '#22c55e';
+                        bloque.style.animation = '';
+                        if (diffSeg <= 300) {
+                            bloque.style.background = '#fef2f2';
+                            bloque.style.borderLeftColor = '#ef4444';
+                            bloque.querySelectorAll('div').forEach(d => d.style.color = '');
+                        } else if (diffSeg <= 1200) {
+                            bloque.style.background = '#fffbeb';
+                            bloque.style.borderLeftColor = '#f59e0b';
+                            bloque.querySelectorAll('div').forEach(d => d.style.color = '');
+                        } else {
+                            bloque.style.background = '#f0fdf4';
+                            bloque.style.borderLeftColor = '#22c55e';
+                            bloque.querySelectorAll('div').forEach(d => d.style.color = '');
+                        }
                     }
                 }
             });
