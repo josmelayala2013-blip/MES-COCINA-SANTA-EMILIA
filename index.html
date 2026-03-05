@@ -5399,9 +5399,12 @@ function guardarEdicionPersonal(area, idx) {
 }
 
 function agregarPersonal(area) {
-  const input = document.getElementById(`nuevoPersonal${area.charAt(0).toUpperCase() + area.slice(1)}`);
+  const inputId = 'nuevoPersonal' + area.charAt(0).toUpperCase() + area.slice(1);
+  const input = document.getElementById(inputId);
+  if (!input) { alert('Error campo no encontrado: ' + inputId); return; }
   const nombre = input.value.trim();
-  if (!nombre) return;
+  if (!nombre) { alert('Escribe un nombre primero'); return; }
+  if (!personal[area]) personal[area] = [];
   if (personal[area].includes(nombre)) { alert('Ese nombre ya existe'); return; }
   personal[area].push(nombre);
   guardarPersonal();
