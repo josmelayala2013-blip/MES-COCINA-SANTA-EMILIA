@@ -471,7 +471,15 @@
         <!-- TAB: GANTT -->
         <div id="gantt" class="tab-content">
           <div style="padding:1.5rem;">
-            <h2 style="color:#667eea;margin:0 0 1.5rem;">📅 Gantt de Producción</h2>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+              <h2 style="color:#667eea;margin:0;">📅 Gantt de Producción</h2>
+              <button onclick="location.reload()" style="
+                background:#667eea;color:white;border:none;border-radius:10px;
+                padding:.5rem 1.2rem;font-weight:700;font-size:.85rem;cursor:pointer;
+                display:flex;align-items:center;gap:.4rem;box-shadow:0 2px 8px rgba(102,126,234,.4);">
+                🔄 Actualizar
+              </button>
+            </div>
 
             <!-- GRID -->
             <div style="background:white;border-radius:15px;box-shadow:0 4px 20px rgba(0,0,0,0.08);overflow:auto;">
