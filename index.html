@@ -3708,6 +3708,7 @@
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     equipos = data.equipos || equipos;
+                    recalcularTiemposCoccion();
                     productos = data.productos || productos;
                     procesosEnvasado = data.procesosEnvasado || [];
                     procesosAbatimiento = data.procesosAbatimiento || [];
@@ -3768,6 +3769,20 @@
             escucharCambiosFirebase();
         }
 
+
+        function recalcularTiemposCoccion() {
+            equipos.forEach(eq => {
+                if (!eq.produccion || !eq.produccion.inicio) return;
+                const nombre = eq.produccion.componente || eq.produccion.producto || '';
+                const prod = productos.find(p => p.nombre === nombre || nombre.startsWith(p.nombre));
+                if (prod) {
+                    eq.produccion.tiempoCoccionMin = (prod.vsm && prod.vsm.promCoccion)
+                        ? prod.vsm.promCoccion
+                        : (prod.tiempoCoccionMin || 60);
+                }
+            });
+        }
+
         function guardarDatosExtra() {
             localStorage.setItem('mes_planDiario', JSON.stringify(planDiario));
             sincronizarFirebase();
@@ -3789,6 +3804,7 @@
                         if (esOtroDispositivo) {
                             console.log('🔄 Actualizando desde otro dispositivo...');
                             equipos = data.equipos || equipos;
+                    recalcularTiemposCoccion();
                             productos = data.productos || productos;
                             procesosEnvasado = data.procesosEnvasado || [];
                             procesosAbatimiento = data.procesosAbatimiento || [];
