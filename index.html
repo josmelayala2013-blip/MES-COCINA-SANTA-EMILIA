@@ -5637,15 +5637,18 @@ function cargarSelectorOPsSimple() {
                 if (!eq.produccion || !eq.produccion.inicio) return;
 
                 const inicio = new Date(eq.produccion.inicio);
-                const hInicio = inicio.getHours() + inicio.getMinutes() / 60;
-                if (hInicio < HORA_INICIO || hInicio > 24) return;
+                let hInicio = inicio.getHours() + inicio.getMinutes() / 60;
+                // Horas nocturnas 0-1 AM se mapean a 24-25 para posicionar en el grid
+                if (hInicio < 2) hInicio += 24;
+                if (hInicio < HORA_INICIO || hInicio > 26) return;
 
                 // Obtener tiempo de cocción: usar promedio aprendido si existe, si no el manual
                 let durMin = eq.produccion.tiempoCoccionMin || 60; // solo cocción
 
                 const hFin = hInicio + durMin / 60;
                 const ahora = new Date();
-                const hAhora = ahora.getHours() + ahora.getMinutes() / 60;
+                let hAhora = ahora.getHours() + ahora.getMinutes() / 60;
+                if (hAhora < 2) hAhora += 24; // consistente con hInicio nocturno
                 const minRestantes = Math.round((hFin - hAhora) * 60);
 
                 // Posición y altura en px
@@ -5829,7 +5832,8 @@ function cargarSelectorOPsSimple() {
 
         function verificarAlertasGantt() {
             const ahora = new Date();
-            const hAhora = ahora.getHours() + ahora.getMinutes() / 60;
+            let hAhora = ahora.getHours() + ahora.getMinutes() / 60;
+            if (hAhora < 2) hAhora += 24;
 
             equipos.forEach(eq => {
                 if (!eq.produccion || !eq.produccion.inicio) return;
