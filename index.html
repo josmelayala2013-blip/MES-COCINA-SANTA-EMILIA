@@ -3637,7 +3637,7 @@
                 renderListaPersonal('abatimiento'); 
             }
             else if (tabName === 'planificador') { initPlanificador(); renderSelectorPlanProductos(); renderPlanVisual(); setTimeout(() => { cargarSelectorOPs(); renderListaOPs(); }, 1500); }
-            else if (tabName === 'gantt') { renderGanttGrid(); iniciarLineaHora(); renderGanttBloques(); }
+            else if (tabName === 'gantt') { renderGanttGrid(); iniciarLineaHora(); renderGanttBloques(); iniciarCronometroGantt(); }
             else if (tabName === 'ejecutivo') actualizarVistaEjecutivo();
         }
 
@@ -5600,37 +5600,7 @@ function cargarSelectorOPsSimple() {
             const top = theadH + (filaIndex * 40) + offsetY;
             linea.style.top = top + 'px';
 
-            // Etiqueta con tiempo restante de la preparación activa
-            const label = document.createElement('div');
-            label.style.cssText = 'position:absolute;left:0;top:-11px;background:#ef4444;color:white;font-size:.75rem;font-weight:800;padding:.2rem .5rem;border-radius:4px;white-space:nowrap;';
-
-            // Buscar equipo activo con menos tiempo restante
-            let minRestanteGlobal = null;
-            let nombreProd = null;
-            equipos.forEach(eq => {
-                if (!eq.produccion || !eq.produccion.inicio) return;
-                const prod = productos.find(p => p.nombre === eq.produccion.producto);
-                let durMin = 60;
-                if (prod) durMin = (prod.vsm && prod.vsm.promCoccion) ? prod.vsm.promCoccion : (prod.tiempoCoccionMin || 60);
-                const inicio = new Date(eq.produccion.inicio);
-                const hIni = inicio.getHours() + inicio.getMinutes() / 60;
-                const hFin = hIni + durMin / 60;
-                const restMin = Math.round((hFin - (h + m/60)) * 60);
-                if (restMin > 0 && (minRestanteGlobal === null || restMin < minRestanteGlobal)) {
-                    minRestanteGlobal = restMin;
-                    nombreProd = eq.produccion.producto;
-                }
-            });
-
-            if (minRestanteGlobal !== null) {
-                const hh = Math.floor(minRestanteGlobal / 60);
-                const mm = minRestanteGlobal % 60;
-                const tiempoStr = hh > 0 ? hh + 'h ' + String(mm).padStart(2,'0') + 'm' : mm + ' min';
-                label.textContent = '⏱ ' + tiempoStr;
-            } else {
-                label.textContent = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
-            }
-            linea.appendChild(label);
+            // Sin recuadro - solo la línea roja
 
             contenedor.appendChild(linea);
         }
@@ -5731,6 +5701,7 @@ function cargarSelectorOPsSimple() {
 
                 // Badge encima del bloque
                 const badge = document.createElement('div');
+                badge.id = 'ganttBadge_' + eq.id;
                 badge.style.cssText = [
                     'position:absolute',
                     'top:' + (top - 22) + 'px',
@@ -5752,15 +5723,96 @@ function cargarSelectorOPsSimple() {
                 contenedor.appendChild(badge);
 
                 // Contenido dentro del bloque
+                bloque.id = 'ganttBloque_' + eq.id;
                 bloque.innerHTML = [
                     '<div style="font-size:.78rem;font-weight:700;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + eq.produccion.producto + '</div>',
-                    altura > 38 ? '<div style="font-size:.72rem;color:' + borderColor + ';font-weight:700;margin-top:.15rem;">' + cuentaStr + '</div>' : ''
+                    altura > 38 ? '<div id="ganttInner_' + eq.id + '" style="font-size:.72rem;color:' + borderColor + ';font-weight:700;margin-top:.15rem;">' + cuentaStr + '</div>' : ''
                 ].join('');
 
                 contenedor.appendChild(bloque);
             });
         }
 
+
+
+        // GANTT - Cronómetro en tiempo real (segundos)
+        let ganttCronometroTimer = null;
+
+        function iniciarCronometroGantt() {
+            if (ganttCronometroTimer) clearInterval(ganttCronometroTimer);
+            ganttCronometroTimer = setInterval(actualizarCronometros, 1000);
+        }
+
+        function detenerCronometroGantt() {
+            if (ganttCronometroTimer) clearInterval(ganttCronometroTimer);
+        }
+
+        function actualizarCronometros() {
+            const ahora = new Date();
+            equipos.forEach(eq => {
+                if (!eq.produccion || !eq.produccion.inicio) return;
+
+                const prod = productos.find(p => p.nombre === eq.produccion.producto);
+                let durMin = 60;
+                if (prod) durMin = (prod.vsm && prod.vsm.promCoccion) ? prod.vsm.promCoccion : (prod.tiempoCoccionMin || 60);
+
+                const inicio = new Date(eq.produccion.inicio);
+                const finEsperado = new Date(inicio.getTime() + durMin * 60000);
+                const diffSeg = Math.round((finEsperado - ahora) / 1000);
+
+                // Actualizar badge encima
+                const badge = document.getElementById('ganttBadge_' + eq.id);
+                if (badge) {
+                    if (diffSeg > 0) {
+                        badge.textContent = '⏱ ' + formatearCronometro(diffSeg);
+                        badge.style.background = diffSeg <= 300 ? '#ef4444' : diffSeg <= 1200 ? '#f59e0b' : '#22c55e';
+                    } else {
+                        badge.textContent = '🔴 +' + formatearCronometro(Math.abs(diffSeg));
+                        badge.style.background = '#ef4444';
+                    }
+                }
+
+                // Actualizar texto dentro del bloque
+                const inner = document.getElementById('ganttInner_' + eq.id);
+                if (inner) {
+                    const color = diffSeg <= 300 ? '#ef4444' : diffSeg <= 1200 ? '#f59e0b' : '#22c55e';
+                    if (diffSeg > 0) {
+                        inner.textContent = '⏱ ' + formatearCronometro(diffSeg);
+                        inner.style.color = color;
+                    } else {
+                        inner.textContent = '🔴 +' + formatearCronometro(Math.abs(diffSeg));
+                        inner.style.color = '#ef4444';
+                    }
+                }
+
+                // Actualizar color del bloque
+                const bloque = document.getElementById('ganttBloque_' + eq.id);
+                if (bloque) {
+                    if (diffSeg <= 0) {
+                        bloque.style.background = '#fef2f2';
+                        bloque.style.borderLeftColor = '#ef4444';
+                    } else if (diffSeg <= 300) {
+                        bloque.style.background = '#fef2f2';
+                        bloque.style.borderLeftColor = '#ef4444';
+                    } else if (diffSeg <= 1200) {
+                        bloque.style.background = '#fffbeb';
+                        bloque.style.borderLeftColor = '#f59e0b';
+                    } else {
+                        bloque.style.background = '#f0fdf4';
+                        bloque.style.borderLeftColor = '#22c55e';
+                    }
+                }
+            });
+        }
+
+        function formatearCronometro(seg) {
+            const h = Math.floor(seg / 3600);
+            const m = Math.floor((seg % 3600) / 60);
+            const s = seg % 60;
+            if (h > 0) return h + 'h ' + String(m).padStart(2,'0') + 'm ' + String(s).padStart(2,'0') + 's';
+            if (m > 0) return String(m).padStart(2,'0') + 'm ' + String(s).padStart(2,'0') + 's';
+            return String(s).padStart(2,'0') + 's';
+        }
 
         // GANTT - Sistema de alertas
         let ganttAlertasDisparadas = {}; // equipoId -> ['20min', '5min']
