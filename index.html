@@ -3632,7 +3632,7 @@
                 renderListaPersonal('abatimiento'); 
             }
             else if (tabName === 'planificador') { initPlanificador(); renderSelectorPlanProductos(); renderPlanVisual(); setTimeout(() => { cargarSelectorOPs(); renderListaOPs(); }, 1500); }
-            else if (tabName === 'gantt') renderGanttGrid();
+            else if (tabName === 'gantt') { renderGanttGrid(); iniciarLineaHora(); }
             else if (tabName === 'ejecutivo') actualizarVistaEjecutivo();
         }
 
@@ -5541,6 +5541,66 @@ function cargarSelectorOPsSimple() {
                 </tr>`;
             }
             body.innerHTML = html;
+        }
+
+
+        // GANTT - Línea hora actual
+        let ganttTimerLinea = null;
+
+        function iniciarLineaHora() {
+            actualizarLineaHora();
+            if (ganttTimerLinea) clearInterval(ganttTimerLinea);
+            ganttTimerLinea = setInterval(actualizarLineaHora, 60000);
+        }
+
+        function actualizarLineaHora() {
+            const body = document.getElementById('ganttBody');
+            if (!body) return;
+
+            // Quitar línea anterior
+            const anterior = document.getElementById('ganttLineaRoja');
+            if (anterior) anterior.remove();
+
+            const ahora = new Date();
+            const h = ahora.getHours();
+            const m = ahora.getMinutes();
+            if (h < 8 || h > 22) return;
+
+            // Calcular en qué fila estamos (cada fila = 1 hora = 40px)
+            // Fila 0 = 08:00, fila 1 = 09:00, etc.
+            const filaIndex = h - 8;
+            const filas = body.querySelectorAll('tr');
+            if (!filas[filaIndex]) return;
+
+            // Calcular posición dentro de la fila (0-40px según minutos)
+            const offsetY = Math.round((m / 60) * 40);
+
+            // Crear línea roja
+            const fila = filas[filaIndex];
+            const rect = fila.getBoundingClientRect();
+            const bodyRect = body.closest('div').getBoundingClientRect();
+
+            // Insertar como div absoluto sobre el grid
+            const contenedor = body.closest('div');
+            contenedor.style.position = 'relative';
+
+            const linea = document.createElement('div');
+            linea.id = 'ganttLineaRoja';
+            linea.style.cssText = 'position:absolute;left:70px;right:0;height:2px;background:#ef4444;z-index:10;pointer-events:none;';
+
+            // Posición: sumar la altura de thead (40px aprox) + filas anteriores (40px cada una) + offset minutos
+            const theadH = body.closest('table').querySelector('thead').offsetHeight || 40;
+            const top = theadH + (filaIndex * 40) + offsetY;
+            linea.style.top = top + 'px';
+
+            // Etiqueta con la hora
+            const label = document.createElement('div');
+            const horaStr = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+            label.style.cssText = 'position:absolute;left:0;top:-9px;background:#ef4444;color:white;font-size:.7rem;font-weight:800;padding:.1rem .4rem;border-radius:4px;white-space:nowrap;';
+            label.textContent = horaStr;
+            linea.appendChild(label);
+
+            contenedor.appendChild(linea);
         }
 
         window.onload = init;
