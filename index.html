@@ -2717,25 +2717,34 @@
                 producto.vsm.historialTiempos = producto.vsm.historialTiempos.slice(-20);
             }
             
-            // Calcular nuevos promedios
+            // Calcular promedios sin outliers
             const historial = producto.vsm.historialTiempos;
-            
-            // Promedio de cocción
+
+            // Función: promedio descartando el más lento y el más rápido (si hay 3+ registros)
+            function promedioSinOutliers(valores) {
+                if (valores.length === 0) return null;
+                if (valores.length <= 2) return Math.round(valores.reduce((a, b) => a + b, 0) / valores.length);
+                const sorted = [...valores].sort((a, b) => a - b);
+                const sin = sorted.slice(1, -1); // quitar el mínimo y el máximo
+                return Math.round(sin.reduce((a, b) => a + b, 0) / sin.length);
+            }
+
+            // Cocción
             const tiemposCoccion = historial.filter(h => h.tiempoCoccion).map(h => h.tiempoCoccion);
             if (tiemposCoccion.length > 0) {
-                producto.vsm.promCoccion = Math.round(tiemposCoccion.reduce((a, b) => a + b, 0) / tiemposCoccion.length);
+                producto.vsm.promCoccion = promedioSinOutliers(tiemposCoccion);
             }
-            
-            // Promedio de envasado
+
+            // Envasado
             const tiemposEnvasado = historial.filter(h => h.tiempoEnvasado).map(h => h.tiempoEnvasado);
             if (tiemposEnvasado.length > 0) {
-                producto.vsm.promEnvasado = Math.round(tiemposEnvasado.reduce((a, b) => a + b, 0) / tiemposEnvasado.length);
+                producto.vsm.promEnvasado = promedioSinOutliers(tiemposEnvasado);
             }
-            
-            // Promedio de abatimiento
+
+            // Abatimiento
             const tiemposAbatimiento = historial.filter(h => h.tiempoAbatimiento).map(h => h.tiempoAbatimiento);
             if (tiemposAbatimiento.length > 0) {
-                producto.vsm.promAbatimiento = Math.round(tiemposAbatimiento.reduce((a, b) => a + b, 0) / tiemposAbatimiento.length);
+                producto.vsm.promAbatimiento = promedioSinOutliers(tiemposAbatimiento);
             }
             
             producto.vsm.totalProducciones = historial.length;
