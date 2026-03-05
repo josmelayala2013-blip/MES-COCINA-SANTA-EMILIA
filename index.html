@@ -2245,6 +2245,7 @@
             }
 
             equipo.estado = 'activa';
+            const _prodRef1 = productos.find(p => p.nombre === comp.nombre || comp.nombre.toLowerCase().includes(p.nombre.toLowerCase()));
             equipo.produccion = {
                 numeroOP: op.numeroOp || op.nombre,
                 producto: `${comp.nombre} — ${op.nombre}`,
@@ -2253,7 +2254,8 @@
                 inicio: new Date().toISOString(),
                 fase: 'coccion',
                 opVinculadaId: op.id,
-                componente: comp.nombre
+                componente: comp.nombre,
+                tiempoCoccionMin: _prodRef1 ? ((_prodRef1.vsm && _prodRef1.vsm.promCoccion) ? _prodRef1.vsm.promCoccion : (_prodRef1.tiempoCoccionMin || 60)) : 60
             };
 
             // Marcar OP en producción
@@ -2297,6 +2299,7 @@
                 }
 
                 equipo.estado = 'activa';
+                const _prodRef2 = productos.find(p => p.nombre === comp.nombre || comp.nombre.toLowerCase().includes(p.nombre.toLowerCase()));
                 equipo.produccion = {
                     numeroOP: op.numeroOp || op.nombre,
                     producto: `${comp.nombre} — ${op.nombre}`,
@@ -2305,7 +2308,8 @@
                     inicio: new Date().toISOString(),
                     fase: 'coccion',
                     opVinculadaId: op.id,
-                    componente: comp.nombre
+                    componente: comp.nombre,
+                    tiempoCoccionMin: _prodRef2 ? ((_prodRef2.vsm && _prodRef2.vsm.promCoccion) ? _prodRef2.vsm.promCoccion : (_prodRef2.tiempoCoccionMin || 60)) : 60
                 };
                 iniciados++;
             });
@@ -2349,6 +2353,7 @@
 
             const equipo = equipos.find(e => e.id === equipoSeleccionado);
             equipo.estado = 'activa';
+            const _prodRef3 = productos.find(p => p.nombre === producto || producto.toLowerCase().includes(p.nombre.toLowerCase()));
             equipo.produccion = {
                 numeroOP,
                 producto,
@@ -2356,7 +2361,9 @@
                 operador,
                 inicio: new Date().toISOString(),
                 fase: 'coccion',
-                opVinculadaId: document.getElementById('opVinculadaSelect')?.value || null
+                opVinculadaId: document.getElementById('opVinculadaSelect')?.value || null,
+                componente: producto,
+                tiempoCoccionMin: _prodRef3 ? ((_prodRef3.vsm && _prodRef3.vsm.promCoccion) ? _prodRef3.vsm.promCoccion : (_prodRef3.tiempoCoccionMin || 60)) : 60
             };
 
             // Actualizar estado de la OP vinculada a "En Producción"
@@ -5531,7 +5538,7 @@ function cargarSelectorOPsSimple() {
             const body = document.getElementById('ganttBody');
             if (!body) return;
             let html = '';
-            for (let h = 8; h <= 24; h++) {
+            for (let h = 8; h <= 25; h++) {
                 const hora = String(h).padStart(2, '0') + ':00';
                 const bg = h % 2 === 0 ? '#fafafa' : '#ffffff';
                 html += `<tr>
@@ -5570,7 +5577,7 @@ function cargarSelectorOPsSimple() {
             const ahora = new Date();
             const h = ahora.getHours();
             const m = ahora.getMinutes();
-            if (h < 8 || h > 24) return;
+            if (h < 8 || h > 25) return;
 
             // Calcular en qué fila estamos (cada fila = 1 hora = 40px)
             // Fila 0 = 08:00, fila 1 = 09:00, etc.
@@ -5622,14 +5629,10 @@ function cargarSelectorOPsSimple() {
 
                 const inicio = new Date(eq.produccion.inicio);
                 const hInicio = inicio.getHours() + inicio.getMinutes() / 60;
-                if (hInicio < HORA_INICIO || hInicio > 24) return;
+                if (hInicio < HORA_INICIO || hInicio > 25) return;
 
                 // Obtener tiempo de cocción: usar promedio aprendido si existe, si no el manual
-                const prod = productos.find(p => p.nombre === eq.produccion.componente) || productos.find(p => eq.produccion.producto && eq.produccion.producto.startsWith(p.nombre));
-                let durMin = 60; // default
-                if (prod) {
-                    durMin = (prod.vsm && prod.vsm.promCoccion) ? prod.vsm.promCoccion : (prod.tiempoCoccionMin || 60);
-                }
+                let durMin = eq.produccion.tiempoCoccionMin || 60; // solo cocción
 
                 const hFin = hInicio + durMin / 60;
                 const ahora = new Date();
@@ -5751,9 +5754,8 @@ function cargarSelectorOPsSimple() {
             equipos.forEach(eq => {
                 if (!eq.produccion || !eq.produccion.inicio) return;
 
-                const prod = productos.find(p => p.nombre === eq.produccion.componente) || productos.find(p => eq.produccion.producto && eq.produccion.producto.startsWith(p.nombre));
-                let durMin = 60;
-                if (prod) durMin = (prod.vsm && prod.vsm.promCoccion) ? prod.vsm.promCoccion : (prod.tiempoCoccionMin || 60);
+                // Usar tiempoCoccionMin guardado al iniciar (solo cocción)
+                let durMin = eq.produccion.tiempoCoccionMin || 60;
 
                 const inicio = new Date(eq.produccion.inicio);
                 const finEsperado = new Date(inicio.getTime() + durMin * 60000);
@@ -5823,11 +5825,7 @@ function cargarSelectorOPsSimple() {
             equipos.forEach(eq => {
                 if (!eq.produccion || !eq.produccion.inicio) return;
 
-                const prod = productos.find(p => p.nombre === eq.produccion.componente) || productos.find(p => eq.produccion.producto && eq.produccion.producto.startsWith(p.nombre));
-                let durMin = 60;
-                if (prod) {
-                    durMin = (prod.vsm && prod.vsm.promCoccion) ? prod.vsm.promCoccion : (prod.tiempoCoccionMin || 60);
-                }
+                let durMin = eq.produccion.tiempoCoccionMin || 60; // solo cocción
 
                 const inicio = new Date(eq.produccion.inicio);
                 const hInicio = inicio.getHours() + inicio.getMinutes() / 60;
