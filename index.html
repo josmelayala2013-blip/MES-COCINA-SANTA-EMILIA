@@ -5526,7 +5526,7 @@ function cargarSelectorOPsSimple() {
             const body = document.getElementById('ganttBody');
             if (!body) return;
             let html = '';
-            for (let h = 8; h <= 22; h++) {
+            for (let h = 8; h <= 24; h++) {
                 const hora = String(h).padStart(2, '0') + ':00';
                 const bg = h % 2 === 0 ? '#fafafa' : '#ffffff';
                 html += `<tr>
@@ -5565,7 +5565,7 @@ function cargarSelectorOPsSimple() {
             const ahora = new Date();
             const h = ahora.getHours();
             const m = ahora.getMinutes();
-            if (h < 8 || h > 22) return;
+            if (h < 8 || h > 24) return;
 
             // Calcular en qué fila estamos (cada fila = 1 hora = 40px)
             // Fila 0 = 08:00, fila 1 = 09:00, etc.
@@ -5622,7 +5622,7 @@ function cargarSelectorOPsSimple() {
 
                 const inicio = new Date(eq.produccion.inicio);
                 const hInicio = inicio.getHours() + inicio.getMinutes() / 60;
-                if (hInicio < HORA_INICIO || hInicio > 22) return;
+                if (hInicio < HORA_INICIO || hInicio > 24) return;
 
                 // Obtener tiempo de cocción: usar promedio aprendido si existe, si no el manual
                 const prod = productos.find(p => p.nombre === eq.produccion.producto);
