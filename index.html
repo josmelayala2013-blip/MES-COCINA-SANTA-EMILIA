@@ -2255,7 +2255,7 @@
                 fase: 'coccion',
                 opVinculadaId: op.id,
                 componente: comp.nombre,
-                tiempoCoccionMin: _prodRef1 ? ((_prodRef1.vsm && _prodRef1.vsm.promCoccion) ? _prodRef1.vsm.promCoccion : (_prodRef1.tiempoCoccionMin || 60)) : 60
+                tiempoCoccionMin: _prodRef1 ? ((_prodRef1.vsm && _prodRef1.vsm.promCoccion && _prodRef1.vsm.totalProducciones >= 3) ? _prodRef1.vsm.promCoccion : (_prodRef1.tiempoCoccionMin || 60)) : 60
             };
 
             // Marcar OP en producción
@@ -2309,7 +2309,7 @@
                     fase: 'coccion',
                     opVinculadaId: op.id,
                     componente: comp.nombre,
-                    tiempoCoccionMin: _prodRef2 ? ((_prodRef2.vsm && _prodRef2.vsm.promCoccion) ? _prodRef2.vsm.promCoccion : (_prodRef2.tiempoCoccionMin || 60)) : 60
+                    tiempoCoccionMin: _prodRef2 ? ((_prodRef2.vsm && _prodRef2.vsm.promCoccion && _prodRef2.vsm.totalProducciones >= 3) ? _prodRef2.vsm.promCoccion : (_prodRef2.tiempoCoccionMin || 60)) : 60
                 };
                 iniciados++;
             });
@@ -2363,7 +2363,7 @@
                 fase: 'coccion',
                 opVinculadaId: document.getElementById('opVinculadaSelect')?.value || null,
                 componente: producto,
-                tiempoCoccionMin: _prodRef3 ? ((_prodRef3.vsm && _prodRef3.vsm.promCoccion) ? _prodRef3.vsm.promCoccion : (_prodRef3.tiempoCoccionMin || 60)) : 60
+                tiempoCoccionMin: _prodRef3 ? ((_prodRef3.vsm && _prodRef3.vsm.promCoccion && _prodRef3.vsm.totalProducciones >= 3) ? _prodRef3.vsm.promCoccion : (_prodRef3.tiempoCoccionMin || 60)) : 60
             };
 
             // Actualizar estado de la OP vinculada a "En Producción"
@@ -3776,7 +3776,7 @@
                 const nombre = eq.produccion.componente || eq.produccion.producto || '';
                 const prod = productos.find(p => p.nombre === nombre || nombre.startsWith(p.nombre));
                 if (prod) {
-                    eq.produccion.tiempoCoccionMin = (prod.vsm && prod.vsm.promCoccion)
+                    eq.produccion.tiempoCoccionMin = (prod.vsm && prod.vsm.promCoccion && prod.vsm.totalProducciones >= 3)
                         ? prod.vsm.promCoccion
                         : (prod.tiempoCoccionMin || 60);
                 }
