@@ -5646,16 +5646,16 @@ function cargarSelectorOPsSimple() {
                 const top = theadH + (hInicio - HORA_INICIO) * FILA_H;
                 const altura = Math.max((durMin / 60) * FILA_H, 24);
 
-                // Color según tiempo restante
+                // Color según tiempo restante (solo cocción)
                 let bgColor, borderColor;
                 if (minRestantes <= 0) {
-                    bgColor = '#f1f5f9'; borderColor = '#94a3b8'; // excedido
+                    bgColor = '#f1f5f9'; borderColor = '#94a3b8'; // gris excedido
                 } else if (minRestantes <= 5) {
                     bgColor = '#fef2f2'; borderColor = '#ef4444'; // rojo urgente
                 } else if (minRestantes <= 20) {
                     bgColor = '#fffbeb'; borderColor = '#f59e0b'; // amarillo precaución
                 } else {
-                    bgColor = '#eef2ff'; borderColor = '#667eea'; // azul normal
+                    bgColor = '#f0fdf4'; borderColor = '#22c55e'; // verde normal
                 }
 
                 // Texto tiempo restante
