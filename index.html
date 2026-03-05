@@ -5559,7 +5559,6 @@ function cargarSelectorOPsSimple() {
         }
 
         function actualizarLineaHora() {
-            renderGanttBloques();
             verificarAlertasGantt();
             const body = document.getElementById('ganttBody');
             if (!body) return;
@@ -5626,7 +5625,7 @@ function cargarSelectorOPsSimple() {
                 if (hInicio < HORA_INICIO || hInicio > 24) return;
 
                 // Obtener tiempo de cocción: usar promedio aprendido si existe, si no el manual
-                const prod = productos.find(p => p.nombre === eq.produccion.producto);
+                const prod = productos.find(p => p.nombre === eq.produccion.componente) || productos.find(p => eq.produccion.producto && eq.produccion.producto.startsWith(p.nombre));
                 let durMin = 60; // default
                 if (prod) {
                     durMin = (prod.vsm && prod.vsm.promCoccion) ? prod.vsm.promCoccion : (prod.tiempoCoccionMin || 60);
@@ -5752,7 +5751,7 @@ function cargarSelectorOPsSimple() {
             equipos.forEach(eq => {
                 if (!eq.produccion || !eq.produccion.inicio) return;
 
-                const prod = productos.find(p => p.nombre === eq.produccion.producto);
+                const prod = productos.find(p => p.nombre === eq.produccion.componente) || productos.find(p => eq.produccion.producto && eq.produccion.producto.startsWith(p.nombre));
                 let durMin = 60;
                 if (prod) durMin = (prod.vsm && prod.vsm.promCoccion) ? prod.vsm.promCoccion : (prod.tiempoCoccionMin || 60);
 
@@ -5824,7 +5823,7 @@ function cargarSelectorOPsSimple() {
             equipos.forEach(eq => {
                 if (!eq.produccion || !eq.produccion.inicio) return;
 
-                const prod = productos.find(p => p.nombre === eq.produccion.producto);
+                const prod = productos.find(p => p.nombre === eq.produccion.componente) || productos.find(p => eq.produccion.producto && eq.produccion.producto.startsWith(p.nombre));
                 let durMin = 60;
                 if (prod) {
                     durMin = (prod.vsm && prod.vsm.promCoccion) ? prod.vsm.promCoccion : (prod.tiempoCoccionMin || 60);
