@@ -2256,7 +2256,7 @@
                 producto: `${comp.nombre} — ${op.nombre}`,
                 kgProgramados: comp.kgTerminados,
                 operador,
-                inicio: new Date().toISOString(),
+                inicio: (window._inicioDiferido || new Date().toISOString()),
                 fase: 'coccion',
                 opVinculadaId: op.id,
                 componente: comp.nombre,
@@ -2335,6 +2335,34 @@
             }
         }
 
+
+        function aceptarSugerenciaEscalonamiento() {
+            const desfaseMin = window._desfaseSugeridoMin || 0;
+            // Guardar el inicio diferido
+            window._inicioDiferido = new Date(Date.now() + desfaseMin * 60000).toISOString();
+            // Actualizar alerta
+            const alerta = document.getElementById('alertaEscalonamiento');
+            if (alerta) {
+                const hInicio = new Date(window._inicioDiferido);
+                const hStr = String(hInicio.getHours()).padStart(2,'0') + ':' + String(hInicio.getMinutes()).padStart(2,'0');
+                alerta.style.background = '#f0fdf4';
+                alerta.style.borderColor = '#10b981';
+                alerta.innerHTML = `
+                    <div style="font-weight:800;color:#065f46;font-size:.95rem;">
+                        ✅ Sugerencia aceptada — inicio programado a las <strong>${hStr}</strong>
+                    </div>
+                    <div style="color:#047857;font-size:.82rem;margin-top:.3rem;">
+                        Al confirmar, la producción comenzará con el desfase de ${desfaseMin} minutos.
+                    </div>`;
+            }
+        }
+
+        function ignorarSugerenciaEscalonamiento() {
+            window._inicioDiferido = null;
+            const alerta = document.getElementById('alertaEscalonamiento');
+            if (alerta) alerta.remove();
+        }
+
         function verificarEscalonamientoModal() {
             const producto = document.getElementById('productoSelect')?.value;
             if (!producto) return;
@@ -2402,6 +2430,7 @@
             updateStats();
             closeModal('iniciarProduccion');
 
+            window._inicioDiferido = null;
             document.getElementById('numeroOP').value = '';
             document.getElementById('productoSelect').value = '';
             document.getElementById('kgProgramados').value = '';
@@ -6101,17 +6130,32 @@ function cargarSelectorOPsSimple() {
                 'font-size:.85rem'
             ].join(';');
 
+            // Guardar desfase sugerido para usarlo si acepta
+            window._desfaseSugeridoMin = desfase.desfaseMin;
+
             alerta.innerHTML = `
                 <div style="font-weight:800;color:#92400e;font-size:.95rem;margin-bottom:.5rem;">
                     ⚠️ Posible cuello de botella en envasado
                 </div>
-                <div style="color:#78350f;margin-bottom:.5rem;">
+                <div style="color:#78350f;margin-bottom:.6rem;">
                     Si inicias ahora, <strong>${producto}</strong> terminaría a las <strong>${hTermino}</strong> —
                     junto con <strong>${conflictos.length} equipo(s)</strong> más:
                     ${conflictos.map(c => `<br>• ${c.equipo}: ${c.producto}`).join('')}
                 </div>
-                <div style="color:#065f46;font-weight:700;">
+                <div style="color:#065f46;font-weight:700;margin-bottom:.8rem;">
                     💡 Sugerencia: iniciar en <strong>${desfase.desfaseMin} min</strong> para que termine a las <strong>${hDesfase}</strong> — sin conflicto en envasado
+                </div>
+                <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
+                    <button onclick="aceptarSugerenciaEscalonamiento()" style="
+                        background:#10b981;color:white;border:none;border-radius:8px;
+                        padding:.5rem 1rem;font-weight:700;font-size:.85rem;cursor:pointer;flex:1;">
+                        ✅ Aceptar sugerencia (iniciar en ${desfase.desfaseMin} min)
+                    </button>
+                    <button onclick="ignorarSugerenciaEscalonamiento()" style="
+                        background:#f1f5f9;color:#64748b;border:2px solid #cbd5e1;border-radius:8px;
+                        padding:.5rem 1rem;font-weight:700;font-size:.85rem;cursor:pointer;flex:1;">
+                        ⚡ Iniciar ahora de todos modos
+                    </button>
                 </div>
             `;
 
