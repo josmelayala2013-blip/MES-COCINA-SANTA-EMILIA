@@ -155,6 +155,7 @@
         .status-badge.disponible { background: #d1fae5; color: #065f46; }
         .status-badge.activa { background: #fef3c7; color: #92400e; }
         .status-badge.limpieza { background: #dbeafe; color: #1e40af; }
+        .status-badge.en_espera { background: #ede9fe; color: #5b21b6; animation: pulse 2s infinite; }
         .status-badge.limpieza.alerta { background: #fee2e2; color: #991b1b; animation: pulse-alert 1s infinite; }
         .equipment-details { margin-top: 1rem; }
         .detail-row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #f0f0f0; }
@@ -1460,6 +1461,7 @@
         function getStatusText(estado) {
             const texts = {
                 disponible: '○ Disponible',
+                en_espera: '⏳ En Espera',
                 activa: '● En Cocción',
                 limpieza: '🧹 En Limpieza',
                 envasando: '📦 Envasando',
@@ -2338,9 +2340,7 @@
 
         function aceptarSugerenciaEscalonamiento() {
             const desfaseMin = window._desfaseSugeridoMin || 0;
-            // Guardar el inicio diferido
             window._inicioDiferido = new Date(Date.now() + desfaseMin * 60000).toISOString();
-            // Actualizar alerta
             const alerta = document.getElementById('alertaEscalonamiento');
             if (alerta) {
                 const hInicio = new Date(window._inicioDiferido);
@@ -2352,7 +2352,7 @@
                         ✅ Sugerencia aceptada — inicio programado a las <strong>${hStr}</strong>
                     </div>
                     <div style="color:#047857;font-size:.82rem;margin-top:.3rem;">
-                        Al confirmar, la producción comenzará con el desfase de ${desfaseMin} minutos.
+                        Al confirmar, el equipo quedará en espera y arrancará automáticamente a las ${hStr}.
                     </div>`;
             }
         }
@@ -2399,19 +2399,43 @@
             }
 
             const equipo = equipos.find(e => e.id === equipoSeleccionado);
-            equipo.estado = 'activa';
             const _prodRef3 = productos.find(p => p.nombre === producto || producto.toLowerCase().includes(p.nombre.toLowerCase()));
+            const _tiempoCoccion3 = _prodRef3 ? ((_prodRef3.vsm && _prodRef3.vsm.promCoccion && _prodRef3.vsm.totalProducciones >= 3) ? _prodRef3.vsm.promCoccion : (_prodRef3.tiempoCoccionMin || 60)) : 60;
+            const _esDiferido = !!window._inicioDiferido;
+            const _inicioReal = window._inicioDiferido || new Date().toISOString();
+
+            equipo.estado = _esDiferido ? 'en_espera' : 'activa';
             equipo.produccion = {
                 numeroOP,
                 producto,
                 kgProgramados,
                 operador,
-                inicio: new Date().toISOString(),
+                inicio: _inicioReal,
                 fase: 'coccion',
                 opVinculadaId: document.getElementById('opVinculadaSelect')?.value || null,
                 componente: producto,
-                tiempoCoccionMin: _prodRef3 ? ((_prodRef3.vsm && _prodRef3.vsm.promCoccion && _prodRef3.vsm.totalProducciones >= 3) ? _prodRef3.vsm.promCoccion : (_prodRef3.tiempoCoccionMin || 60)) : 60
+                tiempoCoccionMin: _tiempoCoccion3,
+                enEspera: _esDiferido
             };
+
+            // Si es diferido, programar inicio automático
+            if (_esDiferido) {
+                const msHastaInicio = new Date(_inicioReal).getTime() - Date.now();
+                const _equipoId = equipo.id;
+                setTimeout(() => {
+                    const eq = equipos.find(e => e.id === _equipoId);
+                    if (eq && eq.estado === 'en_espera') {
+                        eq.estado = 'activa';
+                        eq.produccion.enEspera = false;
+                        eq.produccion.inicio = new Date().toISOString();
+                        guardarDatos();
+                        renderEquipos();
+                        updateStats();
+                        mostrarNotificacion('🚀 ' + eq.nombre + ': ' + producto + ' ha iniciado automáticamente', 'success');
+                        if (document.getElementById('ganttBody')) renderGanttBloques();
+                    }
+                }, Math.max(msHastaInicio, 0));
+            }
 
             // Actualizar estado de la OP vinculada a "En Producción"
             const opVinculadaId = document.getElementById('opVinculadaSelect')?.value;
@@ -5714,6 +5738,7 @@ function cargarSelectorOPsSimple() {
                 // Horas nocturnas 0-1 AM se mapean a 24-25 para posicionar en el grid
                 if (hInicio < 2) hInicio += 24;
                 if (hInicio < HORA_INICIO || hInicio > 26) return;
+                const esEspera = eq.produccion.enEspera || eq.estado === 'en_espera';
 
                 // Obtener tiempo de cocción: usar promedio aprendido si existe, si no el manual
                 let durMin = eq.produccion.tiempoCoccionMin || 60; // solo cocción
@@ -5728,16 +5753,18 @@ function cargarSelectorOPsSimple() {
                 const top = theadH + (hInicio - HORA_INICIO) * FILA_H;
                 const altura = Math.max((durMin / 60) * FILA_H, 24);
 
-                // Color según tiempo restante (solo cocción)
+                // Color según estado y tiempo restante
                 let bgColor, borderColor;
-                if (minRestantes <= 0) {
-                    bgColor = '#f1f5f9'; borderColor = '#94a3b8'; // gris excedido
+                if (esEspera) {
+                    bgColor = '#ede9fe'; borderColor = '#7c3aed'; // violeta en espera
+                } else if (minRestantes <= 0) {
+                    bgColor = '#f1f5f9'; borderColor = '#94a3b8';
                 } else if (minRestantes <= 5) {
-                    bgColor = '#fef2f2'; borderColor = '#ef4444'; // rojo urgente
+                    bgColor = '#fef2f2'; borderColor = '#ef4444';
                 } else if (minRestantes <= 20) {
-                    bgColor = '#fffbeb'; borderColor = '#f59e0b'; // amarillo precaución
+                    bgColor = '#fffbeb'; borderColor = '#f59e0b';
                 } else {
-                    bgColor = '#f0fdf4'; borderColor = '#22c55e'; // verde normal
+                    bgColor = '#f0fdf4'; borderColor = '#22c55e';
                 }
 
                 // Texto tiempo restante
@@ -5806,13 +5833,14 @@ function cargarSelectorOPsSimple() {
                     'z-index:6'
                 ].join(';');
                 badge.className = 'gantt-bloque';
-                badge.textContent = cuentaStr;
+                badge.textContent = esEspera ? ('⏳ Inicia a las ' + String(inicio.getHours()).padStart(2,'0') + ':' + String(inicio.getMinutes()).padStart(2,'0')) : cuentaStr;
+                if (esEspera) badge.style.background = '#7c3aed';
                 contenedor.appendChild(badge);
 
                 // Contenido dentro del bloque
                 bloque.id = 'ganttBloque_' + eq.id;
                 bloque.innerHTML = [
-                    '<div style="font-size:.78rem;font-weight:700;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + eq.produccion.producto + '</div>',
+                    '<div style="font-size:.78rem;font-weight:700;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (esEspera ? '⏳ ' : '') + eq.produccion.producto + '</div>',
                     altura > 38 ? '<div id="ganttInner_' + eq.id + '" style="font-size:.72rem;color:' + borderColor + ';font-weight:700;margin-top:.15rem;">' + cuentaStr + '</div>' : ''
                 ].join('');
 
