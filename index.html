@@ -397,6 +397,11 @@
             .stats { grid-template-columns: repeat(2, 1fr); }
             .chart-grid { grid-template-columns: 1fr; }
         }
+
+        @keyframes ganttSlideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to   { transform: translateX(0);    opacity: 1; }
+        }
     </style>
 </head>
 <body>
@@ -5555,6 +5560,7 @@ function cargarSelectorOPsSimple() {
 
         function actualizarLineaHora() {
             renderGanttBloques();
+            verificarAlertasGantt();
             const body = document.getElementById('ganttBody');
             if (!body) return;
 
@@ -5698,6 +5704,144 @@ function cargarSelectorOPsSimple() {
 
                 contenedor.appendChild(bloque);
             });
+        }
+
+
+        // GANTT - Sistema de alertas
+        let ganttAlertasDisparadas = {}; // equipoId -> ['20min', '5min']
+
+        function verificarAlertasGantt() {
+            const ahora = new Date();
+            const hAhora = ahora.getHours() + ahora.getMinutes() / 60;
+
+            equipos.forEach(eq => {
+                if (!eq.produccion || !eq.produccion.inicio) return;
+
+                const prod = productos.find(p => p.nombre === eq.produccion.producto);
+                let durMin = 60;
+                if (prod) {
+                    durMin = (prod.vsm && prod.vsm.promCoccion) ? prod.vsm.promCoccion : (prod.tiempoCoccionMin || 60);
+                }
+
+                const inicio = new Date(eq.produccion.inicio);
+                const hInicio = inicio.getHours() + inicio.getMinutes() / 60;
+                const hFin = hInicio + durMin / 60;
+                const minRestantes = Math.round((hFin - hAhora) * 60);
+
+                if (!ganttAlertasDisparadas[eq.id]) ganttAlertasDisparadas[eq.id] = [];
+
+                // Alerta 20 min
+                if (minRestantes <= 20 && minRestantes > 5 && !ganttAlertasDisparadas[eq.id].includes('20min')) {
+                    ganttAlertasDisparadas[eq.id].push('20min');
+                    mostrarToastGantt(
+                        '🟡 ' + eq.nombre + ': ' + eq.produccion.producto,
+                        'Faltan aprox. 20 minutos para terminar la cocción',
+                        'amarillo'
+                    );
+                    reproducirSonido('suave');
+                }
+
+                // Alerta 5 min
+                if (minRestantes <= 5 && minRestantes > 0 && !ganttAlertasDisparadas[eq.id].includes('5min')) {
+                    ganttAlertasDisparadas[eq.id].push('5min');
+                    mostrarToastGantt(
+                        '🔴 ¡URGENTE! ' + eq.nombre + ': ' + eq.produccion.producto,
+                        '¡Faltan solo 5 minutos! Prepara para finalizar cocción',
+                        'rojo'
+                    );
+                    reproducirSonido('urgente');
+                }
+
+                // Reset alertas si el equipo quedó libre
+                if (minRestantes <= 0 || eq.estado === 'disponible') {
+                    ganttAlertasDisparadas[eq.id] = [];
+                }
+            });
+        }
+
+        function mostrarToastGantt(titulo, mensaje, tipo) {
+            // Contenedor de toasts
+            let contenedor = document.getElementById('ganttToastContenedor');
+            if (!contenedor) {
+                contenedor = document.createElement('div');
+                contenedor.id = 'ganttToastContenedor';
+                contenedor.style.cssText = 'position:fixed;top:1rem;right:1rem;z-index:9999;display:flex;flex-direction:column;gap:.5rem;';
+                document.body.appendChild(contenedor);
+            }
+
+            const colores = {
+                amarillo: { bg: '#fffbeb', border: '#f59e0b', titulo: '#92400e' },
+                rojo:     { bg: '#fef2f2', border: '#ef4444', titulo: '#991b1b' }
+            };
+            const c = colores[tipo];
+
+            const toast = document.createElement('div');
+            toast.style.cssText = [
+                'background:' + c.bg,
+                'border-left:5px solid ' + c.border,
+                'border-radius:8px',
+                'padding:.85rem 1.1rem',
+                'box-shadow:0 4px 20px rgba(0,0,0,0.15)',
+                'max-width:320px',
+                'animation:ganttSlideIn .3s ease'
+            ].join(';');
+
+            toast.innerHTML = [
+                '<div style="font-weight:700;color:' + c.titulo + ';font-size:.9rem;margin-bottom:.2rem;">' + titulo + '</div>',
+                '<div style="font-size:.8rem;color:#64748b;">' + mensaje + '</div>'
+            ].join('');
+
+            contenedor.appendChild(toast);
+
+            // Auto-cerrar a los 8 segundos
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity .4s';
+                setTimeout(() => toast.remove(), 400);
+            }, 8000);
+        }
+
+        function reproducirSonido(tipo) {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                if (tipo === 'suave') {
+                    // Dos beeps suaves
+                    osc.frequency.value = 880;
+                    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+                    osc.start(ctx.currentTime);
+                    osc.stop(ctx.currentTime + 0.3);
+                    setTimeout(() => {
+                        const o2 = ctx.createOscillator();
+                        const g2 = ctx.createGain();
+                        o2.connect(g2); g2.connect(ctx.destination);
+                        o2.frequency.value = 880;
+                        g2.gain.setValueAtTime(0.3, ctx.currentTime);
+                        g2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+                        o2.start(ctx.currentTime);
+                        o2.stop(ctx.currentTime + 0.3);
+                    }, 400);
+                } else {
+                    // Tres beeps urgentes más fuertes
+                    [0, 300, 600].forEach(delay => {
+                        setTimeout(() => {
+                            const o = ctx.createOscillator();
+                            const g = ctx.createGain();
+                            o.connect(g); g.connect(ctx.destination);
+                            o.frequency.value = 1200;
+                            g.gain.setValueAtTime(0.5, ctx.currentTime);
+                            g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+                            o.start(ctx.currentTime);
+                            o.stop(ctx.currentTime + 0.25);
+                        }, delay);
+                    });
+                }
+            } catch(e) {}
         }
 
         window.onload = init;
