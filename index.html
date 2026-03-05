@@ -5600,11 +5600,36 @@ function cargarSelectorOPsSimple() {
             const top = theadH + (filaIndex * 40) + offsetY;
             linea.style.top = top + 'px';
 
-            // Etiqueta con la hora
+            // Etiqueta con tiempo restante de la preparación activa
             const label = document.createElement('div');
-            const horaStr = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
-            label.style.cssText = 'position:absolute;left:0;top:-9px;background:#ef4444;color:white;font-size:.7rem;font-weight:800;padding:.1rem .4rem;border-radius:4px;white-space:nowrap;';
-            label.textContent = horaStr;
+            label.style.cssText = 'position:absolute;left:0;top:-11px;background:#ef4444;color:white;font-size:.75rem;font-weight:800;padding:.2rem .5rem;border-radius:4px;white-space:nowrap;';
+
+            // Buscar equipo activo con menos tiempo restante
+            let minRestanteGlobal = null;
+            let nombreProd = null;
+            equipos.forEach(eq => {
+                if (!eq.produccion || !eq.produccion.inicio) return;
+                const prod = productos.find(p => p.nombre === eq.produccion.producto);
+                let durMin = 60;
+                if (prod) durMin = (prod.vsm && prod.vsm.promCoccion) ? prod.vsm.promCoccion : (prod.tiempoCoccionMin || 60);
+                const inicio = new Date(eq.produccion.inicio);
+                const hIni = inicio.getHours() + inicio.getMinutes() / 60;
+                const hFin = hIni + durMin / 60;
+                const restMin = Math.round((hFin - (h + m/60)) * 60);
+                if (restMin > 0 && (minRestanteGlobal === null || restMin < minRestanteGlobal)) {
+                    minRestanteGlobal = restMin;
+                    nombreProd = eq.produccion.producto;
+                }
+            });
+
+            if (minRestanteGlobal !== null) {
+                const hh = Math.floor(minRestanteGlobal / 60);
+                const mm = minRestanteGlobal % 60;
+                const tiempoStr = hh > 0 ? hh + 'h ' + String(mm).padStart(2,'0') + 'm' : mm + ' min';
+                label.textContent = '⏱ ' + tiempoStr;
+            } else {
+                label.textContent = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+            }
             linea.appendChild(label);
 
             contenedor.appendChild(linea);
