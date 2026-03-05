@@ -655,7 +655,7 @@
         </div>
 
         <!-- TAB: PLANIFICADOR VISUAL MEJORADO -->
-<div id="planificador" class="tab-content">
+        <div id="planificador" class="tab-content">
     <div class="analytics-section">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
             <h2 style="color:#667eea;">📅 Planificador Visual</h2>
@@ -914,6 +914,7 @@
         </div>
         </div>
         </div>
+
 
         <!-- TAB: PERSONAL -->
         <div id="personal" class="tab-content">
@@ -4564,8 +4565,20 @@ REGLAS IMPORTANTES:
         // INICIAR APLICACIÓN
         // ============================================
         
+        window.onload = init;
+    </script>
 
 
+<!-- Modal Detalle Receta -->
+<div id="modalDetalleReceta" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;overflow-y:auto;">
+  <div style="background:white;max-width:900px;margin:2rem auto;border-radius:20px;padding:2rem;position:relative;">
+    <button onclick="document.getElementById('modalDetalleReceta').style.display='none'" style="position:absolute;top:1rem;right:1rem;background:none;border:none;font-size:1.5rem;cursor:pointer;">✕</button>
+    <div id="contenidoDetalleReceta"></div>
+  </div>
+</div>
+
+
+<script>
 // ============================================
 // MÓDULO DE RECETAS INTELIGENTE
 // ============================================
@@ -5399,12 +5412,9 @@ function guardarEdicionPersonal(area, idx) {
 }
 
 function agregarPersonal(area) {
-  const inputId = 'nuevoPersonal' + area.charAt(0).toUpperCase() + area.slice(1);
-  const input = document.getElementById(inputId);
-  if (!input) { alert('Error campo no encontrado: ' + inputId); return; }
+  const input = document.getElementById(`nuevoPersonal${area.charAt(0).toUpperCase() + area.slice(1)}`);
   const nombre = input.value.trim();
-  if (!nombre) { alert('Escribe un nombre primero'); return; }
-  if (!personal[area]) personal[area] = [];
+  if (!nombre) return;
   if (personal[area].includes(nombre)) { alert('Ese nombre ya existe'); return; }
   personal[area].push(nombre);
   guardarPersonal();
@@ -5484,18 +5494,7 @@ function cargarSelectorOPsSimple() {
     sel.innerHTML += `<option value="${r.id}">${r.sku ? r.sku + ' — ' : ''}${r.nombre}</option>`;
   });
 }
-
-        window.onload = init;
-    </script>
-
-
-<!-- Modal Detalle Receta -->
-<div id="modalDetalleReceta" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;overflow-y:auto;">
-  <div style="background:white;max-width:900px;margin:2rem auto;border-radius:20px;padding:2rem;position:relative;">
-    <button onclick="document.getElementById('modalDetalleReceta').style.display='none'" style="position:absolute;top:1rem;right:1rem;background:none;border:none;font-size:1.5rem;cursor:pointer;">✕</button>
-    <div id="contenidoDetalleReceta"></div>
-  </div>
-</div>
+</script>
 
 </body>
 </html>
