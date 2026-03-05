@@ -3790,6 +3790,7 @@
                     const data = docSnap.data();
                     equipos = data.equipos || equipos;
                     recalcularTiemposCoccion();
+                    limpiarEsperasVencidas();
                     productos = data.productos || productos;
                     procesosEnvasado = data.procesosEnvasado || [];
                     procesosAbatimiento = data.procesosAbatimiento || [];
@@ -3851,6 +3852,44 @@
         }
 
 
+
+        function limpiarEsperasVencidas() {
+            const ahora = new Date();
+            let hubocambios = false;
+            equipos.forEach(eq => {
+                if (!eq.produccion || !eq.produccion.enEspera) return;
+                const inicioProgram = new Date(eq.produccion.inicio);
+                // Si la hora de inicio ya pasó, activar directamente
+                if (inicioProgram <= ahora) {
+                    eq.estado = 'activa';
+                    eq.produccion.enEspera = false;
+                    eq.produccion.inicio = inicioProgram.toISOString(); // mantener inicio original
+                    hubocambios = true;
+                    console.log('✅ Producción activada automáticamente:', eq.nombre, eq.produccion.producto);
+                } else {
+                    // Aún no ha llegado la hora, re-programar el setTimeout
+                    const msHastaInicio = inicioProgram - ahora;
+                    const _equipoId = eq.id;
+                    const _producto = eq.produccion.producto;
+                    setTimeout(() => {
+                        const eqRef = equipos.find(e => e.id === _equipoId);
+                        if (eqRef && eqRef.estado === 'en_espera') {
+                            eqRef.estado = 'activa';
+                            eqRef.produccion.enEspera = false;
+                            eqRef.produccion.inicio = new Date().toISOString();
+                            guardarDatos();
+                            renderEquipos();
+                            updateStats();
+                            mostrarNotificacion('🚀 ' + eqRef.nombre + ': ' + _producto + ' ha iniciado automáticamente', 'success');
+                            if (document.getElementById('ganttBody')) renderGanttBloques();
+                        }
+                    }, msHastaInicio);
+                    console.log('⏳ Re-programado:', eq.nombre, 'inicia en', Math.round(msHastaInicio/60000), 'min');
+                }
+            });
+            if (hubocambios) guardarDatos();
+        }
+
         function recalcularTiemposCoccion() {
             equipos.forEach(eq => {
                 if (!eq.produccion || !eq.produccion.inicio) return;
@@ -3886,6 +3925,7 @@
                             console.log('🔄 Actualizando desde otro dispositivo...');
                             equipos = data.equipos || equipos;
                     recalcularTiemposCoccion();
+                    limpiarEsperasVencidas();
                             productos = data.productos || productos;
                             procesosEnvasado = data.procesosEnvasado || [];
                             procesosAbatimiento = data.procesosAbatimiento || [];
