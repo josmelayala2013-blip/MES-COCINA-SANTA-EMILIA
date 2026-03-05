@@ -5621,6 +5621,10 @@ function cargarSelectorOPsSimple() {
         function renderGanttBloques() {
             const body = document.getElementById('ganttBody');
             if (!body) return;
+            // DEBUG TEMPORAL
+            const activos = equipos.filter(e => e.produccion && e.produccion.inicio);
+            console.log('Equipos activos:', activos.length);
+            activos.forEach(e => console.log('  →', e.nombre, '| componente:', e.produccion.componente, '| tiempoCoccionMin:', e.produccion.tiempoCoccionMin, '| inicio:', e.produccion.inicio));
 
             // Limpiar bloques anteriores
             body.querySelectorAll('.gantt-bloque').forEach(b => b.remove());
