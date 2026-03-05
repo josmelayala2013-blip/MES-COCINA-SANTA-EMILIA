@@ -1070,7 +1070,7 @@
                 </div>
                 <div class="form-group">
                     <label>3️⃣ Preparación:</label>
-                    <select id="productoSelect" required>
+                    <select id="productoSelect" onchange="verificarEscalonamientoModal()" required>
                         <option value="">Selecciona una preparación...</option>
                     </select>
                 </div>
@@ -2333,6 +2333,20 @@
                 closeModal('iniciarProduccion');
                 mostrarNotificacion(`✅ ${iniciados} equipo(s) iniciados para ${op.numeroOp}`, 'success');
             }
+        }
+
+        function verificarEscalonamientoModal() {
+            const producto = document.getElementById('productoSelect')?.value;
+            if (!producto) return;
+            const prod = productos.find(p => p.nombre === producto);
+            if (!prod) return;
+            const durMin = (prod.vsm && prod.vsm.promCoccion && prod.vsm.totalProducciones >= 3)
+                ? prod.vsm.promCoccion : (prod.tiempoCoccionMin || 60);
+            const ahora = new Date();
+            const terminoMs = ahora.getTime() + durMin * 60000;
+            const conflictos = analizarCuelloBotella(terminoMs);
+            const desfase = calcularDesfaseOptimo(durMin);
+            mostrarAlertaEscalonamiento(producto, durMin, conflictos, desfase);
         }
 
         function iniciarProduccion() {
@@ -6007,6 +6021,103 @@ function cargarSelectorOPsSimple() {
                     });
                 }
             } catch(e) {}
+        }
+
+
+        // ============================================
+        // ALGORITMO DE ESCALONAMIENTO - ANTI CUELLO DE BOTELLA
+        // ============================================
+        const MAX_PARALELO_ENVASADO = 3; // máximo equipos terminando en paralelo
+        const VENTANA_MIN = 20; // ventana en minutos para considerar "al mismo tiempo"
+
+        function calcularTerminosActivos() {
+            // Retorna array de horas de término (en minutos desde medianoche) de equipos activos
+            const terminos = [];
+            equipos.forEach(eq => {
+                if (!eq.produccion || !eq.produccion.inicio) return;
+                const inicio = new Date(eq.produccion.inicio);
+                const durMin = eq.produccion.tiempoCoccionMin || 60;
+                const termino = new Date(inicio.getTime() + durMin * 60000);
+                terminos.push({
+                    equipo: eq.nombre,
+                    producto: eq.produccion.componente || eq.produccion.producto,
+                    termino,
+                    terminoMin: termino.getHours() * 60 + termino.getMinutes()
+                });
+            });
+            return terminos;
+        }
+
+        function analizarCuelloBotella(nuevaTerminoMs) {
+            // Cuántos equipos activos terminan dentro de la ventana del nuevo equipo
+            const terminos = calcularTerminosActivos();
+            const ventanaMs = VENTANA_MIN * 60000;
+            const conflictos = terminos.filter(t =>
+                Math.abs(t.termino.getTime() - nuevaTerminoMs) <= ventanaMs
+            );
+            return conflictos;
+        }
+
+        function calcularDesfaseOptimo(duracionMin) {
+            // Busca el primer slot donde haya menos de MAX_PARALELO_ENVASADO equipos terminando
+            const terminos = calcularTerminosActivos();
+            const ventanaMs = VENTANA_MIN * 60000;
+            const ahora = new Date();
+
+            // Probar slots de 5 en 5 minutos hasta encontrar uno libre
+            for (let desfaseMin = 0; desfaseMin <= 120; desfaseMin += 5) {
+                const inicioCandiato = new Date(ahora.getTime() + desfaseMin * 60000);
+                const terminoCandidato = new Date(inicioCandiato.getTime() + duracionMin * 60000);
+                const conflictos = terminos.filter(t =>
+                    Math.abs(t.termino.getTime() - terminoCandidato.getTime()) <= ventanaMs
+                );
+                if (conflictos.length < MAX_PARALELO_ENVASADO) {
+                    return { desfaseMin, terminoCandidato, conflictos };
+                }
+            }
+            return { desfaseMin: 0, terminoCandidato: new Date(ahora.getTime() + duracionMin * 60000), conflictos: [] };
+        }
+
+        function mostrarAlertaEscalonamiento(producto, duracionMin, conflictos, desfase) {
+            // Quitar alerta anterior si existe
+            const anterior = document.getElementById('alertaEscalonamiento');
+            if (anterior) anterior.remove();
+
+            if (conflictos.length < MAX_PARALELO_ENVASADO) return; // sin problema
+
+            const ahora = new Date();
+            const terminoInmediato = new Date(ahora.getTime() + duracionMin * 60000);
+            const hTermino = String(terminoInmediato.getHours()).padStart(2,'0') + ':' + String(terminoInmediato.getMinutes()).padStart(2,'0');
+            const hDesfase = String(desfase.terminoCandidato.getHours()).padStart(2,'0') + ':' + String(desfase.terminoCandidato.getMinutes()).padStart(2,'0');
+
+            const alerta = document.createElement('div');
+            alerta.id = 'alertaEscalonamiento';
+            alerta.style.cssText = [
+                'background:#fffbeb',
+                'border:2px solid #f59e0b',
+                'border-radius:12px',
+                'padding:1rem 1.2rem',
+                'margin:1rem 0',
+                'font-size:.85rem'
+            ].join(';');
+
+            alerta.innerHTML = `
+                <div style="font-weight:800;color:#92400e;font-size:.95rem;margin-bottom:.5rem;">
+                    ⚠️ Posible cuello de botella en envasado
+                </div>
+                <div style="color:#78350f;margin-bottom:.5rem;">
+                    Si inicias ahora, <strong>${producto}</strong> terminaría a las <strong>${hTermino}</strong> —
+                    junto con <strong>${conflictos.length} equipo(s)</strong> más:
+                    ${conflictos.map(c => `<br>• ${c.equipo}: ${c.producto}`).join('')}
+                </div>
+                <div style="color:#065f46;font-weight:700;">
+                    💡 Sugerencia: iniciar en <strong>${desfase.desfaseMin} min</strong> para que termine a las <strong>${hDesfase}</strong> — sin conflicto en envasado
+                </div>
+            `;
+
+            // Insertar después del selector de producto en el modal
+            const refEl = document.getElementById('kgProgramados');
+            if (refEl) refEl.closest('div').parentNode.insertBefore(alerta, refEl.closest('div'));
         }
 
         window.onload = init;
