@@ -5068,7 +5068,7 @@ function cerrarModalSandwich() {
 }
 
 function agregarComponenteSandwich() {
-  componentesSandwichTemp.push({ nombre: '', gramajePorUnidad: 0, ingredientes: [] });
+  componentesSandwichTemp.push({ nombre: '', gramajePorUnidad: 0, unidadComponente: 'gr', ingredientes: [] });
   renderComponentesSandwich();
 }
 
@@ -5101,9 +5101,16 @@ function renderComponentesSandwich() {
           placeholder="Nombre componente (ej: Pollo a la plancha)"
           style="flex:1;padding:.45rem;border-radius:7px;border:1px solid #ddd;font-size:.9rem;">
         <input type="number" value="${comp.gramajePorUnidad||''}" oninput="componentesSandwichTemp[${ci}].gramajePorUnidad=parseFloat(this.value)||0"
-          placeholder="gr/sándwich" title="Gramaje por unidad de sándwich"
-          style="width:120px;padding:.45rem;border-radius:7px;border:1px solid #ddd;font-size:.9rem;">
-        <span style="font-size:.72rem;color:#92400e;white-space:nowrap;">gr/unid</span>
+          placeholder="Cantidad" title="Cantidad por unidad de sándwich"
+          style="width:90px;padding:.45rem;border-radius:7px;border:1px solid #ddd;font-size:.9rem;">
+        <select onchange="componentesSandwichTemp[${ci}].unidadComponente=this.value"
+          style="width:70px;padding:.45rem;border-radius:7px;border:1px solid #ddd;font-size:.9rem;color:#92400e;font-weight:600;">
+          <option value="gr" ${(comp.unidadComponente||'gr')==='gr'?'selected':''}>gr</option>
+          <option value="un" ${(comp.unidadComponente||'gr')==='un'?'selected':''}>un</option>
+          <option value="kg" ${(comp.unidadComponente||'gr')==='kg'?'selected':''}>kg</option>
+          <option value="lt" ${(comp.unidadComponente||'gr')==='lt'?'selected':''}>lt</option>
+          <option value="ml" ${(comp.unidadComponente||'gr')==='ml'?'selected':''}>ml</option>
+        </select>
         <button onclick="eliminarComponenteSandwich(${ci})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:7px;padding:.4rem .7rem;cursor:pointer;">✕</button>
       </div>
       <div style="margin-left:.5rem;">
@@ -5158,7 +5165,8 @@ function guardarRecetaSandwich() {
   // Adaptar componentes al formato existente (gramajePorcion = gr por unidad)
   const componentes = componentesSandwichTemp.map(c => ({
     nombre: c.nombre,
-    gramajePorcion: c.gramajePorUnidad, // reutilizamos el mismo campo
+    gramajePorcion: c.gramajePorUnidad,
+    unidadComponente: c.unidadComponente || 'gr',
     ingredientes: c.ingredientes || []
   }));
 
@@ -5205,7 +5213,7 @@ function verDetalleReceta(id) {
     <h3 style="color:#764ba2;margin-bottom:.75rem;">🧩 Componentes</h3>
     ${r.componentes.map(c => `
       <div style="background:#f8f9ff;border-radius:10px;padding:1rem;margin-bottom:.75rem;border-left:3px solid #667eea;">
-        <div style="font-weight:600;color:#333;margin-bottom:.5rem;">${c.nombre} — <span style="color:#667eea">${c.gramajePorcion}gr por ${r.tipo==='sandwich'?'sándwich':r.tipo==='avemayo'?'unidad':'plato'}</span></div>
+        <div style="font-weight:600;color:#333;margin-bottom:.5rem;">${c.nombre} — <span style="color:#667eea">${c.gramajePorcion}${c.unidadComponente||'gr'} por ${r.tipo==='sandwich'?'sándwich':r.tipo==='avemayo'?'unidad':'plato'}</span></div>
         <table style="width:100%;font-size:.85rem;border-collapse:collapse;">
           <tr style="background:#e8edff;"><th style="padding:.3rem .5rem;text-align:left;">Ingrediente</th><th style="padding:.3rem .5rem;text-align:right;">Cantidad bruta</th><th style="padding:.3rem .5rem;text-align:right;">Unidad</th></tr>
           ${c.ingredientes.map(i => `<tr style="border-bottom:1px solid #eee;"><td style="padding:.3rem .5rem;">${i.nombre}</td><td style="padding:.3rem .5rem;text-align:right;">${i.cantidadBruta}</td><td style="padding:.3rem .5rem;text-align:right;">${i.unidad}</td></tr>`).join('')}
