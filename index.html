@@ -5051,7 +5051,11 @@ function abrirModalRecetaSandwich(id = null) {
     document.getElementById('swNombre').value = r.nombre || '';
     document.getElementById('swRendimiento').value = r.rendimientoEsperado || '';
     document.getElementById('swObservaciones').value = r.observaciones || '';
-    componentesSandwichTemp = JSON.parse(JSON.stringify(r.componentes || []));
+    componentesSandwichTemp = JSON.parse(JSON.stringify(r.componentes || [])).map(c => ({
+      ...c,
+      gramajePorUnidad: c.gramajePorUnidad !== undefined ? c.gramajePorUnidad : (c.gramajePorcion || 0),
+      unidadComponente: c.unidadComponente || 'gr'
+    }));
   } else {
     document.getElementById('swSku').value = '';
     document.getElementById('swNombre').value = '';
