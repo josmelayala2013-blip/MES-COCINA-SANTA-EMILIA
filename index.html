@@ -771,6 +771,22 @@
             <h3 style="color:#667eea;margin-bottom:1rem;font-size:1.1rem;">🧾 ÓRDENES DE PRODUCCIÓN — Cálculo Automático por Receta</h3>
 
             <!-- Agregar OP -->
+            <!-- Fila 1: Fecha -->
+            <div style="display:grid;grid-template-columns:auto 1fr;gap:1rem;align-items:end;margin-bottom:.75rem;">
+                <div>
+                    <label style="font-weight:600;display:block;margin-bottom:.4rem;color:#4f46e5;">📅 Fecha de Producción:</label>
+                    <input type="date" id="fechaPlan" onchange="filtrarOPsPorFecha()" style="padding:.75rem;border:2px solid #c7d2fe;border-radius:8px;font-size:1rem;color:#4f46e5;font-weight:600;">
+                </div>
+                <div style="display:flex;gap:.5rem;align-items:flex-end;">
+                    <button onclick="setFechaPlan(0)" style="padding:.75rem 1rem;border-radius:8px;border:2px solid #667eea;background:white;color:#667eea;font-weight:700;cursor:pointer;font-size:.85rem;">Hoy</button>
+                    <button onclick="setFechaPlan(1)" style="padding:.75rem 1rem;border-radius:8px;border:2px solid #a5b4fc;background:white;color:#6366f1;font-weight:600;cursor:pointer;font-size:.85rem;">Mañana</button>
+                    <button onclick="setFechaPlan(-1)" style="padding:.75rem 1rem;border-radius:8px;border:2px solid #a5b4fc;background:white;color:#6366f1;font-weight:600;cursor:pointer;font-size:.85rem;">Ayer</button>
+                    <div style="margin-left:auto;background:#eef2ff;border-radius:8px;padding:.6rem 1rem;font-size:.85rem;color:#4f46e5;">
+                      📋 <strong id="contadorOPsDia">0</strong> OPs programadas para este día
+                    </div>
+                </div>
+            </div>
+            <!-- Fila 2: Formulario OP -->
             <div style="display:grid;grid-template-columns:1fr 2fr 1fr auto;gap:1rem;align-items:end;margin-bottom:1rem;">
                 <div>
                     <label style="font-weight:600;display:block;margin-bottom:.4rem;color:#4f46e5;">N° OP:</label>
@@ -783,7 +799,7 @@
                     </select>
                 </div>
                 <div>
-                    <label style="font-weight:600;display:block;margin-bottom:.4rem;color:#4f46e5;">N° de Platos:</label>
+                    <label id="labelCantidadOP" style="font-weight:600;display:block;margin-bottom:.4rem;color:#4f46e5;">🍽️ N° de Platos:</label>
                     <input type="number" id="opPlatos" placeholder="Ej: 1000" min="1" oninput="previewOP()" style="width:100%;padding:.75rem;border:2px solid #c7d2fe;border-radius:8px;font-size:1rem;">
                 </div>
                 <button onclick="agregarOP()" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:8px;padding:.75rem 1.5rem;cursor:pointer;font-size:1rem;font-weight:600;">➕ Agregar OP</button>
@@ -3780,7 +3796,7 @@
                 renderListaPersonal('envasado'); 
                 renderListaPersonal('abatimiento'); 
             }
-            else if (tabName === 'planificador') { initPlanificador(); renderSelectorPlanProductos(); renderPlanVisual(); setTimeout(() => { cargarSelectorOPs(); renderListaOPs(); }, 1500); }
+            else if (tabName === 'planificador') { initPlanificador(); renderSelectorPlanProductos(); renderPlanVisual(); setTimeout(() => { cargarSelectorOPs(); initFechaPlan(); renderListaOPs(); }, 1500); }
             else if (tabName === 'gantt') { renderGanttGrid(); iniciarLineaHora(); renderGanttBloques(); iniciarCronometroGantt(); }
             else if (tabName === 'ejecutivo') actualizarVistaEjecutivo();
         }
@@ -4958,6 +4974,7 @@ function guardarReceta() {
   cerrarModalReceta();
   renderListaRecetas();
   cargarSelectorOPsSimple();
+  initFechaPlan();
 }
 
 function eliminarReceta(id) {
@@ -5630,6 +5647,32 @@ function calcularRecetaParaPlatos(r, platos) {
   });
 
   return { kgTotalesTerminados, componentes };
+}
+
+// ---- GESTIÓN FECHA PLANIFICADOR ----
+function initFechaPlan() {
+  const input = document.getElementById('fechaPlan');
+  if (input && !input.value) input.value = getHoy();
+  actualizarContadorOPs();
+}
+
+function setFechaPlan(diasOffset) {
+  const d = new Date();
+  d.setDate(d.getDate() + diasOffset);
+  document.getElementById('fechaPlan').value = d.toISOString().split('T')[0];
+  filtrarOPsPorFecha();
+}
+
+function filtrarOPsPorFecha() {
+  actualizarContadorOPs();
+  renderListaOPs();
+}
+
+function actualizarContadorOPs() {
+  const fecha = document.getElementById('fechaPlan')?.value || getHoy();
+  const count = ordenesProduccion.filter(op => op.fecha === fecha).length;
+  const el = document.getElementById('contadorOPsDia');
+  if (el) el.textContent = count;
 }
 
 function agregarOP() {
