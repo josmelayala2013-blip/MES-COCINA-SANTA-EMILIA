@@ -783,7 +783,7 @@
                     </select>
                 </div>
                 <div>
-                    <label id="labelCantidadOP" style="font-weight:600;display:block;margin-bottom:.4rem;color:#4f46e5;">🍽️ N° de Platos:</label>
+                    <label style="font-weight:600;display:block;margin-bottom:.4rem;color:#4f46e5;">N° de Platos:</label>
                     <input type="number" id="opPlatos" placeholder="Ej: 1000" min="1" oninput="previewOP()" style="width:100%;padding:.75rem;border:2px solid #c7d2fe;border-radius:8px;font-size:1rem;">
                 </div>
                 <button onclick="agregarOP()" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:8px;padding:.75rem 1.5rem;cursor:pointer;font-size:1rem;font-weight:600;">➕ Agregar OP</button>
@@ -891,8 +891,8 @@
 
         <!-- Botones principales -->
         <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem;">
-        <button class="btn" onclick="abrirModalReceta('plato')" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">➕ Nueva Receta Plato</button>
-        <button class="btn" onclick="abrirModalReceta('sandwich')" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">🥪 Nueva Receta Sándwich</button>
+        <button class="btn" onclick="abrirModalReceta()" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">➕ Nueva Receta Plato</button>
+        <button class="btn" onclick="abrirModalRecetaSandwich()" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">🥪 Nueva Receta Sándwich</button>
         <label style="background:linear-gradient(135deg,#43e97b,#38f9d7);color:white;padding:.75rem 1.5rem;border-radius:10px;cursor:pointer;font-size:1rem;">
         📥 Importar Excel
         <input type="file" id="importarExcelRecetas" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarRecetasExcel(event)">
@@ -901,18 +901,58 @@
         <button class="btn" onclick="analizarRendimientosIA()" style="background:linear-gradient(135deg,#4facfe,#00f2fe);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">🧠 Analizar con IA</button>
         </div>
 
-        <!-- Filtro tipo + Buscador -->
-        <div style="display:flex;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap;">
-          <div style="display:flex;gap:.5rem;">
-            <button id="filtroTodoRecetas" onclick="setFiltroTipoReceta('todo')" style="padding:.5rem 1.2rem;border-radius:20px;border:2px solid #667eea;background:#667eea;color:white;font-weight:700;cursor:pointer;font-size:.85rem;">Todos</button>
-            <button id="filtroPlatoRecetas" onclick="setFiltroTipoReceta('plato')" style="padding:.5rem 1.2rem;border-radius:20px;border:2px solid #667eea;background:white;color:#667eea;font-weight:700;cursor:pointer;font-size:.85rem;">🍽️ Platos</button>
-            <button id="filtroSandwichRecetas" onclick="setFiltroTipoReceta('sandwich')" style="padding:.5rem 1.2rem;border-radius:20px;border:2px solid #f59e0b;background:white;color:#f59e0b;font-weight:700;cursor:pointer;font-size:.85rem;">🥪 Sándwiches</button>
+        <!-- Filtros + Buscador -->
+        <div style="display:flex;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap;align-items:center;">
+          <div style="display:flex;gap:.4rem;">
+            <button id="filtroTodoR" onclick="setFiltroReceta('todo')" style="padding:.45rem 1rem;border-radius:20px;border:2px solid #667eea;background:#667eea;color:white;font-weight:700;cursor:pointer;font-size:.82rem;">Todos</button>
+            <button id="filtroPlatoR" onclick="setFiltroReceta('plato')" style="padding:.45rem 1rem;border-radius:20px;border:2px solid #667eea;background:white;color:#667eea;font-weight:700;cursor:pointer;font-size:.82rem;">🍽️ Platos</button>
+            <button id="filtroSandwichR" onclick="setFiltroReceta('sandwich')" style="padding:.45rem 1rem;border-radius:20px;border:2px solid #f59e0b;background:white;color:#f59e0b;font-weight:700;cursor:pointer;font-size:.82rem;">🥪 Sándwiches</button>
           </div>
-          <input type="text" id="buscarReceta" placeholder="🔍 Buscar receta por nombre o SKU..." oninput="filtrarRecetas()" style="flex:1;padding:.6rem 1rem;border-radius:10px;border:1px solid #ddd;font-size:1rem;min-width:200px;">
+          <input type="text" id="buscarReceta" placeholder="🔍 Buscar receta por nombre o SKU..." oninput="filtrarRecetas()" style="flex:1;min-width:200px;padding:.6rem 1rem;border-radius:10px;border:1px solid #ddd;font-size:1rem;">
         </div>
 
         <!-- Lista de recetas -->
         <div id="listaRecetas" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1rem;"></div>
+        </div>
+
+        <!-- Modal Sándwich -->
+        <div id="modalSandwich" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;overflow-y:auto;">
+        <div style="background:white;max-width:700px;margin:2rem auto;border-radius:20px;padding:2rem;position:relative;">
+          <button onclick="cerrarModalSandwich()" style="position:absolute;top:1rem;right:1rem;background:none;border:none;font-size:1.5rem;cursor:pointer;">✕</button>
+          <h2 style="color:#f59e0b;margin-bottom:1.5rem;">🥪 Receta Sándwich</h2>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+            <div>
+              <label style="font-weight:600;display:block;margin-bottom:.3rem;">SKU *</label>
+              <input id="swSku" type="text" placeholder="Ej: SW-001" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;">
+            </div>
+            <div>
+              <label style="font-weight:600;display:block;margin-bottom:.3rem;">Nombre del Sándwich *</label>
+              <input id="swNombre" type="text" placeholder="Ej: Sándwich de Pollo" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;">
+            </div>
+            <div>
+              <label style="font-weight:600;display:block;margin-bottom:.3rem;">Rendimiento Esperado (%)</label>
+              <input id="swRendimiento" type="number" placeholder="Ej: 95" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;">
+            </div>
+          </div>
+          <div style="margin-bottom:1rem;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
+              <h3 style="color:#d97706;margin:0;">🧩 Componentes del Sándwich</h3>
+              <button onclick="agregarComponenteSandwich()" style="background:#f59e0b;color:white;padding:.4rem 1rem;border-radius:8px;border:none;cursor:pointer;">+ Componente</button>
+            </div>
+            <div style="font-size:.8rem;color:#92400e;background:#fef3c7;border-radius:8px;padding:.5rem .75rem;margin-bottom:.75rem;">
+              💡 Ingresa el gramaje de cada componente <strong>por unidad de sándwich</strong> (ej: 80gr de pollo por sándwich)
+            </div>
+            <div id="listaComponentesSandwich"></div>
+          </div>
+          <div style="margin-bottom:1rem;">
+            <label style="font-weight:600;display:block;margin-bottom:.3rem;">📝 Observaciones</label>
+            <textarea id="swObservaciones" rows="2" placeholder="Notas importantes..." style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;resize:vertical;"></textarea>
+          </div>
+          <div style="display:flex;gap:1rem;justify-content:flex-end;">
+            <button onclick="cerrarModalSandwich()" style="padding:.75rem 1.5rem;border-radius:10px;border:1px solid #ddd;cursor:pointer;">Cancelar</button>
+            <button onclick="guardarRecetaSandwich()" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">💾 Guardar Sándwich</button>
+          </div>
+        </div>
         </div>
 
         <!-- Panel de análisis IA -->
@@ -930,7 +970,6 @@
         <div style="background:white;max-width:800px;margin:2rem auto;border-radius:20px;padding:2rem;position:relative;">
         <button onclick="cerrarModalReceta()" style="position:absolute;top:1rem;right:1rem;background:none;border:none;font-size:1.5rem;cursor:pointer;">✕</button>
         <h2 style="color:#667eea;margin-bottom:1.5rem;" id="tituloModalReceta">➕ Nueva Receta</h2>
-        <input type="hidden" id="recetaTipo" value="plato">
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
         <div>
@@ -938,14 +977,14 @@
         <input id="recetaSku" type="text" placeholder="Ej: CAJ-001" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;">
         </div>
         <div>
-        <label style="font-weight:600;display:block;margin-bottom:.3rem;" id="labelNombreReceta">Nombre del Plato *</label>
+        <label style="font-weight:600;display:block;margin-bottom:.3rem;">Nombre del Plato *</label>
         <input id="recetaNombre" type="text" placeholder="Ej: Carne al Jugo con Arroz" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;">
         </div>
-        <div id="campoGramaje">
-        <label style="font-weight:600;display:block;margin-bottom:.3rem;" id="labelGramajeReceta">Gramaje por Plato (gr) *</label>
+        <div>
+        <label style="font-weight:600;display:block;margin-bottom:.3rem;">Gramaje por Plato (gr) *</label>
         <input id="recetaGramaje" type="number" placeholder="Ej: 530" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;">
         </div>
-        <div id="campoEnvase">
+        <div>
         <label style="font-weight:600;display:block;margin-bottom:.3rem;">Gramaje Envase (gr)</label>
         <input id="recetaEnvase" type="number" placeholder="Ej: 20" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;">
         </div>
@@ -958,7 +997,7 @@
         <!-- Componentes -->
         <div style="margin-bottom:1rem;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
-        <h3 style="color:#764ba2;" id="tituloComponentesModal">🧩 Componentes del Plato</h3>
+        <h3 style="color:#764ba2;">🧩 Componentes del Plato</h3>
         <button onclick="agregarComponente()" style="background:#667eea;color:white;padding:.4rem 1rem;border-radius:8px;border:none;cursor:pointer;">+ Componente</button>
         </div>
         <div id="listaComponentes"></div>
@@ -4774,28 +4813,6 @@ let recetas = JSON.parse(localStorage.getItem('mes_recetas') || '[]');
 let recetaEditandoId = null;
 let componentesTemp = [];
 
-
-function setFiltroTipoReceta(tipo) {
-  window._filtroTipoReceta = tipo;
-  // Estilos botones
-  const btns = { todo: 'filtroTodoRecetas', plato: 'filtroPlatoRecetas', sandwich: 'filtroSandwichRecetas' };
-  Object.entries(btns).forEach(([t, id]) => {
-    const btn = document.getElementById(id);
-    if (!btn) return;
-    const activo = t === tipo;
-    if (t === 'sandwich') {
-      btn.style.background = activo ? '#f59e0b' : 'white';
-      btn.style.color = activo ? 'white' : '#f59e0b';
-    } else {
-      btn.style.background = activo ? '#667eea' : 'white';
-      btn.style.color = activo ? 'white' : '#667eea';
-    }
-  });
-  renderListaRecetas();
-}
-
-function filtrarRecetas() { renderListaRecetas(); }
-
 function guardarRecetasStorage() {
   localStorage.setItem('mes_recetas', JSON.stringify(recetas));
   sincronizarRecetasFirebase();
@@ -4822,25 +4839,21 @@ async function sincronizarRecetasFirebase(intentos = 0) {
 }
 
 // ---- MODAL RECETA ----
-function abrirModalReceta(tipoOId = null) {
-  // tipoOId puede ser 'plato', 'sandwich', o un id de receta a editar
-  const esEdicion = tipoOId && tipoOId !== 'plato' && tipoOId !== 'sandwich';
-  recetaEditandoId = esEdicion ? tipoOId : null;
+function abrirModalReceta(id = null) {
+  recetaEditandoId = id;
   componentesTemp = [];
+  document.getElementById('tituloModalReceta').textContent = id ? '✏️ Editar Receta' : '➕ Nueva Receta';
 
-  let tipo = 'plato';
-  if (esEdicion) {
-    const r = recetas.find(x => x.id === tipoOId);
-    tipo = r?.tipo || 'plato';
+  if (id) {
+    const r = recetas.find(x => x.id === id);
     document.getElementById('recetaSku').value = r.sku || '';
     document.getElementById('recetaNombre').value = r.nombre;
-    document.getElementById('recetaGramaje').value = r.gramaje || '';
+    document.getElementById('recetaGramaje').value = r.gramaje;
     document.getElementById('recetaEnvase').value = r.envase || '';
     document.getElementById('recetaRendimiento').value = r.rendimientoEsperado || '';
     document.getElementById('recetaObservaciones').value = r.observaciones || '';
     componentesTemp = JSON.parse(JSON.stringify(r.componentes || []));
   } else {
-    tipo = tipoOId || 'plato';
     document.getElementById('recetaSku').value = '';
     document.getElementById('recetaNombre').value = '';
     document.getElementById('recetaGramaje').value = '';
@@ -4849,17 +4862,6 @@ function abrirModalReceta(tipoOId = null) {
     document.getElementById('recetaObservaciones').value = '';
     componentesTemp = [];
   }
-
-  // Adaptar modal según tipo
-  document.getElementById('recetaTipo').value = tipo;
-  const esSandwich = tipo === 'sandwich';
-  document.getElementById('tituloModalReceta').textContent = esEdicion
-    ? (esSandwich ? '✏️ Editar Receta Sándwich' : '✏️ Editar Receta Plato')
-    : (esSandwich ? '🥪 Nueva Receta Sándwich' : '➕ Nueva Receta Plato');
-  document.getElementById('labelNombreReceta').textContent = esSandwich ? 'Nombre del Sándwich *' : 'Nombre del Plato *';
-  document.getElementById('labelGramajeReceta').textContent = esSandwich ? 'Gramaje total por Sándwich (gr) *' : 'Gramaje por Plato (gr) *';
-  document.getElementById('tituloComponentesModal').textContent = esSandwich ? '🥪 Componentes del Sándwich' : '🧩 Componentes del Plato';
-  document.getElementById('campoEnvase').style.display = esSandwich ? 'none' : '';
 
   renderComponentesModal();
   document.getElementById('modalReceta').style.display = 'block';
@@ -4929,12 +4931,10 @@ function guardarReceta() {
   const gramaje = parseFloat(document.getElementById('recetaGramaje').value) || 0;
   if (!sku || !nombre || !gramaje) { alert('El SKU, nombre y gramaje son obligatorios'); return; }
 
-  const tipo = document.getElementById('recetaTipo')?.value || 'plato';
   const receta = {
     id: recetaEditandoId || Date.now().toString(),
     sku,
     nombre,
-    tipo,
     gramaje,
     envase: parseFloat(document.getElementById('recetaEnvase').value) || 0,
     rendimientoEsperado: parseFloat(document.getElementById('recetaRendimiento').value) || 100,
@@ -4991,9 +4991,9 @@ function renderListaRecetas() {
     return `
       <div style="background:white;border-radius:15px;padding:1.5rem;box-shadow:0 4px 15px rgba(0,0,0,0.1);border-top:4px solid ${r.tipo==='sandwich'?'#f59e0b':'#667eea'};position:relative;">
         ${tieneSugerencia ? '<div style="position:absolute;top:.75rem;right:.75rem;background:#f39c12;color:white;border-radius:20px;padding:.2rem .6rem;font-size:.75rem;">⚠️ Sugerencia IA</div>' : ''}
-        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem;">
+        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem;">
           <h3 style="color:#333;margin:0;font-size:1.05rem;">${r.nombre}</h3>
-          ${r.tipo==='sandwich' ? '<span style="background:#fef3c7;color:#92400e;border-radius:20px;padding:.15rem .5rem;font-size:.72rem;font-weight:700;">🥪 Sándwich</span>' : '<span style="background:#eef2ff;color:#4338ca;border-radius:20px;padding:.15rem .5rem;font-size:.72rem;font-weight:700;">🍽️ Plato</span>'}
+          ${r.tipo==='sandwich'?'<span style="background:#fef3c7;color:#92400e;border-radius:20px;padding:.1rem .5rem;font-size:.7rem;font-weight:700;">🥪 Sándwich</span>':'<span style="background:#eef2ff;color:#4338ca;border-radius:20px;padding:.1rem .5rem;font-size:.7rem;font-weight:700;">🍽️ Plato</span>'}
         </div>
         <div style="font-size:.8rem;color:#667eea;font-weight:600;margin-bottom:.4rem;">🏷️ ${r.sku || 'Sin SKU'}</div>
         <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:.75rem;font-size:.85rem;color:#666;">
@@ -5007,7 +5007,7 @@ function renderListaRecetas() {
         </div>
         <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
           <button onclick="verDetalleReceta('${r.id}')" style="flex:1;background:#e8edff;color:#667eea;border:none;border-radius:8px;padding:.5rem;cursor:pointer;font-size:.85rem;">👁️ Ver</button>
-          <button onclick="abrirModalReceta('${r.id}')" style="flex:1;background:#fff3e0;color:#f39c12;border:none;border-radius:8px;padding:.5rem;cursor:pointer;font-size:.85rem;">✏️ Editar</button>
+          <button onclick="${r.tipo==='sandwich'?`abrirModalRecetaSandwich('${r.id}')`:`abrirModalReceta('${r.id}')`}" style="flex:1;background:#fff3e0;color:#f39c12;border:none;border-radius:8px;padding:.5rem;cursor:pointer;font-size:.85rem;">✏️ Editar</button>
           <button onclick="registrarRendimiento('${r.id}')" style="flex:1;background:#e8fff0;color:#27ae60;border:none;border-radius:8px;padding:.5rem;cursor:pointer;font-size:.85rem;">📊 Rendimiento</button>
           <button onclick="eliminarReceta('${r.id}')" style="background:#ffe8e8;color:#e74c3c;border:none;border-radius:8px;padding:.5rem .75rem;cursor:pointer;font-size:.85rem;">🗑️</button>
         </div>
@@ -5017,6 +5017,131 @@ function renderListaRecetas() {
 }
 
 function filtrarRecetas() { renderListaRecetas(); }
+
+// ---- FILTRO POR TIPO ----
+window._filtroTipoReceta = 'todo';
+function setFiltroReceta(tipo) {
+  window._filtroTipoReceta = tipo;
+  ['filtroTodoR','filtroPlatoR','filtroSandwichR'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    const esSandwich = id === 'filtroSandwichR';
+    const color = esSandwich ? '#f59e0b' : '#667eea';
+    const activo = (tipo === 'todo' && id === 'filtroTodoR') ||
+                   (tipo === 'plato' && id === 'filtroPlatoR') ||
+                   (tipo === 'sandwich' && id === 'filtroSandwichR');
+    btn.style.background = activo ? color : 'white';
+    btn.style.color = activo ? 'white' : color;
+  });
+  renderListaRecetas();
+}
+
+// ---- MODAL SÁNDWICH ----
+let componentesSandwichTemp = [];
+let sandwichEditandoId = null;
+
+function abrirModalRecetaSandwich(id = null) {
+  sandwichEditandoId = id;
+  componentesSandwichTemp = [];
+  if (id) {
+    const r = recetas.find(x => x.id === id);
+    document.getElementById('swSku').value = r.sku || '';
+    document.getElementById('swNombre').value = r.nombre || '';
+    document.getElementById('swRendimiento').value = r.rendimientoEsperado || '';
+    document.getElementById('swObservaciones').value = r.observaciones || '';
+    componentesSandwichTemp = JSON.parse(JSON.stringify(r.componentes || []));
+  } else {
+    document.getElementById('swSku').value = '';
+    document.getElementById('swNombre').value = '';
+    document.getElementById('swRendimiento').value = '';
+    document.getElementById('swObservaciones').value = '';
+    componentesSandwichTemp = [];
+  }
+  renderComponentesSandwich();
+  document.getElementById('modalSandwich').style.display = 'block';
+}
+
+function cerrarModalSandwich() {
+  document.getElementById('modalSandwich').style.display = 'none';
+}
+
+function agregarComponenteSandwich() {
+  componentesSandwichTemp.push({ nombre: '', gramajePorUnidad: 0, ingredientes: [] });
+  renderComponentesSandwich();
+}
+
+function eliminarComponenteSandwich(idx) {
+  componentesSandwichTemp.splice(idx, 1);
+  renderComponentesSandwich();
+}
+
+function renderComponentesSandwich() {
+  const cont = document.getElementById('listaComponentesSandwich');
+  if (!cont) return;
+  if (componentesSandwichTemp.length === 0) {
+    cont.innerHTML = '<p style="color:#999;font-size:.9rem;">Agrega al menos un componente (ej: Pollo, Pan, Mayo)</p>';
+    return;
+  }
+  cont.innerHTML = componentesSandwichTemp.map((comp, ci) => `
+    <div style="background:#f8f9ff;border-radius:10px;padding:1rem;margin-bottom:.75rem;border-left:4px solid #f59e0b;">
+      <div style="display:flex;gap:.5rem;margin-bottom:.5rem;align-items:center;">
+        <input value="${comp.nombre}" onchange="componentesSandwichTemp[${ci}].nombre=this.value"
+          placeholder="Nombre componente (ej: Pollo a la plancha)"
+          style="flex:1;padding:.45rem;border-radius:7px;border:1px solid #ddd;font-size:.9rem;">
+        <input type="number" value="${comp.gramajePorUnidad||''}" onchange="componentesSandwichTemp[${ci}].gramajePorUnidad=parseFloat(this.value)||0"
+          placeholder="gr/sándwich"
+          style="width:110px;padding:.45rem;border-radius:7px;border:1px solid #ddd;font-size:.9rem;">
+        <button onclick="eliminarComponenteSandwich(${ci})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:7px;padding:.4rem .7rem;cursor:pointer;">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function guardarRecetaSandwich() {
+  const sku = document.getElementById('swSku').value.trim();
+  const nombre = document.getElementById('swNombre').value.trim();
+  if (!sku || !nombre) { alert('SKU y nombre son obligatorios'); return; }
+  if (componentesSandwichTemp.length === 0) { alert('Agrega al menos un componente'); return; }
+  if (componentesSandwichTemp.some(c => !c.nombre || !c.gramajePorUnidad)) {
+    alert('Completa nombre y gramaje por sándwich en cada componente'); return;
+  }
+
+  // Calcular gramaje total del sándwich
+  const gramajeTotalGr = componentesSandwichTemp.reduce((s, c) => s + (c.gramajePorUnidad || 0), 0);
+
+  // Adaptar componentes al formato existente (gramajePorcion = gr por unidad)
+  const componentes = componentesSandwichTemp.map(c => ({
+    nombre: c.nombre,
+    gramajePorcion: c.gramajePorUnidad, // reutilizamos el mismo campo
+    ingredientes: c.ingredientes || []
+  }));
+
+  const receta = {
+    id: sandwichEditandoId || Date.now().toString(),
+    sku, nombre,
+    tipo: 'sandwich',
+    gramaje: gramajeTotalGr,
+    envase: 0,
+    rendimientoEsperado: parseFloat(document.getElementById('swRendimiento').value) || 100,
+    observaciones: document.getElementById('swObservaciones').value,
+    componentes,
+    historialRendimientos: sandwichEditandoId ? (recetas.find(r=>r.id===sandwichEditandoId)?.historialRendimientos||[]) : [],
+    fechaCreacion: sandwichEditandoId ? (recetas.find(r=>r.id===sandwichEditandoId)?.fechaCreacion||new Date().toLocaleDateString('es-CL')) : new Date().toLocaleDateString('es-CL'),
+    version: sandwichEditandoId ? ((recetas.find(r=>r.id===sandwichEditandoId)?.version||1)+1) : 1
+  };
+
+  if (sandwichEditandoId) {
+    const idx = recetas.findIndex(r => r.id === sandwichEditandoId);
+    recetas[idx] = receta;
+  } else {
+    recetas.push(receta);
+  }
+
+  guardarRecetasStorage();
+  cerrarModalSandwich();
+  renderListaRecetas();
+  cargarSelectorOPsSimple();
+}
 
 // ---- VER DETALLE ----
 function verDetalleReceta(id) {
@@ -5329,20 +5454,11 @@ async function cargarSelectorOPs() {
 }
 
 function previewOP() {
-  // Cambiar label según tipo de receta
-  const recetaId = document.getElementById('opSkuSelect').value;
-  const rSel = recetas.find(x => x.id === recetaId);
-  const labelEl = document.getElementById('labelCantidadOP');
-  if (labelEl) {
-    labelEl.textContent = rSel?.tipo === 'sandwich' ? '🥪 N° de Sándwiches:' : '🍽️ N° de Platos:';
-  }
   const recetaId = document.getElementById('opSkuSelect').value;
   const platos = parseInt(document.getElementById('opPlatos').value) || 0;
   const preview = document.getElementById('previewCalculoOP');
 
   if (!recetaId || !platos) { preview.style.display = 'none'; return; }
-  const _rPreview = recetas.find(x => x.id === recetaId);
-  const _unidad = _rPreview?.tipo === 'sandwich' ? 'sándwiches' : 'platos';
 
   const r = recetas.find(x => x.id === recetaId);
   if (!r) { preview.style.display = 'none'; return; }
