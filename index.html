@@ -808,6 +808,19 @@
             <!-- Preview cálculo automático -->
             <div id="previewCalculoOP" style="display:none;background:#f0f4ff;border-radius:12px;padding:1.25rem;margin-bottom:1rem;border-left:4px solid #667eea;"></div>
 
+            <!-- Vista Semanal -->
+            <div id="vistaSemanal" style="margin-bottom:1.5rem;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
+                <div style="display:flex;align-items:center;gap:.75rem;">
+                  <button onclick="navegarSemana(-1)" style="padding:.4rem .8rem;border-radius:8px;border:2px solid #c7d2fe;background:white;color:#667eea;font-weight:700;cursor:pointer;font-size:1rem;">‹</button>
+                  <span id="labelSemana" style="font-weight:700;color:#4f46e5;font-size:.95rem;"></span>
+                  <button onclick="navegarSemana(1)" style="padding:.4rem .8rem;border-radius:8px;border:2px solid #c7d2fe;background:white;color:#667eea;font-weight:700;cursor:pointer;font-size:1rem;">›</button>
+                </div>
+                <button onclick="irSemanaHoy()" style="padding:.4rem 1rem;border-radius:8px;border:2px solid #667eea;background:white;color:#667eea;font-weight:700;cursor:pointer;font-size:.82rem;">Semana actual</button>
+              </div>
+              <div id="gridSemana" style="display:grid;grid-template-columns:repeat(7,1fr);gap:.5rem;"></div>
+            </div>
+
             <!-- Lista de OPs del día -->
             <div id="listaOPs"></div>
         </div>
@@ -5649,10 +5662,92 @@ function calcularRecetaParaPlatos(r, platos) {
   return { kgTotalesTerminados, componentes };
 }
 
+
+// ---- VISTA SEMANAL ----
+window._semanaOffset = 0;
+
+function getLunesDeSemana(offset) {
+  const hoy = new Date();
+  const dia = hoy.getDay(); // 0=dom, 1=lun...
+  const diffLunes = (dia === 0 ? -6 : 1 - dia);
+  const lunes = new Date(hoy);
+  lunes.setDate(hoy.getDate() + diffLunes + (offset * 7));
+  lunes.setHours(0,0,0,0);
+  return lunes;
+}
+
+function irSemanaHoy() {
+  window._semanaOffset = 0;
+  renderVistaSemanal();
+}
+
+function navegarSemana(dir) {
+  window._semanaOffset += dir;
+  renderVistaSemanal();
+}
+
+function renderVistaSemanal() {
+  const grid = document.getElementById('gridSemana');
+  const label = document.getElementById('labelSemana');
+  if (!grid) return;
+
+  const lunes = getLunesDeSemana(window._semanaOffset);
+  const domingo = new Date(lunes); domingo.setDate(lunes.getDate() + 6);
+  const dias = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  const hoyStr = getHoy();
+  const fechaSelStr = document.getElementById('fechaPlan')?.value || hoyStr;
+
+  // Label de la semana
+  const opts = { day:'numeric', month:'short' };
+  label.textContent = `Semana del ${lunes.toLocaleDateString('es-CL', opts)} al ${domingo.toLocaleDateString('es-CL', opts)}`;
+
+  grid.innerHTML = dias.map((dia, i) => {
+    const fecha = new Date(lunes);
+    fecha.setDate(lunes.getDate() + i);
+    const fechaStr = fecha.toISOString().split('T')[0];
+    const ops = ordenesProduccion.filter(op => op.fecha === fechaStr);
+    const kgTotal = ops.reduce((s, op) => s + (op.kgTotalesTerminados || 0), 0);
+    const esHoy = fechaStr === hoyStr;
+    const esSel = fechaStr === fechaSelStr;
+    const tieneOps = ops.length > 0;
+
+    const bgColor = esSel ? '#667eea' : esHoy ? '#eef2ff' : 'white';
+    const textColor = esSel ? 'white' : '#333';
+    const borderColor = esSel ? '#667eea' : esHoy ? '#a5b4fc' : '#e5e7eb';
+    const subColor = esSel ? 'rgba(255,255,255,0.8)' : '#666';
+
+    return `
+      <div onclick="seleccionarFechaSemana('${fechaStr}')"
+        style="background:${bgColor};border:2px solid ${borderColor};border-radius:10px;padding:.6rem .5rem;text-align:center;cursor:pointer;transition:all .15s;min-height:80px;display:flex;flex-direction:column;justify-content:space-between;">
+        <div>
+          <div style="font-size:.72rem;font-weight:700;color:${esSel?'rgba(255,255,255,0.85)':esHoy?'#667eea':'#999'};text-transform:uppercase;">${dia}</div>
+          <div style="font-size:1.1rem;font-weight:800;color:${textColor};margin:.1rem 0;">${fecha.getDate()}</div>
+        </div>
+        <div>
+          ${tieneOps ? `
+            <div style="background:${esSel?'rgba(255,255,255,0.25)':'#e8edff'};border-radius:6px;padding:.2rem .3rem;margin-top:.3rem;">
+              <div style="font-size:.75rem;font-weight:700;color:${esSel?'white':'#4f46e5'};">${ops.length} OP${ops.length>1?'s':''}</div>
+              <div style="font-size:.68rem;color:${subColor};">${kgTotal.toFixed(0)} kg</div>
+            </div>` :
+            `<div style="font-size:.68rem;color:${subColor};margin-top:.3rem;">Sin OPs</div>`
+          }
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function seleccionarFechaSemana(fechaStr) {
+  document.getElementById('fechaPlan').value = fechaStr;
+  filtrarOPsPorFecha();
+  renderVistaSemanal(); // re-render para actualizar selección
+}
+
 // ---- GESTIÓN FECHA PLANIFICADOR ----
 function initFechaPlan() {
   const input = document.getElementById('fechaPlan');
   if (input && !input.value) input.value = getHoy();
+  window._semanaOffset = 0;
+  renderVistaSemanal();
   actualizarContadorOPs();
 }
 
@@ -5665,6 +5760,7 @@ function setFechaPlan(diasOffset) {
 
 function filtrarOPsPorFecha() {
   actualizarContadorOPs();
+  renderVistaSemanal();
   renderListaOPs();
 }
 
@@ -5718,6 +5814,7 @@ function agregarOP() {
   ordenesProduccion.push(op);
   guardarOPs();
   renderListaOPs();
+  renderVistaSemanal();
 
   // Limpiar formulario
   document.getElementById('opNumero').value = '';
