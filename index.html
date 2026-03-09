@@ -5205,7 +5205,7 @@ function verDetalleReceta(id) {
     <h3 style="color:#764ba2;margin-bottom:.75rem;">🧩 Componentes</h3>
     ${r.componentes.map(c => `
       <div style="background:#f8f9ff;border-radius:10px;padding:1rem;margin-bottom:.75rem;border-left:3px solid #667eea;">
-        <div style="font-weight:600;color:#333;margin-bottom:.5rem;">${c.nombre} — <span style="color:#667eea">${c.gramajePorcion}gr por plato</span></div>
+        <div style="font-weight:600;color:#333;margin-bottom:.5rem;">${c.nombre} — <span style="color:#667eea">${c.gramajePorcion}gr por ${r.tipo==='sandwich'?'sándwich':r.tipo==='avemayo'?'unidad':'plato'}</span></div>
         <table style="width:100%;font-size:.85rem;border-collapse:collapse;">
           <tr style="background:#e8edff;"><th style="padding:.3rem .5rem;text-align:left;">Ingrediente</th><th style="padding:.3rem .5rem;text-align:right;">Cantidad bruta</th><th style="padding:.3rem .5rem;text-align:right;">Unidad</th></tr>
           ${c.ingredientes.map(i => `<tr style="border-bottom:1px solid #eee;"><td style="padding:.3rem .5rem;">${i.nombre}</td><td style="padding:.3rem .5rem;text-align:right;">${i.cantidadBruta}</td><td style="padding:.3rem .5rem;text-align:right;">${i.unidad}</td></tr>`).join('')}
