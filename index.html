@@ -473,12 +473,14 @@
           <div style="padding:1.5rem;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
               <h2 style="color:#667eea;margin:0;">📅 Gantt de Producción</h2>
-              <button onclick="location.reload()" style="
-                background:#667eea;color:white;border:none;border-radius:10px;
-                padding:.5rem 1.2rem;font-weight:700;font-size:.85rem;cursor:pointer;
-                display:flex;align-items:center;gap:.4rem;box-shadow:0 2px 8px rgba(102,126,234,.4);">
-                🔄 Actualizar
-              </button>
+              <div style="display:flex;gap:.75rem;align-items:center;">
+                <button onclick="abrirResumenJornada()" style="background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;border-radius:10px;padding:.5rem 1.2rem;font-weight:700;font-size:.85rem;cursor:pointer;display:flex;align-items:center;gap:.4rem;box-shadow:0 2px 8px rgba(16,185,129,.4);">
+                  🚀 Cargar OPs de Hoy
+                </button>
+                <button onclick="location.reload()" style="background:#667eea;color:white;border:none;border-radius:10px;padding:.5rem 1.2rem;font-weight:700;font-size:.85rem;cursor:pointer;display:flex;align-items:center;gap:.4rem;box-shadow:0 2px 8px rgba(102,126,234,.4);">
+                  🔄 Actualizar
+                </button>
+              </div>
             </div>
 
             <!-- GRID -->
@@ -819,6 +821,13 @@
                 <button onclick="irSemanaHoy()" style="padding:.4rem 1rem;border-radius:8px;border:2px solid #667eea;background:white;color:#667eea;font-weight:700;cursor:pointer;font-size:.82rem;">Semana actual</button>
               </div>
               <div id="gridSemana" style="display:grid;grid-template-columns:repeat(7,1fr);gap:.5rem;"></div>
+            </div>
+
+            <!-- Botón Iniciar Jornada -->
+            <div id="btnIniciarJornadaWrap" style="margin-bottom:1rem;display:none;">
+              <button onclick="abrirResumenJornada()" style="width:100%;padding:1rem;background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;border-radius:12px;font-size:1.1rem;font-weight:700;cursor:pointer;box-shadow:0 4px 15px rgba(16,185,129,.35);display:flex;align-items:center;justify-content:center;gap:.6rem;">
+                🚀 Iniciar Jornada del Día — <span id="labelFechaJornada"></span>
+              </button>
             </div>
 
             <!-- Lista de OPs del día -->
@@ -5663,6 +5672,146 @@ function calcularRecetaParaPlatos(r, platos) {
 }
 
 
+
+// ---- INICIO DE JORNADA ----
+function abrirResumenJornada() {
+  const fechaStr = document.getElementById('fechaPlan')?.value || getHoy();
+  const ops = ordenesProduccion.filter(op => op.fecha === fechaStr && op.estado !== 'completada');
+
+  if (ops.length === 0) {
+    mostrarNotificacion('No hay OPs pendientes para esta fecha', 'warning');
+    return;
+  }
+
+  // Subtítulo con fecha formateada
+  const fecha = new Date(fechaStr + 'T12:00:00');
+  const fechaLabel = fecha.toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  document.getElementById('subtituloJornada').textContent = fechaLabel.charAt(0).toUpperCase() + fechaLabel.slice(1);
+
+  // Stats del día
+  const kgTotal = ops.reduce((s, op) => s + (op.kgTotalesTerminados || 0), 0);
+  const compTotal = ops.reduce((s, op) => s + (op.componentes?.length || 0), 0);
+  document.getElementById('statsJornada').innerHTML = `
+    <div style="background:#f0fdf4;border-radius:10px;padding:1rem;text-align:center;border:1px solid #bbf7d0;">
+      <div style="font-size:1.8rem;font-weight:800;color:#059669;">${ops.length}</div>
+      <div style="font-size:.8rem;color:#065f46;font-weight:600;">OPs Programadas</div>
+    </div>
+    <div style="background:#eff6ff;border-radius:10px;padding:1rem;text-align:center;border:1px solid #bfdbfe;">
+      <div style="font-size:1.8rem;font-weight:800;color:#2563eb;">${kgTotal.toFixed(0)} kg</div>
+      <div style="font-size:.8rem;color:#1e40af;font-weight:600;">Kg Totales del Día</div>
+    </div>
+    <div style="background:#fef3c7;border-radius:10px;padding:1rem;text-align:center;border:1px solid #fde68a;">
+      <div style="font-size:1.8rem;font-weight:800;color:#d97706;">${compTotal}</div>
+      <div style="font-size:.8rem;color:#92400e;font-weight:600;">Componentes a Producir</div>
+    </div>
+  `;
+
+  // Lista de OPs con checkbox
+  document.getElementById('listaOPsJornada').innerHTML = ops.map(op => `
+    <div style="display:flex;align-items:flex-start;gap:.75rem;background:#f8f9ff;border-radius:10px;padding:.85rem 1rem;margin-bottom:.5rem;border-left:4px solid ${op.estado==='en-produccion'?'#f59e0b':'#667eea'};">
+      <input type="checkbox" id="chkOP_${op.id}" value="${op.id}" checked
+        style="margin-top:.2rem;width:18px;height:18px;cursor:pointer;accent-color:#10b981;">
+      <label for="chkOP_${op.id}" style="cursor:pointer;flex:1;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.3rem;">
+          <div>
+            <span style="font-weight:700;color:#1e293b;">${op.numeroOp}</span>
+            <span style="margin-left:.5rem;font-size:.85rem;color:#667eea;">${op.sku ? op.sku+' · ' : ''}${op.nombre}</span>
+          </div>
+          <div style="display:flex;gap:.5rem;align-items:center;">
+            ${op.estado==='en-produccion' ? '<span style="background:#fef3c7;color:#92400e;border-radius:20px;padding:.15rem .5rem;font-size:.72rem;font-weight:700;">🔄 En curso</span>' : ''}
+            <span style="font-size:.82rem;color:#666;">${op.platos.toLocaleString()} unid · <strong>${op.kgTotalesTerminados} kg</strong></span>
+          </div>
+        </div>
+        <div style="margin-top:.3rem;font-size:.78rem;color:#94a3b8;">
+          ${op.componentes?.map(c => `${c.nombre} (${c.kgTerminados}kg)`).join(' · ') || ''}
+        </div>
+      </label>
+    </div>
+  `).join('');
+
+  document.getElementById('modalJornada').style.display = 'block';
+}
+
+function cerrarModalJornada() {
+  document.getElementById('modalJornada').style.display = 'none';
+}
+
+function seleccionarTodasOPsJornada() {
+  document.querySelectorAll('[id^="chkOP_"]').forEach(chk => chk.checked = true);
+}
+
+function confirmarInicioJornada() {
+  const seleccionadas = [...document.querySelectorAll('[id^="chkOP_"]:checked')].map(chk => chk.value);
+  if (seleccionadas.length === 0) {
+    alert('Selecciona al menos una OP para iniciar');
+    return;
+  }
+
+  const fechaStr = document.getElementById('fechaPlan')?.value || getHoy();
+  let iniciadas = 0;
+
+  seleccionadas.forEach(opId => {
+    const op = ordenesProduccion.find(o => o.id === opId);
+    if (!op || op.estado === 'completada') return;
+
+    // Asignar cada componente a su equipo sugerido
+    op.componentes?.forEach(comp => {
+      const equipoId = comp.equipoSugerido;
+      if (!equipoId) return;
+      const eq = equipos.find(e => e.id === equipoId);
+      if (!eq || eq.estado === 'ocupado') return;
+
+      eq.estado = 'ocupado';
+      eq.produccion = {
+        numeroOP: op.numeroOp,
+        producto: `${op.nombre} — OP ${op.numeroOp}`,
+        componente: comp.nombre,
+        kgProgramados: comp.kgTerminados,
+        operador: op.operador || 'Sin asignar',
+        inicio: new Date().toISOString(),
+        fase: 'coccion',
+        opVinculadaId: op.id,
+        tiempoCoccionMin: comp.tiempoCoccion || 30,
+        enEspera: false
+      };
+    });
+
+    op.estado = 'en-produccion';
+    iniciadas++;
+  });
+
+  guardarOPs();
+  guardarDatos();
+  cerrarModalJornada();
+  renderListaOPs();
+  renderVistaSemanal();
+  actualizarContadorOPs();
+
+  mostrarNotificacion(`🚀 Jornada iniciada — ${iniciadas} OP(s) en producción`, 'success');
+
+  // Si el usuario está en el Gantt, actualizar
+  if (document.getElementById('gantt')?.classList.contains('active') ||
+      document.getElementById('gantt')?.style.display !== 'none') {
+    recalcularTiemposCoccion();
+    limpiarEsperasVencidas();
+    renderGanttBloques();
+  }
+}
+
+// Mostrar/ocultar botón iniciar jornada según si hay OPs
+function actualizarBtnJornada() {
+  const fechaStr = document.getElementById('fechaPlan')?.value || getHoy();
+  const ops = ordenesProduccion.filter(op => op.fecha === fechaStr && op.estado !== 'completada');
+  const wrap = document.getElementById('btnIniciarJornadaWrap');
+  const label = document.getElementById('labelFechaJornada');
+  if (!wrap) return;
+  wrap.style.display = ops.length > 0 ? 'block' : 'none';
+  if (label) {
+    const fecha = new Date(fechaStr + 'T12:00:00');
+    label.textContent = fecha.toLocaleDateString('es-CL', { weekday:'short', day:'numeric', month:'short' });
+  }
+}
+
 // ---- VISTA SEMANAL ----
 window._semanaOffset = 0;
 
@@ -5833,6 +5982,7 @@ function eliminarOP(id) {
 function renderListaOPs() {
   const cont = document.getElementById('listaOPs');
   if (!cont) return;
+  actualizarBtnJornada();
 
   const fecha = document.getElementById('fechaPlan')?.value || getHoy();
   const ops = ordenesProduccion.filter(op => op.fecha === fecha);
@@ -6660,5 +6810,33 @@ function cargarSelectorOPsSimple() {
 </div>
 
 
+
+  <!-- Modal Resumen Jornada -->
+  <div id="modalJornada" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:2000;overflow-y:auto;">
+    <div style="background:white;max-width:750px;margin:2rem auto;border-radius:20px;padding:2rem;position:relative;">
+      <button onclick="cerrarModalJornada()" style="position:absolute;top:1rem;right:1rem;background:none;border:none;font-size:1.5rem;cursor:pointer;">✕</button>
+      <div style="text-align:center;margin-bottom:1.5rem;">
+        <div style="font-size:2.5rem;">🌅</div>
+        <h2 style="color:#059669;margin:.5rem 0 .25rem;">Resumen de Jornada</h2>
+        <div id="subtituloJornada" style="color:#666;font-size:.95rem;"></div>
+      </div>
+
+      <!-- Resumen estadísticas -->
+      <div id="statsJornada" style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem;"></div>
+
+      <!-- Lista OPs a iniciar -->
+      <div style="margin-bottom:1.5rem;">
+        <h3 style="color:#374151;margin-bottom:.75rem;font-size:1rem;">📋 OPs del día — selecciona las que deseas iniciar:</h3>
+        <div id="listaOPsJornada"></div>
+      </div>
+
+      <!-- Botones -->
+      <div style="display:flex;gap:1rem;justify-content:flex-end;flex-wrap:wrap;">
+        <button onclick="cerrarModalJornada()" style="padding:.75rem 1.5rem;border-radius:10px;border:1px solid #ddd;cursor:pointer;font-weight:600;">Cancelar</button>
+        <button onclick="seleccionarTodasOPsJornada()" style="padding:.75rem 1.5rem;border-radius:10px;border:2px solid #667eea;background:white;color:#667eea;cursor:pointer;font-weight:600;">✅ Seleccionar Todas</button>
+        <button onclick="confirmarInicioJornada()" style="padding:.75rem 1.5rem;border-radius:10px;border:none;background:linear-gradient(135deg,#10b981,#059669);color:white;cursor:pointer;font-weight:700;font-size:1rem;">🚀 Iniciar Jornada</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
