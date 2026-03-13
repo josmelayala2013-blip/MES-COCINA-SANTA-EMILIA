@@ -5757,6 +5757,274 @@ function seleccionarTodasOPsJornada() {
   document.querySelectorAll('[id^="chkOP_"]').forEach(chk => chk.checked = true);
 }
 
+
+// ---- EDITOR DE BLOQUES PROGRAMADOS ----
+function abrirEditorBloqueProgramado(equipoId, plan, planIdx) {
+  const eq = equipos.find(e => e.id === equipoId);
+  if (!eq) return;
+
+  const hIni = String(Math.floor(plan.inicioMin/60)).padStart(2,'0') + ':' + String(plan.inicioMin%60).padStart(2,'0');
+  const hFin = String(Math.floor(plan.finMin/60)).padStart(2,'0') + ':' + String(plan.finMin%60).padStart(2,'0');
+
+  const html = `
+    <div id="modalEditarBloque" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;display:flex;align-items:center;justify-content:center;">
+      <div style="background:white;border-radius:16px;padding:1.75rem;max-width:420px;width:90%;position:relative;">
+        <button onclick="document.getElementById('modalEditarBloque').remove()" style="position:absolute;top:.75rem;right:.75rem;background:none;border:none;font-size:1.4rem;cursor:pointer;">✕</button>
+        <h3 style="color:#475569;margin-bottom:1.25rem;">✏️ Editar Bloque Programado</h3>
+        <div style="background:#f8fafc;border-radius:10px;padding:.85rem;margin-bottom:1rem;font-size:.9rem;">
+          <strong>${plan.componente}</strong><br>
+          <span style="color:#667eea;">OP ${plan.numeroOP} · ${plan.kgProgramados} kg · ${eq.nombre}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+          <div>
+            <label style="font-weight:600;display:block;margin-bottom:.3rem;font-size:.85rem;">Hora inicio</label>
+            <input id="editBloqueHora" type="time" value="${hIni}" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;font-size:1rem;">
+          </div>
+          <div>
+            <label style="font-weight:600;display:block;margin-bottom:.3rem;font-size:.85rem;">Duración (min)</label>
+            <input id="editBloqueDur" type="number" value="${plan.duracion}" min="5" max="480" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;font-size:1rem;">
+          </div>
+        </div>
+        <div style="display:flex;gap:.75rem;justify-content:flex-end;">
+          <button onclick="eliminarBloqueProgramado(${equipoId},${planIdx})" style="padding:.65rem 1rem;border-radius:8px;background:#fee2e2;color:#dc2626;border:none;cursor:pointer;font-weight:600;">🗑️ Eliminar</button>
+          <button onclick="guardarEdicionBloque(${equipoId},${planIdx})" style="padding:.65rem 1.25rem;border-radius:8px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;cursor:pointer;font-weight:700;">💾 Guardar</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function guardarEdicionBloque(equipoId, planIdx) {
+  const eq = equipos.find(e => e.id === equipoId);
+  if (!eq || !eq.planificaciones) return;
+  const plan = eq.planificaciones.filter(p => p.fechaStr === getHoy() && p.estado === 'programado')[planIdx];
+  if (!plan) return;
+
+  const horaInput = document.getElementById('editBloqueHora').value;
+  const durInput = parseInt(document.getElementById('editBloqueDur').value) || plan.duracion;
+  const [hh, mm] = horaInput.split(':').map(Number);
+  const nuevoInicio = hh * 60 + mm;
+
+  plan.inicioMin = nuevoInicio;
+  plan.duracion = durInput;
+  plan.finMin = nuevoInicio + durInput;
+
+  // Recalcular en cascada los siguientes bloques del mismo equipo
+  recalcularCascada(eq);
+
+  document.getElementById('modalEditarBloque')?.remove();
+  guardarDatos();
+  renderGanttBloques();
+  mostrarNotificacion('✅ Bloque actualizado y cascada recalculada', 'success');
+}
+
+function eliminarBloqueProgramado(equipoId, planIdx) {
+  if (!confirm('¿Eliminar este bloque programado?')) return;
+  const eq = equipos.find(e => e.id === equipoId);
+  if (!eq || !eq.planificaciones) return;
+  const progHoy = eq.planificaciones.filter(p => p.fechaStr === getHoy() && p.estado === 'programado');
+  const plan = progHoy[planIdx];
+  if (!plan) return;
+  eq.planificaciones = eq.planificaciones.filter(p => p !== plan);
+  recalcularCascada(eq);
+  document.getElementById('modalEditarBloque')?.remove();
+  guardarDatos();
+  renderGanttBloques();
+  mostrarNotificacion('🗑️ Bloque eliminado', 'success');
+}
+
+// Recalcula en cascada los bloques programados de un equipo tras un cambio
+function recalcularCascada(eq) {
+  if (!eq.planificaciones) return;
+  const fechaHoy = getHoy();
+  const bloques = eq.planificaciones
+    .filter(p => p.fechaStr === fechaHoy && p.estado === 'programado')
+    .sort((a, b) => a.inicioMin - b.inicioMin);
+
+  // Ajustar cada bloque para que empiece cuando termina el anterior
+  for (let i = 1; i < bloques.length; i++) {
+    const anterior = bloques[i - 1];
+    if (bloques[i].inicioMin < anterior.finMin) {
+      bloques[i].inicioMin = anterior.finMin;
+      bloques[i].finMin = anterior.finMin + bloques[i].duracion;
+    }
+  }
+}
+
+// Activar bloques programados cuando llegue su hora (se llama desde el cronómetro)
+function activarBloquesProgramados() {
+  const fechaHoy = getHoy();
+  const ahoraMin = new Date().getHours() * 60 + new Date().getMinutes();
+  let huboActivacion = false;
+
+  equipos.forEach(eq => {
+    if (eq.estado === 'ocupado' || eq.estado === 'en_espera') return;
+    if (!eq.planificaciones) return;
+
+    const progHoy = eq.planificaciones
+      .filter(p => p.fechaStr === fechaHoy && p.estado === 'programado')
+      .sort((a, b) => a.inicioMin - b.inicioMin);
+
+    if (progHoy.length === 0) return;
+    const primero = progHoy[0];
+
+    if (ahoraMin >= primero.inicioMin) {
+      // Activar este bloque
+      eq.estado = 'ocupado';
+      eq.produccion = {
+        numeroOP: primero.numeroOP,
+        producto: `${primero.opNombre} — OP ${primero.numeroOP}`,
+        componente: primero.componente,
+        kgProgramados: primero.kgProgramados,
+        operador: primero.operador || 'Sin asignar',
+        inicio: new Date().toISOString(),
+        fase: 'coccion',
+        opVinculadaId: primero.opId,
+        tiempoCoccionMin: primero.duracion,
+        enEspera: false
+      };
+      primero.estado = 'activo';
+      huboActivacion = true;
+    }
+  });
+
+  if (huboActivacion) {
+    guardarDatos();
+    renderGanttBloques();
+    mostrarNotificacion('🚀 Producción iniciada automáticamente según planificación', 'success');
+  }
+}
+
+// ---- ALGORITMO PLANIFICACIÓN AUTOMÁTICA GANTT ----
+
+// Obtiene el tiempo real de cocción de un componente (VSM > manual > default)
+function getTiempoComponente(comp) {
+  // 1. Buscar en VSM por nombre de componente
+  const prod = productos.find(p => p.nombre.toLowerCase() === (comp.nombre||'').toLowerCase());
+  if (prod && prod.vsm && prod.vsm.promCoccion && prod.vsm.totalProducciones >= 3) {
+    return Math.round(prod.vsm.promCoccion);
+  }
+  // 2. Tiempo manual de la receta
+  if (comp.tiempoCoccionMin && comp.tiempoCoccionMin > 0) return comp.tiempoCoccionMin;
+  // 3. Default
+  return 30;
+}
+
+// Mapea equipo sugerido (texto) → tipo de equipo (id interno)
+function mapearTipoEquipoTexto(sugerido) {
+  const s = (sugerido || '').toLowerCase();
+  if (s.includes('horno')) return 'horno';
+  if (s.includes('marmita')) return 'marmita';
+  return 'sartenBasculante';
+}
+
+// Planifica todos los componentes del día en el Gantt
+function planificarJornadaEnGantt(opIds, fechaStr) {
+  // Hora inicio jornada: 08:00 del día seleccionado
+  const HORA_INICIO = 8 * 60; // minutos desde medianoche
+  const HORA_FIN_NORMAL = 17 * 60 + 30; // 17:30
+  const HORA_FIN_MAX = 25 * 60; // 01:00 AM siguiente día
+
+  // Recolectar todos los componentes a planificar
+  let tareas = [];
+  opIds.forEach(opId => {
+    const op = ordenesProduccion.find(o => o.id === opId);
+    if (!op || op.estado === 'completada') return;
+    (op.componentes || []).forEach(comp => {
+      const tipoEquipo = mapearTipoEquipoTexto(comp.equipoSugerido || sugerirEquipoPorComponente(comp.nombre, comp.kgTerminados || 0));
+      const duracion = getTiempoComponente(comp);
+      tareas.push({
+        op, comp, tipoEquipo, duracion,
+        kg: comp.kgTerminados || 0
+      });
+    });
+  });
+
+  // Ordenar: primero los de mayor kg (más importantes primero)
+  tareas.sort((a, b) => b.kg - a.kg);
+
+  // Para cada equipo, llevar registro de cuándo queda libre (en minutos desde medianoche)
+  const equipoLibreEn = {};
+  equipos.forEach(eq => {
+    // Si ya tiene producción activa, esperar a que termine
+    if (eq.estado === 'ocupado' && eq.produccion?.inicio) {
+      const inicio = new Date(eq.produccion.inicio);
+      const minInicio = inicio.getHours() * 60 + inicio.getMinutes();
+      const durActual = eq.produccion.tiempoCoccionMin || 30;
+      equipoLibreEn[eq.id] = Math.max(HORA_INICIO, minInicio + durActual);
+    } else {
+      equipoLibreEn[eq.id] = HORA_INICIO;
+    }
+  });
+
+  // Limpiar planificaciones previas (solo las programadas, no las activas)
+  equipos.forEach(eq => {
+    if (eq.estado === 'programado') {
+      eq.estado = 'disponible';
+      eq.produccion = null;
+      eq.planificaciones = [];
+    }
+    if (!eq.planificaciones) eq.planificaciones = [];
+    // Limpiar planificaciones del día (mantener activas)
+    eq.planificaciones = eq.planificaciones.filter(p => p.fechaStr !== fechaStr);
+  });
+
+  let planificadas = 0;
+  let sinEquipo = 0;
+
+  tareas.forEach(tarea => {
+    const { op, comp, tipoEquipo, duracion } = tarea;
+
+    // Buscar el equipo del tipo correcto que quede libre más pronto
+    const equiposDelTipo = equipos.filter(eq => eq.tipo === tipoEquipo);
+    
+    // Si no hay del tipo exacto, buscar cualquier sartén/marmita disponible
+    const equiposCandidatos = equiposDelTipo.length > 0 ? equiposDelTipo :
+      equipos.filter(eq => eq.tipo === 'sartenBasculante' || eq.tipo === 'marmita');
+
+    if (equiposCandidatos.length === 0) { sinEquipo++; return; }
+
+    // Elegir el que quede libre más pronto
+    let mejorEq = null;
+    let mejorInicio = Infinity;
+    equiposCandidatos.forEach(eq => {
+      const libre = equipoLibreEn[eq.id] ?? HORA_INICIO;
+      if (libre < mejorInicio) {
+        mejorInicio = libre;
+        mejorEq = eq;
+      }
+    });
+
+    if (!mejorEq || mejorInicio >= HORA_FIN_MAX) { sinEquipo++; return; }
+
+    const inicioMin = Math.max(mejorInicio, HORA_INICIO);
+    const finMin = inicioMin + duracion;
+
+    // Crear planificación para este equipo
+    if (!mejorEq.planificaciones) mejorEq.planificaciones = [];
+    mejorEq.planificaciones.push({
+      fechaStr,
+      inicioMin,
+      finMin,
+      duracion,
+      componente: comp.nombre,
+      numeroOP: op.numeroOp,
+      opId: op.id,
+      opNombre: op.nombre,
+      kgProgramados: comp.kgTerminados || 0,
+      operador: op.operador || 'Sin asignar',
+      estaEnJornada: inicioMin < HORA_FIN_NORMAL,
+      estado: 'programado' // programado → activo cuando llegue la hora
+    });
+
+    // Actualizar cuándo queda libre este equipo
+    equipoLibreEn[mejorEq.id] = finMin;
+    planificadas++;
+  });
+
+  return { planificadas, sinEquipo, tareas: tareas.length };
+}
+
 function confirmarInicioJornada() {
   const seleccionadas = [...document.querySelectorAll('[id^="chkOP_"]:checked')].map(chk => chk.value);
   if (seleccionadas.length === 0) {
@@ -5765,37 +6033,53 @@ function confirmarInicioJornada() {
   }
 
   const fechaStr = document.getElementById('fechaPlan')?.value || getHoy();
-  let iniciadas = 0;
+  const esHoy = fechaStr === getHoy();
 
+  // Ejecutar algoritmo de planificación
+  const resultado = planificarJornadaEnGantt(seleccionadas, fechaStr);
+
+  // Marcar OPs como planificadas/en-produccion
+  let iniciadas = 0;
   seleccionadas.forEach(opId => {
     const op = ordenesProduccion.find(o => o.id === opId);
     if (!op || op.estado === 'completada') return;
-
-    // Asignar cada componente a su equipo sugerido
-    op.componentes?.forEach(comp => {
-      const equipoId = comp.equipoSugerido;
-      if (!equipoId) return;
-      const eq = equipos.find(e => e.id === equipoId);
-      if (!eq || eq.estado === 'ocupado') return;
-
-      eq.estado = 'ocupado';
-      eq.produccion = {
-        numeroOP: op.numeroOp,
-        producto: `${op.nombre} — OP ${op.numeroOp}`,
-        componente: comp.nombre,
-        kgProgramados: comp.kgTerminados,
-        operador: op.operador || 'Sin asignar',
-        inicio: new Date().toISOString(),
-        fase: 'coccion',
-        opVinculadaId: op.id,
-        tiempoCoccionMin: comp.tiempoCoccion || 30,
-        enEspera: false
-      };
-    });
-
-    op.estado = 'en-produccion';
+    op.estado = esHoy ? 'en-produccion' : 'planificada';
     iniciadas++;
   });
+
+  // Si es hoy, activar los componentes cuya hora ya pasó
+  if (esHoy) {
+    const ahoraMin = new Date().getHours() * 60 + new Date().getMinutes();
+    equipos.forEach(eq => {
+      if (!eq.planificaciones) return;
+      const planHoy = eq.planificaciones.filter(p => p.fechaStr === fechaStr);
+      if (planHoy.length === 0) return;
+
+      // El primer bloque del día para este equipo
+      const primero = planHoy.sort((a,b) => a.inicioMin - b.inicioMin)[0];
+      if (primero && ahoraMin >= primero.inicioMin) {
+        // Ya es hora — iniciar inmediatamente
+        eq.estado = 'ocupado';
+        eq.produccion = {
+          numeroOP: primero.numeroOP,
+          producto: `${primero.opNombre} — OP ${primero.numeroOP}`,
+          componente: primero.componente,
+          kgProgramados: primero.kgProgramados,
+          operador: primero.operador,
+          inicio: new Date().toISOString(),
+          fase: 'coccion',
+          opVinculadaId: primero.opId,
+          tiempoCoccionMin: primero.duracion,
+          enEspera: false
+        };
+        primero.estado = 'activo';
+      } else if (primero) {
+        // Aún no es hora — poner en espera programada
+        eq.estado = 'programado';
+        primero.estado = 'programado';
+      }
+    });
+  }
 
   guardarOPs();
   guardarDatos();
@@ -5804,15 +6088,19 @@ function confirmarInicioJornada() {
   renderVistaSemanal();
   actualizarContadorOPs();
 
-  mostrarNotificacion(`🚀 Jornada iniciada — ${iniciadas} OP(s) en producción`, 'success');
+  const msg = esHoy 
+    ? `🚀 Jornada iniciada — ${resultado.planificadas} componentes planificados en el Gantt`
+    : `📅 Jornada planificada — ${resultado.planificadas} componentes programados para ${fechaStr}`;
+  mostrarNotificacion(msg, 'success');
 
-  // Si el usuario está en el Gantt, actualizar
-  if (document.getElementById('gantt')?.classList.contains('active') ||
-      document.getElementById('gantt')?.style.display !== 'none') {
-    recalcularTiemposCoccion();
-    limpiarEsperasVencidas();
-    renderGanttBloques();
+  if (resultado.sinEquipo > 0) {
+    setTimeout(() => mostrarNotificacion(`⚠️ ${resultado.sinEquipo} componente(s) sin equipo disponible — revisar Gantt`, 'warning'), 1500);
   }
+
+  // Actualizar Gantt si está visible
+  recalcularTiemposCoccion();
+  limpiarEsperasVencidas();
+  if (typeof renderGanttBloques === 'function') renderGanttBloques();
 }
 
 // Mostrar/ocultar botón iniciar jornada según si hay OPs
@@ -6438,6 +6726,80 @@ function cargarSelectorOPsSimple() {
 
                 contenedor.appendChild(bloque);
             });
+
+            // ---- BLOQUES PROGRAMADOS (planificados para hoy) ----
+            const fechaHoy = getHoy();
+            equipos.forEach((eq, colIndex) => {
+                if (!eq.planificaciones) return;
+                const planHoy = eq.planificaciones.filter(p => p.fechaStr === fechaHoy && p.estado === 'programado');
+                if (planHoy.length === 0) return;
+
+                const contenedor = body.closest('div');
+                const horaColW = 70;
+                const colW = (contenedor.offsetWidth - horaColW) / equipos.length;
+                const left = horaColW + colIndex * colW + 4;
+                const width = colW - 8;
+                const theadH2 = body.closest('table').querySelector('thead').offsetHeight || 40;
+
+                planHoy.forEach((plan, pi) => {
+                    const hInicio = plan.inicioMin / 60;
+                    const durMin = plan.duracion;
+                    const top = theadH2 + (hInicio - 8) * 40;
+                    const altura = Math.max((durMin / 60) * 40, 28);
+
+                    // Badge programado
+                    const hStr = String(Math.floor(plan.inicioMin/60)).padStart(2,'0') + ':' + String(plan.inicioMin%60).padStart(2,'0');
+                    const badge = document.createElement('div');
+                    badge.className = 'gantt-bloque';
+                    badge.style.cssText = [
+                        'position:absolute',
+                        'top:' + (top - 20) + 'px',
+                        'left:' + left + 'px',
+                        'width:' + width + 'px',
+                        'background:#94a3b8',
+                        'color:white',
+                        'font-size:.65rem',
+                        'font-weight:800',
+                        'padding:.15rem .4rem',
+                        'border-radius:4px 4px 0 0',
+                        'text-align:center',
+                        'white-space:nowrap',
+                        'overflow:hidden',
+                        'z-index:4'
+                    ].join(';');
+                    badge.textContent = '🕐 ' + hStr;
+                    contenedor.appendChild(badge);
+
+                    // Bloque programado (gris rayado)
+                    const bloqueProg = document.createElement('div');
+                    bloqueProg.className = 'gantt-bloque';
+                    bloqueProg.style.cssText = [
+                        'position:absolute',
+                        'top:' + top + 'px',
+                        'left:' + left + 'px',
+                        'width:' + width + 'px',
+                        'height:' + altura + 'px',
+                        'background:repeating-linear-gradient(45deg,#f1f5f9,#f1f5f9 5px,#e2e8f0 5px,#e2e8f0 10px)',
+                        'border-left:4px solid #94a3b8',
+                        'border-radius:0 6px 6px 0',
+                        'padding:.25rem .4rem',
+                        'overflow:hidden',
+                        'z-index:4',
+                        'cursor:pointer',
+                        'opacity:.85'
+                    ].join(';');
+                    bloqueProg.title = 'Click para editar esta planificación';
+                    bloqueProg.innerHTML = [
+                        '<div style="font-size:.75rem;font-weight:700;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📋 ' + plan.componente + '</div>',
+                        altura > 36 ? '<div style="font-size:.68rem;color:#64748b;">OP ' + plan.numeroOP + ' · ' + plan.kgProgramados + ' kg</div>' : '',
+                        altura > 52 ? '<div style="font-size:.68rem;color:#94a3b8;">' + durMin + ' min est.</div>' : ''
+                    ].join('');
+
+                    // Click para editar
+                    bloqueProg.onclick = () => abrirEditorBloqueProgramado(eq.id, plan, pi);
+                    contenedor.appendChild(bloqueProg);
+                });
+            });
         }
 
 
@@ -6448,6 +6810,9 @@ function cargarSelectorOPsSimple() {
         function iniciarCronometroGantt() {
             if (ganttCronometroTimer) clearInterval(ganttCronometroTimer);
             ganttCronometroTimer = setInterval(actualizarCronometros, 1000);
+            // Verificar activaciones cada minuto
+            if (window._activacionTimer) clearInterval(window._activacionTimer);
+            window._activacionTimer = setInterval(activarBloquesProgramados, 60000);
         }
 
         function detenerCronometroGantt() {
