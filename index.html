@@ -1627,7 +1627,10 @@
                                     <span class="timer" id="timer-coccion-${equipo.id}">00:00:00</span>
                                 </div>
                             </div>
-                            <button class="btn btn-success btn-full" onclick="abrirFinalizarCoccion(${equipo.id})">✅ FINALIZAR COCCIÓN</button>
+                            <div style="display:flex;gap:.5rem;margin-top:.5rem;">
+                            <button class="btn btn-success" style="flex:1;" onclick="abrirFinalizarCoccion(${equipo.id})">✅ FINALIZAR COCCIÓN</button>
+                            <button style="background:#f0fdf4;border:2px solid #10b981;color:#065f46;border-radius:8px;padding:.5rem .75rem;cursor:pointer;font-weight:700;font-size:.82rem;white-space:nowrap;" onclick="abrirRegistroHACCP(${equipo.id})">📋 HACCP</button>
+                            </div>
                         `;
                     } else if (equipo.estado === 'programado') {
                         // Mostrar info del bloque programado
@@ -2339,6 +2342,570 @@
         }
 
         setInterval(actualizarContadorTurno, 60000);
+
+// ============================================================
+// MÓDULO REGISTRO HACCP
+// ============================================================
+
+window._haaccpEquipoId = null;
+
+function getDiaJuliano() {
+  const ahora = new Date();
+  const inicio = new Date(ahora.getFullYear(), 0, 0);
+  const diff = ahora - inicio;
+  return Math.floor(diff / (1000 * 60 * 60 * 24));
+}
+
+function abrirRegistroHACCP(equipoId) {
+  const eq = equipos.find(e => e.id === equipoId);
+  if (!eq || !eq.produccion) return;
+  window._haaccpEquipoId = equipoId;
+
+  // Buscar receta y componente
+  const op = ordenesProduccion.find(o => o.id === eq.produccion.opVinculadaId);
+  const receta = recetas.find(r => r.id === op?.recetaId);
+  const comp = receta?.componentes?.find(c =>
+    c.nombre?.toLowerCase().trim() === eq.produccion.componente?.toLowerCase().trim()
+  );
+  const ingredientes = comp?.ingredientes || [];
+  const platos = op?.platos || 0;
+
+  // Calcular cantidades reales de ingredientes
+  const ingrConCant = ingredientes.map(ing => {
+    let cantReal = ing.cantidadBruta || 0;
+    if (ing.unidad === 'gr') cantReal = Math.round((platos * ing.cantidadBruta / 1000) * 100) / 100;
+    else if (ing.unidad === 'kg') cantReal = Math.round(platos * ing.cantidadBruta * 100) / 100;
+    else cantReal = Math.round(platos * ing.cantidadBruta * 100) / 100;
+    return { ...ing, cantReal };
+  });
+
+  const horaInicio = eq.produccion.inicio ? new Date(eq.produccion.inicio).toLocaleTimeString('es-CL', {hour:'2-digit',minute:'2-digit'}) : '';
+  const fechaHoy = new Date().toLocaleDateString('es-CL');
+  const loteJuliano = getDiaJuliano();
+  const operador = eq.produccion.operador || '';
+  const nOP = eq.produccion.numeroOP || '';
+  const preparacion = eq.produccion.componente || '';
+  const kgProg = eq.produccion.kgProgramados || 0;
+
+  // Equipo tipo
+  const tipoEq = eq.tipo === 'sartenBasculante' ? eq.nombre :
+                 eq.tipo === 'horno' ? eq.nombre :
+                 eq.tipo === 'marmita' ? eq.nombre : eq.nombre;
+
+  const html = `
+    <div id="haaccpForm">
+      <!-- Encabezado datos generales -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 2fr 1fr;gap:.75rem;margin-bottom:1rem;padding:.75rem;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;">
+        <div>
+          <label style="font-size:.72rem;font-weight:700;color:#64748b;display:block;margin-bottom:.2rem;">① FECHA</label>
+          <input type="text" id="hFecha" value="${fechaHoy}" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+        </div>
+        <div>
+          <label style="font-size:.72rem;font-weight:700;color:#64748b;display:block;margin-bottom:.2rem;">② LOTE DÍA (JULIANO)</label>
+          <input type="text" id="hLote" value="${loteJuliano}" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+        </div>
+        <div>
+          <label style="font-size:.72rem;font-weight:700;color:#64748b;display:block;margin-bottom:.2rem;">③ NOMBRE RESPONSABLE</label>
+          <input type="text" id="hResponsable" value="${operador}" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+        </div>
+        <div>
+          <label style="font-size:.72rem;font-weight:700;color:#64748b;display:block;margin-bottom:.2rem;">④ N° ORDEN PRODUCCIÓN</label>
+          <input type="text" id="hOP" value="${nOP}" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+        </div>
+      </div>
+
+      <!-- Preparación -->
+      <div style="padding:.6rem .75rem;background:#eef2ff;border-radius:8px;margin-bottom:1rem;border-left:4px solid #667eea;">
+        <span style="font-size:.72rem;font-weight:700;color:#4338ca;">⑤ PREPARACIÓN:</span>
+        <span style="font-size:.9rem;font-weight:800;color:#1e293b;margin-left:.5rem;">${preparacion}</span>
+        <span style="margin-left:1rem;font-size:.78rem;color:#64748b;">Equipo: <strong>${tipoEq}</strong> · Kg Programados: <strong>${kgProg} kg</strong></span>
+      </div>
+
+      <!-- Tabla ingredientes -->
+      <div style="overflow-x:auto;margin-bottom:1rem;">
+        <table style="width:100%;border-collapse:collapse;font-size:.78rem;">
+          <thead>
+            <tr style="background:#1e3a5f;color:white;">
+              <th style="padding:.5rem .4rem;text-align:left;border:1px solid #2d5986;min-width:140px;">⑥ Ingrediente / MP</th>
+              <th style="padding:.5rem .4rem;text-align:center;border:1px solid #2d5986;min-width:80px;">⑦ Cant. MP</th>
+              <th style="padding:.5rem .4rem;text-align:center;border:1px solid #2d5986;min-width:80px;">⑧ Cant. Prep.</th>
+              <th style="padding:.5rem .4rem;text-align:center;border:1px solid #2d5986;min-width:90px;">⑨ Lote Interno</th>
+              <th style="padding:.5rem .4rem;text-align:center;border:1px solid #2d5986;min-width:60px;">Aus. Elem Ext</th>
+              <th style="padding:.5rem .4rem;text-align:center;border:1px solid #2d5986;min-width:55px;">Aroma</th>
+              <th style="padding:.5rem .4rem;text-align:center;border:1px solid #2d5986;min-width:55px;">Color</th>
+              <th style="padding:.5rem .4rem;text-align:center;border:1px solid #2d5986;min-width:60px;">Textura</th>
+              <th style="padding:.5rem .4rem;text-align:center;border:1px solid #2d5986;min-width:55px;">⑪ A/R</th>
+            </tr>
+            <tr style="background:#2d5986;color:rgba(255,255,255,.8);font-size:.7rem;">
+              <th style="border:1px solid #1e3a5f;padding:.3rem;"></th>
+              <th style="border:1px solid #1e3a5f;padding:.3rem;"></th>
+              <th style="border:1px solid #1e3a5f;padding:.3rem;"></th>
+              <th style="border:1px solid #1e3a5f;padding:.3rem;"></th>
+              <th colspan="4" style="border:1px solid #1e3a5f;padding:.3rem;text-align:center;">⑩ Inspección Visual MP (C/NC)</th>
+              <th style="border:1px solid #1e3a5f;padding:.3rem;"></th>
+            </tr>
+          </thead>
+          <tbody id="haaccpIngredientes">
+            ${ingrConCant.map((ing, i) => `
+              <tr style="background:${i%2===0?'white':'#f8fafc'};">
+                <td style="padding:.4rem;border:1px solid #e2e8f0;font-weight:600;">${ing.nombre}</td>
+                <td style="padding:.4rem;border:1px solid #e2e8f0;text-align:center;">${ing.cantReal} ${ing.unidad}</td>
+                <td style="padding:.4rem;border:1px solid #e2e8f0;text-align:center;">${ing.cantReal} ${ing.unidad}</td>
+                <td style="padding:.4rem;border:1px solid #e2e8f0;">
+                  <input type="text" id="loteInt_${i}" placeholder="Lote..." style="width:100%;padding:.3rem;border-radius:4px;border:1px solid #ddd;font-size:.78rem;">
+                </td>
+                ${['ausExt','aroma','color','textura'].map(cr => `
+                <td style="padding:.3rem;border:1px solid #e2e8f0;text-align:center;">
+                  <div style="display:flex;gap:.2rem;justify-content:center;">
+                    <button onclick="toggleCNC(this,'C')" class="btnCNC" data-id="insp_${cr}_${i}" data-val="C"
+                      style="padding:.2rem .4rem;border-radius:4px;border:1px solid #10b981;background:white;color:#10b981;cursor:pointer;font-size:.7rem;font-weight:700;">C</button>
+                    <button onclick="toggleCNC(this,'NC')" class="btnCNC" data-id="insp_${cr}_${i}" data-val="NC"
+                      style="padding:.2rem .4rem;border-radius:4px;border:1px solid #ef4444;background:white;color:#ef4444;cursor:pointer;font-size:.7rem;font-weight:700;">NC</button>
+                  </div>
+                </td>`).join('')}
+                <td style="padding:.3rem;border:1px solid #e2e8f0;text-align:center;">
+                  <div style="display:flex;gap:.2rem;justify-content:center;">
+                    <button onclick="toggleAR(this,'A')" class="btnAR" data-id="ar_${i}" data-val="A"
+                      style="padding:.2rem .5rem;border-radius:4px;border:1px solid #10b981;background:white;color:#10b981;cursor:pointer;font-size:.72rem;font-weight:800;">A</button>
+                    <button onclick="toggleAR(this,'R')" class="btnAR" data-id="ar_${i}" data-val="R"
+                      style="padding:.2rem .5rem;border-radius:4px;border:1px solid #ef4444;background:white;color:#ef4444;cursor:pointer;font-size:.72rem;font-weight:800;">R</button>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Fila horario, equipo, temperatura -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:.75rem;margin-bottom:1rem;">
+        <div>
+          <label style="font-size:.72rem;font-weight:700;color:#64748b;display:block;margin-bottom:.2rem;">⑫ HORA INICIO</label>
+          <input type="time" id="hHoraInicio" value="${horaInicio}" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+        </div>
+        <div>
+          <label style="font-size:.72rem;font-weight:700;color:#64748b;display:block;margin-bottom:.2rem;">⑫ HORA TÉRMINO</label>
+          <input type="time" id="hHoraTermino" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+        </div>
+        <div>
+          <label style="font-size:.72rem;font-weight:700;color:#64748b;display:block;margin-bottom:.2rem;">⑬ EQUIPO</label>
+          <input type="text" id="hEquipo" value="${tipoEq}" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+        </div>
+        <div>
+          <label style="font-size:.72rem;font-weight:700;color:#64748b;display:block;margin-bottom:.2rem;">⑭ TEMPERATURA (°C)</label>
+          <input type="number" id="hTemp" placeholder="Ej: 85" min="0" max="200" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+        </div>
+      </div>
+
+      <!-- Acción correctiva + Calidad final -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1rem;">
+        <div style="background:#fffbeb;border-radius:8px;padding:.75rem;border:1px solid #fde68a;">
+          <label style="font-size:.72rem;font-weight:700;color:#92400e;display:block;margin-bottom:.5rem;">⑮ ¿REQUIERE ACCIÓN CORRECTIVA?</label>
+          <div style="display:flex;gap:.5rem;margin-bottom:.5rem;">
+            <button onclick="toggleReqACC(false)" id="btnNoACC" style="flex:1;padding:.4rem;border-radius:6px;border:2px solid #10b981;background:#10b981;color:white;cursor:pointer;font-weight:700;font-size:.82rem;">No</button>
+            <button onclick="toggleReqACC(true)" id="btnSiACC" style="flex:1;padding:.4rem;border-radius:6px;border:2px solid #ef4444;background:white;color:#ef4444;cursor:pointer;font-weight:700;font-size:.82rem;">Sí</button>
+          </div>
+          <div id="selectorACC" style="display:none;">
+            <label style="font-size:.72rem;font-weight:700;color:#92400e;display:block;margin-bottom:.3rem;">⑯ ACCIÓN CORRECTIVA:</label>
+            <select id="hACC" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #fde68a;font-size:.78rem;">
+              <option value="">Selecciona...</option>
+              <option value="ACC01">ACC01 — Temp. carnes/salsas &lt; 75°C</option>
+              <option value="ACC02">ACC02 — Temp. carbohidratos &lt; 65°C</option>
+              <option value="ACC03">ACC03 — Falla equipo, cambio equipo</option>
+              <option value="ACC04">ACC04 — Desviación organoléptica</option>
+              <option value="ACC05">ACC05 — Elemento extraño encontrado</option>
+            </select>
+          </div>
+        </div>
+        <div style="background:#f0fdf4;border-radius:8px;padding:.75rem;border:1px solid #bbf7d0;">
+          <label style="font-size:.72rem;font-weight:700;color:#065f46;display:block;margin-bottom:.5rem;">⑰ ASPECTOS DE CALIDAD FINAL</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;">
+            ${['Aus. Elem Ext.','Aroma','Color','Textura'].map((cr,i) => `
+              <div style="display:flex;align-items:center;justify-content:space-between;background:white;border-radius:6px;padding:.3rem .5rem;">
+                <span style="font-size:.75rem;color:#374151;">${cr}</span>
+                <div style="display:flex;gap:.2rem;">
+                  <button onclick="toggleCNC(this,'C')" class="btnCNC" data-id="cal_${i}" data-val="C"
+                    style="padding:.15rem .35rem;border-radius:4px;border:1px solid #10b981;background:white;color:#10b981;cursor:pointer;font-size:.68rem;font-weight:700;">C</button>
+                  <button onclick="toggleCNC(this,'NC')" class="btnCNC" data-id="cal_${i}" data-val="NC"
+                    style="padding:.15rem .35rem;border-radius:4px;border:1px solid #ef4444;background:white;color:#ef4444;cursor:pointer;font-size:.68rem;font-weight:700;">NC</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+
+      <!-- Cantidad total y rendimiento -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 2fr;gap:.75rem;margin-bottom:1rem;">
+        <div>
+          <label style="font-size:.72rem;font-weight:700;color:#64748b;display:block;margin-bottom:.2rem;">⑱ CANTIDAD TOTAL PREPARACIÓN (kg)</label>
+          <input type="number" id="hCantTotal" placeholder="Ej: 118" min="0" step="0.1" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+        </div>
+        <div>
+          <label style="font-size:.72rem;font-weight:700;color:#64748b;display:block;margin-bottom:.2rem;">⑲ RENDIMIENTO REAL (%)</label>
+          <input type="number" id="hRendimiento" placeholder="Ej: 92" min="0" max="200" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;"
+            oninput="calcularRendimientoHACCP()">
+        </div>
+        <div>
+          <label style="font-size:.72rem;font-weight:700;color:#64748b;display:block;margin-bottom:.2rem;">⑳ OBSERVACIONES</label>
+          <input type="text" id="hObservaciones" placeholder="Notas..." style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+        </div>
+      </div>
+
+      <!-- Firma PIN -->
+      <div style="background:#f8fafc;border-radius:10px;padding:1rem;border:2px solid #e2e8f0;margin-bottom:1rem;">
+        <div style="font-size:.82rem;font-weight:700;color:#374151;margin-bottom:.6rem;">🔐 FIRMA DIGITAL DEL OPERADOR</div>
+        <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;">
+          <div>
+            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">Operador</label>
+            <input type="text" id="hFirmaNombre" value="${operador}" style="padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;width:180px;">
+          </div>
+          <div>
+            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">PIN (4 dígitos)</label>
+            <input type="password" id="hFirmaPIN" maxlength="4" placeholder="••••" style="padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;width:100px;text-align:center;letter-spacing:.2rem;">
+          </div>
+          <div id="firmaEstado" style="font-size:.82rem;color:#94a3b8;padding-top:1.2rem;">Ingresa PIN para firmar</div>
+        </div>
+      </div>
+
+      <!-- Botones -->
+      <div style="display:flex;gap:1rem;justify-content:flex-end;flex-wrap:wrap;">
+        <button onclick="cerrarModalHACCP()" style="padding:.75rem 1.5rem;border-radius:10px;border:1px solid #ddd;cursor:pointer;font-weight:600;color:#64748b;">Cancelar</button>
+        <button onclick="generarPDFHACCP()" style="padding:.75rem 1.75rem;border-radius:10px;border:none;background:linear-gradient(135deg,#1e3a5f,#2d5986);color:white;cursor:pointer;font-weight:700;font-size:1rem;">
+          📄 Generar PDF e Imprimir
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('contenidoModalHACCP').innerHTML = html;
+  document.getElementById('modalHACCP').style.display = 'block';
+}
+
+function cerrarModalHACCP() {
+  document.getElementById('modalHACCP').style.display = 'none';
+}
+
+function toggleCNC(btn, val) {
+  const id = btn.getAttribute('data-id');
+  // Desactivar ambos botones del mismo grupo
+  document.querySelectorAll(`.btnCNC[data-id="${id}"]`).forEach(b => {
+    b.style.background = 'white';
+    b.style.color = b.getAttribute('data-val') === 'C' ? '#10b981' : '#ef4444';
+  });
+  // Activar el seleccionado
+  btn.style.background = val === 'C' ? '#10b981' : '#ef4444';
+  btn.style.color = 'white';
+}
+
+function toggleAR(btn, val) {
+  const id = btn.getAttribute('data-id');
+  document.querySelectorAll(`.btnAR[data-id="${id}"]`).forEach(b => {
+    b.style.background = 'white';
+    b.style.color = b.getAttribute('data-val') === 'A' ? '#10b981' : '#ef4444';
+  });
+  btn.style.background = val === 'A' ? '#10b981' : '#ef4444';
+  btn.style.color = 'white';
+}
+
+function toggleReqACC(requiere) {
+  document.getElementById('selectorACC').style.display = requiere ? 'block' : 'none';
+  document.getElementById('btnSiACC').style.background = requiere ? '#ef4444' : 'white';
+  document.getElementById('btnSiACC').style.color = requiere ? 'white' : '#ef4444';
+  document.getElementById('btnNoACC').style.background = !requiere ? '#10b981' : 'white';
+  document.getElementById('btnNoACC').style.color = !requiere ? 'white' : '#10b981';
+}
+
+function calcularRendimientoHACCP() {
+  const cant = parseFloat(document.getElementById('hCantTotal')?.value) || 0;
+  const eq = equipos.find(e => e.id === window._haaccpEquipoId);
+  const kgProg = eq?.produccion?.kgProgramados || 0;
+  if (kgProg > 0 && cant > 0) {
+    document.getElementById('hRendimiento').value = Math.round((cant / kgProg) * 100);
+  }
+}
+
+function getValorCNC(id) {
+  const btn = document.querySelector(`.btnCNC[data-id="${id}"][style*="white; color: white"], .btnCNC[data-id="${id}"][style*="rgb(16, 185, 129)"], .btnCNC[data-id="${id}"][style*="rgb(239, 68, 68)"]`);
+  // Método más confiable: buscar el que tiene background coloreado
+  const btns = document.querySelectorAll(`.btnCNC[data-id="${id}"]`);
+  for (const b of btns) {
+    if (b.style.color === 'white') return b.getAttribute('data-val');
+  }
+  return '—';
+}
+
+function getValorAR(id) {
+  const btns = document.querySelectorAll(`.btnAR[data-id="${id}"]`);
+  for (const b of btns) {
+    if (b.style.color === 'white') return b.getAttribute('data-val');
+  }
+  return '—';
+}
+
+function generarPDFHACCP() {
+  const pin = document.getElementById('hFirmaPIN')?.value;
+  const nombre = document.getElementById('hFirmaNombre')?.value || '';
+
+  if (!pin || pin.length < 4) {
+    alert('Ingresa tu PIN de 4 dígitos para firmar el registro');
+    document.getElementById('hFirmaPIN')?.focus();
+    return;
+  }
+
+  // Recopilar datos del formulario
+  const eq = equipos.find(e => e.id === window._haaccpEquipoId);
+  const op = ordenesProduccion.find(o => o.id === eq?.produccion?.opVinculadaId);
+  const receta = recetas.find(r => r.id === op?.recetaId);
+  const comp = receta?.componentes?.find(c =>
+    c.nombre?.toLowerCase().trim() === eq?.produccion?.componente?.toLowerCase().trim()
+  );
+  const ingredientes = comp?.ingredientes || [];
+  const platos = op?.platos || 0;
+
+  const datos = {
+    fecha: document.getElementById('hFecha')?.value || '',
+    lote: document.getElementById('hLote')?.value || '',
+    responsable: document.getElementById('hResponsable')?.value || '',
+    op: document.getElementById('hOP')?.value || '',
+    preparacion: eq?.produccion?.componente || '',
+    equipo: document.getElementById('hEquipo')?.value || '',
+    kgProg: eq?.produccion?.kgProgramados || 0,
+    horaInicio: document.getElementById('hHoraInicio')?.value || '',
+    horaTermino: document.getElementById('hHoraTermino')?.value || '',
+    temp: document.getElementById('hTemp')?.value || '',
+    acc: document.getElementById('hACC')?.value || 'No',
+    cantTotal: document.getElementById('hCantTotal')?.value || '',
+    rendimiento: document.getElementById('hRendimiento')?.value || '',
+    observaciones: document.getElementById('hObservaciones')?.value || '',
+    firmaNombre: nombre,
+    firmaTimestamp: new Date().toLocaleString('es-CL'),
+    firmaPIN: '****',
+    ingredientes: ingredientes.map((ing, i) => {
+      let cantReal = ing.cantidadBruta || 0;
+      if (ing.unidad === 'gr') cantReal = Math.round((platos * ing.cantidadBruta / 1000) * 100) / 100;
+      else cantReal = Math.round(platos * ing.cantidadBruta * 100) / 100;
+      return {
+        nombre: ing.nombre,
+        cantReal, unidad: ing.unidad,
+        loteInt: document.getElementById(`loteInt_${i}`)?.value || '',
+        ausExt: getValorCNC(`insp_ausExt_${i}`),
+        aroma: getValorCNC(`insp_aroma_${i}`),
+        color: getValorCNC(`insp_color_${i}`),
+        textura: getValorCNC(`insp_textura_${i}`),
+        ar: getValorAR(`ar_${i}`)
+      };
+    }),
+    calidad: {
+      ausExt: getValorCNC('cal_0'),
+      aroma: getValorCNC('cal_1'),
+      color: getValorCNC('cal_2'),
+      textura: getValorCNC('cal_3')
+    }
+  };
+
+  imprimirRegistroHACCP(datos);
+}
+
+function imprimirRegistroHACCP(d) {
+  const ventana = window.open('', '_blank', 'width=900,height=700');
+
+  const filaIngredientes = d.ingredientes.map(ing => `
+    <tr>
+      <td>${ing.nombre}</td>
+      <td style="text-align:center;">${ing.cantReal} ${ing.unidad}</td>
+      <td style="text-align:center;">${ing.cantReal} ${ing.unidad}</td>
+      <td style="text-align:center;">${ing.loteInt || ''}</td>
+      <td style="text-align:center;">${ing.ausExt}</td>
+      <td style="text-align:center;">${ing.aroma}</td>
+      <td style="text-align:center;">${ing.color}</td>
+      <td style="text-align:center;">${ing.textura}</td>
+      <td style="text-align:center;font-weight:bold;color:${ing.ar==='A'?'#059669':'#dc2626'}">${ing.ar}</td>
+    </tr>
+  `).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Registro HACCP — ${d.preparacion}</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: Arial, sans-serif; font-size: 9pt; color: #000; background: white; }
+  @page { size: A4 landscape; margin: 10mm; }
+  @media print { body { margin: 0; } .no-print { display: none; } }
+
+  .header-empresa { display:flex; justify-content:space-between; align-items:center; border:2px solid #1e3a5f; margin-bottom:4px; }
+  .header-titulo { flex:1; text-align:center; padding:6px; border-left:1px solid #1e3a5f; border-right:1px solid #1e3a5f; }
+  .header-titulo h2 { font-size:11pt; font-weight:bold; color:#1e3a5f; }
+  .header-codigo { padding:6px 10px; font-size:8pt; white-space:pre-line; text-align:right; }
+  .header-logo { padding:6px 10px; font-size:8pt; color:#1e3a5f; font-weight:bold; }
+
+  .instrucciones { font-size:7pt; border:1px solid #ccc; padding:5px; margin-bottom:4px; color:#555; line-height:1.3; }
+
+  .datos-gen { display:flex; gap:0; border:1px solid #1e3a5f; margin-bottom:4px; }
+  .dato-item { flex:1; padding:4px 6px; border-right:1px solid #1e3a5f; }
+  .dato-item:last-child { border-right:none; }
+  .dato-label { font-size:7pt; font-weight:bold; color:#1e3a5f; }
+  .dato-val { font-size:9pt; font-weight:bold; margin-top:2px; }
+
+  .preparacion-bar { background:#1e3a5f; color:white; padding:4px 8px; font-weight:bold; font-size:9pt; margin-bottom:4px; }
+
+  table { width:100%; border-collapse:collapse; margin-bottom:6px; }
+  th { background:#1e3a5f; color:white; padding:4px 3px; font-size:7.5pt; border:1px solid #2d5986; text-align:center; }
+  th.subheader { background:#2d5986; font-size:7pt; }
+  td { padding:3px; border:1px solid #ccc; font-size:8pt; vertical-align:middle; }
+  tr:nth-child(even) td { background:#f5f5f5; }
+
+  .seccion-inferior { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px; margin-bottom:6px; }
+  .bloque { border:1px solid #1e3a5f; padding:5px; }
+  .bloque-titulo { font-size:7.5pt; font-weight:bold; color:#1e3a5f; border-bottom:1px solid #e5e7eb; padding-bottom:2px; margin-bottom:4px; }
+  .campo { margin-bottom:3px; }
+  .campo-label { font-size:7pt; color:#555; }
+  .campo-val { font-size:9pt; font-weight:bold; border-bottom:1px dotted #999; min-height:14px; }
+
+  .acc-box { border:1px solid #f59e0b; background:#fffbeb; padding:5px; margin-bottom:6px; }
+  .calidad-grid { display:grid; grid-template-columns:1fr 1fr; gap:3px; }
+  .calidad-item { display:flex; justify-content:space-between; font-size:8pt; border-bottom:1px dotted #ccc; padding:1px 0; }
+
+  .firma-box { border:2px solid #1e3a5f; padding:6px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center; }
+  .firma-campo { text-align:center; min-width:180px; }
+  .firma-linea { border-top:1px solid #000; margin-top:20px; padding-top:3px; font-size:7.5pt; }
+
+  .acciones-correctivas { border:1px solid #ccc; padding:5px; font-size:7pt; color:#555; line-height:1.4; }
+  .acc-titulo { font-weight:bold; font-size:8pt; color:#1e3a5f; margin-bottom:3px; }
+
+  .print-btn { position:fixed; top:10px; right:10px; background:#1e3a5f; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-size:11pt; z-index:999; }
+</style>
+</head>
+<body>
+<button class="print-btn no-print" onclick="window.print()">🖨️ Imprimir</button>
+
+<!-- ENCABEZADO -->
+<div class="header-empresa">
+  <div class="header-logo">🏭 SANTA EMILIA</div>
+  <div class="header-titulo">
+    <h2>CONTROL DE PROCESOS - COCINA</h2>
+  </div>
+  <div class="header-codigo">Código: R-POE-03-GF-03<br>Versión: 3<br>Fecha Vigencia: 15-12-2025</div>
+</div>
+
+<!-- INSTRUCCIONES -->
+<div class="instrucciones">
+  <strong>Instrucciones:</strong> (1) Señale la fecha de la preparación. (2) Identifique el lote del día según calendario juliano. (3) Nombre del responsable. (4) N° de orden de producción. (5) Preparación a realizar. (6) Ingredientes/MP empleados. (7-8) Cantidades requeridas y estimadas. (9) Lote interno de MP. (10) Inspección visual: C=Cumple / NC=No Cumple. (11) A=Aceptada / R=Rechazada. (12) Horas inicio y término. (13) Equipo empleado. (14) Temperatura de cocción. (15-16) Acciones correctivas si aplica. (17) Aspectos de calidad. (18) Cantidad total producida. (19) Rendimiento real. (20) Observaciones.
+</div>
+
+<!-- DATOS GENERALES -->
+<div class="datos-gen">
+  <div class="dato-item" style="max-width:120px;">
+    <div class="dato-label">① Fecha:</div>
+    <div class="dato-val">${d.fecha}</div>
+  </div>
+  <div class="dato-item" style="max-width:120px;">
+    <div class="dato-label">② Lote Día (Juliano):</div>
+    <div class="dato-val">${d.lote}</div>
+  </div>
+  <div class="dato-item">
+    <div class="dato-label">③ Nombre del Responsable:</div>
+    <div class="dato-val">${d.responsable}</div>
+  </div>
+  <div class="dato-item" style="max-width:180px;">
+    <div class="dato-label">④ N° Orden de Producción:</div>
+    <div class="dato-val">${d.op}</div>
+  </div>
+</div>
+
+<!-- PREPARACIÓN -->
+<div class="preparacion-bar">
+  ⑤ Preparación: ${d.preparacion} &nbsp;&nbsp;|&nbsp;&nbsp; Equipo: ${d.equipo} &nbsp;&nbsp;|&nbsp;&nbsp; Kg Programados: ${d.kgProg} kg
+</div>
+
+<!-- TABLA INGREDIENTES -->
+<table>
+  <thead>
+    <tr>
+      <th rowspan="2" style="text-align:left;min-width:140px;">⑥ Ingredientes / MP</th>
+      <th rowspan="2">⑦ Cant. MP</th>
+      <th rowspan="2">⑧ Cant. Prep.</th>
+      <th rowspan="2">⑨ Lote Interno</th>
+      <th colspan="4">⑩ Inspección Visual de Materia Prima (C/NC)</th>
+      <th rowspan="2">⑪ A/R</th>
+    </tr>
+    <tr>
+      <th class="subheader">Aus. Elem. Ext.</th>
+      <th class="subheader">Aroma</th>
+      <th class="subheader">Color</th>
+      <th class="subheader">Textura</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${filaIngredientes}
+    ${Array(Math.max(0, 5 - d.ingredientes.length)).fill('<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>').join('')}
+  </tbody>
+</table>
+
+<!-- SECCIÓN INFERIOR: Horario, Equipo, Temperatura, Acciones, Calidad -->
+<div class="seccion-inferior">
+  <div class="bloque">
+    <div class="bloque-titulo">⑫ Hora Inicio y Término · ⑬ Equipo</div>
+    <div class="campo"><div class="campo-label">Hora Inicio:</div><div class="campo-val">${d.horaInicio}</div></div>
+    <div class="campo"><div class="campo-label">Hora Término:</div><div class="campo-val">${d.horaTermino}</div></div>
+    <div class="campo"><div class="campo-label">Equipo:</div><div class="campo-val">${d.equipo}</div></div>
+  </div>
+  <div class="bloque">
+    <div class="bloque-titulo">⑭ Temperatura · ⑮⑯ Acción Correctiva</div>
+    <div class="campo"><div class="campo-label">Temperatura de Cocción:</div><div class="campo-val">${d.temp} °C</div></div>
+    <div class="campo"><div class="campo-label">Requiere ACC:</div><div class="campo-val">${d.acc || 'No'}</div></div>
+  </div>
+  <div class="bloque">
+    <div class="bloque-titulo">⑰ Aspectos de Calidad Final</div>
+    <div class="calidad-grid">
+      <div class="calidad-item"><span>Aus. Elem. Ext.</span><strong>${d.calidad.ausExt}</strong></div>
+      <div class="calidad-item"><span>Aroma</span><strong>${d.calidad.aroma}</strong></div>
+      <div class="calidad-item"><span>Color</span><strong>${d.calidad.color}</strong></div>
+      <div class="calidad-item"><span>Textura</span><strong>${d.calidad.textura}</strong></div>
+    </div>
+  </div>
+  <div class="bloque">
+    <div class="bloque-titulo">⑱ Cant. Total · ⑲ Rendimiento · ⑳ Obs.</div>
+    <div class="campo"><div class="campo-label">Cantidad Total:</div><div class="campo-val">${d.cantTotal} kg</div></div>
+    <div class="campo"><div class="campo-label">Rendimiento Real:</div><div class="campo-val">${d.rendimiento} %</div></div>
+    <div class="campo"><div class="campo-label">Observaciones:</div><div class="campo-val">${d.observaciones}</div></div>
+  </div>
+</div>
+
+<!-- FIRMA -->
+<div class="firma-box">
+  <div style="flex:1;">
+    <strong style="font-size:8pt;color:#1e3a5f;">🔐 Firma Digital del Operador</strong>
+    <div style="font-size:8pt;margin-top:3px;">Firmado por: <strong>${d.firmaNombre}</strong> · ${d.firmaTimestamp} · PIN: ${d.firmaPIN}</div>
+  </div>
+  <div class="firma-campo">
+    <div class="firma-linea">Verificación de Registro<br>Nombre y Firma del Verificador</div>
+  </div>
+</div>
+
+<!-- ACCIONES CORRECTIVAS -->
+<div class="acciones-correctivas">
+  <div class="acc-titulo">Acciones Correctivas (ACC)</div>
+  ACC01: Temp. carnes/vacuno/ave/salsas/legumbres &lt;75°C → continuar cocción c/15min (máx. 2 veces) hasta >75°C. &nbsp;|&nbsp;
+  ACC02: Temp. carbohidratos/embutidos &lt;65°C → continuar cocción c/15min (máx. 2 veces) hasta >65°C. &nbsp;|&nbsp;
+  ACC03: Falla equipo → cambio de equipo si producto &lt;60min en temperatura. &nbsp;|&nbsp;
+  ACC04: Desviación organoléptica → avisar Jefe Producción/Calidad, anotar ajuste en Observaciones. &nbsp;|&nbsp;
+  ACC05: Elemento extraño → detener proceso, avisar Calidad. Si >2 elementos, retener y eliminar como no conforme.
+</div>
+
+</body>
+</html>`;
+
+  ventana.document.write(html);
+  ventana.document.close();
+  ventana.onload = () => { ventana.focus(); };
+  
+  document.getElementById('firmaEstado').innerHTML = '✅ <strong>Firmado</strong> — ' + d.firmaNombre + ' · ' + d.firmaTimestamp;
+  document.getElementById('firmaEstado').style.color = '#059669';
+}
+
 
 
 
@@ -7666,6 +8233,23 @@ function mostrarPopupGantt(eq) {
         <button onclick="seleccionarTodasOPsJornada()" style="padding:.75rem 1.5rem;border-radius:10px;border:2px solid #667eea;background:white;color:#667eea;cursor:pointer;font-weight:600;">✅ Seleccionar Todas</button>
         <button onclick="confirmarInicioJornada()" style="padding:.75rem 1.5rem;border-radius:10px;border:none;background:linear-gradient(135deg,#10b981,#059669);color:white;cursor:pointer;font-weight:700;font-size:1rem;">🚀 Iniciar Jornada</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL REGISTRO HACCP                                         -->
+  <!-- ============================================================ -->
+  <div id="modalHACCP" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;overflow-y:auto;">
+    <div style="background:white;max-width:950px;margin:1.5rem auto;border-radius:16px;padding:0;overflow:hidden;">
+      <!-- Header -->
+      <div style="background:linear-gradient(135deg,#1e3a5f,#2d5986);padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="color:white;font-weight:800;font-size:1.1rem;">📋 Registro HACCP — Control de Procesos Cocina</div>
+          <div style="color:rgba(255,255,255,.75);font-size:.8rem;margin-top:.2rem;">R-POE-03-GF-03 · Versión 3 · Vigencia: 15-12-2025</div>
+        </div>
+        <button onclick="cerrarModalHACCP()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
+      </div>
+      <div style="padding:1.5rem;" id="contenidoModalHACCP"></div>
     </div>
   </div>
 </body>
