@@ -465,6 +465,14 @@
         <!-- TAB: DASHBOARD -->
         <div id="dashboard" class="tab-content active">
             <div class="equipment-grid" id="equipmentGrid"></div>
+            <!-- Panel preparaciones en frío -->
+            <div id="dashPrepsFrias" style="display:none;margin:1rem 1.5rem;background:#f0fdf4;border-radius:15px;padding:1.25rem;border-left:5px solid #10b981;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
+                <h3 style="color:#065f46;margin:0;font-size:1rem;">❄️ Preparaciones en Frío — En proceso</h3>
+                <button onclick="cerrarPrepsFrias()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:1.1rem;">✕</button>
+              </div>
+              <div id="dashListaPrepsFrias" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.75rem;"></div>
+            </div>
         </div>
 
 
@@ -5126,7 +5134,8 @@ function abrirModalRecetaSandwich(id = null) {
       ...c,
       gramajePorUnidad: c.gramajePorUnidad !== undefined ? c.gramajePorUnidad : (c.gramajePorcion || 0),
       unidadComponente: c.unidadComponente || 'gr',
-      tiempoCoccionMin: c.tiempoCoccionMin || 30
+      tiempoCoccionMin: c.tiempoCoccionMin || 30,
+      preparacionFria: c.preparacionFria || false
     }));
   } else {
     document.getElementById('swSku').value = '';
@@ -5144,7 +5153,7 @@ function cerrarModalSandwich() {
 }
 
 function agregarComponenteSandwich() {
-  componentesSandwichTemp.push({ nombre: '', gramajePorUnidad: 0, unidadComponente: 'gr', tiempoCoccionMin: 30, ingredientes: [] });
+  componentesSandwichTemp.push({ nombre: '', gramajePorUnidad: 0, unidadComponente: 'gr', tiempoCoccionMin: 30, preparacionFria: false, ingredientes: [] });
   renderComponentesSandwich();
 }
 
@@ -5171,11 +5180,15 @@ function renderComponentesSandwich() {
     return;
   }
   cont.innerHTML = componentesSandwichTemp.map((comp, ci) => `
-    <div style="background:#f8f9ff;border-radius:10px;padding:1rem;margin-bottom:.75rem;border-left:4px solid #f59e0b;">
+    <div style="background:${comp.preparacionFria?'#f0fdf4':'#f8f9ff'};border-radius:10px;padding:1rem;margin-bottom:.75rem;border-left:4px solid ${comp.preparacionFria?'#10b981':'#f59e0b'};">
       <div style="display:flex;gap:.5rem;margin-bottom:.75rem;align-items:center;">
         <input value="${comp.nombre}" oninput="componentesSandwichTemp[${ci}].nombre=this.value"
           placeholder="Nombre componente (ej: Pollo a la plancha)"
           style="flex:1;padding:.45rem;border-radius:7px;border:1px solid #ddd;font-size:.9rem;">
+        <label style="display:flex;align-items:center;gap:.3rem;cursor:pointer;white-space:nowrap;font-size:.78rem;font-weight:700;color:${comp.preparacionFria?'#059669':'#94a3b8'};background:${comp.preparacionFria?'#d1fae5':'#f1f5f9'};padding:.3rem .5rem;border-radius:6px;border:1px solid ${comp.preparacionFria?'#6ee7b7':'#e2e8f0'};">
+          <input type="checkbox" ${comp.preparacionFria?'checked':''} onchange="componentesSandwichTemp[${ci}].preparacionFria=this.checked;renderComponentesSandwich()" style="accent-color:#10b981;width:14px;height:14px;">
+          ❄️ Frío
+        </label>
         <input type="number" value="${comp.gramajePorUnidad||''}" oninput="componentesSandwichTemp[${ci}].gramajePorUnidad=parseFloat(this.value)||0"
           placeholder="Cantidad" title="Cantidad por unidad de sándwich"
           style="width:80px;padding:.45rem;border-radius:7px;border:1px solid #ddd;font-size:.9rem;">
@@ -5187,11 +5200,12 @@ function renderComponentesSandwich() {
           <option value="lt" ${(comp.unidadComponente||'gr')==='lt'?'selected':''}>lt</option>
           <option value="ml" ${(comp.unidadComponente||'gr')==='ml'?'selected':''}>ml</option>
         </select>
+        ${!comp.preparacionFria ? `
         <div style="display:flex;flex-direction:column;align-items:center;gap:.1rem;">
           <input type="number" value="${comp.tiempoCoccionMin||''}" oninput="componentesSandwichTemp[${ci}].tiempoCoccionMin=parseInt(this.value)||0" placeholder="30" min="1" max="480"
             style="width:60px;padding:.45rem;border-radius:7px;border:1px solid #a5b4fc;background:#eef2ff;text-align:center;font-weight:700;color:#4f46e5;" title="Tiempo cocción estimado (min)">
           <span style="font-size:.6rem;color:#94a3b8;white-space:nowrap;">⏱ min</span>
-        </div>
+        </div>` : ''}
         <button onclick="eliminarComponenteSandwich(${ci})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:7px;padding:.4rem .7rem;cursor:pointer;">✕</button>
       </div>
       <div style="margin-left:.5rem;">
@@ -5248,6 +5262,7 @@ function guardarRecetaSandwich() {
     nombre: c.nombre,
     gramajePorcion: c.gramajePorUnidad,
     unidadComponente: c.unidadComponente || 'gr',
+    preparacionFria: c.preparacionFria || false,
     ingredientes: c.ingredientes || []
   }));
 
@@ -5729,6 +5744,16 @@ function abrirResumenJornada() {
   // Stats del día
   const kgTotal = ops.reduce((s, op) => s + (op.kgTotalesTerminados || 0), 0);
   const compTotal = ops.reduce((s, op) => s + (op.componentes?.length || 0), 0);
+  // Recolectar preps frías de las OPs seleccionadas (para mostrar en modal)
+  const prepsFriasModal = [];
+  seleccionadas.forEach(opId => {
+    const op = ordenesProduccion.find(o => o.id === opId);
+    if (!op) return;
+    (op.componentes||[]).forEach(comp => {
+      if (comp.preparacionFria) prepsFriasModal.push({ ...comp, numeroOP: op.numeroOp, opNombre: op.nombre });
+    });
+  });
+
   document.getElementById('statsJornada').innerHTML = `
     <div style="background:#f0fdf4;border-radius:10px;padding:1rem;text-align:center;border:1px solid #bbf7d0;">
       <div style="font-size:1.8rem;font-weight:800;color:#059669;">${ops.length}</div>
@@ -5745,6 +5770,32 @@ function abrirResumenJornada() {
   `;
 
   // Lista de OPs con checkbox
+  // Mostrar preparaciones frías
+  const prepsFriasResumen = [];
+  ops.forEach(op => {
+    (op.componentes||[]).forEach(comp => {
+      if (comp.preparacionFria) prepsFriasResumen.push({ ...comp, numeroOP: op.numeroOp, opNombre: op.nombre });
+    });
+  });
+  const panelFrio = document.getElementById('panelPrepsFrias');
+  const listaFrio = document.getElementById('listaPrepsFrias');
+  if (panelFrio && listaFrio) {
+    if (prepsFriasResumen.length > 0) {
+      panelFrio.style.display = 'block';
+      listaFrio.innerHTML = prepsFriasResumen.map(c => `
+        <div style="display:flex;justify-content:space-between;align-items:center;background:white;border-radius:8px;padding:.6rem .85rem;margin-bottom:.4rem;">
+          <div>
+            <span style="font-weight:700;color:#065f46;">❄️ ${c.nombre}</span>
+            <span style="font-size:.8rem;color:#6b7280;margin-left:.5rem;">OP ${c.numeroOP}</span>
+          </div>
+          <span style="font-size:.85rem;color:#059669;font-weight:600;">${c.kgTerminados||0} kg</span>
+        </div>
+      `).join('');
+    } else {
+      panelFrio.style.display = 'none';
+    }
+  }
+
   document.getElementById('listaOPsJornada').innerHTML = ops.map(op => `
     <div style="display:flex;align-items:flex-start;gap:.75rem;background:#f8f9ff;border-radius:10px;padding:.85rem 1rem;margin-bottom:.5rem;border-left:4px solid ${op.estado==='en-produccion'?'#f59e0b':'#667eea'};">
       <input type="checkbox" id="chkOP_${op.id}" value="${op.id}" checked
@@ -5916,6 +5967,29 @@ function activarBloquesProgramados() {
   }
 }
 
+
+// ---- PREPARACIONES EN FRÍO - DASHBOARD ----
+function mostrarPrepsFriasEnDashboard(preps) {
+  const panel = document.getElementById('dashPrepsFrias');
+  const lista = document.getElementById('dashListaPrepsFrias');
+  if (!panel || !lista || preps.length === 0) return;
+
+  lista.innerHTML = preps.map(p => `
+    <div style="background:white;border-radius:10px;padding:.85rem;border-left:3px solid #10b981;">
+      <div style="font-weight:700;color:#065f46;margin-bottom:.25rem;">❄️ ${p.componente}</div>
+      <div style="font-size:.8rem;color:#6b7280;">OP ${p.numeroOP} · ${p.opNombre}</div>
+      <div style="font-size:.85rem;color:#059669;font-weight:600;margin-top:.25rem;">${p.kgProgramados} kg</div>
+      <div style="font-size:.72rem;color:#94a3b8;margin-top:.2rem;">Sin cocción — Preparar en frío</div>
+    </div>
+  `).join('');
+  panel.style.display = 'block';
+}
+
+function cerrarPrepsFrias() {
+  const panel = document.getElementById('dashPrepsFrias');
+  if (panel) panel.style.display = 'none';
+}
+
 // ---- ALGORITMO PLANIFICACIÓN AUTOMÁTICA GANTT ----
 
 // Obtiene el tiempo real de cocción de un componente (VSM > manual > default)
@@ -5952,6 +6026,12 @@ function planificarJornadaEnGantt(opIds, fechaStr) {
     const op = ordenesProduccion.find(o => o.id === opId);
     if (!op || op.estado === 'completada') return;
     (op.componentes || []).forEach(comp => {
+      if (comp.preparacionFria) {
+        // Registrar en lista de preparaciones frías (no va a equipo de cocción)
+        if (!op._prepsFrias) op._prepsFrias = [];
+        op._prepsFrias.push(comp);
+        return;
+      }
       const tipoEquipo = mapearTipoEquipoTexto(comp.equipoSugerido || sugerirEquipoPorComponente(comp.nombre, comp.kgTerminados || 0));
       const duracion = getTiempoComponente(comp);
       tareas.push({
@@ -6059,12 +6139,25 @@ function confirmarInicioJornada() {
   // Ejecutar algoritmo de planificación
   const resultado = planificarJornadaEnGantt(seleccionadas, fechaStr);
 
-  // Marcar OPs como planificadas/en-produccion
+  // Marcar OPs como planificadas/en-produccion y recolectar preps frías
   let iniciadas = 0;
+  window._prepsFriasJornada = [];
   seleccionadas.forEach(opId => {
     const op = ordenesProduccion.find(o => o.id === opId);
     if (!op || op.estado === 'completada') return;
     op.estado = esHoy ? 'en-produccion' : 'planificada';
+    // Recolectar componentes fríos de esta OP
+    (op.componentes || []).forEach(comp => {
+      if (comp.preparacionFria) {
+        window._prepsFriasJornada.push({
+          componente: comp.nombre,
+          numeroOP: op.numeroOp,
+          opNombre: op.nombre,
+          kgProgramados: comp.kgTerminados || 0,
+          unidad: comp.unidadComponente || 'gr'
+        });
+      }
+    });
     iniciadas++;
   });
 
@@ -6113,6 +6206,9 @@ function confirmarInicioJornada() {
     ? `🚀 Jornada iniciada — ${resultado.planificadas} componentes planificados en el Gantt`
     : `📅 Jornada planificada — ${resultado.planificadas} componentes programados para ${fechaStr}`;
   mostrarNotificacion(msg, 'success');
+  if (window._prepsFriasJornada && window._prepsFriasJornada.length > 0) {
+    mostrarPrepsFriasEnDashboard(window._prepsFriasJornada);
+  }
 
   if (resultado.sinEquipo > 0) {
     setTimeout(() => mostrarNotificacion(`⚠️ ${resultado.sinEquipo} componente(s) sin equipo disponible — revisar Gantt`, 'warning'), 1500);
@@ -7231,6 +7327,11 @@ function cargarSelectorOPsSimple() {
       <div style="margin-bottom:1.5rem;">
         <h3 style="color:#374151;margin-bottom:.75rem;font-size:1rem;">📋 OPs del día — selecciona las que deseas iniciar:</h3>
         <div id="listaOPsJornada"></div>
+      </div>
+      <!-- Panel preparaciones frías -->
+      <div id="panelPrepsFrias" style="display:none;margin-bottom:1.5rem;background:#f0fdf4;border-radius:12px;padding:1rem;border-left:4px solid #10b981;">
+        <h3 style="color:#065f46;margin-bottom:.75rem;font-size:.95rem;">❄️ Preparaciones en Frío — No requieren cocción</h3>
+        <div id="listaPrepsFrias"></div>
       </div>
 
       <!-- Botones -->
