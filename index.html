@@ -1563,6 +1563,8 @@
                 disponible: '○ Disponible',
                 en_espera: '⏳ En Espera',
                 activa: '● En Cocción',
+                ocupado: '● En Cocción',
+                programado: '🕐 Programado',
                 limpieza: '🧹 En Limpieza',
                 envasando: '📦 Envasando',
                 abatiendo: '❄️ Abatiendo'
@@ -1608,7 +1610,7 @@
                 if (equipo.produccion) {
                     const p = equipo.produccion;
                     
-                    if (equipo.estado === 'activa') {
+                    if (equipo.estado === 'activa' || equipo.estado === 'ocupado') {
                         content += `
                             <div class="equipment-details">
                                 <div class="detail-row">
@@ -1633,6 +1635,25 @@
                                 </div>
                             </div>
                             <button class="btn btn-success btn-full" onclick="abrirFinalizarCoccion(${equipo.id})">✅ FINALIZAR COCCIÓN</button>
+                        `;
+                    } else if (equipo.estado === 'programado') {
+                        // Mostrar info del bloque programado
+                        const planHoy = (equipo.planificaciones||[]).filter(p=>p.fechaStr===getHoy()&&p.estado==='programado').sort((a,b)=>a.inicioMin-b.inicioMin);
+                        const prox = planHoy[0];
+                        if (prox) {
+                          const hStr = String(Math.floor(prox.inicioMin/60)).padStart(2,'0')+':'+String(prox.inicioMin%60).padStart(2,'0');
+                          content += `
+                            <div class="equipment-details">
+                              <div class="detail-row"><span class="detail-label">Próxima prep:</span><span class="detail-value">${prox.componente}</span></div>
+                              <div class="detail-row"><span class="detail-label">OP:</span><span class="detail-value">${prox.numeroOP}</span></div>
+                              <div class="detail-row"><span class="detail-label">Inicio:</span><span class="detail-value" style="color:#7c3aed;font-weight:700;">🕐 ${hStr}</span></div>
+                              <div class="detail-row"><span class="detail-label">Kg:</span><span class="detail-value">${prox.kgProgramados} kg</span></div>
+                              ${planHoy.length>1?'<div class="detail-row"><span class="detail-label">En cola:</span><span class="detail-value">+'+(planHoy.length-1)+' más</span></div>':''}
+                            </div>
+                          `;
+                        }
+                        content += `<div style="text-align:center;font-size:.8rem;color:#7c3aed;padding:.5rem;background:#ede9fe;border-radius:8px;margin-top:.5rem;">⏳ Iniciará automáticamente a las ${planHoy[0]?String(Math.floor(planHoy[0].inicioMin/60)).padStart(2,'0')+':'+String(planHoy[0].inicioMin%60).padStart(2,'0'):'--:--'}</div>`;
+                        content += `
                         `;
                     } else if (equipo.estado === 'limpieza') {
                         const tiempoLimpieza = Math.floor((new Date() - new Date(p.inicioLimpieza)) / 1000);
@@ -1926,7 +1947,7 @@
         function updateStats() {
             const historialHoy = getHistorialHoy();
             const totalProducido = historialHoy.reduce((sum, h) => sum + (h.kgFinales || 0), 0);
-            const equiposActivos = equipos.filter(e => e.estado === 'activa').length;
+            const equiposActivos = equipos.filter(e => e.estado === 'activa' || e.estado === 'ocupado').length;
             const enLimpieza = equipos.filter(e => e.estado === 'limpieza').length;
             const completados = historialHoy.length;
 
@@ -1981,7 +2002,7 @@
             }
             
             // 3. EQUIPOS
-            const activos = equipos.filter(e => e.estado === 'activa').length;
+            const activos = equipos.filter(e => e.estado === 'activa' || e.estado === 'ocupado').length;
             const limpieza = equipos.filter(e => e.estado === 'limpieza').length;
             const disponibles = equipos.filter(e => e.estado === 'disponible').length;
             
@@ -1990,7 +2011,7 @@
             document.getElementById('equiposDisponiblesEjec').textContent = disponibles;
             
             // 4. PRODUCTOS EN PROCESO
-            const enProceso = equipos.filter(e => e.estado === 'activa' && e.produccion);
+            const enProceso = equipos.filter(e => (e.estado === 'activa' || e.estado === 'ocupado') && e.produccion);
             const divProceso = document.getElementById('productosProcesoEjec');
             if (enProceso.length === 0) {
                 divProceso.innerHTML = '<div style="text-align:center; color:#999; padding:2rem; font-size:1.1rem;">Sin producciones activas</div>';
@@ -4455,7 +4476,7 @@
 
         function construirContextoCocina() {
             const historialHoy = getHistorialHoy();
-            const equiposActivos = equipos.filter(e => e.estado === 'activa').length;
+            const equiposActivos = equipos.filter(e => e.estado === 'activa' || e.estado === 'ocupado').length;
             const equiposLimpieza = equipos.filter(e => e.estado === 'limpieza').length;
             const equiposDisponibles = equipos.filter(e => e.estado === 'disponible').length;
             const kgProducidosHoy = historialHoy.reduce((s, h) => s + (h.kgFinales || 0), 0);
@@ -5870,7 +5891,7 @@ function activarBloquesProgramados() {
 
     if (ahoraMin >= primero.inicioMin) {
       // Activar este bloque
-      eq.estado = 'ocupado';
+      eq.estado = 'activa';
       eq.produccion = {
         numeroOP: primero.numeroOP,
         producto: `${primero.opNombre} — OP ${primero.numeroOP}`,
@@ -6059,7 +6080,7 @@ function confirmarInicioJornada() {
       const primero = planHoy.sort((a,b) => a.inicioMin - b.inicioMin)[0];
       if (primero && ahoraMin >= primero.inicioMin) {
         // Ya es hora — iniciar inmediatamente
-        eq.estado = 'ocupado';
+        eq.estado = 'activa';
         eq.produccion = {
           numeroOP: primero.numeroOP,
           producto: `${primero.opNombre} — OP ${primero.numeroOP}`,
