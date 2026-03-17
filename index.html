@@ -6773,6 +6773,93 @@ function cargarSelectorOPsSimple() {
 
 
         // GANTT - Pintar bloques de producción activa
+
+// ---- POPUP INFO BLOQUE GANTT ----
+function mostrarPopupGantt(eq) {
+  document.getElementById('ganttPopup')?.remove();
+  const p = eq.produccion;
+  if (!p) return;
+
+  const ahora = new Date();
+  const inicio = new Date(p.inicio);
+  const transcurrido = Math.floor((ahora - inicio) / 1000);
+  const durMin = p.tiempoCoccionMin || 30;
+  const restSeg = Math.max(0, durMin * 60 - transcurrido);
+  const restMin = Math.floor(restSeg / 60);
+  const restSegR = restSeg % 60;
+  const transcMin = Math.floor(transcurrido / 60);
+  const transcSeg = transcurrido % 60;
+  const pct = Math.min(100, Math.round((transcurrido / (durMin * 60)) * 100));
+
+  const colorBarra = pct >= 100 ? '#ef4444' : pct >= 80 ? '#f59e0b' : '#10b981';
+
+  const popup = document.createElement('div');
+  popup.id = 'ganttPopup';
+  popup.style.cssText = [
+    'position:fixed', 'top:50%', 'left:50%',
+    'transform:translate(-50%,-50%)',
+    'background:white', 'border-radius:16px',
+    'padding:1.5rem', 'width:320px',
+    'box-shadow:0 20px 60px rgba(0,0,0,0.3)',
+    'z-index:9999', 'border-top:5px solid #667eea'
+  ].join(';');
+
+  popup.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+      <div>
+        <div style="font-size:.75rem;color:#94a3b8;font-weight:600;text-transform:uppercase;">🔥 ${eq.nombre}</div>
+        <div style="font-size:1.05rem;font-weight:800;color:#1e293b;margin-top:.15rem;">${p.componente || p.producto}</div>
+      </div>
+      <button onclick="document.getElementById('ganttPopup').remove()" 
+        style="background:#f1f5f9;border:none;border-radius:50%;width:28px;height:28px;font-size:1rem;cursor:pointer;color:#64748b;">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:1rem;">
+      <div style="background:#f8fafc;border-radius:8px;padding:.6rem;">
+        <div style="font-size:.68rem;color:#94a3b8;font-weight:600;">OP</div>
+        <div style="font-size:.95rem;font-weight:700;color:#667eea;">${p.numeroOP || '—'}</div>
+      </div>
+      <div style="background:#f8fafc;border-radius:8px;padding:.6rem;">
+        <div style="font-size:.68rem;color:#94a3b8;font-weight:600;">Kg Programados</div>
+        <div style="font-size:.95rem;font-weight:700;color:#059669;">${p.kgProgramados || '—'} kg</div>
+      </div>
+      <div style="background:#f8fafc;border-radius:8px;padding:.6rem;">
+        <div style="font-size:.68rem;color:#94a3b8;font-weight:600;">Operador</div>
+        <div style="font-size:.85rem;font-weight:700;color:#374151;">${p.operador || 'Sin asignar'}</div>
+      </div>
+      <div style="background:#f8fafc;border-radius:8px;padding:.6rem;">
+        <div style="font-size:.68rem;color:#94a3b8;font-weight:600;">Inicio</div>
+        <div style="font-size:.85rem;font-weight:700;color:#374151;">${inicio.toLocaleTimeString('es-CL', {hour:'2-digit',minute:'2-digit'})}</div>
+      </div>
+    </div>
+    <div style="margin-bottom:.75rem;">
+      <div style="display:flex;justify-content:space-between;font-size:.75rem;color:#64748b;margin-bottom:.3rem;">
+        <span>⏱ Transcurrido: <strong>${transcMin}m ${String(transcSeg).padStart(2,'0')}s</strong></span>
+        <span>Restante: <strong style="color:${colorBarra}">${restMin}m ${String(restSegR).padStart(2,'0')}s</strong></span>
+      </div>
+      <div style="background:#e2e8f0;border-radius:99px;height:8px;overflow:hidden;">
+        <div style="width:${pct}%;height:100%;background:${colorBarra};border-radius:99px;transition:width .3s;"></div>
+      </div>
+      <div style="text-align:right;font-size:.7rem;color:#94a3b8;margin-top:.2rem;">${pct}% completado</div>
+    </div>
+    <button onclick="document.getElementById('ganttPopup').remove()"
+      style="width:100%;padding:.6rem;background:#f1f5f9;border:none;border-radius:8px;cursor:pointer;color:#64748b;font-weight:600;font-size:.85rem;">
+      Cerrar
+    </button>
+  `;
+
+  // Cerrar al hacer click fuera
+  setTimeout(() => {
+    document.addEventListener('click', function cerrar(e) {
+      if (!popup.contains(e.target)) {
+        popup.remove();
+        document.removeEventListener('click', cerrar);
+      }
+    });
+  }, 100);
+
+  document.body.appendChild(popup);
+}
+
         function renderGanttBloques() {
             const body = document.getElementById('ganttBody');
             if (!body) return;
@@ -6897,11 +6984,13 @@ function cargarSelectorOPsSimple() {
 
                 // Contenido dentro del bloque
                 bloque.id = 'ganttBloque_' + eq.id;
+                bloque.style.cursor = 'pointer';
                 const textoBloque = eq.produccion.componente || eq.produccion.producto || '';
                 bloque.innerHTML = [
                     '<div style="font-size:.78rem;font-weight:700;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (esEspera ? '⏳ ' : '') + textoBloque + '</div>',
                     altura > 38 ? '<div id="ganttInner_' + eq.id + '" style="font-size:.72rem;color:' + borderColor + ';font-weight:700;margin-top:.15rem;">' + cuentaStr + '</div>' : ''
                 ].join('');
+                bloque.onclick = () => mostrarPopupGantt(eq);
 
                 contenedor.appendChild(bloque);
             });
