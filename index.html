@@ -6039,8 +6039,11 @@ function planificarJornadaEnGantt(opIds, fechaStr) {
     const recetaOp = recetas.find(r => r.id === op.recetaId);
     (op.componentes || []).forEach(comp => {
       // Buscar preparacionFria en receta original (por si la OP es antigua)
-      const compReceta = recetaOp?.componentes?.find(c => c.nombre === comp.nombre);
-      const esFrio = comp.preparacionFria || compReceta?.preparacionFria || false;
+      const compReceta = recetaOp?.componentes?.find(c => 
+        c.nombre?.toLowerCase().trim() === comp.nombre?.toLowerCase().trim()
+      );
+      const esFrio = comp.preparacionFria === true || compReceta?.preparacionFria === true;
+      console.log(`Componente: ${comp.nombre} | esFrio: ${esFrio} | comp.prepFria: ${comp.preparacionFria} | receta.prepFria: ${compReceta?.preparacionFria}`);
       if (esFrio) {
         if (!op._prepsFrias) op._prepsFrias = [];
         op._prepsFrias.push(comp);
@@ -6163,8 +6166,10 @@ function confirmarInicioJornada() {
     // Recolectar componentes fríos de esta OP (leyendo desde receta original también)
     const recetaOpFria = recetas.find(r => r.id === op.recetaId);
     (op.componentes || []).forEach(comp => {
-      const compReceta = recetaOpFria?.componentes?.find(c => c.nombre === comp.nombre);
-      const esFrio = comp.preparacionFria || compReceta?.preparacionFria || false;
+      const compReceta = recetaOpFria?.componentes?.find(c => 
+        c.nombre?.toLowerCase().trim() === comp.nombre?.toLowerCase().trim()
+      );
+      const esFrio = comp.preparacionFria === true || compReceta?.preparacionFria === true;
       if (esFrio) {
         window._prepsFriasJornada.push({
           componente: comp.nombre,
