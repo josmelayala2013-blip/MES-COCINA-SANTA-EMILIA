@@ -2305,7 +2305,9 @@
             planDiv.style.display = 'block';
 
             const tabla = document.getElementById('tablaAsignacionEquipos');
-            const asignaciones = op.componentes.map((comp, idx) => {
+            const asignaciones = op.componentes
+                .filter(comp => !esComponenteFrio(comp.nombre)) // excluir preparaciones frías
+                .map((comp, idx) => {
                 const tipoEquipo = mapearTipoEquipo(comp.equipoSugerido || sugerirEquipoPorComponente(comp.nombre, comp.kgTerminados));
                 const equiposDisp = equipos.filter(e => e.tipo === tipoEquipo && e.estado === 'disponible');
                 const equiposOcup = equipos.filter(e => e.tipo === tipoEquipo && e.estado !== 'disponible');
@@ -2612,7 +2614,7 @@
                     <div>
                         <strong>OP:</strong> ${equipo.produccion.numeroOP}<br>
                         <strong>Equipo:</strong> ${equipo.nombre}<br>
-                        <strong>Producto:</strong> ${equipo.produccion.producto}<br>
+                        <strong>Componente:</strong> ${equipo.produccion.componente || equipo.produccion.producto}<br>
                         <strong>Kg Programados:</strong> ${equipo.produccion.kgProgramados} kg<br>
                         <strong>Tiempo de Cocción:</strong> ${tiempoTranscurrido}
                     </div>
@@ -6895,8 +6897,9 @@ function cargarSelectorOPsSimple() {
 
                 // Contenido dentro del bloque
                 bloque.id = 'ganttBloque_' + eq.id;
+                const textoBloque = eq.produccion.componente || eq.produccion.producto || '';
                 bloque.innerHTML = [
-                    '<div style="font-size:.78rem;font-weight:700;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (esEspera ? '⏳ ' : '') + eq.produccion.producto + '</div>',
+                    '<div style="font-size:.78rem;font-weight:700;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (esEspera ? '⏳ ' : '') + textoBloque + '</div>',
                     altura > 38 ? '<div id="ganttInner_' + eq.id + '" style="font-size:.72rem;color:' + borderColor + ';font-weight:700;margin-top:.15rem;">' + cuentaStr + '</div>' : ''
                 ].join('');
 
