@@ -3987,20 +3987,28 @@
 
 
 
-        function limpiarComponentesFriosDeEquipos() {
+        
+// Verifica si un componente es preparación fría buscando en recetas
+function esComponenteFrio(nombreComponente) {
+  if (!nombreComponente) return false;
+  const nombre = nombreComponente.toLowerCase().trim();
+  for (const r of recetas) {
+    const comp = (r.componentes||[]).find(c => 
+      (c.nombre||'').toLowerCase().trim() === nombre
+    );
+    if (comp && comp.preparacionFria === true) return true;
+  }
+  return false;
+}
+
+function limpiarComponentesFriosDeEquipos() {
             // Si un equipo tiene asignado un componente que es preparacionFria, liberarlo
             let huboLimpieza = false;
             equipos.forEach(eq => {
                 if (!eq.produccion || !eq.produccion.componente) return;
                 const nombreComp = eq.produccion.componente;
                 // Buscar en todas las recetas si este componente es frío
-                let esFrio = false;
-                recetas.forEach(r => {
-                    const comp = (r.componentes||[]).find(c => 
-                        c.nombre?.toLowerCase().trim() === nombreComp?.toLowerCase().trim()
-                    );
-                    if (comp && comp.preparacionFria === true) esFrio = true;
-                });
+                const esFrio = esComponenteFrio(nombreComp);
                 if (esFrio) {
                     console.log('❄️ Liberando equipo con componente frío:', eq.nombre, '-', nombreComp);
                     eq.estado = 'disponible';
@@ -5967,6 +5975,12 @@ function activarBloquesProgramados() {
     const primero = progHoy[0];
 
     if (ahoraMin >= primero.inicioMin) {
+      // Verificar que no sea componente frío
+      if (esComponenteFrio(primero.componente)) {
+        primero.estado = 'ignorado';
+        console.log('❄️ Saltando componente frío en activación:', primero.componente);
+        return;
+      }
       // Activar este bloque
       eq.estado = 'activa';
       eq.produccion = {
@@ -6210,22 +6224,28 @@ function confirmarInicioJornada() {
       // El primer bloque del día para este equipo
       const primero = planHoy.sort((a,b) => a.inicioMin - b.inicioMin)[0];
       if (primero && ahoraMin >= primero.inicioMin) {
-        // Ya es hora — iniciar inmediatamente
-        eq.estado = 'activa';
-        eq.produccion = {
-          numeroOP: primero.numeroOP,
-          producto: `${primero.opNombre} — OP ${primero.numeroOP}`,
-          componente: primero.componente,
-          kgProgramados: primero.kgProgramados,
-          operador: primero.operador,
-          inicio: new Date().toISOString(),
-          fase: 'coccion',
-          opVinculadaId: primero.opId,
-          tiempoCoccionMin: primero.duracion,
-          enEspera: false
-        };
-        primero.estado = 'activo';
-      } else if (primero) {
+        // Verificar que no sea componente frío
+        if (esComponenteFrio(primero.componente)) {
+          primero.estado = 'ignorado';
+          console.log('❄️ Saltando componente frío en jornada:', primero.componente);
+        } else {
+          // Ya es hora — iniciar inmediatamente
+          eq.estado = 'activa';
+          eq.produccion = {
+            numeroOP: primero.numeroOP,
+            producto: `${primero.opNombre} — OP ${primero.numeroOP}`,
+            componente: primero.componente,
+            kgProgramados: primero.kgProgramados,
+            operador: primero.operador,
+            inicio: new Date().toISOString(),
+            fase: 'coccion',
+            opVinculadaId: primero.opId,
+            tiempoCoccionMin: primero.duracion,
+            enEspera: false
+          };
+          primero.estado = 'activo';
+        }
+      } else if (primero && !esComponenteFrio(primero.componente)) {
         // Aún no es hora — poner en espera programada
         eq.estado = 'programado';
         primero.estado = 'programado';
