@@ -3986,6 +3986,35 @@
 
 
 
+
+        function limpiarComponentesFriosDeEquipos() {
+            // Si un equipo tiene asignado un componente que es preparacionFria, liberarlo
+            let huboLimpieza = false;
+            equipos.forEach(eq => {
+                if (!eq.produccion || !eq.produccion.componente) return;
+                const nombreComp = eq.produccion.componente;
+                // Buscar en todas las recetas si este componente es frío
+                let esFrio = false;
+                recetas.forEach(r => {
+                    const comp = (r.componentes||[]).find(c => 
+                        c.nombre?.toLowerCase().trim() === nombreComp?.toLowerCase().trim()
+                    );
+                    if (comp && comp.preparacionFria === true) esFrio = true;
+                });
+                if (esFrio) {
+                    console.log('❄️ Liberando equipo con componente frío:', eq.nombre, '-', nombreComp);
+                    eq.estado = 'disponible';
+                    eq.produccion = null;
+                    huboLimpieza = true;
+                }
+            });
+            if (huboLimpieza) {
+                guardarDatos();
+                renderEquipos();
+                mostrarNotificacion('❄️ Componentes fríos removidos de equipos de cocción', 'info');
+            }
+        }
+
         function limpiarEsperasVencidas() {
             const ahora = new Date();
             let hubocambios = false;
@@ -6204,6 +6233,7 @@ function confirmarInicioJornada() {
     });
   }
 
+  limpiarComponentesFriosDeEquipos();
   guardarOPs();
   guardarDatos();
   cerrarModalJornada();
