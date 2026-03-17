@@ -522,101 +522,60 @@
         <!-- TAB: VISTA EJECUTIVO -->
         <div id="ejecutivo" class="tab-content">
             <div class="analytics-section">
-                <!-- HEADER EJECUTIVO CON CONTADOR DE TURNO -->
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem; background:linear-gradient(135deg,#667eea,#764ba2); padding:2rem; border-radius:15px; color:white;">
+                <!-- HEADER -->
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;background:linear-gradient(135deg,#667eea,#764ba2);padding:1.5rem 2rem;border-radius:15px;color:white;flex-wrap:wrap;gap:1rem;">
                     <div>
-                        <h1 style="font-size:2.5rem; margin-bottom:0.5rem;">👔 Vista Ejecutivo</h1>
-                        <p style="font-size:1.1rem; opacity:0.9;">Dashboard en tiempo real para gerencia</p>
+                        <h1 style="font-size:2rem;margin-bottom:.25rem;">👔 Vista Ejecutivo</h1>
+                        <p style="font-size:.95rem;opacity:.85;">Resumen de producción — <span id="labelPeriodoEjec">Hoy</span></p>
                     </div>
-                    <div id="contadorTurno" style="text-align:center; background:rgba(255,255,255,0.2); padding:1.5rem; border-radius:12px; min-width:200px;">
-                        <div style="font-size:0.9rem; opacity:0.9; margin-bottom:0.5rem;">⏰ TIEMPO RESTANTE</div>
-                        <div id="tiempoRestante" style="font-size:2.5rem; font-weight:bold;">-- : --</div>
-                        <div style="font-size:0.8rem; opacity:0.8; margin-top:0.5rem;">hasta las 17:30</div>
-                    </div>
-                </div>
-
-                <!-- GRID DE 9 INDICADORES PRINCIPALES -->
-                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:1.5rem; margin-bottom:2rem;">
-                    <!-- 1. KG PRODUCIDOS HOY VS META -->
-                    <div id="ejec1" class="stat-card" style="border-left:4px solid #667eea; padding:2rem;">
-                        <h3 style="color:#667eea; font-size:0.9rem; text-transform:uppercase; margin-bottom:1rem;">📦 Producción del Día</h3>
-                        <div style="display:flex; justify-content:space-between; align-items:end; margin-bottom:1rem;">
-                            <div>
-                                <div id="kgProducidosEjec" style="font-size:3rem; font-weight:bold; color:#667eea;">0</div>
-                                <div style="font-size:1rem; color:#999;">de 1,200 kg meta</div>
-                            </div>
-                            <div id="porcentajeMetaEjec" style="font-size:2rem; font-weight:bold; color:#10b981;">0%</div>
+                    <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;">
+                        <div id="contadorTurno" style="text-align:center;background:rgba(255,255,255,0.2);padding:1rem 1.5rem;border-radius:12px;min-width:160px;">
+                            <div style="font-size:.8rem;opacity:.9;margin-bottom:.25rem;">⏰ TIEMPO RESTANTE</div>
+                            <div id="tiempoRestante" style="font-size:2rem;font-weight:bold;">-- : --</div>
+                            <div style="font-size:.75rem;opacity:.8;margin-top:.2rem;">hasta las 17:30</div>
                         </div>
-                        <div style="height:12px; background:#f0f0f0; border-radius:6px; overflow:hidden;">
-                            <div id="barraMetaEjec" style="height:100%; background:linear-gradient(90deg,#667eea,#764ba2); width:0%; transition:width 0.5s ease;"></div>
-                        </div>
-                    </div>
-
-                    <!-- 2. EFICIENCIA DEL DÍA -->
-                    <div id="ejec2" class="stat-card" style="border-left:4px solid #10b981; padding:2rem;">
-                        <h3 style="color:#10b981; font-size:0.9rem; text-transform:uppercase; margin-bottom:1rem;">⚡ Eficiencia</h3>
-                        <div id="eficienciaEjec" style="font-size:3.5rem; font-weight:bold; color:#10b981; margin-bottom:0.5rem;">--</div>
-                        <div style="font-size:0.9rem; color:#666;">Kg reales vs programados</div>
-                        <div id="estadoEficiencia" style="margin-top:1rem; padding:0.75rem; border-radius:8px; text-align:center; font-weight:600;"></div>
-                    </div>
-
-                    <!-- 3. EQUIPOS ACTIVOS -->
-                    <div id="ejec3" class="stat-card" style="border-left:4px solid #f59e0b; padding:2rem;">
-                        <h3 style="color:#f59e0b; font-size:0.9rem; text-transform:uppercase; margin-bottom:1rem;">⚙️ Equipos Activos</h3>
-                        <div style="display:flex; justify-content:space-around; margin-bottom:1rem;">
-                            <div style="text-align:center;">
-                                <div id="equiposActivosEjec" style="font-size:3rem; font-weight:bold; color:#10b981;">0</div>
-                                <div style="font-size:0.8rem; color:#999;">Activos</div>
-                            </div>
-                            <div style="text-align:center;">
-                                <div id="equiposLimpiezaEjec" style="font-size:3rem; font-weight:bold; color:#f59e0b;">0</div>
-                                <div style="font-size:0.8rem; color:#999;">Limpieza</div>
-                            </div>
-                            <div style="text-align:center;">
-                                <div id="equiposDisponiblesEjec" style="font-size:3rem; font-weight:bold; color:#999;">0</div>
-                                <div style="font-size:0.8rem; color:#999;">Disponibles</div>
-                            </div>
-                        </div>
-                        <div style="font-size:0.85rem; color:#666; text-align:center;">Total: 7 equipos</div>
+                        <button onclick="actualizarVistaEjecutivo()" style="background:rgba(255,255,255,0.2);border:2px solid rgba(255,255,255,0.5);color:white;padding:.6rem 1.2rem;border-radius:10px;cursor:pointer;font-weight:700;font-size:.85rem;">🔄 Actualizar</button>
                     </div>
                 </div>
 
-                <!-- FILA 2 -->
-                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:1.5rem; margin-bottom:2rem;">
-                    <!-- 4. PRODUCTOS EN PROCESO -->
-                    <div id="ejec4" class="stat-card" style="border-left:4px solid #8b5cf6; padding:2rem;">
-                        <h3 style="color:#8b5cf6; font-size:0.9rem; text-transform:uppercase; margin-bottom:1rem;">🔄 En Proceso Ahora</h3>
-                        <div id="productosProcesoEjec"></div>
-                    </div>
+                <!-- PESTAÑAS PERÍODO -->
+                <div style="display:flex;gap:.5rem;margin-bottom:1.5rem;">
+                    <button id="tabEjecHoy" onclick="setTabEjecutivo('hoy')" style="padding:.6rem 1.5rem;border-radius:20px;border:2px solid #667eea;background:#667eea;color:white;font-weight:700;cursor:pointer;font-size:.9rem;">📅 Hoy</button>
+                    <button id="tabEjecSemana" onclick="setTabEjecutivo('semana')" style="padding:.6rem 1.5rem;border-radius:20px;border:2px solid #667eea;background:white;color:#667eea;font-weight:700;cursor:pointer;font-size:.9rem;">📆 Esta Semana</button>
+                    <button id="tabEjecMes" onclick="setTabEjecutivo('mes')" style="padding:.6rem 1.5rem;border-radius:20px;border:2px solid #667eea;background:white;color:#667eea;font-weight:700;cursor:pointer;font-size:.9rem;">🗓️ Este Mes</button>
+                </div>
 
-                    <!-- 5. ALERTAS/PROBLEMAS -->
-                    <div id="ejec5" class="stat-card" style="border-left:4px solid #ef4444; padding:2rem;">
-                        <h3 style="color:#ef4444; font-size:0.9rem; text-transform:uppercase; margin-bottom:1rem;">⚠️ Alertas Activas</h3>
-                        <div id="alertasEjec"></div>
-                    </div>
+                <!-- KPIs PRINCIPALES -->
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:1.5rem;" id="kpisEjecutivo"></div>
 
-                    <!-- 6. COMPARATIVA HOY VS AYER -->
-                    <div id="ejec6" class="stat-card" style="border-left:4px solid #06b6d4; padding:2rem;">
-                        <h3 style="color:#06b6d4; font-size:0.9rem; text-transform:uppercase; margin-bottom:1rem;">📊 Hoy vs Ayer</h3>
-                        <div id="comparativaEjec"></div>
+                <!-- FILA 2: Eficiencia equipos + OPs -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;flex-wrap:wrap;">
+                    <!-- Semáforo equipos -->
+                    <div class="stat-card" style="padding:1.5rem;">
+                        <h3 style="color:#f59e0b;font-size:.85rem;text-transform:uppercase;margin-bottom:1rem;">⚙️ Estado de Equipos</h3>
+                        <div id="semaforoEquipos"></div>
+                    </div>
+                    <!-- OPs del período -->
+                    <div class="stat-card" style="padding:1.5rem;">
+                        <h3 style="color:#667eea;font-size:.85rem;text-transform:uppercase;margin-bottom:1rem;">📋 Cumplimiento de OPs</h3>
+                        <div id="cumplimientoOPs"></div>
                     </div>
                 </div>
 
-                <!-- GRÁFICO DE PRODUCCIÓN DEL DÍA (GRANDE) -->
-                <div class="analytics-section" style="margin-bottom:2rem;">
-                    <h3 style="color:#667eea; margin-bottom:1rem;">📈 Evolución del Día</h3>
-                    <div class="chart-container" style="height:300px;">
-                        <canvas id="chartProduccionEjecutivo"></canvas>
+                <!-- GRÁFICO BARRAS POR DÍA -->
+                <div class="stat-card" style="padding:1.5rem;margin-bottom:1.5rem;" id="wrapGraficoEjec">
+                    <h3 style="color:#667eea;font-size:.85rem;text-transform:uppercase;margin-bottom:1rem;" id="tituloGraficoEjec">📈 Producción por Día — Esta Semana</h3>
+                    <div style="height:220px;">
+                        <canvas id="chartEjecutivoBarras"></canvas>
                     </div>
                 </div>
 
-                <!-- BOTÓN ACTUALIZAR -->
-                <div style="text-align:center; padding:1.5rem; background:#f0f4ff; border-radius:12px;">
-                    <button class="btn btn-primary" onclick="actualizarVistaEjecutivo()" style="font-size:1.1rem; padding:1rem 2rem;">
-                        🔄 ACTUALIZAR DATOS
-                    </button>
-                    <p style="color:#666; margin-top:0.5rem; font-size:0.85rem;">Última actualización: <span id="ultimaActualizacionEjec">--:--</span></p>
+                <!-- TABLA OPs DETALLE -->
+                <div class="stat-card" style="padding:1.5rem;">
+                    <h3 style="color:#374151;font-size:.85rem;text-transform:uppercase;margin-bottom:1rem;">🧾 Detalle de OPs del Período</h3>
+                    <div id="tablaOPsEjecutivo" style="overflow-x:auto;"></div>
                 </div>
+
             </div>
         </div>
 
@@ -1978,194 +1937,282 @@
         // VISTA EJECUTIVO
         // ============================================
         
-        function actualizarVistaEjecutivo() {
-            const historialHoy = getHistorialHoy();
-            const totalProducido = historialHoy.reduce((s, h) => s + (h.kgFinales || 0), 0);
-            const totalProgramado = historialHoy.reduce((s, h) => s + (h.kgProgramados || 0), 0);
-            const meta = 1200;
-            const porcentajeMeta = (totalProducido / meta) * 100;
-            const eficiencia = totalProgramado > 0 ? (totalProducido / totalProgramado) * 100 : 0;
-            
-            // 1. KG PRODUCIDOS VS META
-            document.getElementById('kgProducidosEjec').textContent = totalProducido.toFixed(0);
-            document.getElementById('porcentajeMetaEjec').textContent = porcentajeMeta.toFixed(0) + '%';
-            document.getElementById('barraMetaEjec').style.width = Math.min(porcentajeMeta, 100) + '%';
-            
-            const colorMeta = porcentajeMeta >= 90 ? '#10b981' : porcentajeMeta >= 70 ? '#f59e0b' : '#ef4444';
-            document.getElementById('porcentajeMetaEjec').style.color = colorMeta;
-            
-            // 2. EFICIENCIA
-            document.getElementById('eficienciaEjec').textContent = eficiencia.toFixed(1) + '%';
-            document.getElementById('eficienciaEjec').style.color = eficiencia >= 95 ? '#10b981' : eficiencia >= 80 ? '#f59e0b' : '#ef4444';
-            
-            const estadoEfic = document.getElementById('estadoEficiencia');
-            if (eficiencia >= 95) {
-                estadoEfic.innerHTML = '🟢 Excelente';
-                estadoEfic.style.background = '#d1fae5';
-                estadoEfic.style.color = '#059669';
-            } else if (eficiencia >= 80) {
-                estadoEfic.innerHTML = '🟡 Bueno';
-                estadoEfic.style.background = '#fef3c7';
-                estadoEfic.style.color = '#d97706';
-            } else {
-                estadoEfic.innerHTML = '🔴 Bajo rendimiento';
-                estadoEfic.style.background = '#fee2e2';
-                estadoEfic.style.color = '#dc2626';
-            }
-            
-            // 3. EQUIPOS
-            const activos = equipos.filter(e => e.estado === 'activa' || e.estado === 'ocupado').length;
-            const limpieza = equipos.filter(e => e.estado === 'limpieza').length;
-            const disponibles = equipos.filter(e => e.estado === 'disponible').length;
-            
-            document.getElementById('equiposActivosEjec').textContent = activos;
-            document.getElementById('equiposLimpiezaEjec').textContent = limpieza;
-            document.getElementById('equiposDisponiblesEjec').textContent = disponibles;
-            
-            // 4. PRODUCTOS EN PROCESO
-            const enProceso = equipos.filter(e => (e.estado === 'activa' || e.estado === 'ocupado') && e.produccion);
-            const divProceso = document.getElementById('productosProcesoEjec');
-            if (enProceso.length === 0) {
-                divProceso.innerHTML = '<div style="text-align:center; color:#999; padding:2rem; font-size:1.1rem;">Sin producciones activas</div>';
-            } else {
-                divProceso.innerHTML = enProceso.map(e => `
-                    <div style="padding:0.75rem; background:#f9fafb; border-radius:8px; margin-bottom:0.5rem; border-left:3px solid #8b5cf6;">
-                        <div style="font-weight:600; color:#8b5cf6;">${e.produccion.producto}</div>
-                        <div style="font-size:0.85rem; color:#666;">${e.nombre} • OP: ${e.produccion.numeroOP}</div>
-                    </div>
-                `).join('');
-            }
-            
-            // 5. ALERTAS
-            const alertas = [];
-            equipos.forEach(e => {
-                if (e.estado === 'limpieza' && e.produccion) {
-                    const tiempoLimpieza = Math.floor((new Date() - new Date(e.produccion.inicioLimpieza)) / 1000);
-                    if (tiempoLimpieza > 1800) {
-                        const minExcedidos = Math.floor((tiempoLimpieza - 1800) / 60);
-                        alertas.push(`🚨 ${e.nombre} esperando ${minExcedidos} min`);
-                    }
+        // ============================================
+        // VISTA EJECUTIVO — NUEVA VERSIÓN
+        // ============================================
+
+        window._tabEjecutivo = 'hoy';
+
+        function setTabEjecutivo(tab) {
+            window._tabEjecutivo = tab;
+            ['hoy','semana','mes'].forEach(t => {
+                const btn = document.getElementById('tabEjec' + t.charAt(0).toUpperCase() + t.slice(1));
+                if (btn) {
+                    btn.style.background = t === tab ? '#667eea' : 'white';
+                    btn.style.color = t === tab ? 'white' : '#667eea';
                 }
             });
-            
-            const divAlertas = document.getElementById('alertasEjec');
-            if (alertas.length === 0) {
-                divAlertas.innerHTML = '<div style="text-align:center; color:#10b981; padding:2rem; font-size:1.1rem;">✅ Todo en orden</div>';
-            } else {
-                divAlertas.innerHTML = alertas.map(a => `
-                    <div style="padding:0.75rem; background:#fee2e2; border-radius:8px; margin-bottom:0.5rem; border-left:3px solid #ef4444; color:#dc2626; font-weight:600;">
-                        ${a}
-                    </div>
-                `).join('');
-            }
-            
-            // 6. COMPARATIVA HOY VS AYER
-            const ayer = new Date();
-            ayer.setDate(ayer.getDate() - 1);
-            const fechaAyer = ayer.toISOString().split('T')[0];
-            const historialAyer = historialPorFecha[fechaAyer] || [];
-            const kgAyer = historialAyer.reduce((s, h) => s + (h.kgFinales || 0), 0);
-            const diferencia = totalProducido - kgAyer;
-            const porcentajeDif = kgAyer > 0 ? (diferencia / kgAyer) * 100 : 0;
-            
-            const divComparativa = document.getElementById('comparativaEjec');
-            divComparativa.innerHTML = `
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
-                    <div style="text-align:center;">
-                        <div style="font-size:0.8rem; color:#999; margin-bottom:0.25rem;">Ayer</div>
-                        <div style="font-size:2rem; font-weight:bold; color:#999;">${kgAyer.toFixed(0)}</div>
-                    </div>
-                    <div style="text-align:center;">
-                        <div style="font-size:0.8rem; color:#999; margin-bottom:0.25rem;">Hoy</div>
-                        <div style="font-size:2rem; font-weight:bold; color:#06b6d4;">${totalProducido.toFixed(0)}</div>
-                    </div>
-                </div>
-                <div style="text-align:center; padding:0.75rem; border-radius:8px; ${diferencia >= 0 ? 'background:#d1fae5; color:#059669;' : 'background:#fee2e2; color:#dc2626;'} font-weight:600;">
-                    ${diferencia >= 0 ? '📈' : '📉'} ${diferencia >= 0 ? '+' : ''}${diferencia.toFixed(0)} kg (${porcentajeDif >= 0 ? '+' : ''}${porcentajeDif.toFixed(1)}%)
-                </div>
-            `;
-            
-            actualizarContadorTurno();
-            document.getElementById('ultimaActualizacionEjec').textContent = new Date().toLocaleTimeString('es-CL');
-            crearGraficoProduccionEjecutivo();
+            actualizarVistaEjecutivo();
         }
-        
-        function actualizarContadorTurno() {
+
+        function getDatosEjecutivo(tab) {
+            const hoy = getHoy();
             const ahora = new Date();
-            const horaActual = ahora.getHours() + ahora.getMinutes() / 60;
-            const horaFin = 17.5;
-            
-            if (horaActual >= horaFin) {
-                document.getElementById('tiempoRestante').textContent = 'FINALIZADO';
-                document.getElementById('tiempoRestante').style.color = '#999';
-                return;
-            }
-            
-            if (horaActual < 8) {
-                document.getElementById('tiempoRestante').textContent = 'NO INICIADO';
-                return;
-            }
-            
-            const minutosRestantes = Math.floor((horaFin - horaActual) * 60);
-            const horas = Math.floor(minutosRestantes / 60);
-            const minutos = minutosRestantes % 60;
-            
-            document.getElementById('tiempoRestante').textContent = 
-                `${horas.toString().padStart(2, '0')} : ${minutos.toString().padStart(2, '0')}`;
-            
-            if (minutosRestantes > 120) {
-                document.getElementById('tiempoRestante').style.color = 'white';
-            } else if (minutosRestantes > 60) {
-                document.getElementById('tiempoRestante').style.color = '#fef3c7';
+            let ops = [], historial = [], labelPeriodo = '';
+
+            if (tab === 'hoy') {
+                labelPeriodo = 'Hoy — ' + ahora.toLocaleDateString('es-CL', {weekday:'long', day:'numeric', month:'long'});
+                ops = ordenesProduccion.filter(op => op.fecha === hoy);
+                historial = getHistorialHoy();
+            } else if (tab === 'semana') {
+                const lunes = new Date(ahora);
+                const dia = lunes.getDay() || 7;
+                lunes.setDate(lunes.getDate() - dia + 1);
+                lunes.setHours(0,0,0,0);
+                const domingo = new Date(lunes); domingo.setDate(lunes.getDate() + 6);
+                labelPeriodo = 'Semana ' + lunes.toLocaleDateString('es-CL',{day:'numeric',month:'short'}) + ' — ' + domingo.toLocaleDateString('es-CL',{day:'numeric',month:'short'});
+                ops = ordenesProduccion.filter(op => {
+                    if (!op.fecha) return false;
+                    const f = new Date(op.fecha + 'T12:00:00');
+                    return f >= lunes && f <= domingo;
+                });
+                historial = Object.entries(historialPorFecha || {})
+                    .filter(([f]) => { const d = new Date(f + 'T12:00:00'); return d >= lunes && d <= domingo; })
+                    .flatMap(([, arr]) => arr);
             } else {
-                document.getElementById('tiempoRestante').style.color = '#fecaca';
+                const primerDia = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
+                const ultimoDia = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 0);
+                labelPeriodo = ahora.toLocaleDateString('es-CL', {month:'long', year:'numeric'});
+                ops = ordenesProduccion.filter(op => {
+                    if (!op.fecha) return false;
+                    const f = new Date(op.fecha + 'T12:00:00');
+                    return f >= primerDia && f <= ultimoDia;
+                });
+                historial = Object.entries(historialPorFecha || {})
+                    .filter(([f]) => { const d = new Date(f + 'T12:00:00'); return d >= primerDia && d <= ultimoDia; })
+                    .flatMap(([, arr]) => arr);
             }
+
+            const kgProducidos = historial.reduce((s, h) => s + (h.kgFinales || 0), 0);
+            const kgProgramados = ops.reduce((s, op) => s + (op.kgTotalesTerminados || 0), 0);
+            const eficiencia = kgProgramados > 0 ? Math.round((kgProducidos / kgProgramados) * 100) : 0;
+            const opsCompletadas = ops.filter(op => op.estado === 'completada').length;
+            const opsPendientes = ops.filter(op => op.estado !== 'completada').length;
+            const cumplimiento = ops.length > 0 ? Math.round((opsCompletadas / ops.length) * 100) : 0;
+
+            return { ops, historial, kgProducidos, kgProgramados, eficiencia, opsCompletadas, opsPendientes, cumplimiento, labelPeriodo };
         }
-        
-        function crearGraficoProduccionEjecutivo() {
-            const ctx = document.getElementById('chartProduccionEjecutivo');
-            if (!ctx) return;
-            
-            const historialHoy = getHistorialHoy();
-            const data = {};
-            historialHoy.forEach(h => {
-                const hora = new Date(h.finAbatimiento || h.finEnvasado || h.finCoccion).getHours();
-                if (!data[hora]) data[hora] = 0;
-                data[hora] += h.kgFinales || 0;
-            });
-            
-            const labels = [];
-            const valores = [];
-            for (let h = 8; h <= 17; h++) {
-                labels.push(h + ':00');
-                valores.push(data[h] || 0);
+
+        function actualizarVistaEjecutivo() {
+            const tab = window._tabEjecutivo || 'hoy';
+            const d = getDatosEjecutivo(tab);
+
+            // Label período
+            const lbl = document.getElementById('labelPeriodoEjec');
+            if (lbl) lbl.textContent = d.labelPeriodo;
+
+            // ---- KPIs ----
+            const colorEfic = d.eficiencia >= 95 ? '#10b981' : d.eficiencia >= 80 ? '#f59e0b' : '#ef4444';
+            const colorCump = d.cumplimiento >= 90 ? '#10b981' : d.cumplimiento >= 70 ? '#f59e0b' : '#ef4444';
+            const activos = equipos.filter(e => e.estado === 'activa' || e.estado === 'ocupado').length;
+
+            document.getElementById('kpisEjecutivo').innerHTML = `
+              <div style="background:linear-gradient(135deg,#667eea,#764ba2);border-radius:14px;padding:1.5rem;color:white;text-align:center;">
+                <div style="font-size:2.5rem;font-weight:800;">${d.kgProducidos.toFixed(0)}</div>
+                <div style="font-size:.8rem;opacity:.85;margin-top:.25rem;">📦 Kg Producidos</div>
+                <div style="font-size:.75rem;opacity:.7;margin-top:.15rem;">de ${d.kgProgramados.toFixed(0)} kg programados</div>
+              </div>
+              <div style="background:${colorEfic};border-radius:14px;padding:1.5rem;color:white;text-align:center;">
+                <div style="font-size:2.5rem;font-weight:800;">${d.eficiencia}%</div>
+                <div style="font-size:.8rem;opacity:.85;margin-top:.25rem;">⚡ Eficiencia</div>
+                <div style="font-size:.75rem;opacity:.7;margin-top:.15rem;">${d.eficiencia >= 95 ? '🟢 Excelente' : d.eficiencia >= 80 ? '🟡 Bueno' : '🔴 Bajo rendimiento'}</div>
+              </div>
+              <div style="background:${colorCump};border-radius:14px;padding:1.5rem;color:white;text-align:center;">
+                <div style="font-size:2.5rem;font-weight:800;">${d.cumplimiento}%</div>
+                <div style="font-size:.8rem;opacity:.85;margin-top:.25rem;">✅ Cumplimiento OPs</div>
+                <div style="font-size:.75rem;opacity:.7;margin-top:.15rem;">${d.opsCompletadas} de ${d.ops.length} completadas</div>
+              </div>
+              <div style="background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:14px;padding:1.5rem;color:white;text-align:center;">
+                <div style="font-size:2.5rem;font-weight:800;">${activos}</div>
+                <div style="font-size:.8rem;opacity:.85;margin-top:.25rem;">⚙️ Equipos Activos</div>
+                <div style="font-size:.75rem;opacity:.7;margin-top:.15rem;">de ${equipos.length} equipos totales</div>
+              </div>
+            `;
+
+            // ---- SEMÁFORO EQUIPOS ----
+            document.getElementById('semaforoEquipos').innerHTML = equipos.map(eq => {
+                const color = eq.estado === 'activa' || eq.estado === 'ocupado' ? '#10b981'
+                    : eq.estado === 'limpieza' ? '#f59e0b'
+                    : eq.estado === 'programado' ? '#8b5cf6'
+                    : '#94a3b8';
+                const label = eq.estado === 'activa' || eq.estado === 'ocupado' ? '● En Cocción'
+                    : eq.estado === 'limpieza' ? '● Limpieza'
+                    : eq.estado === 'programado' ? '● Programado'
+                    : '○ Disponible';
+                const comp = eq.produccion?.componente || eq.produccion?.producto || '';
+                return `<div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem .75rem;background:#f8fafc;border-radius:8px;margin-bottom:.4rem;border-left:4px solid ${color};">
+                    <div>
+                      <span style="font-weight:700;font-size:.85rem;color:#1e293b;">${eq.nombre}</span>
+                      ${comp ? `<div style="font-size:.72rem;color:#64748b;">${comp}</div>` : ''}
+                    </div>
+                    <span style="font-size:.75rem;font-weight:700;color:${color};">${label}</span>
+                </div>`;
+            }).join('');
+
+            // ---- CUMPLIMIENTO OPs ----
+            if (d.ops.length === 0) {
+                document.getElementById('cumplimientoOPs').innerHTML = '<div style="text-align:center;color:#94a3b8;padding:2rem;">Sin OPs en este período</div>';
+            } else {
+                const barW = d.cumplimiento;
+                const colorBar = d.cumplimiento >= 90 ? '#10b981' : d.cumplimiento >= 70 ? '#f59e0b' : '#ef4444';
+                document.getElementById('cumplimientoOPs').innerHTML = `
+                    <div style="display:flex;justify-content:space-between;margin-bottom:.5rem;">
+                        <span style="font-size:.85rem;color:#64748b;">Completadas: <strong style="color:#10b981;">${d.opsCompletadas}</strong></span>
+                        <span style="font-size:.85rem;color:#64748b;">Pendientes: <strong style="color:#f59e0b;">${d.opsPendientes}</strong></span>
+                        <span style="font-size:.85rem;color:#64748b;">Total: <strong>${d.ops.length}</strong></span>
+                    </div>
+                    <div style="background:#e2e8f0;border-radius:99px;height:14px;overflow:hidden;margin-bottom:1rem;">
+                        <div style="width:${barW}%;height:100%;background:${colorBar};border-radius:99px;transition:width .5s;"></div>
+                    </div>
+                    ${d.ops.slice(0,5).map(op => `
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:.4rem .6rem;background:#f8fafc;border-radius:6px;margin-bottom:.3rem;font-size:.8rem;">
+                            <span style="font-weight:600;color:#374151;">${op.numeroOp} — ${op.nombre}</span>
+                            <span style="padding:.15rem .5rem;border-radius:20px;font-weight:700;font-size:.72rem;background:${op.estado==='completada'?'#d1fae5':op.estado==='en-produccion'?'#fef3c7':'#e8edff'};color:${op.estado==='completada'?'#065f46':op.estado==='en-produccion'?'#92400e':'#4338ca'};">
+                                ${op.estado==='completada'?'✅ Completada':op.estado==='en-produccion'?'🔄 En Producción':'⏳ Pendiente'}
+                            </span>
+                        </div>
+                    `).join('')}
+                    ${d.ops.length > 5 ? `<div style="text-align:center;font-size:.78rem;color:#94a3b8;margin-top:.5rem;">+ ${d.ops.length-5} OPs más</div>` : ''}
+                `;
             }
-            
-            if (window.chartEjecutivoInst) window.chartEjecutivoInst.destroy();
-            window.chartEjecutivoInst = new Chart(ctx, {
-                type: 'line',
+
+            // ---- GRÁFICO BARRAS ----
+            renderGraficoBarrasEjecutivo(tab, d);
+
+            // ---- TABLA OPs ----
+            if (d.ops.length === 0) {
+                document.getElementById('tablaOPsEjecutivo').innerHTML = '<div style="text-align:center;color:#94a3b8;padding:2rem;">Sin OPs en este período</div>';
+            } else {
+                document.getElementById('tablaOPsEjecutivo').innerHTML = `
+                    <table style="width:100%;border-collapse:collapse;font-size:.85rem;">
+                        <thead>
+                            <tr style="background:#f1f5f9;">
+                                <th style="padding:.6rem .75rem;text-align:left;color:#64748b;font-weight:700;">N° OP</th>
+                                <th style="padding:.6rem .75rem;text-align:left;color:#64748b;font-weight:700;">Producto</th>
+                                <th style="padding:.6rem .75rem;text-align:center;color:#64748b;font-weight:700;">Fecha</th>
+                                <th style="padding:.6rem .75rem;text-align:right;color:#64748b;font-weight:700;">Unidades</th>
+                                <th style="padding:.6rem .75pm;text-align:right;color:#64748b;font-weight:700;">Kg</th>
+                                <th style="padding:.6rem .75rem;text-align:center;color:#64748b;font-weight:700;">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${d.ops.map(op => `
+                                <tr style="border-bottom:1px solid #f1f5f9;">
+                                    <td style="padding:.6rem .75rem;font-weight:700;color:#667eea;">${op.numeroOp}</td>
+                                    <td style="padding:.6rem .75rem;color:#374151;">${op.sku ? '<span style="color:#94a3b8;font-size:.78rem;">'+op.sku+' · </span>' : ''}${op.nombre}</td>
+                                    <td style="padding:.6rem .75rem;text-align:center;color:#64748b;">${op.fecha || '—'}</td>
+                                    <td style="padding:.6rem .75rem;text-align:right;color:#374151;">${(op.platos||0).toLocaleString()}</td>
+                                    <td style="padding:.6rem .75rem;text-align:right;font-weight:600;color:#059669;">${op.kgTotalesTerminados || 0} kg</td>
+                                    <td style="padding:.6rem .75rem;text-align:center;">
+                                        <span style="padding:.2rem .6rem;border-radius:20px;font-size:.75rem;font-weight:700;background:${op.estado==='completada'?'#d1fae5':op.estado==='en-produccion'?'#fef3c7':'#e8edff'};color:${op.estado==='completada'?'#065f46':op.estado==='en-produccion'?'#92400e':'#4338ca'};">
+                                            ${op.estado==='completada'?'✅ Completada':op.estado==='en-produccion'?'🔄 En Producción':'⏳ Pendiente'}
+                                        </span>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            }
+
+            actualizarContadorTurno();
+            document.getElementById('ultimaActualizacionEjec') && (document.getElementById('ultimaActualizacionEjec').textContent = new Date().toLocaleTimeString('es-CL'));
+        }
+
+        function renderGraficoBarrasEjecutivo(tab, d) {
+            const ctx = document.getElementById('chartEjecutivoBarras');
+            if (!ctx) return;
+            if (window._chartEjBarras) { window._chartEjBarras.destroy(); window._chartEjBarras = null; }
+
+            const titulo = document.getElementById('tituloGraficoEjec');
+            let labels = [], valores = [], colores = [];
+            const hoy = getHoy();
+
+            if (tab === 'hoy') {
+                if (titulo) titulo.textContent = '📈 Producción por Hora — Hoy';
+                const data = {};
+                d.historial.forEach(h => {
+                    const hora = new Date(h.finCoccion || h.finEnvasado || Date.now()).getHours();
+                    if (!data[hora]) data[hora] = 0;
+                    data[hora] += h.kgFinales || 0;
+                });
+                for (let h = 8; h <= 18; h++) {
+                    labels.push(h + ':00');
+                    valores.push(data[h] || 0);
+                    colores.push(data[h] > 0 ? '#667eea' : '#e2e8f0');
+                }
+            } else if (tab === 'semana') {
+                if (titulo) titulo.textContent = '📈 Producción por Día — Esta Semana';
+                const dias = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+                const ahora = new Date();
+                const diaHoy = ahora.getDay() || 7;
+                const lunes = new Date(ahora); lunes.setDate(ahora.getDate() - diaHoy + 1); lunes.setHours(0,0,0,0);
+                for (let i = 0; i < 7; i++) {
+                    const f = new Date(lunes); f.setDate(lunes.getDate() + i);
+                    const fStr = f.toISOString().split('T')[0];
+                    const hist = (historialPorFecha?.[fStr] || []);
+                    const kg = hist.reduce((s,h) => s + (h.kgFinales||0), 0);
+                    labels.push(dias[i] + ' ' + f.getDate());
+                    valores.push(kg);
+                    colores.push(fStr === hoy ? '#667eea' : kg > 0 ? '#a5b4fc' : '#e2e8f0');
+                }
+            } else {
+                if (titulo) titulo.textContent = '📈 Producción por Semana — Este Mes';
+                const ahora = new Date();
+                for (let s = 1; s <= 5; s++) {
+                    labels.push('Semana ' + s);
+                    const inicioSem = new Date(ahora.getFullYear(), ahora.getMonth(), (s-1)*7+1);
+                    const finSem = new Date(ahora.getFullYear(), ahora.getMonth(), s*7);
+                    const kg = Object.entries(historialPorFecha||{})
+                        .filter(([f]) => { const d2 = new Date(f+'T12:00:00'); return d2 >= inicioSem && d2 <= finSem; })
+                        .flatMap(([,arr]) => arr)
+                        .reduce((s,h) => s + (h.kgFinales||0), 0);
+                    valores.push(kg);
+                    colores.push(kg > 0 ? '#667eea' : '#e2e8f0');
+                }
+            }
+
+            window._chartEjBarras = new Chart(ctx, {
+                type: 'bar',
                 data: {
                     labels,
-                    datasets: [{
-                        label: 'Kg Producidos',
-                        data: valores,
-                        borderColor: '#667eea',
-                        backgroundColor: 'rgba(102,126,234,0.1)',
-                        tension: 0.4,
-                        fill: true,
-                        borderWidth: 3
-                    }]
+                    datasets: [{ label: 'Kg', data: valores, backgroundColor: colores, borderRadius: 6 }]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
+                    responsive: true, maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: { y: { beginAtZero: true, ticks: { callback: v => v + ' kg' } } }
                 }
             });
         }
-        
+
+        function actualizarContadorTurno() {
+            const ahora = new Date();
+            const horaActual = ahora.getHours() + ahora.getMinutes() / 60;
+            const horaFin = 17.5;
+            const el = document.getElementById('tiempoRestante');
+            if (!el) return;
+            if (horaActual >= horaFin) { el.textContent = 'TURNO FINALIZADO'; return; }
+            if (horaActual < 8) { el.textContent = 'NO INICIADO'; return; }
+            const min = Math.floor((horaFin - horaActual) * 60);
+            const h = Math.floor(min / 60), m = min % 60;
+            el.textContent = String(h).padStart(2,'0') + ' : ' + String(m).padStart(2,'0');
+            el.style.color = min > 120 ? 'white' : min > 60 ? '#fef3c7' : '#fecaca';
+        }
+
         setInterval(actualizarContadorTurno, 60000);
+
+
 
         
         // ============================================
