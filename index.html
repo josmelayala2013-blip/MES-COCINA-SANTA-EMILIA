@@ -543,6 +543,22 @@
                     <button id="tabEjecHoy" onclick="setTabEjecutivo('hoy')" style="padding:.6rem 1.5rem;border-radius:20px;border:2px solid #667eea;background:#667eea;color:white;font-weight:700;cursor:pointer;font-size:.9rem;">📅 Hoy</button>
                     <button id="tabEjecSemana" onclick="setTabEjecutivo('semana')" style="padding:.6rem 1.5rem;border-radius:20px;border:2px solid #667eea;background:white;color:#667eea;font-weight:700;cursor:pointer;font-size:.9rem;">📆 Esta Semana</button>
                     <button id="tabEjecMes" onclick="setTabEjecutivo('mes')" style="padding:.6rem 1.5rem;border-radius:20px;border:2px solid #667eea;background:white;color:#667eea;font-weight:700;cursor:pointer;font-size:.9rem;">🗓️ Este Mes</button>
+                    <button id="tabEjecFecha" onclick="setTabEjecutivo('fecha')" style="padding:.6rem 1.5rem;border-radius:20px;border:2px solid #06b6d4;background:white;color:#06b6d4;font-weight:700;cursor:pointer;font-size:.9rem;">🔍 Por Fecha</button>
+                </div>
+
+                <!-- CALENDARIO POR FECHA (oculto por defecto) -->
+                <div id="panelCalendarioEjec" style="display:none;margin-bottom:1.5rem;">
+                  <div style="background:white;border-radius:14px;padding:1.25rem;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                      <button onclick="navegarMesEjec(-1)" style="background:#f1f5f9;border:none;border-radius:8px;padding:.4rem .9rem;cursor:pointer;font-size:1.1rem;color:#64748b;">‹</button>
+                      <span id="labelMesCalEjec" style="font-weight:700;color:#374151;font-size:1rem;"></span>
+                      <button onclick="navegarMesEjec(1)" style="background:#f1f5f9;border:none;border-radius:8px;padding:.4rem .9rem;cursor:pointer;font-size:1.1rem;color:#64748b;">›</button>
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:.3rem;margin-bottom:.5rem;">
+                      ${['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'].map(d=>`<div style="text-align:center;font-size:.72rem;font-weight:700;color:#94a3b8;">${d}</div>`).join('')}
+                    </div>
+                    <div id="gridCalEjec" style="display:grid;grid-template-columns:repeat(7,1fr);gap:.3rem;"></div>
+                  </div>
                 </div>
 
                 <!-- KPIs PRINCIPALES -->
@@ -1943,6 +1959,75 @@
 
         window._tabEjecutivo = 'hoy';
 
+
+        // ---- CALENDARIO EJECUTIVO ----
+        window._calEjecOffset = 0;
+        window._fechaSelEjec = null;
+
+        function navegarMesEjec(dir) {
+            window._calEjecOffset += dir;
+            renderCalendarioEjec();
+        }
+
+        function renderCalendarioEjec() {
+            const ahora = new Date();
+            const base = new Date(ahora.getFullYear(), ahora.getMonth() + window._calEjecOffset, 1);
+            const hoy = getHoy();
+
+            // Label del mes
+            const label = document.getElementById('labelMesCalEjec');
+            if (label) label.textContent = base.toLocaleDateString('es-CL', { month:'long', year:'numeric' }).replace(/^\w/, c => c.toUpperCase());
+
+            // Calcular días del mes
+            const primerDia = new Date(base.getFullYear(), base.getMonth(), 1).getDay(); // 0=dom
+            const diasMes = new Date(base.getFullYear(), base.getMonth() + 1, 0).getDate();
+
+            const grid = document.getElementById('gridCalEjec');
+            if (!grid) return;
+
+            let html = '';
+            // Celdas vacías al inicio
+            for (let i = 0; i < primerDia; i++) {
+                html += '<div></div>';
+            }
+
+            for (let d = 1; d <= diasMes; d++) {
+                const fechaStr = base.getFullYear() + '-' +
+                    String(base.getMonth()+1).padStart(2,'0') + '-' +
+                    String(d).padStart(2,'0');
+
+                // Ver si tiene OPs o historial ese día
+                const opsDelDia = ordenesProduccion.filter(op => op.fecha === fechaStr);
+                const histDelDia = historialPorFecha?.[fechaStr] || [];
+                const kgDia = histDelDia.reduce((s,h) => s + (h.kgFinales||0), 0);
+                const tieneActividad = opsDelDia.length > 0 || kgDia > 0;
+                const esHoy = fechaStr === hoy;
+                const esSel = fechaStr === window._fechaSelEjec;
+                const esFuturo = fechaStr > hoy;
+
+                let bg = 'white', color = '#374151', border = '1px solid #e2e8f0';
+                if (esSel) { bg = '#06b6d4'; color = 'white'; border = '2px solid #06b6d4'; }
+                else if (esHoy) { bg = '#eef2ff'; color = '#4338ca'; border = '2px solid #667eea'; }
+                else if (tieneActividad) { bg = '#f0fdf4'; color = '#065f46'; border = '1px solid #bbf7d0'; }
+                else if (esFuturo) { bg = '#f8fafc'; color = '#cbd5e1'; }
+
+                html += `<div onclick="${esFuturo ? '' : `seleccionarFechaEjec('${fechaStr}')`}"
+                    style="background:${bg};color:${color};border:${border};border-radius:8px;padding:.4rem .2rem;text-align:center;cursor:${esFuturo?'default':'pointer'};min-height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:all .15s;">
+                    <div style="font-size:.85rem;font-weight:${esHoy||esSel?'800':'600'};">${d}</div>
+                    ${tieneActividad && !esFuturo ? `<div style="font-size:.6rem;font-weight:700;margin-top:.1rem;">${kgDia>0?kgDia.toFixed(0)+'kg':opsDelDia.length+'op'}</div>` : ''}
+                </div>`;
+            }
+
+            grid.innerHTML = html;
+        }
+
+        function seleccionarFechaEjec(fechaStr) {
+            window._fechaSelEjec = fechaStr;
+            renderCalendarioEjec();
+            // Mostrar KPIs de esa fecha
+            actualizarVistaEjecutivo();
+        }
+
         function setTabEjecutivo(tab) {
             window._tabEjecutivo = tab;
             ['hoy','semana','mes'].forEach(t => {
@@ -1952,6 +2037,21 @@
                     btn.style.color = t === tab ? 'white' : '#667eea';
                 }
             });
+            // Pestaña fecha tiene color distinto
+            const btnFecha = document.getElementById('tabEjecFecha');
+            if (btnFecha) {
+                btnFecha.style.background = tab === 'fecha' ? '#06b6d4' : 'white';
+                btnFecha.style.color = tab === 'fecha' ? 'white' : '#06b6d4';
+            }
+            // Mostrar/ocultar calendario
+            const panelCal = document.getElementById('panelCalendarioEjec');
+            if (panelCal) {
+                panelCal.style.display = tab === 'fecha' ? 'block' : 'none';
+                if (tab === 'fecha') {
+                    if (!window._fechaSelEjec) window._fechaSelEjec = getHoy();
+                    renderCalendarioEjec();
+                }
+            }
             actualizarVistaEjecutivo();
         }
 
@@ -1960,7 +2060,14 @@
             const ahora = new Date();
             let ops = [], historial = [], labelPeriodo = '';
 
-            if (tab === 'hoy') {
+            if (tab === 'fecha') {
+                const fechaSel = window._fechaSelEjec || hoy;
+                const fechaObj = new Date(fechaSel + 'T12:00:00');
+                labelPeriodo = fechaObj.toLocaleDateString('es-CL', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+                labelPeriodo = labelPeriodo.charAt(0).toUpperCase() + labelPeriodo.slice(1);
+                ops = ordenesProduccion.filter(op => op.fecha === fechaSel);
+                historial = historialPorFecha?.[fechaSel] || (fechaSel === hoy ? getHistorialHoy() : []);
+            } else if (tab === 'hoy') {
                 labelPeriodo = 'Hoy — ' + ahora.toLocaleDateString('es-CL', {weekday:'long', day:'numeric', month:'long'});
                 ops = ordenesProduccion.filter(op => op.fecha === hoy);
                 historial = getHistorialHoy();
@@ -2138,7 +2245,22 @@
             let labels = [], valores = [], colores = [];
             const hoy = getHoy();
 
-            if (tab === 'hoy') {
+            if (tab === 'fecha') {
+                const fechaSel = window._fechaSelEjec || hoy;
+                const fechaObj = new Date(fechaSel + 'T12:00:00');
+                if (titulo) titulo.textContent = '📈 Producción por Hora — ' + fechaObj.toLocaleDateString('es-CL',{day:'numeric',month:'short'});
+                const dataF = {};
+                d.historial.forEach(h => {
+                    const hora = new Date(h.finCoccion || h.finEnvasado || Date.now()).getHours();
+                    if (!dataF[hora]) dataF[hora] = 0;
+                    dataF[hora] += h.kgFinales || 0;
+                });
+                for (let h = 8; h <= 18; h++) {
+                    labels.push(h + ':00');
+                    valores.push(dataF[h] || 0);
+                    colores.push(dataF[h] > 0 ? '#06b6d4' : '#e2e8f0');
+                }
+            } else if (tab === 'hoy') {
                 if (titulo) titulo.textContent = '📈 Producción por Hora — Hoy';
                 const data = {};
                 d.historial.forEach(h => {
