@@ -1587,6 +1587,10 @@
         function renderEquipos() {
             const grid = document.getElementById('equipmentGrid');
             grid.innerHTML = '';
+            // Mostrar preps frías si hay activas
+            if (window._prepsFriasJornada && window._prepsFriasJornada.length > 0) {
+              mostrarPrepsFriasEnDashboard(window._prepsFriasJornada);
+            }
 
             equipos.forEach(equipo => {
                 const card = document.createElement('div');
@@ -2349,7 +2353,7 @@
             const opsHoy = ordenesProduccion.filter(op => op.fecha === hoy && op.estado !== 'completada');
             sel.innerHTML = '<option value="">— Selecciona una OP —</option>';
             opsHoy.forEach(op => {
-                sel.innerHTML += `<option value="${op.id}">${op.numeroOp || 'Sin N°'} — ${op.sku ? op.sku+' · ' : ''}${op.nombre} (${op.platos.toLocaleString()} platos · ${op.kgTotalesTerminados} kg)</option>`;
+                sel.innerHTML += `<option value="${op.id}">${op.numeroOp || 'Sin N°'} — ${op.sku ? op.sku+' · ' : ''}${op.nombre} (${op.platos.toLocaleString()} unidades · ${op.kgTotalesTerminados} kg)</option>`;
             });
         }
 
@@ -5749,8 +5753,11 @@ function abrirResumenJornada() {
   seleccionadas.forEach(opId => {
     const op = ordenesProduccion.find(o => o.id === opId);
     if (!op) return;
+    const recetaM = recetas.find(r => r.id === op.recetaId);
     (op.componentes||[]).forEach(comp => {
-      if (comp.preparacionFria) prepsFriasModal.push({ ...comp, numeroOP: op.numeroOp, opNombre: op.nombre });
+      const compM = recetaM?.componentes?.find(c => c.nombre === comp.nombre);
+      const esFrioM = comp.preparacionFria || compM?.preparacionFria || false;
+      if (esFrioM) prepsFriasModal.push({ ...comp, numeroOP: op.numeroOp, opNombre: op.nombre });
     });
   });
 
@@ -5773,8 +5780,11 @@ function abrirResumenJornada() {
   // Mostrar preparaciones frías
   const prepsFriasResumen = [];
   ops.forEach(op => {
+    const recetaOpR = recetas.find(r => r.id === op.recetaId);
     (op.componentes||[]).forEach(comp => {
-      if (comp.preparacionFria) prepsFriasResumen.push({ ...comp, numeroOP: op.numeroOp, opNombre: op.nombre });
+      const compR = recetaOpR?.componentes?.find(c => c.nombre === comp.nombre);
+      const esFrioR = comp.preparacionFria || compR?.preparacionFria || false;
+      if (esFrioR) prepsFriasResumen.push({ ...comp, numeroOP: op.numeroOp, opNombre: op.nombre });
     });
   });
   const panelFrio = document.getElementById('panelPrepsFrias');
@@ -6025,9 +6035,13 @@ function planificarJornadaEnGantt(opIds, fechaStr) {
   opIds.forEach(opId => {
     const op = ordenesProduccion.find(o => o.id === opId);
     if (!op || op.estado === 'completada') return;
+    // Buscar receta original para obtener preparacionFria actualizado
+    const recetaOp = recetas.find(r => r.id === op.recetaId);
     (op.componentes || []).forEach(comp => {
-      if (comp.preparacionFria) {
-        // Registrar en lista de preparaciones frías (no va a equipo de cocción)
+      // Buscar preparacionFria en receta original (por si la OP es antigua)
+      const compReceta = recetaOp?.componentes?.find(c => c.nombre === comp.nombre);
+      const esFrio = comp.preparacionFria || compReceta?.preparacionFria || false;
+      if (esFrio) {
         if (!op._prepsFrias) op._prepsFrias = [];
         op._prepsFrias.push(comp);
         return;
@@ -6146,9 +6160,12 @@ function confirmarInicioJornada() {
     const op = ordenesProduccion.find(o => o.id === opId);
     if (!op || op.estado === 'completada') return;
     op.estado = esHoy ? 'en-produccion' : 'planificada';
-    // Recolectar componentes fríos de esta OP
+    // Recolectar componentes fríos de esta OP (leyendo desde receta original también)
+    const recetaOpFria = recetas.find(r => r.id === op.recetaId);
     (op.componentes || []).forEach(comp => {
-      if (comp.preparacionFria) {
+      const compReceta = recetaOpFria?.componentes?.find(c => c.nombre === comp.nombre);
+      const esFrio = comp.preparacionFria || compReceta?.preparacionFria || false;
+      if (esFrio) {
         window._prepsFriasJornada.push({
           componente: comp.nombre,
           numeroOP: op.numeroOp,
@@ -6348,7 +6365,7 @@ function agregarOP() {
   const platos = parseInt(document.getElementById('opPlatos').value) || 0;
 
   if (!numeroOp) { alert('Ingresa el N° de OP'); return; }
-  if (!recetaId || !platos) { alert('Selecciona una receta e ingresa la cantidad de platos'); return; }
+  if (!recetaId || !platos) { alert('Selecciona una receta e ingresa la cantidad de unidades'); return; }
 
   // Verificar que el N° OP no esté duplicado
   if (ordenesProduccion.find(op => op.numeroOp === numeroOp)) {
@@ -6426,7 +6443,7 @@ function renderListaOPs() {
         <div>
           <div style="font-weight:700;font-size:1rem;color:#333;">${op.sku ? '<span style="color:#667eea">'+op.sku+'</span> — ' : ''}${op.nombre}</div>
           <div style="font-size:.85rem;color:#666;margin-top:.2rem;">
-            🧾 <strong>${op.numeroOp || 'Sin N° OP'}</strong> · 📅 ${op.fecha} · ${op.platos.toLocaleString()} platos × ${op.gramaje}gr · 📦 <strong>${op.kgTotalesTerminados} kg</strong> totales
+            🧾 <strong>${op.numeroOp || 'Sin N° OP'}</strong> · 📅 ${op.fecha} · ${op.platos.toLocaleString()} unidades × ${op.gramaje}gr · 📦 <strong>${op.kgTotalesTerminados} kg</strong> totales
           </div>
         </div>
         <div style="display:flex;gap:.5rem;align-items:center;">
