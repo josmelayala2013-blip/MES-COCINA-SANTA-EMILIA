@@ -5748,19 +5748,6 @@ function abrirResumenJornada() {
   // Stats del día
   const kgTotal = ops.reduce((s, op) => s + (op.kgTotalesTerminados || 0), 0);
   const compTotal = ops.reduce((s, op) => s + (op.componentes?.length || 0), 0);
-  // Recolectar preps frías de las OPs seleccionadas (para mostrar en modal)
-  const prepsFriasModal = [];
-  seleccionadas.forEach(opId => {
-    const op = ordenesProduccion.find(o => o.id === opId);
-    if (!op) return;
-    const recetaM = recetas.find(r => r.id === op.recetaId);
-    (op.componentes||[]).forEach(comp => {
-      const compM = recetaM?.componentes?.find(c => c.nombre === comp.nombre);
-      const esFrioM = comp.preparacionFria || compM?.preparacionFria || false;
-      if (esFrioM) prepsFriasModal.push({ ...comp, numeroOP: op.numeroOp, opNombre: op.nombre });
-    });
-  });
-
   document.getElementById('statsJornada').innerHTML = `
     <div style="background:#f0fdf4;border-radius:10px;padding:1rem;text-align:center;border:1px solid #bbf7d0;">
       <div style="font-size:1.8rem;font-weight:800;color:#059669;">${ops.length}</div>
