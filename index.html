@@ -3365,7 +3365,13 @@ function abrirRegistroHACCP(equipoId) {
   const op = ordenesProduccion.find(o => o.id === eq.produccion.opVinculadaId);
   const nombreBuscar = (eq.produccion.componente || '').toLowerCase().trim();
 
-  // Buscar receta — por recetaId, luego por SKU, luego por nombre de receta
+  // PRIORIDAD 1: componente de la OP (tiene cantidadTotal ya calculada)
+  let comp = op?.componentes?.find(c =>
+    (c.nombre || '').toLowerCase().trim() === nombreBuscar ||
+    nombreBuscar.includes((c.nombre || '').toLowerCase().trim())
+  );
+
+  // PRIORIDAD 2: buscar en receta (para obtener ingredientes con cantidadBruta si no hay en OP)
   let receta = recetas.find(r => r.id === op?.recetaId);
   if (!receta && op?.sku) receta = recetas.find(r => r.sku === op.sku);
   if (!receta && op?.nombre) receta = recetas.find(r =>
@@ -3373,27 +3379,9 @@ function abrirRegistroHACCP(equipoId) {
     r.nombre.toLowerCase().includes(op.nombre.toLowerCase())
   );
 
-  // Buscar componente en la receta
-  let comp = receta?.componentes?.find(c =>
-    c.nombre?.toLowerCase().trim() === nombreBuscar
-  );
-  if (!comp && nombreBuscar) {
-    comp = receta?.componentes?.find(c =>
-      c.nombre?.toLowerCase().includes(nombreBuscar) ||
-      nombreBuscar.includes(c.nombre?.toLowerCase().trim())
-    );
-  }
-
-  // Si no encontró en receta, buscar en componentes de la OP (tienen ingredientes calculados)
   if (!comp || !comp.ingredientes?.length) {
-    const compOP = op?.componentes?.find(c =>
-      (c.nombre || '').toLowerCase().trim() === nombreBuscar ||
-      nombreBuscar.includes((c.nombre || '').toLowerCase().trim())
-    );
-    if (compOP?.ingredientes?.length) comp = compOP;
+    comp = receta?.componentes?.find(c => c.nombre?.toLowerCase().trim() === nombreBuscar);
   }
-
-  // Última opción: buscar en TODAS las recetas el componente por nombre
   if (!comp || !comp.ingredientes?.length) {
     for (const r of recetas) {
       const c = r.componentes?.find(c =>
@@ -3709,16 +3697,20 @@ function generarPDFHACCP() {
   const eq = equipos.find(e => e.id === window._haaccpEquipoId);
   const op = ordenesProduccion.find(o => o.id === eq?.produccion?.opVinculadaId);
   const _nb = (eq?.produccion?.componente || '').toLowerCase().trim();
-  let _receta = recetas.find(r => r.id === op?.recetaId);
-  if (!_receta && op?.sku) _receta = recetas.find(r => r.sku === op.sku);
-  if (!_receta && op?.nombre) _receta = recetas.find(r =>
-    op.nombre.toLowerCase().includes(r.nombre.toLowerCase()) ||
-    r.nombre.toLowerCase().includes(op.nombre.toLowerCase())
+  // PRIORIDAD 1: componente de la OP (tiene cantidadTotal ya calculada)
+  let _comp = op?.componentes?.find(c =>
+    (c.nombre||'').toLowerCase().trim() === _nb ||
+    _nb.includes((c.nombre||'').toLowerCase().trim())
   );
-  let _comp = _receta?.componentes?.find(c => c.nombre?.toLowerCase().trim() === _nb);
+  // PRIORIDAD 2: receta
   if (!_comp || !_comp.ingredientes?.length) {
-    const _compOP = op?.componentes?.find(c => (c.nombre||'').toLowerCase().trim() === _nb);
-    if (_compOP?.ingredientes?.length) _comp = _compOP;
+    let _receta = recetas.find(r => r.id === op?.recetaId);
+    if (!_receta && op?.sku) _receta = recetas.find(r => r.sku === op.sku);
+    if (!_receta && op?.nombre) _receta = recetas.find(r =>
+      op.nombre.toLowerCase().includes(r.nombre.toLowerCase()) ||
+      r.nombre.toLowerCase().includes(op.nombre.toLowerCase())
+    );
+    _comp = _receta?.componentes?.find(c => c.nombre?.toLowerCase().trim() === _nb);
   }
   if (!_comp || !_comp.ingredientes?.length) {
     for (const r of recetas) {
@@ -3749,12 +3741,19 @@ function generarPDFHACCP() {
     firmaTimestamp: new Date().toLocaleString('es-CL'),
     firmaPIN: '****',
     ingredientes: ingredientes.map((ing, i) => {
-      let cantReal = ing.cantidadBruta || 0;
-      if (ing.unidad === 'gr') cantReal = Math.round((platos * ing.cantidadBruta / 1000) * 100) / 100;
-      else cantReal = Math.round(platos * ing.cantidadBruta * 100) / 100;
+      let cantReal = 0;
+      if (ing.cantidadTotal && ing.cantidadTotal > 0) {
+        cantReal = ing.cantidadTotal;
+      } else if (platos > 0 && ing.cantidadBruta > 0) {
+        if (ing.unidad === 'gr') cantReal = Math.round((platos * ing.cantidadBruta / 1000) * 100) / 100;
+        else cantReal = Math.round(platos * ing.cantidadBruta * 100) / 100;
+      } else {
+        cantReal = ing.cantidadBruta || 0;
+      }
+      const unidadMostrar = (ing.cantidadTotal && ing.cantidadTotal > 0 && ing.unidad === 'gr') ? 'kg' : (ing.unidad || 'kg');
       return {
         nombre: ing.nombre,
-        cantReal, unidad: ing.unidad,
+        cantReal, unidad: unidadMostrar,
         loteInt: document.getElementById(`loteInt_${i}`)?.value || '',
         ausExt: getValorCNC(`insp_ausExt_${i}`),
         aroma: getValorCNC(`insp_aroma_${i}`),
