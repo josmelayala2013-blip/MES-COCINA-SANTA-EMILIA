@@ -2360,6 +2360,400 @@
         setInterval(actualizarContadorTurno, 60000);
 
 // ============================================================
+// MÓDULO REGISTRO HACCP ENVASADO (R-POE-03-GF-04)
+// ============================================================
+
+window._haaccpEnvasadoIdx = null;
+
+function abrirRegistroHACCPEnvasado(index) {
+  window._haaccpEnvasadoIdx = index;
+  const proceso = procesosEnvasado[index];
+  if (!proceso) return;
+
+  const fechaHoy = new Date().toLocaleDateString('es-CL');
+  const loteJuliano = getDiaJuliano();
+  const horaInicio = proceso.inicioEnvasado
+    ? new Date(proceso.inicioEnvasado).toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'})
+    : '';
+
+  const html = `
+    <div id="haaccpEnvasadoForm">
+
+      <!-- Datos generales -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 2fr;gap:.75rem;margin-bottom:1rem;padding:.75rem;background:#f5f3ff;border-radius:10px;border:1px solid #ddd8fe;">
+        <div>
+          <label style="font-size:.72rem;font-weight:700;color:#6d28d9;display:block;margin-bottom:.2rem;">① LOTE PRODUCCIÓN (JULIANO)</label>
+          <input type="text" id="envLote" value="${loteJuliano}" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+        </div>
+        <div>
+          <label style="font-size:.72rem;font-weight:700;color:#6d28d9;display:block;margin-bottom:.2rem;">② FECHA DE ENVASADO</label>
+          <input type="text" id="envFecha" value="${fechaHoy}" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+        </div>
+        <div>
+          <label style="font-size:.72rem;font-weight:700;color:#6d28d9;display:block;margin-bottom:.2rem;">③ RESPONSABLE DEL ENVASADO</label>
+          <input type="text" id="envResponsable" value="${proceso.manipulador || ''}" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+        </div>
+      </div>
+
+      <!-- Preparación -->
+      <div style="padding:.6rem .75rem;background:#ede9fe;border-radius:8px;margin-bottom:1rem;border-left:4px solid #7c3aed;">
+        <span style="font-size:.72rem;font-weight:700;color:#5b21b6;">④ PREPARACIÓN:</span>
+        <span style="font-size:.9rem;font-weight:800;color:#1e293b;margin-left:.5rem;">${proceso.producto}</span>
+        <span style="margin-left:1rem;font-size:.78rem;color:#64748b;">OP: <strong>${proceso.numeroOP}</strong> · Equipo origen: <strong>${proceso.equipoNombre}</strong></span>
+      </div>
+
+      <!-- Control de proceso (5) -->
+      <div style="background:#fafafa;border-radius:10px;padding:1rem;border:1px solid #e2e8f0;margin-bottom:1rem;">
+        <div style="font-size:.78rem;font-weight:700;color:#5b21b6;margin-bottom:.75rem;">⑤ CONTROL DE PROCESO</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:.75rem;">
+          <div>
+            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">Cantidad de Producto (kg)</label>
+            <input type="number" id="envCantidad" placeholder="Ej: 115" min="0" step="0.1"
+              style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+          </div>
+          <div>
+            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">Cantidad de Merma (kg)</label>
+            <input type="number" id="envMerma" placeholder="Ej: 2.5" min="0" step="0.1"
+              style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+          </div>
+          <div>
+            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">Formato de Envasado</label>
+            <select id="envFormato" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+              <option value="">Selecciona...</option>
+              <option value="200gr">200 gr</option>
+              <option value="500gr">500 gr</option>
+              <option value="1kg">1 kg</option>
+              <option value="3kg">3 kg</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">Lote del Empaque</label>
+            <input type="text" id="envLoteEmpaque" placeholder="Ej: LE-2026-001"
+              style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+          </div>
+        </div>
+      </div>
+
+      <!-- Control de temperaturas (6) -->
+      <div style="background:#fafafa;border-radius:10px;padding:1rem;border:1px solid #e2e8f0;margin-bottom:1rem;">
+        <div style="font-size:.78rem;font-weight:700;color:#5b21b6;margin-bottom:.75rem;">⑥ CONTROL DE TEMPERATURAS DE ENVASADO</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:.75rem;align-items:end;">
+          <div>
+            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">Hora Inicio Envasado</label>
+            <input type="time" id="envHoraInicio" value="${horaInicio}"
+              style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+          </div>
+          <div>
+            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">T° Inicio (°C)</label>
+            <input type="number" id="envTempInicio" placeholder="Ej: 78" min="0" max="200"
+              style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+          </div>
+          <div>
+            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">Hora Final Envasado</label>
+            <input type="time" id="envHoraFin"
+              style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+          </div>
+          <div>
+            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">T° Final (°C)</label>
+            <input type="number" id="envTempFin" placeholder="Ej: 68" min="0" max="200"
+              style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+          </div>
+          <div>
+            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">¿Cumple T° esperada?</label>
+            <div style="display:flex;gap:.4rem;margin-top:.1rem;">
+              <button onclick="toggleCNCEnv(this,'C')" class="btnCNCEnv" data-id="tempCumple" data-val="C"
+                style="flex:1;padding:.45rem;border-radius:6px;border:2px solid #10b981;background:white;color:#10b981;cursor:pointer;font-weight:800;font-size:.9rem;">C</button>
+              <button onclick="toggleCNCEnv(this,'NC')" class="btnCNCEnv" data-id="tempCumple" data-val="NC"
+                style="flex:1;padding:.45rem;border-radius:6px;border:2px solid #ef4444;background:white;color:#ef4444;cursor:pointer;font-weight:800;font-size:.9rem;">NC</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ACC si NC -->
+        <div id="accEnvasadoWrap" style="display:none;margin-top:.75rem;background:#fffbeb;border-radius:8px;padding:.75rem;border:1px solid #fde68a;">
+          <label style="font-size:.72rem;font-weight:700;color:#92400e;display:block;margin-bottom:.3rem;">⚠️ ACCIÓN CORRECTIVA (ACC)</label>
+          <select id="envACC" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #fde68a;font-size:.85rem;">
+            <option value="">Selecciona acción...</option>
+            <option value="ACC1">ACC1 — T° bajó de 65°C → retermalizar hasta >75°C</option>
+            <option value="ACC2">ACC2 — Producto >120min perdió calor (<63°C) → informar a Calidad y Producción</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Observaciones (7) -->
+      <div style="margin-bottom:1rem;">
+        <label style="font-size:.72rem;font-weight:700;color:#64748b;display:block;margin-bottom:.3rem;">⑦ OBSERVACIONES</label>
+        <textarea id="envObservaciones" rows="2" placeholder="Notas del proceso de envasado..."
+          style="width:100%;padding:.5rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;resize:vertical;"></textarea>
+      </div>
+
+      <!-- Firma PIN -->
+      <div style="background:#f8fafc;border-radius:10px;padding:1rem;border:2px solid #e2e8f0;margin-bottom:1rem;">
+        <div style="font-size:.82rem;font-weight:700;color:#374151;margin-bottom:.6rem;">🔐 FIRMA DIGITAL DEL OPERADOR</div>
+        <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;">
+          <div>
+            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">Operador</label>
+            <input type="text" id="envFirmaNombre" value="${proceso.manipulador || ''}"
+              style="padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;width:180px;">
+          </div>
+          <div>
+            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">PIN (4 dígitos)</label>
+            <input type="password" id="envFirmaPIN" maxlength="4" placeholder="••••"
+              style="padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;width:100px;text-align:center;letter-spacing:.2rem;">
+          </div>
+          <div id="envFirmaEstado" style="font-size:.82rem;color:#94a3b8;padding-top:1.2rem;">Ingresa PIN para firmar</div>
+        </div>
+      </div>
+
+      <!-- Botones -->
+      <div style="display:flex;gap:1rem;justify-content:flex-end;">
+        <button onclick="cerrarModalHACCPEnvasado()" style="padding:.75rem 1.5rem;border-radius:10px;border:1px solid #ddd;cursor:pointer;font-weight:600;color:#64748b;">Cancelar</button>
+        <button onclick="generarPDFHACCPEnvasado()" style="padding:.75rem 1.75rem;border-radius:10px;border:none;background:linear-gradient(135deg,#5b21b6,#7c3aed);color:white;cursor:pointer;font-weight:700;font-size:1rem;">
+          📄 Generar PDF e Imprimir
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('contenidoModalHACCPEnvasado').innerHTML = html;
+  document.getElementById('modalHACCPEnvasado').style.display = 'block';
+
+  // Mostrar ACC si se selecciona NC
+  setTimeout(() => {
+    document.querySelectorAll('.btnCNCEnv[data-id="tempCumple"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const val = btn.getAttribute('data-val');
+        document.getElementById('accEnvasadoWrap').style.display = val === 'NC' ? 'block' : 'none';
+      });
+    });
+  }, 100);
+}
+
+function cerrarModalHACCPEnvasado() {
+  document.getElementById('modalHACCPEnvasado').style.display = 'none';
+}
+
+function toggleCNCEnv(btn, val) {
+  const id = btn.getAttribute('data-id');
+  document.querySelectorAll(`.btnCNCEnv[data-id="${id}"]`).forEach(b => {
+    b.style.background = 'white';
+    b.style.color = b.getAttribute('data-val') === 'C' ? '#10b981' : '#ef4444';
+  });
+  btn.style.background = val === 'C' ? '#10b981' : '#ef4444';
+  btn.style.color = 'white';
+}
+
+function getValorCNCEnv(id) {
+  const btns = document.querySelectorAll(`.btnCNCEnv[data-id="${id}"]`);
+  for (const b of btns) {
+    if (b.style.color === 'white') return b.getAttribute('data-val');
+  }
+  return '—';
+}
+
+function generarPDFHACCPEnvasado() {
+  const pin = document.getElementById('envFirmaPIN')?.value;
+  if (!pin || pin.length < 4) {
+    alert('Ingresa tu PIN de 4 dígitos para firmar el registro');
+    document.getElementById('envFirmaPIN')?.focus();
+    return;
+  }
+
+  const proceso = procesosEnvasado[window._haaccpEnvasadoIdx];
+  if (!proceso) return;
+
+  const d = {
+    lote: document.getElementById('envLote')?.value || '',
+    fecha: document.getElementById('envFecha')?.value || '',
+    responsable: document.getElementById('envResponsable')?.value || '',
+    preparacion: proceso.producto || '',
+    op: proceso.numeroOP || '',
+    equipoOrigen: proceso.equipoNombre || '',
+    cantidad: document.getElementById('envCantidad')?.value || '',
+    merma: document.getElementById('envMerma')?.value || '0',
+    formato: document.getElementById('envFormato')?.value || '',
+    loteEmpaque: document.getElementById('envLoteEmpaque')?.value || '',
+    horaInicio: document.getElementById('envHoraInicio')?.value || '',
+    tempInicio: document.getElementById('envTempInicio')?.value || '',
+    horaFin: document.getElementById('envHoraFin')?.value || '',
+    tempFin: document.getElementById('envTempFin')?.value || '',
+    cumpleTemp: getValorCNCEnv('tempCumple'),
+    acc: document.getElementById('envACC')?.value || '',
+    observaciones: document.getElementById('envObservaciones')?.value || '',
+    firmaNombre: document.getElementById('envFirmaNombre')?.value || '',
+    firmaTimestamp: new Date().toLocaleString('es-CL'),
+  };
+
+  imprimirRegistroHACCPEnvasado(d);
+
+  document.getElementById('envFirmaEstado').innerHTML = '✅ <strong>Firmado</strong> — ' + d.firmaNombre + ' · ' + d.firmaTimestamp;
+  document.getElementById('envFirmaEstado').style.color = '#059669';
+}
+
+function imprimirRegistroHACCPEnvasado(d) {
+  const ventana = window.open('', '_blank', 'width=900,height=700');
+
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Registro Envasado — ${d.preparacion}</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: Arial, sans-serif; font-size: 9pt; color: #000; background: white; }
+  @page { size: A4 landscape; margin: 10mm; }
+  @media print { body { margin: 0; } .no-print { display: none; } }
+
+  .header { display:flex; justify-content:space-between; align-items:center; border:2px solid #5b21b6; margin-bottom:4px; }
+  .header-titulo { flex:1; text-align:center; padding:6px; border-left:1px solid #5b21b6; border-right:1px solid #5b21b6; }
+  .header-titulo h2 { font-size:11pt; font-weight:bold; color:#5b21b6; }
+  .header-codigo { padding:6px 10px; font-size:8pt; text-align:right; line-height:1.5; }
+  .header-logo { padding:6px 10px; font-size:8pt; color:#5b21b6; font-weight:bold; }
+
+  .instrucciones { font-size:7pt; border:1px solid #ccc; padding:5px; margin-bottom:4px; color:#555; line-height:1.3; }
+
+  .datos-gen { display:flex; border:1px solid #5b21b6; margin-bottom:4px; }
+  .dato-item { flex:1; padding:4px 6px; border-right:1px solid #5b21b6; }
+  .dato-item:last-child { border-right:none; }
+  .dato-label { font-size:7pt; font-weight:bold; color:#5b21b6; }
+  .dato-val { font-size:9pt; font-weight:bold; margin-top:2px; }
+
+  .prep-bar { background:#5b21b6; color:white; padding:4px 8px; font-weight:bold; font-size:9pt; margin-bottom:4px; }
+
+  table { width:100%; border-collapse:collapse; margin-bottom:6px; }
+  th { background:#5b21b6; color:white; padding:4px 3px; font-size:8pt; border:1px solid #7c3aed; text-align:center; }
+  th.sub { background:#7c3aed; font-size:7.5pt; }
+  td { padding:4px 5px; border:1px solid #ccc; font-size:9pt; vertical-align:middle; }
+  tr:nth-child(even) td { background:#f9f7ff; }
+
+  .acc-box { border:1px solid #f59e0b; background:#fffbeb; padding:5px; margin-bottom:5px; font-size:8pt; }
+  .acc-titulo { font-weight:bold; color:#92400e; margin-bottom:3px; }
+
+  .firmas { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:6px; }
+  .firma-campo { border:1px solid #5b21b6; padding:6px; text-align:center; }
+  .firma-linea { border-top:1px solid #000; margin-top:25px; padding-top:3px; font-size:8pt; }
+
+  .obs-box { border:1px solid #ccc; padding:5px; min-height:30px; font-size:9pt; margin-bottom:6px; }
+  .obs-titulo { font-size:7.5pt; font-weight:bold; color:#5b21b6; margin-bottom:2px; }
+
+  .print-btn { position:fixed; top:10px; right:10px; background:#5b21b6; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-size:11pt; z-index:999; }
+</style>
+</head>
+<body>
+<button class="print-btn no-print" onclick="window.print()">🖨️ Imprimir</button>
+
+<!-- ENCABEZADO -->
+<div class="header">
+  <div class="header-logo">🏭 SANTA EMILIA</div>
+  <div class="header-titulo">
+    <h2>CONTROL DE PROCESO - ENVASADO DE COCINA</h2>
+  </div>
+  <div class="header-codigo">Código: R-POE-03-GF-04<br>Versión: v-02<br>F. Vigencia: 15-12-2025</div>
+</div>
+
+<!-- INSTRUCCIONES -->
+<div class="instrucciones">
+  <strong>Instrucciones:</strong> (1) Lote de Producción según día juliano de envasado. (2) Fecha de envasado. (3) Nombre del responsable. (4) Nombre de la preparación envasada. (5) Cantidad de producto, merma, formato de envasado y lote del empaque. (6) Hora y temperatura de inicio y fin del envasado — productos deben envasarse en caliente (>65°C). Pastas y alimentos en bandeja pueden estar a <20°C. Si no cumple temperatura, aplicar acción correctiva. (7) Observaciones.
+</div>
+
+<!-- DATOS GENERALES -->
+<div class="datos-gen">
+  <div class="dato-item" style="max-width:130px;">
+    <div class="dato-label">① Lote Producción (Juliano):</div>
+    <div class="dato-val">${d.lote}</div>
+  </div>
+  <div class="dato-item" style="max-width:130px;">
+    <div class="dato-label">② Fecha de Envasado:</div>
+    <div class="dato-val">${d.fecha}</div>
+  </div>
+  <div class="dato-item">
+    <div class="dato-label">③ Responsable:</div>
+    <div class="dato-val">${d.responsable}</div>
+  </div>
+</div>
+
+<!-- PREPARACIÓN -->
+<div class="prep-bar">
+  ④ Preparación: ${d.preparacion} &nbsp;|&nbsp; OP: ${d.op} &nbsp;|&nbsp; Equipo origen: ${d.equipoOrigen}
+</div>
+
+<!-- TABLA PRINCIPAL -->
+<table>
+  <thead>
+    <tr>
+      <th colspan="4">⑤ CONTROL DE PROCESO</th>
+      <th colspan="5">⑥ CONTROL DE TEMPERATURAS DE ENVASADO</th>
+      <th rowspan="2">⑦ OBS.</th>
+    </tr>
+    <tr>
+      <th class="sub">Cant. Producto</th>
+      <th class="sub">Cant. Merma</th>
+      <th class="sub">Formato Envasado</th>
+      <th class="sub">Lote Empaque</th>
+      <th class="sub">Hora Inicio</th>
+      <th class="sub">T° Inicio (°C)</th>
+      <th class="sub">Hora Final</th>
+      <th class="sub">T° Final (°C)</th>
+      <th class="sub">¿Cumple T°? C/NC</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align:center;font-weight:bold;">${d.cantidad} kg</td>
+      <td style="text-align:center;">${d.merma} kg</td>
+      <td style="text-align:center;">${d.formato}</td>
+      <td style="text-align:center;">${d.loteEmpaque}</td>
+      <td style="text-align:center;">${d.horaInicio}</td>
+      <td style="text-align:center;font-weight:bold;">${d.tempInicio} °C</td>
+      <td style="text-align:center;">${d.horaFin}</td>
+      <td style="text-align:center;font-weight:bold;">${d.tempFin} °C</td>
+      <td style="text-align:center;font-weight:bold;font-size:11pt;color:${d.cumpleTemp==='C'?'#059669':'#dc2626'}">${d.cumpleTemp}</td>
+      <td>${d.observaciones}</td>
+    </tr>
+    <tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+  </tbody>
+</table>
+
+${d.acc ? `
+<div class="acc-box">
+  <div class="acc-titulo">⚠️ Acción Correctiva Aplicada:</div>
+  ${d.acc}
+</div>` : `
+<div class="acc-box">
+  <div class="acc-titulo">Acciones Correctivas:</div>
+  <strong>ACC1:</strong> Si T° baja de 65°C → informar a Jefe de Producción, retermalizar hasta >75°C para continuar envasado. &nbsp;|&nbsp;
+  <strong>ACC2:</strong> Si producto supera 120min y pierde calor (<63°C) → informar a Calidad y Producción para definir manejo del producto.
+</div>`}
+
+<!-- FIRMA OPERADOR -->
+<div style="border:1px solid #5b21b6;padding:6px;margin-bottom:6px;">
+  <strong style="font-size:8pt;color:#5b21b6;">🔐 Firma Digital del Operador:</strong>
+  <span style="font-size:8pt;margin-left:8px;">Firmado por: <strong>${d.firmaNombre}</strong> · ${d.firmaTimestamp} · PIN: ****</span>
+</div>
+
+<!-- VERIFICACIONES -->
+<div class="firmas">
+  <div class="firma-campo">
+    <div style="font-size:8pt;font-weight:bold;color:#5b21b6;margin-bottom:4px;">Verificación de Producción</div>
+    <div class="firma-linea">Josmel Ayala<br>Jefe de Producción</div>
+  </div>
+  <div class="firma-campo">
+    <div style="font-size:8pt;font-weight:bold;color:#5b21b6;margin-bottom:4px;">Verificación de Calidad</div>
+    <div class="firma-linea">Dpto. de Calidad</div>
+  </div>
+</div>
+
+</body>
+</html>`;
+
+  ventana.document.write(html);
+  ventana.document.close();
+  ventana.onload = () => { ventana.focus(); };
+}
+
+
+// ============================================================
 // MÓDULO REGISTRO HACCP
 // ============================================================
 
@@ -2911,6 +3305,22 @@ function imprimirRegistroHACCP(d) {
   ACC05: Elemento extraño → detener proceso, avisar Calidad. Si >2 elementos, retener y eliminar como no conforme.
 </div>
 
+
+  <!-- ============================================================ -->
+  <!-- MODAL REGISTRO HACCP ENVASADO                                -->
+  <!-- ============================================================ -->
+  <div id="modalHACCPEnvasado" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;overflow-y:auto;">
+    <div style="background:white;max-width:900px;margin:1.5rem auto;border-radius:16px;padding:0;overflow:hidden;">
+      <div style="background:linear-gradient(135deg,#5b21b6,#7c3aed);padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="color:white;font-weight:800;font-size:1.1rem;">📋 Registro HACCP — Control de Proceso Envasado</div>
+          <div style="color:rgba(255,255,255,.75);font-size:.8rem;margin-top:.2rem;">R-POE-03-GF-04 · Versión v-02 · Vigencia: 15-12-2025</div>
+        </div>
+        <button onclick="cerrarModalHACCPEnvasado()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
+      </div>
+      <div style="padding:1.5rem;" id="contenidoModalHACCPEnvasado"></div>
+    </div>
+  </div>
 </body>
 </html>`;
 
@@ -3800,7 +4210,10 @@ function imprimirRegistroHACCP(d) {
                             <div><strong>Inicio:</strong> ${new Date(proceso.inicioEnvasado).toLocaleTimeString('es-CL')}</div>
                             <div><strong>Equipo origen:</strong> ${proceso.equipoNombre}</div>
                         </div>
-                        <button class="btn btn-primary btn-full" onclick="abrirFinalizarEnvasado(${index})">📦 FINALIZAR ENVASADO</button>
+                        <div style="display:flex;gap:.5rem;margin-top:.5rem;">
+                            <button class="btn btn-primary" style="flex:1;" onclick="abrirFinalizarEnvasado(${index})">📦 FINALIZAR ENVASADO</button>
+                            <button style="background:#f5f3ff;border:2px solid #8b5cf6;color:#6d28d9;border-radius:8px;padding:.5rem .75rem;cursor:pointer;font-weight:700;font-size:.82rem;white-space:nowrap;" onclick="abrirRegistroHACCPEnvasado(${index})">📋 HACCP</button>
+                        </div>
                     </div>
                 `;
             }).join('');
@@ -8277,6 +8690,22 @@ function mostrarPopupGantt(eq) {
         <button onclick="cerrarModalHACCP()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
       </div>
       <div style="padding:1.5rem;" id="contenidoModalHACCP"></div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL REGISTRO HACCP ENVASADO                                -->
+  <!-- ============================================================ -->
+  <div id="modalHACCPEnvasado" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;overflow-y:auto;">
+    <div style="background:white;max-width:900px;margin:1.5rem auto;border-radius:16px;padding:0;overflow:hidden;">
+      <div style="background:linear-gradient(135deg,#5b21b6,#7c3aed);padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="color:white;font-weight:800;font-size:1.1rem;">📋 Registro HACCP — Control de Proceso Envasado</div>
+          <div style="color:rgba(255,255,255,.75);font-size:.8rem;margin-top:.2rem;">R-POE-03-GF-04 · Versión v-02 · Vigencia: 15-12-2025</div>
+        </div>
+        <button onclick="cerrarModalHACCPEnvasado()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
+      </div>
+      <div style="padding:1.5rem;" id="contenidoModalHACCPEnvasado"></div>
     </div>
   </div>
 </body>
