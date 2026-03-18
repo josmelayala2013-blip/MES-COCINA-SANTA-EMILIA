@@ -3413,12 +3413,22 @@ function abrirRegistroHACCP(equipoId) {
   const platos = op?.platos || 0;
 
   // Calcular cantidades reales de ingredientes
+  // Si el ingrediente ya tiene cantidadTotal calculada (viene de OP), usarla directamente
   const ingrConCant = ingredientes.map(ing => {
-    let cantReal = ing.cantidadBruta || 0;
-    if (ing.unidad === 'gr') cantReal = Math.round((platos * ing.cantidadBruta / 1000) * 100) / 100;
-    else if (ing.unidad === 'kg') cantReal = Math.round(platos * ing.cantidadBruta * 100) / 100;
-    else cantReal = Math.round(platos * ing.cantidadBruta * 100) / 100;
-    return { ...ing, cantReal };
+    let cantReal = 0;
+    if (ing.cantidadTotal && ing.cantidadTotal > 0) {
+      // Ya viene calculado desde la OP
+      cantReal = ing.cantidadTotal;
+    } else if (platos > 0 && ing.cantidadBruta > 0) {
+      // Calcular desde receta base
+      if (ing.unidad === 'gr') cantReal = Math.round((platos * ing.cantidadBruta / 1000) * 100) / 100;
+      else cantReal = Math.round(platos * ing.cantidadBruta * 100) / 100;
+    } else {
+      cantReal = ing.cantidadBruta || 0;
+    }
+    // Determinar unidad a mostrar
+    const unidadMostrar = (ing.cantidadTotal && ing.cantidadTotal > 0 && ing.unidad === 'gr') ? 'kg' : (ing.unidad || 'kg');
+    return { ...ing, cantReal, unidadMostrar };
   });
 
   const horaInicio = eq.produccion.inicio ? new Date(eq.produccion.inicio).toLocaleTimeString('es-CL', {hour:'2-digit',minute:'2-digit'}) : '';
