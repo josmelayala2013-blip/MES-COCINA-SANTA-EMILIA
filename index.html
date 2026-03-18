@@ -3361,37 +3361,53 @@ function abrirRegistroHACCP(equipoId) {
   if (!eq || !eq.produccion) return;
   window._haaccpEquipoId = equipoId;
 
-  // Buscar receta y componente
+  // Buscar OP y receta
   const op = ordenesProduccion.find(o => o.id === eq.produccion.opVinculadaId);
-  const receta = recetas.find(r => r.id === op?.recetaId);
-
-  // Buscar componente — intentar por nombre exacto, luego parcial, luego por posición en OP
   const nombreBuscar = (eq.produccion.componente || '').toLowerCase().trim();
+
+  // Buscar receta — por recetaId, luego por SKU, luego por nombre de receta
+  let receta = recetas.find(r => r.id === op?.recetaId);
+  if (!receta && op?.sku) receta = recetas.find(r => r.sku === op.sku);
+  if (!receta && op?.nombre) receta = recetas.find(r =>
+    op.nombre.toLowerCase().includes(r.nombre.toLowerCase()) ||
+    r.nombre.toLowerCase().includes(op.nombre.toLowerCase())
+  );
+
+  // Buscar componente en la receta
   let comp = receta?.componentes?.find(c =>
     c.nombre?.toLowerCase().trim() === nombreBuscar
   );
-  // Si no encontró por nombre exacto, buscar por nombre parcial
   if (!comp && nombreBuscar) {
     comp = receta?.componentes?.find(c =>
       c.nombre?.toLowerCase().includes(nombreBuscar) ||
       nombreBuscar.includes(c.nombre?.toLowerCase().trim())
     );
   }
-  // Si aún no encontró, buscar en los componentes de la OP
-  if (!comp) {
+
+  // Si no encontró en receta, buscar en componentes de la OP (tienen ingredientes calculados)
+  if (!comp || !comp.ingredientes?.length) {
     const compOP = op?.componentes?.find(c =>
-      (c.nombre || '').toLowerCase().trim() === nombreBuscar
+      (c.nombre || '').toLowerCase().trim() === nombreBuscar ||
+      nombreBuscar.includes((c.nombre || '').toLowerCase().trim())
     );
-    if (compOP) {
-      // Usar ingredientes del componente de la OP directamente
-      comp = compOP;
+    if (compOP?.ingredientes?.length) comp = compOP;
+  }
+
+  // Última opción: buscar en TODAS las recetas el componente por nombre
+  if (!comp || !comp.ingredientes?.length) {
+    for (const r of recetas) {
+      const c = r.componentes?.find(c =>
+        c.nombre?.toLowerCase().trim() === nombreBuscar ||
+        nombreBuscar.includes(c.nombre?.toLowerCase().trim())
+      );
+      if (c?.ingredientes?.length) { comp = c; receta = r; break; }
     }
   }
 
-  console.log('HACCP Debug — componente buscado:', nombreBuscar,
+  console.log('HACCP Debug — componente:', nombreBuscar,
     '| receta:', receta?.nombre,
-    '| comp encontrado:', comp?.nombre,
-    '| ingredientes:', comp?.ingredientes?.length);
+    '| comp:', comp?.nombre,
+    '| ingredientes:', comp?.ingredientes?.length || 0);
 
   const ingredientes = comp?.ingredientes || [];
   const platos = op?.platos || 0;
@@ -3682,10 +3698,25 @@ function generarPDFHACCP() {
   // Recopilar datos del formulario
   const eq = equipos.find(e => e.id === window._haaccpEquipoId);
   const op = ordenesProduccion.find(o => o.id === eq?.produccion?.opVinculadaId);
-  const receta = recetas.find(r => r.id === op?.recetaId);
-  const comp = receta?.componentes?.find(c =>
-    c.nombre?.toLowerCase().trim() === eq?.produccion?.componente?.toLowerCase().trim()
+  const _nb = (eq?.produccion?.componente || '').toLowerCase().trim();
+  let _receta = recetas.find(r => r.id === op?.recetaId);
+  if (!_receta && op?.sku) _receta = recetas.find(r => r.sku === op.sku);
+  if (!_receta && op?.nombre) _receta = recetas.find(r =>
+    op.nombre.toLowerCase().includes(r.nombre.toLowerCase()) ||
+    r.nombre.toLowerCase().includes(op.nombre.toLowerCase())
   );
+  let _comp = _receta?.componentes?.find(c => c.nombre?.toLowerCase().trim() === _nb);
+  if (!_comp || !_comp.ingredientes?.length) {
+    const _compOP = op?.componentes?.find(c => (c.nombre||'').toLowerCase().trim() === _nb);
+    if (_compOP?.ingredientes?.length) _comp = _compOP;
+  }
+  if (!_comp || !_comp.ingredientes?.length) {
+    for (const r of recetas) {
+      const c = r.componentes?.find(c => c.nombre?.toLowerCase().trim() === _nb);
+      if (c?.ingredientes?.length) { _comp = c; break; }
+    }
+  }
+  const comp = _comp;
   const ingredientes = comp?.ingredientes || [];
   const platos = op?.platos || 0;
 
