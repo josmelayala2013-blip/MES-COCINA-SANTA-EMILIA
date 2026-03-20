@@ -721,11 +721,23 @@
                     <h2 style="color:#dc2626;margin:0;">🥩 Acondicionamiento — Carnes</h2>
                 </div>
                 <div id="contenidoCarnes">
-                    <div style="text-align:center;color:#999;padding:4rem;">
-                        <div style="font-size:3rem;margin-bottom:1rem;">🥩</div>
-                        <p style="font-size:1.1rem;">Módulo de Acondicionamiento de Carnes</p>
-                        <p style="font-size:.9rem;margin-top:.5rem;color:#bbb;">Aquí se cargarán los registros de Carnes</p>
+                  <!-- Header info -->
+                  <div style="background:#fee2e2;border-radius:10px;padding:.75rem 1rem;margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center;">
+                    <div style="font-size:.82rem;color:#991b1b;">
+                      <strong>R-POE-03-GF-01</strong> · Versión 01 · F.Vig: 01-09-2024 &nbsp;|&nbsp;
+                      <span style="color:#b91c1c;">LC: ≤ 4°C todas las carnes</span>
                     </div>
+                    <button onclick="abrirFormCarnes()" style="background:#dc2626;color:white;border:none;border-radius:8px;padding:.5rem 1.25rem;cursor:pointer;font-weight:700;font-size:.9rem;">
+                      ➕ Nuevo Registro
+                    </button>
+                  </div>
+                  <!-- Lista de registros guardados -->
+                  <div id="listaRegistrosCarnes">
+                    <div style="text-align:center;color:#999;padding:3rem;">
+                      <div style="font-size:2.5rem;">🥩</div>
+                      <p style="margin-top:.5rem;">No hay registros aún. Crea uno nuevo.</p>
+                    </div>
+                  </div>
                 </div>
             </div>
         </div>
@@ -741,11 +753,22 @@
                     <h2 style="color:#10b981;margin:0;">🥗 Acondicionamiento — Vegetales</h2>
                 </div>
                 <div id="contenidoVegetales">
-                    <div style="text-align:center;color:#999;padding:4rem;">
-                        <div style="font-size:3rem;margin-bottom:1rem;">🥗</div>
-                        <p style="font-size:1.1rem;">Módulo de Acondicionamiento de Vegetales</p>
-                        <p style="font-size:.9rem;margin-top:.5rem;color:#bbb;">Aquí se cargarán los registros de Vegetales</p>
+                  <!-- Header info -->
+                  <div style="background:#d1fae5;border-radius:10px;padding:.75rem 1rem;margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center;">
+                    <div style="font-size:.82rem;color:#065f46;">
+                      <strong>R-POE-03-GF-02</strong> · Versión 02 · F.Vig: 15-12-2025
                     </div>
+                    <button onclick="abrirFormVegetales()" style="background:#059669;color:white;border:none;border-radius:8px;padding:.5rem 1.25rem;cursor:pointer;font-weight:700;font-size:.9rem;">
+                      ➕ Nuevo Registro
+                    </button>
+                  </div>
+                  <!-- Lista de registros guardados -->
+                  <div id="listaRegistrosVegetales">
+                    <div style="text-align:center;color:#999;padding:3rem;">
+                      <div style="font-size:2.5rem;">🥗</div>
+                      <p style="margin-top:.5rem;">No hay registros aún. Crea uno nuevo.</p>
+                    </div>
+                  </div>
                 </div>
             </div>
         </div>
@@ -2506,6 +2529,684 @@
 
         setInterval(actualizarContadorTurno, 60000);
 
+// ============================================================
+// MÓDULO ACONDICIONAMIENTO — CARNES (R-POE-03-GF-01)
+// ============================================================
+
+let registrosCarnes = JSON.parse(localStorage.getItem('mes_registros_carnes') || '[]');
+
+function guardarRegistrosCarnes() {
+  localStorage.setItem('mes_registros_carnes', JSON.stringify(registrosCarnes));
+}
+
+function abrirFormCarnes() {
+  const fechaHoy = new Date().toLocaleDateString('es-CL');
+  // Opciones de OPs activas
+  const opOpciones = ordenesProduccion
+    .filter(op => op.estado !== 'completada')
+    .map(op => `<option value="${op.numeroOp}">${op.numeroOp} — ${op.nombre}</option>`)
+    .join('');
+
+  const html = `
+    <div>
+      <!-- Datos generales -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;margin-bottom:1rem;padding:.75rem;background:#fff5f5;border-radius:10px;border:1px solid #fecaca;">
+        <div>
+          <label style="font-size:.72rem;font-weight:700;color:#991b1b;display:block;margin-bottom:.2rem;">① FECHA</label>
+          <input type="text" id="cFecha" value="${fechaHoy}" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+        </div>
+        <div>
+          <label style="font-size:.72rem;font-weight:700;color:#991b1b;display:block;margin-bottom:.2rem;">② PREPARACIÓN (Corte/Producto)</label>
+          <input type="text" id="cPreparacion" placeholder="Ej: Pechuga de pollo, Tapapecho..." style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+        </div>
+        <div>
+          <label style="font-size:.72rem;font-weight:700;color:#991b1b;display:block;margin-bottom:.2rem;">③ PRODUCTO (MP)</label>
+          <input type="text" id="cProducto" placeholder="Ej: Pechuga sin hueso" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+        </div>
+      </div>
+
+      <!-- OP y datos MP -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:.75rem;margin-bottom:1rem;">
+        <div>
+          <label style="font-size:.72rem;font-weight:700;color:#991b1b;display:block;margin-bottom:.2rem;">④ N° ORDEN PRODUCCIÓN</label>
+          <select id="cOP" onchange="if(this.value==='manual')document.getElementById('cOPManual').style.display='block';else document.getElementById('cOPManual').style.display='none';"
+            style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.85rem;">
+            <option value="">Sin OP vinculada</option>
+            ${opOpciones}
+            <option value="manual">✏️ Ingresar manual...</option>
+          </select>
+          <input type="text" id="cOPManual" placeholder="N° OP manual" style="display:none;width:100%;padding:.45rem;border-radius:6px;border:1px solid #fca5a5;margin-top:.3rem;font-size:.85rem;">
+        </div>
+        <div>
+          <label style="font-size:.72rem;font-weight:700;color:#991b1b;display:block;margin-bottom:.2rem;">F. ELABORACIÓN MP</label>
+          <input type="date" id="cFElab" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.85rem;">
+        </div>
+        <div>
+          <label style="font-size:.72rem;font-weight:700;color:#991b1b;display:block;margin-bottom:.2rem;">F. VENCIMIENTO MP</label>
+          <input type="date" id="cFVenc" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.85rem;">
+        </div>
+        <div>
+          <label style="font-size:.72rem;font-weight:700;color:#991b1b;display:block;margin-bottom:.2rem;">LOTE MATERIA PRIMA</label>
+          <input type="text" id="cLoteMP" placeholder="Lote MP" maxlength="20" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.85rem;">
+        </div>
+      </div>
+
+      <!-- Control proceso -->
+      <div style="background:#fafafa;border-radius:10px;padding:1rem;border:1px solid #e2e8f0;margin-bottom:1rem;">
+        <div style="font-size:.78rem;font-weight:700;color:#991b1b;margin-bottom:.75rem;">⑥ CONTROL DE PROCESO DE PRODUCCIÓN</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr;gap:.75rem;align-items:end;">
+          <div>
+            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">Almacenamiento</label>
+            <div style="display:flex;gap:.4rem;">
+              <button onclick="toggleCNCCarne(this,'C')" class="btnCRCarne" data-id="almacen" data-val="C"
+                style="flex:1;padding:.45rem;border-radius:6px;border:2px solid #3b82f6;background:white;color:#3b82f6;cursor:pointer;font-weight:800;font-size:.85rem;">C</button>
+              <button onclick="toggleCNCCarne(this,'R')" class="btnCRCarne" data-id="almacen" data-val="R"
+                style="flex:1;padding:.45rem;border-radius:6px;border:2px solid #f59e0b;background:white;color:#f59e0b;cursor:pointer;font-weight:800;font-size:.85rem;">R</button>
+            </div>
+            <div style="font-size:.62rem;color:#94a3b8;text-align:center;margin-top:.1rem;">C=Congelado · R=Refrig.</div>
+          </div>
+          <div>
+            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">Kg Bruto</label>
+            <input type="number" id="cKgBruto" placeholder="0.0" min="0" step="0.1" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+          </div>
+          <div>
+            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">Kg Neto</label>
+            <input type="number" id="cKgNeto" placeholder="0.0" min="0" step="0.1" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+          </div>
+          <div>
+            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">Kg Despunte</label>
+            <input type="number" id="cKgDespunte" placeholder="0.0" min="0" step="0.1" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+          </div>
+          <div>
+            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">Kg Merma</label>
+            <input type="number" id="cKgMerma" placeholder="0.0" min="0" step="0.1" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+          </div>
+          <div>
+            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">Lote Empaque</label>
+            <input type="text" id="cLoteEmpaque" placeholder="Lote empaque" maxlength="20" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.85rem;">
+          </div>
+        </div>
+        <div style="margin-top:.75rem;">
+          <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">LOTE ASIGNADO AL PRODUCTO</label>
+          <input type="text" id="cLoteAsignado" placeholder="Lote asignado por Calidad" maxlength="20" style="width:40%;padding:.45rem;border-radius:6px;border:1px solid #fca5a5;font-size:.88rem;font-weight:700;">
+        </div>
+      </div>
+
+      <!-- Inspección de calidad -->
+      <div style="background:#fff5f5;border-radius:10px;padding:1rem;border:1px solid #fecaca;margin-bottom:1rem;">
+        <div style="font-size:.78rem;font-weight:700;color:#991b1b;margin-bottom:.75rem;">⑦ INSPECCIÓN DE CALIDAD SENSORIAL</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:.75rem;">
+          ${['Olor','Color','Textura','Aus. Elem. Ext.'].map((cr,i) => `
+          <div>
+            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.3rem;text-align:center;">${cr}</label>
+            <div style="display:flex;gap:.3rem;justify-content:center;">
+              <button onclick="toggleCNCCarne(this,'✓')" class="btnCNCCarne" data-id="cal_${i}" data-val="✓"
+                style="flex:1;padding:.4rem;border-radius:6px;border:2px solid #10b981;background:white;color:#10b981;cursor:pointer;font-weight:800;">✓</button>
+              <button onclick="toggleCNCCarne(this,'✗')" class="btnCNCCarne" data-id="cal_${i}" data-val="✗"
+                style="flex:1;padding:.4rem;border-radius:6px;border:2px solid #ef4444;background:white;color:#ef4444;cursor:pointer;font-weight:800;">✗</button>
+            </div>
+          </div>`).join('')}
+          <div>
+            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.3rem;text-align:center;">⑧ ACC</label>
+            <select id="cACC" style="width:100%;padding:.43rem;border-radius:6px;border:1px solid #ddd;font-size:.78rem;">
+              <option value="">N/A</option>
+              <option value="ACC1">ACC1 — Refrigerar</option>
+              <option value="ACC2">ACC2 — Eliminar</option>
+              <option value="ACC3">ACC3 — Avisar Calidad</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Firma -->
+      <div style="background:#f8fafc;border-radius:10px;padding:1rem;border:2px solid #e2e8f0;margin-bottom:1rem;">
+        <div style="font-size:.82rem;font-weight:700;color:#374151;margin-bottom:.6rem;">🔐 FIRMA DIGITAL — ⑨ Responsable de la Elaboración</div>
+        <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;">
+          <div>
+            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">Nombre</label>
+            <input type="text" id="cFirmaNombre" placeholder="Nombre operador" style="padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;width:200px;">
+          </div>
+          <div>
+            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">PIN (4 dígitos)</label>
+            <input type="password" id="cFirmaPIN" maxlength="4" placeholder="••••" style="padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;width:100px;text-align:center;letter-spacing:.2rem;">
+          </div>
+          <div id="cFirmaEstado" style="font-size:.82rem;color:#94a3b8;padding-top:1.2rem;">Ingresa PIN para firmar</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:1rem;justify-content:flex-end;">
+        <button onclick="cerrarModalCarnes()" style="padding:.75rem 1.5rem;border-radius:10px;border:1px solid #ddd;cursor:pointer;font-weight:600;color:#64748b;">Cancelar</button>
+        <button onclick="guardarYGenerarPDFCarnes()" style="padding:.75rem 1.75rem;border-radius:10px;border:none;background:linear-gradient(135deg,#991b1b,#dc2626);color:white;cursor:pointer;font-weight:700;font-size:1rem;">
+          📄 Guardar y Generar PDF
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('contenidoModalCarnes').innerHTML = html;
+  document.getElementById('modalCarnes').style.display = 'block';
+}
+
+function cerrarModalCarnes() { document.getElementById('modalCarnes').style.display = 'none'; }
+
+function toggleCNCCarne(btn, val) {
+  const id = btn.getAttribute('data-id');
+  const cls = btn.classList.contains('btnCRCarne') ? '.btnCRCarne' : '.btnCNCCarne';
+  document.querySelectorAll(`${cls}[data-id="${id}"]`).forEach(b => {
+    b.style.background = 'white';
+    const v = b.getAttribute('data-val');
+    b.style.color = (v==='C'||v==='✓') ? (v==='C'?'#3b82f6':'#10b981') : (v==='R'?'#f59e0b':'#ef4444');
+  });
+  btn.style.background = (val==='C'?'#3b82f6':val==='R'?'#f59e0b':val==='✓'?'#10b981':'#ef4444');
+  btn.style.color = 'white';
+}
+
+function getValCarne(cls, id) {
+  const btns = document.querySelectorAll(`${cls}[data-id="${id}"]`);
+  for (const b of btns) { if (b.style.color === 'white') return b.getAttribute('data-val'); }
+  return '—';
+}
+
+function guardarYGenerarPDFCarnes() {
+  const pin = document.getElementById('cFirmaPIN')?.value;
+  if (!pin || pin.length < 4) { alert('Ingresa tu PIN de 4 dígitos'); document.getElementById('cFirmaPIN')?.focus(); return; }
+
+  const opSel = document.getElementById('cOP')?.value;
+  const nOP = opSel === 'manual' ? (document.getElementById('cOPManual')?.value || '') : opSel;
+
+  const d = {
+    fecha: document.getElementById('cFecha')?.value || '',
+    preparacion: document.getElementById('cPreparacion')?.value || '',
+    producto: document.getElementById('cProducto')?.value || '',
+    op: nOP,
+    fElab: document.getElementById('cFElab')?.value || '',
+    fVenc: document.getElementById('cFVenc')?.value || '',
+    loteMP: document.getElementById('cLoteMP')?.value || '',
+    almacen: getValCarne('.btnCRCarne','almacen'),
+    kgBruto: document.getElementById('cKgBruto')?.value || '',
+    kgNeto: document.getElementById('cKgNeto')?.value || '',
+    kgDespunte: document.getElementById('cKgDespunte')?.value || '',
+    kgMerma: document.getElementById('cKgMerma')?.value || '',
+    loteEmpaque: document.getElementById('cLoteEmpaque')?.value || '',
+    loteAsignado: document.getElementById('cLoteAsignado')?.value || '',
+    olor: getValCarne('.btnCNCCarne','cal_0'),
+    color: getValCarne('.btnCNCCarne','cal_1'),
+    textura: getValCarne('.btnCNCCarne','cal_2'),
+    ausExt: getValCarne('.btnCNCCarne','cal_3'),
+    acc: document.getElementById('cACC')?.value || '',
+    firmaNombre: document.getElementById('cFirmaNombre')?.value || '',
+    firmaTimestamp: new Date().toLocaleString('es-CL'),
+    id: Date.now().toString()
+  };
+
+  registrosCarnes.push(d);
+  guardarRegistrosCarnes();
+  renderListaCarnes();
+  imprimirPDFCarnes(d);
+
+  document.getElementById('cFirmaEstado').innerHTML = '✅ <strong>Firmado</strong> — ' + d.firmaNombre + ' · ' + d.firmaTimestamp;
+  document.getElementById('cFirmaEstado').style.color = '#059669';
+  setTimeout(() => cerrarModalCarnes(), 1500);
+}
+
+function renderListaCarnes() {
+  const cont = document.getElementById('listaRegistrosCarnes');
+  if (!cont) return;
+  if (registrosCarnes.length === 0) {
+    cont.innerHTML = '<div style="text-align:center;color:#999;padding:3rem;"><div style="font-size:2.5rem;">🥩</div><p style="margin-top:.5rem;">No hay registros aún.</p></div>';
+    return;
+  }
+  cont.innerHTML = registrosCarnes.slice().reverse().map(r => `
+    <div style="background:white;border-radius:10px;padding:1rem;margin-bottom:.75rem;border-left:4px solid #dc2626;box-shadow:0 2px 8px rgba(0,0,0,.06);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem;">
+      <div>
+        <div style="font-weight:700;color:#991b1b;font-size:.95rem;">${r.preparacion} — <span style="color:#64748b;font-weight:400;">${r.producto}</span></div>
+        <div style="font-size:.8rem;color:#64748b;margin-top:.2rem;">📅 ${r.fecha} · OP: ${r.op||'—'} · Lote: ${r.loteAsignado||'—'} · Kg Neto: ${r.kgNeto||'—'} kg</div>
+        <div style="font-size:.78rem;color:#94a3b8;margin-top:.1rem;">Olor: ${r.olor} · Color: ${r.color} · Textura: ${r.textura} · Aus.Ext: ${r.ausExt} ${r.acc?'· ACC: '+r.acc:''}</div>
+      </div>
+      <div style="display:flex;gap:.5rem;">
+        <button onclick="imprimirPDFCarnes(registrosCarnes.find(x=>x.id==='${r.id}'))" style="background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;border-radius:7px;padding:.4rem .75rem;cursor:pointer;font-weight:600;font-size:.8rem;">📄 PDF</button>
+        <button onclick="eliminarRegistroCarnes('${r.id}')" style="background:#f1f5f9;border:1px solid #e2e8f0;color:#94a3b8;border-radius:7px;padding:.4rem .6rem;cursor:pointer;font-size:.8rem;">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function eliminarRegistroCarnes(id) {
+  if (!confirm('¿Eliminar este registro?')) return;
+  registrosCarnes = registrosCarnes.filter(r => r.id !== id);
+  guardarRegistrosCarnes();
+  renderListaCarnes();
+}
+
+function imprimirPDFCarnes(d) {
+  if (!d) return;
+  const v = window.open('', '_blank', 'width=950,height=700');
+  v.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+<title>Registro Carnes — ${d.preparacion}</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:Arial,sans-serif;font-size:9pt;color:#000;}
+  @page{size:A4 landscape;margin:10mm;}
+  @media print{.no-print{display:none;}}
+  .header{display:flex;justify-content:space-between;align-items:center;border:2px solid #991b1b;margin-bottom:4px;}
+  .header-titulo{flex:1;text-align:center;padding:6px;border-left:1px solid #991b1b;border-right:1px solid #991b1b;}
+  .header-titulo h2{font-size:11pt;font-weight:bold;color:#991b1b;}
+  .header-codigo{padding:6px 10px;font-size:8pt;text-align:right;line-height:1.5;}
+  .header-logo{padding:6px 10px;font-size:8pt;color:#991b1b;font-weight:bold;}
+  .instrucciones{font-size:7pt;border:1px solid #ccc;padding:5px;margin-bottom:4px;color:#555;line-height:1.3;}
+  .datos-gen{display:flex;border:1px solid #991b1b;margin-bottom:4px;}
+  .dato-item{flex:1;padding:4px 6px;border-right:1px solid #991b1b;}
+  .dato-item:last-child{border-right:none;}
+  .dato-label{font-size:7pt;font-weight:bold;color:#991b1b;}
+  .dato-val{font-size:9pt;font-weight:bold;margin-top:2px;}
+  table{width:100%;border-collapse:collapse;margin-bottom:6px;}
+  th{background:#991b1b;color:white;padding:4px 3px;font-size:7.5pt;border:1px solid #7f1d1d;text-align:center;}
+  th.sub{background:#b91c1c;font-size:7pt;}
+  td{padding:4px 5px;border:1px solid #ccc;font-size:9pt;vertical-align:middle;}
+  tr:nth-child(even) td{background:#fff5f5;}
+  .acc-box{border:1px solid #f59e0b;background:#fffbeb;padding:5px;margin-bottom:5px;font-size:7.5pt;line-height:1.4;}
+  .firma-box{display:flex;justify-content:space-between;border:1px solid #991b1b;padding:6px;margin-top:5px;}
+  .firma-campo{text-align:center;min-width:200px;border:1px solid #ccc;padding:5px;}
+  .firma-linea{border-top:1px solid #000;margin-top:22px;padding-top:3px;font-size:8pt;}
+  .print-btn{position:fixed;top:10px;right:10px;background:#991b1b;color:white;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:11pt;z-index:999;}
+</style></head><body>
+<button class="print-btn no-print" onclick="window.print()">🖨️ Imprimir</button>
+<div class="header">
+  <div class="header-logo">🏭 SANTA EMILIA</div>
+  <div class="header-titulo"><h2>REGISTRO DE PRODUCTOS PREELABORADOS — CARNES</h2></div>
+  <div class="header-codigo">R-POE-03-GF-01<br>Versión: 01<br>F.Vig: 01-09-2024</div>
+</div>
+<div class="instrucciones">
+  <strong>Instrucciones:</strong> (1) Fecha de preparación. (2) Nombre del corte/preparación. (3) Producto/MP empleada. (4) N° OP. (5) F.Elaboración, F.Vencimiento, Lote MP, Almacenamiento C=Congelado / R=Refrigerado. (6) Control de proceso: Kg Bruto, Neto, Despunte, Merma, Lote Empaque, Lote Asignado. (7) Inspección calidad: ✓=Cumple / ✗=No Cumple. (8) ACC si corresponde. (9) Responsable de elaboración. LC: ≤ 4°C todas las carnes.
+</div>
+<div class="datos-gen">
+  <div class="dato-item" style="max-width:110px;"><div class="dato-label">① Fecha:</div><div class="dato-val">${d.fecha}</div></div>
+  <div class="dato-item"><div class="dato-label">② Preparación:</div><div class="dato-val">${d.preparacion}</div></div>
+  <div class="dato-item"><div class="dato-label">③ Producto/MP:</div><div class="dato-val">${d.producto}</div></div>
+  <div class="dato-item" style="max-width:130px;"><div class="dato-label">④ N° OP:</div><div class="dato-val">${d.op||'—'}</div></div>
+</div>
+<table>
+  <thead>
+    <tr>
+      <th colspan="4">⑤ INFORMACIÓN DE MATERIA PRIMA</th>
+      <th colspan="6">⑥ CONTROL DE PROCESO</th>
+      <th colspan="4">⑦ INSPECCIÓN CALIDAD</th>
+      <th rowspan="2">⑧ ACC</th>
+    </tr>
+    <tr>
+      <th class="sub">F. Elab.</th><th class="sub">F. Venc.</th><th class="sub">Lote MP</th><th class="sub">C/R</th>
+      <th class="sub">Kg Bruto</th><th class="sub">Kg Neto</th><th class="sub">Kg Despunte</th><th class="sub">Kg Merma</th>
+      <th class="sub">Lote Empaque</th><th class="sub">Lote Asignado</th>
+      <th class="sub">Olor</th><th class="sub">Color</th><th class="sub">Textura</th><th class="sub">Aus.Ext.</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align:center;">${d.fElab||'—'}</td>
+      <td style="text-align:center;">${d.fVenc||'—'}</td>
+      <td style="text-align:center;">${d.loteMP||'—'}</td>
+      <td style="text-align:center;font-weight:bold;color:${d.almacen==='C'?'#3b82f6':'#f59e0b'}">${d.almacen}</td>
+      <td style="text-align:center;">${d.kgBruto} kg</td>
+      <td style="text-align:center;font-weight:bold;">${d.kgNeto} kg</td>
+      <td style="text-align:center;">${d.kgDespunte} kg</td>
+      <td style="text-align:center;">${d.kgMerma} kg</td>
+      <td style="text-align:center;">${d.loteEmpaque||'—'}</td>
+      <td style="text-align:center;font-weight:bold;color:#991b1b;">${d.loteAsignado||'—'}</td>
+      <td style="text-align:center;font-size:12pt;color:${d.olor==='✓'?'#059669':'#dc2626'}">${d.olor}</td>
+      <td style="text-align:center;font-size:12pt;color:${d.color==='✓'?'#059669':'#dc2626'}">${d.color}</td>
+      <td style="text-align:center;font-size:12pt;color:${d.textura==='✓'?'#059669':'#dc2626'}">${d.textura}</td>
+      <td style="text-align:center;font-size:12pt;color:${d.ausExt==='✓'?'#059669':'#dc2626'}">${d.ausExt}</td>
+      <td style="text-align:center;font-size:8pt;">${d.acc||''}</td>
+    </tr>
+    <tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+  </tbody>
+</table>
+<div class="acc-box"><strong>Acciones Correctivas:</strong> ACC1: Refrigerar producto hasta ≤4°C. | ACC2: Producto sin características sensoriales acordes → eliminar e higienizar sala. | ACC3: Elemento extraño → avisar Calidad para liberar o manejar como PNC.</div>
+<div class="firma-box">
+  <div style="flex:1;padding-right:10px;">
+    <strong style="font-size:8pt;color:#991b1b;">🔐 Firma Digital — Responsable Elaboración:</strong>
+    <div style="font-size:8pt;margin-top:3px;">Firmado por: <strong>${d.firmaNombre}</strong> · ${d.firmaTimestamp} · PIN: ****</div>
+  </div>
+  <div class="firma-campo"><div style="font-size:8pt;font-weight:bold;color:#991b1b;margin-bottom:4px;">Verificación de Producción</div><div class="firma-linea">Josmel Ayala<br>Jefe de Producción</div></div>
+  <div class="firma-campo" style="margin-left:10px;"><div style="font-size:8pt;font-weight:bold;color:#991b1b;margin-bottom:4px;">Verificación de Calidad</div><div class="firma-linea">Dpto. de Calidad</div></div>
+</div>
+</body></html>`);
+  v.document.close();
+}
+
+// ============================================================
+// MÓDULO ACONDICIONAMIENTO — VEGETALES (R-POE-03-GF-02)
+// ============================================================
+
+let registrosVegetales = JSON.parse(localStorage.getItem('mes_registros_vegetales') || '[]');
+
+function guardarRegistrosVegetales() {
+  localStorage.setItem('mes_registros_vegetales', JSON.stringify(registrosVegetales));
+}
+
+function abrirFormVegetales() {
+  const fechaHoy = new Date().toLocaleDateString('es-CL');
+  const opOpciones = ordenesProduccion
+    .filter(op => op.estado !== 'completada')
+    .map(op => `<option value="${op.numeroOp}">${op.numeroOp} — ${op.nombre}</option>`)
+    .join('');
+
+  const html = `
+    <div>
+      <!-- Datos generales -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:.75rem;margin-bottom:1rem;padding:.75rem;background:#f0fdf4;border-radius:10px;border:1px solid #bbf7d0;">
+        <div>
+          <label style="font-size:.72rem;font-weight:700;color:#065f46;display:block;margin-bottom:.2rem;">① FECHA</label>
+          <input type="text" id="vFecha" value="${fechaHoy}" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+        </div>
+        <div>
+          <label style="font-size:.72rem;font-weight:700;color:#065f46;display:block;margin-bottom:.2rem;">② PREPARACIÓN</label>
+          <input type="text" id="vPreparacion" placeholder="Ej: Zanahoria juliana" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+        </div>
+        <div>
+          <label style="font-size:.72rem;font-weight:700;color:#065f46;display:block;margin-bottom:.2rem;">③ MATERIA PRIMA</label>
+          <input type="text" id="vMateriaPrima" placeholder="Ej: Zanahoria entera" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+        </div>
+        <div>
+          <label style="font-size:.72rem;font-weight:700;color:#065f46;display:block;margin-bottom:.2rem;">④ LOTE MP</label>
+          <input type="text" id="vLoteMP" placeholder="Lote MP" maxlength="20" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+        </div>
+      </div>
+
+      <!-- Control proceso -->
+      <div style="background:#fafafa;border-radius:10px;padding:1rem;border:1px solid #e2e8f0;margin-bottom:1rem;">
+        <div style="font-size:.78rem;font-weight:700;color:#065f46;margin-bottom:.75rem;">⑤ CONTROL DE PROCESO DE PRODUCCIÓN</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr;gap:.75rem;">
+          <div>
+            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">Kg Bruto</label>
+            <input type="number" id="vKgBruto" placeholder="0.0" min="0" step="0.1" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+          </div>
+          <div>
+            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">Kg Neto</label>
+            <input type="number" id="vKgNeto" placeholder="0.0" min="0" step="0.1" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+          </div>
+          <div>
+            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">Kg Merma</label>
+            <input type="number" id="vKgMerma" placeholder="0.0" min="0" step="0.1" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+          </div>
+          <div>
+            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">Cant. Bolsas</label>
+            <input type="number" id="vCantBolsas" placeholder="0" min="0" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+          </div>
+          <div>
+            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">Lote Empaque</label>
+            <input type="text" id="vLoteEmpaque" placeholder="Lote empaque" maxlength="20" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.85rem;">
+          </div>
+          <div>
+            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">Lote Asignado</label>
+            <input type="text" id="vLoteAsignado" placeholder="Lote Calidad" maxlength="20" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #fca5a5;font-weight:700;font-size:.85rem;">
+          </div>
+        </div>
+      </div>
+
+      <!-- Sanitización + Evaluación sensorial -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+        <div style="background:#f0fdf4;border-radius:10px;padding:1rem;border:1px solid #bbf7d0;">
+          <div style="font-size:.78rem;font-weight:700;color:#065f46;margin-bottom:.75rem;">⑥ SANITIZACIÓN DEL PRODUCTO</div>
+          <div style="font-size:.82rem;color:#374151;margin-bottom:.6rem;">¿Se sanitizó con agua ozonificada?</div>
+          <div style="display:flex;gap:.75rem;">
+            <button onclick="toggleCNCVeg(this,'✓')" class="btnSanitVeg" data-id="sanit" data-val="✓"
+              style="flex:1;padding:.6rem;border-radius:8px;border:2px solid #10b981;background:white;color:#10b981;cursor:pointer;font-weight:800;font-size:1.1rem;">✓ Sí</button>
+            <button onclick="toggleCNCVeg(this,'✗')" class="btnSanitVeg" data-id="sanit" data-val="✗"
+              style="flex:1;padding:.6rem;border-radius:8px;border:2px solid #ef4444;background:white;color:#ef4444;cursor:pointer;font-weight:800;font-size:1.1rem;">✗ No</button>
+          </div>
+        </div>
+        <div style="background:#fafafa;border-radius:10px;padding:1rem;border:1px solid #e2e8f0;">
+          <div style="font-size:.78rem;font-weight:700;color:#065f46;margin-bottom:.75rem;">⑦ EVALUACIÓN SENSORIAL</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;">
+            ${['Color','Olor','Textura'].map((cr,i) => `
+            <div>
+              <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.25rem;text-align:center;">${cr}</label>
+              <div style="display:flex;gap:.25rem;justify-content:center;">
+                <button onclick="toggleCNCVeg(this,'✓')" class="btnCNCVeg" data-id="vsen_${i}" data-val="✓"
+                  style="flex:1;padding:.35rem;border-radius:6px;border:2px solid #10b981;background:white;color:#10b981;cursor:pointer;font-weight:800;">✓</button>
+                <button onclick="toggleCNCVeg(this,'✗')" class="btnCNCVeg" data-id="vsen_${i}" data-val="✗"
+                  style="flex:1;padding:.35rem;border-radius:6px;border:2px solid #ef4444;background:white;color:#ef4444;cursor:pointer;font-weight:800;">✗</button>
+              </div>
+            </div>`).join('')}
+          </div>
+        </div>
+      </div>
+
+      <!-- ACC + Responsable -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+        <div>
+          <label style="font-size:.72rem;font-weight:700;color:#065f46;display:block;margin-bottom:.3rem;">⑧ ACCIÓN CORRECTIVA (ACC)</label>
+          <select id="vACC" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.85rem;">
+            <option value="">N/A</option>
+            <option value="ACC1">ACC1 — Comunicar a Calidad/Producción, eliminar producto</option>
+            <option value="ACC2">ACC2 — Gestionar devolución al proveedor</option>
+            <option value="ACC3">ACC3 — Equipo Eko3© no funciona, notificar a Calidad</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:.72rem;font-weight:700;color:#065f46;display:block;margin-bottom:.3rem;">N° ORDEN PRODUCCIÓN (opcional)</label>
+          <select id="vOP" onchange="if(this.value==='manual')document.getElementById('vOPManual').style.display='block';else document.getElementById('vOPManual').style.display='none';"
+            style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.85rem;">
+            <option value="">Sin OP vinculada</option>
+            ${opOpciones}
+            <option value="manual">✏️ Ingresar manual...</option>
+          </select>
+          <input type="text" id="vOPManual" placeholder="N° OP manual" style="display:none;width:100%;padding:.45rem;border-radius:6px;border:1px solid #bbf7d0;margin-top:.3rem;font-size:.85rem;">
+        </div>
+      </div>
+
+      <!-- Firma -->
+      <div style="background:#f8fafc;border-radius:10px;padding:1rem;border:2px solid #e2e8f0;margin-bottom:1rem;">
+        <div style="font-size:.82rem;font-weight:700;color:#374151;margin-bottom:.6rem;">🔐 FIRMA DIGITAL — ⑨ Responsable del Acondicionamiento</div>
+        <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;">
+          <div>
+            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">Nombre</label>
+            <input type="text" id="vFirmaNombre" placeholder="Nombre operador" style="padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;width:200px;">
+          </div>
+          <div>
+            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">PIN (4 dígitos)</label>
+            <input type="password" id="vFirmaPIN" maxlength="4" placeholder="••••" style="padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;width:100px;text-align:center;letter-spacing:.2rem;">
+          </div>
+          <div id="vFirmaEstado" style="font-size:.82rem;color:#94a3b8;padding-top:1.2rem;">Ingresa PIN para firmar</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:1rem;justify-content:flex-end;">
+        <button onclick="cerrarModalVegetales()" style="padding:.75rem 1.5rem;border-radius:10px;border:1px solid #ddd;cursor:pointer;font-weight:600;color:#64748b;">Cancelar</button>
+        <button onclick="guardarYGenerarPDFVegetales()" style="padding:.75rem 1.75rem;border-radius:10px;border:none;background:linear-gradient(135deg,#065f46,#059669);color:white;cursor:pointer;font-weight:700;font-size:1rem;">
+          📄 Guardar y Generar PDF
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('contenidoModalVegetales').innerHTML = html;
+  document.getElementById('modalVegetales').style.display = 'block';
+}
+
+function cerrarModalVegetales() { document.getElementById('modalVegetales').style.display = 'none'; }
+
+function toggleCNCVeg(btn, val) {
+  const id = btn.getAttribute('data-id');
+  const cls = btn.classList.contains('btnSanitVeg') ? '.btnSanitVeg' : '.btnCNCVeg';
+  document.querySelectorAll(`${cls}[data-id="${id}"]`).forEach(b => {
+    b.style.background = 'white';
+    b.style.color = b.getAttribute('data-val') === '✓' ? '#10b981' : '#ef4444';
+  });
+  btn.style.background = val === '✓' ? '#10b981' : '#ef4444';
+  btn.style.color = 'white';
+}
+
+function getValVeg(cls, id) {
+  const btns = document.querySelectorAll(`${cls}[data-id="${id}"]`);
+  for (const b of btns) { if (b.style.color === 'white') return b.getAttribute('data-val'); }
+  return '—';
+}
+
+function guardarYGenerarPDFVegetales() {
+  const pin = document.getElementById('vFirmaPIN')?.value;
+  if (!pin || pin.length < 4) { alert('Ingresa tu PIN de 4 dígitos'); document.getElementById('vFirmaPIN')?.focus(); return; }
+
+  const opSel = document.getElementById('vOP')?.value;
+  const nOP = opSel === 'manual' ? (document.getElementById('vOPManual')?.value || '') : opSel;
+
+  const d = {
+    fecha: document.getElementById('vFecha')?.value || '',
+    preparacion: document.getElementById('vPreparacion')?.value || '',
+    materiaPrima: document.getElementById('vMateriaPrima')?.value || '',
+    loteMP: document.getElementById('vLoteMP')?.value || '',
+    op: nOP,
+    kgBruto: document.getElementById('vKgBruto')?.value || '',
+    kgNeto: document.getElementById('vKgNeto')?.value || '',
+    kgMerma: document.getElementById('vKgMerma')?.value || '',
+    cantBolsas: document.getElementById('vCantBolsas')?.value || '',
+    loteEmpaque: document.getElementById('vLoteEmpaque')?.value || '',
+    loteAsignado: document.getElementById('vLoteAsignado')?.value || '',
+    sanitizacion: getValVeg('.btnSanitVeg','sanit'),
+    color: getValVeg('.btnCNCVeg','vsen_0'),
+    olor: getValVeg('.btnCNCVeg','vsen_1'),
+    textura: getValVeg('.btnCNCVeg','vsen_2'),
+    acc: document.getElementById('vACC')?.value || '',
+    firmaNombre: document.getElementById('vFirmaNombre')?.value || '',
+    firmaTimestamp: new Date().toLocaleString('es-CL'),
+    id: Date.now().toString()
+  };
+
+  registrosVegetales.push(d);
+  guardarRegistrosVegetales();
+  renderListaVegetales();
+  imprimirPDFVegetales(d);
+
+  document.getElementById('vFirmaEstado').innerHTML = '✅ <strong>Firmado</strong> — ' + d.firmaNombre + ' · ' + d.firmaTimestamp;
+  document.getElementById('vFirmaEstado').style.color = '#059669';
+  setTimeout(() => cerrarModalVegetales(), 1500);
+}
+
+function renderListaVegetales() {
+  const cont = document.getElementById('listaRegistrosVegetales');
+  if (!cont) return;
+  if (registrosVegetales.length === 0) {
+    cont.innerHTML = '<div style="text-align:center;color:#999;padding:3rem;"><div style="font-size:2.5rem;">🥗</div><p style="margin-top:.5rem;">No hay registros aún.</p></div>';
+    return;
+  }
+  cont.innerHTML = registrosVegetales.slice().reverse().map(r => `
+    <div style="background:white;border-radius:10px;padding:1rem;margin-bottom:.75rem;border-left:4px solid #059669;box-shadow:0 2px 8px rgba(0,0,0,.06);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem;">
+      <div>
+        <div style="font-weight:700;color:#065f46;font-size:.95rem;">${r.preparacion} — <span style="color:#64748b;font-weight:400;">${r.materiaPrima}</span></div>
+        <div style="font-size:.8rem;color:#64748b;margin-top:.2rem;">📅 ${r.fecha} · OP: ${r.op||'—'} · Lote: ${r.loteAsignado||'—'} · Kg Neto: ${r.kgNeto||'—'} kg · Bolsas: ${r.cantBolsas||'—'}</div>
+        <div style="font-size:.78rem;color:#94a3b8;margin-top:.1rem;">Sanitiz: ${r.sanitizacion} · Color: ${r.color} · Olor: ${r.olor} · Textura: ${r.textura} ${r.acc?'· ACC: '+r.acc:''}</div>
+      </div>
+      <div style="display:flex;gap:.5rem;">
+        <button onclick="imprimirPDFVegetales(registrosVegetales.find(x=>x.id==='${r.id}'))" style="background:#d1fae5;border:1px solid #6ee7b7;color:#059669;border-radius:7px;padding:.4rem .75rem;cursor:pointer;font-weight:600;font-size:.8rem;">📄 PDF</button>
+        <button onclick="eliminarRegistroVegetales('${r.id}')" style="background:#f1f5f9;border:1px solid #e2e8f0;color:#94a3b8;border-radius:7px;padding:.4rem .6rem;cursor:pointer;font-size:.8rem;">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function eliminarRegistroVegetales(id) {
+  if (!confirm('¿Eliminar este registro?')) return;
+  registrosVegetales = registrosVegetales.filter(r => r.id !== id);
+  guardarRegistrosVegetales();
+  renderListaVegetales();
+}
+
+function imprimirPDFVegetales(d) {
+  if (!d) return;
+  const v = window.open('', '_blank', 'width:950,height=700');
+  v.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+<title>Registro Vegetales — ${d.preparacion}</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:Arial,sans-serif;font-size:9pt;color:#000;}
+  @page{size:A4 landscape;margin:10mm;}
+  @media print{.no-print{display:none;}}
+  .header{display:flex;justify-content:space-between;align-items:center;border:2px solid #065f46;margin-bottom:4px;}
+  .header-titulo{flex:1;text-align:center;padding:6px;border-left:1px solid #065f46;border-right:1px solid #065f46;}
+  .header-titulo h2{font-size:11pt;font-weight:bold;color:#065f46;}
+  .header-codigo{padding:6px 10px;font-size:8pt;text-align:right;line-height:1.5;}
+  .header-logo{padding:6px 10px;font-size:8pt;color:#065f46;font-weight:bold;}
+  .instrucciones{font-size:7pt;border:1px solid #ccc;padding:5px;margin-bottom:4px;color:#555;line-height:1.3;}
+  .datos-gen{display:flex;border:1px solid #065f46;margin-bottom:4px;}
+  .dato-item{flex:1;padding:4px 6px;border-right:1px solid #065f46;}
+  .dato-item:last-child{border-right:none;}
+  .dato-label{font-size:7pt;font-weight:bold;color:#065f46;}
+  .dato-val{font-size:9pt;font-weight:bold;margin-top:2px;}
+  table{width:100%;border-collapse:collapse;margin-bottom:6px;}
+  th{background:#065f46;color:white;padding:4px 3px;font-size:7.5pt;border:1px solid #047857;text-align:center;}
+  th.sub{background:#059669;font-size:7pt;}
+  td{padding:4px 5px;border:1px solid #ccc;font-size:9pt;vertical-align:middle;}
+  tr:nth-child(even) td{background:#f0fdf4;}
+  .acc-box{border:1px solid #f59e0b;background:#fffbeb;padding:5px;margin-bottom:5px;font-size:7.5pt;line-height:1.4;}
+  .firma-box{display:flex;justify-content:space-between;border:1px solid #065f46;padding:6px;margin-top:5px;}
+  .firma-campo{text-align:center;min-width:200px;border:1px solid #ccc;padding:5px;}
+  .firma-linea{border-top:1px solid #000;margin-top:22px;padding-top:3px;font-size:8pt;}
+  .print-btn{position:fixed;top:10px;right:10px;background:#059669;color:white;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:11pt;z-index:999;}
+</style></head><body>
+<button class="print-btn no-print" onclick="window.print()">🖨️ Imprimir</button>
+<div class="header">
+  <div class="header-logo">🏭 SANTA EMILIA</div>
+  <div class="header-titulo"><h2>REGISTRO DE PRODUCTOS PREELABORADOS — VEGETALES</h2></div>
+  <div class="header-codigo">R-POE-03-GF-02<br>Versión: 02<br>F.Vig: 15-12-2025</div>
+</div>
+<div class="instrucciones">
+  <strong>Instrucciones:</strong> (1) Fecha de preparación. (2) Nombre de la preparación. (3) Materia prima empleada. (4) Lote MP. (5) Control de proceso: Kg Bruto, Neto, Merma, Cantidad de bolsas, Lote Empaque, Lote Asignado. (6) Sanitización con agua ozonificada ✓/✗. (7) Evaluación sensorial ✓/✗. (8) ACC si corresponde. (9) Responsable del acondicionamiento.
+</div>
+<div class="datos-gen">
+  <div class="dato-item" style="max-width:110px;"><div class="dato-label">① Fecha:</div><div class="dato-val">${d.fecha}</div></div>
+  <div class="dato-item"><div class="dato-label">② Preparación:</div><div class="dato-val">${d.preparacion}</div></div>
+  <div class="dato-item"><div class="dato-label">③ Materia Prima:</div><div class="dato-val">${d.materiaPrima}</div></div>
+  <div class="dato-item" style="max-width:110px;"><div class="dato-label">④ Lote MP:</div><div class="dato-val">${d.loteMP||'—'}</div></div>
+  <div class="dato-item" style="max-width:130px;"><div class="dato-label">N° OP:</div><div class="dato-val">${d.op||'—'}</div></div>
+</div>
+<table>
+  <thead>
+    <tr>
+      <th colspan="6">⑤ CONTROL DE PROCESO</th>
+      <th rowspan="2">⑥ SANITIZ.</th>
+      <th colspan="3">⑦ EVAL. SENSORIAL</th>
+      <th rowspan="2">⑧ ACC</th>
+    </tr>
+    <tr>
+      <th class="sub">Kg Bruto</th><th class="sub">Kg Neto</th><th class="sub">Kg Merma</th>
+      <th class="sub">Cant. Bolsas</th><th class="sub">Lote Empaque</th><th class="sub">Lote Asignado</th>
+      <th class="sub">Color</th><th class="sub">Olor</th><th class="sub">Textura</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align:center;">${d.kgBruto} kg</td>
+      <td style="text-align:center;font-weight:bold;">${d.kgNeto} kg</td>
+      <td style="text-align:center;">${d.kgMerma} kg</td>
+      <td style="text-align:center;font-weight:bold;">${d.cantBolsas}</td>
+      <td style="text-align:center;">${d.loteEmpaque||'—'}</td>
+      <td style="text-align:center;font-weight:bold;color:#065f46;">${d.loteAsignado||'—'}</td>
+      <td style="text-align:center;font-size:13pt;color:${d.sanitizacion==='✓'?'#059669':'#dc2626'}">${d.sanitizacion}</td>
+      <td style="text-align:center;font-size:13pt;color:${d.color==='✓'?'#059669':'#dc2626'}">${d.color}</td>
+      <td style="text-align:center;font-size:13pt;color:${d.olor==='✓'?'#059669':'#dc2626'}">${d.olor}</td>
+      <td style="text-align:center;font-size:13pt;color:${d.textura==='✓'?'#059669':'#dc2626'}">${d.textura}</td>
+      <td style="text-align:center;font-size:8pt;">${d.acc||''}</td>
+    </tr>
+    <tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+  </tbody>
+</table>
+<div class="acc-box"><strong>Acciones Correctivas:</strong> ACC1: Producto sin condiciones organolépticas/almacenamiento → comunicar a Calidad y Producción, eliminar. | ACC2: Gestionar devolución al proveedor. | ACC3: Equipo Eko3© no funciona → notificar a Calidad para revisión.</div>
+<div class="firma-box">
+  <div style="flex:1;padding-right:10px;">
+    <strong style="font-size:8pt;color:#065f46;">🔐 Firma Digital — Responsable Acondicionamiento:</strong>
+    <div style="font-size:8pt;margin-top:3px;">Firmado por: <strong>${d.firmaNombre}</strong> · ${d.firmaTimestamp} · PIN: ****</div>
+  </div>
+  <div class="firma-campo"><div style="font-size:8pt;font-weight:bold;color:#065f46;margin-bottom:4px;">Verificación de Producción</div><div class="firma-linea">Josmel Ayala<br>Jefe de Producción</div></div>
+  <div class="firma-campo" style="margin-left:10px;"><div style="font-size:8pt;font-weight:bold;color:#065f46;margin-bottom:4px;">Verificación de Calidad</div><div class="firma-linea">Dpto. de Calidad</div></div>
+</div>
+</body></html>`);
+  v.document.close();
+}
+
+
 // ---- DROPDOWN ACONDICIONAMIENTO ----
 function toggleDropdownAcond(e) {
   e.stopPropagation();
@@ -3041,6 +3742,34 @@ function imprimirRegistroHACCPAbatimiento(d) {
   </div>
 </div>
 
+
+  <!-- MODAL REGISTRO CARNES -->
+  <div id="modalCarnes" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;overflow-y:auto;">
+    <div style="background:white;max-width:950px;margin:1.5rem auto;border-radius:16px;padding:0;overflow:hidden;">
+      <div style="background:linear-gradient(135deg,#991b1b,#dc2626);padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="color:white;font-weight:800;font-size:1.1rem;">🥩 Registro Preelaborados — Carnes</div>
+          <div style="color:rgba(255,255,255,.75);font-size:.8rem;margin-top:.2rem;">R-POE-03-GF-01 · Versión 01 · F.Vig: 01-09-2024</div>
+        </div>
+        <button onclick="cerrarModalCarnes()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
+      </div>
+      <div style="padding:1.5rem;" id="contenidoModalCarnes"></div>
+    </div>
+  </div>
+
+  <!-- MODAL REGISTRO VEGETALES -->
+  <div id="modalVegetales" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;overflow-y:auto;">
+    <div style="background:white;max-width:950px;margin:1.5rem auto;border-radius:16px;padding:0;overflow:hidden;">
+      <div style="background:linear-gradient(135deg,#065f46,#059669);padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="color:white;font-weight:800;font-size:1.1rem;">🥗 Registro Preelaborados — Vegetales</div>
+          <div style="color:rgba(255,255,255,.75);font-size:.8rem;margin-top:.2rem;">R-POE-03-GF-02 · Versión 02 · F.Vig: 15-12-2025</div>
+        </div>
+        <button onclick="cerrarModalVegetales()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
+      </div>
+      <div style="padding:1.5rem;" id="contenidoModalVegetales"></div>
+    </div>
+  </div>
 </body>
 </html>`;
 
@@ -3499,6 +4228,34 @@ ${d.acc ? `
         <button onclick="cerrarModalHACCPAbatimiento()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
       </div>
       <div style="padding:1.5rem;" id="contenidoModalHACCPAbatimiento"></div>
+    </div>
+  </div>
+
+  <!-- MODAL REGISTRO CARNES -->
+  <div id="modalCarnes" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;overflow-y:auto;">
+    <div style="background:white;max-width:950px;margin:1.5rem auto;border-radius:16px;padding:0;overflow:hidden;">
+      <div style="background:linear-gradient(135deg,#991b1b,#dc2626);padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="color:white;font-weight:800;font-size:1.1rem;">🥩 Registro Preelaborados — Carnes</div>
+          <div style="color:rgba(255,255,255,.75);font-size:.8rem;margin-top:.2rem;">R-POE-03-GF-01 · Versión 01 · F.Vig: 01-09-2024</div>
+        </div>
+        <button onclick="cerrarModalCarnes()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
+      </div>
+      <div style="padding:1.5rem;" id="contenidoModalCarnes"></div>
+    </div>
+  </div>
+
+  <!-- MODAL REGISTRO VEGETALES -->
+  <div id="modalVegetales" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;overflow-y:auto;">
+    <div style="background:white;max-width:950px;margin:1.5rem auto;border-radius:16px;padding:0;overflow:hidden;">
+      <div style="background:linear-gradient(135deg,#065f46,#059669);padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="color:white;font-weight:800;font-size:1.1rem;">🥗 Registro Preelaborados — Vegetales</div>
+          <div style="color:rgba(255,255,255,.75);font-size:.8rem;margin-top:.2rem;">R-POE-03-GF-02 · Versión 02 · F.Vig: 15-12-2025</div>
+        </div>
+        <button onclick="cerrarModalVegetales()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
+      </div>
+      <div style="padding:1.5rem;" id="contenidoModalVegetales"></div>
     </div>
   </div>
 </body>
@@ -4158,6 +4915,34 @@ function imprimirRegistroHACCP(d) {
         <button onclick="cerrarModalHACCPAbatimiento()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
       </div>
       <div style="padding:1.5rem;" id="contenidoModalHACCPAbatimiento"></div>
+    </div>
+  </div>
+
+  <!-- MODAL REGISTRO CARNES -->
+  <div id="modalCarnes" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;overflow-y:auto;">
+    <div style="background:white;max-width:950px;margin:1.5rem auto;border-radius:16px;padding:0;overflow:hidden;">
+      <div style="background:linear-gradient(135deg,#991b1b,#dc2626);padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="color:white;font-weight:800;font-size:1.1rem;">🥩 Registro Preelaborados — Carnes</div>
+          <div style="color:rgba(255,255,255,.75);font-size:.8rem;margin-top:.2rem;">R-POE-03-GF-01 · Versión 01 · F.Vig: 01-09-2024</div>
+        </div>
+        <button onclick="cerrarModalCarnes()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
+      </div>
+      <div style="padding:1.5rem;" id="contenidoModalCarnes"></div>
+    </div>
+  </div>
+
+  <!-- MODAL REGISTRO VEGETALES -->
+  <div id="modalVegetales" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;overflow-y:auto;">
+    <div style="background:white;max-width:950px;margin:1.5rem auto;border-radius:16px;padding:0;overflow:hidden;">
+      <div style="background:linear-gradient(135deg,#065f46,#059669);padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="color:white;font-weight:800;font-size:1.1rem;">🥗 Registro Preelaborados — Vegetales</div>
+          <div style="color:rgba(255,255,255,.75);font-size:.8rem;margin-top:.2rem;">R-POE-03-GF-02 · Versión 02 · F.Vig: 15-12-2025</div>
+        </div>
+        <button onclick="cerrarModalVegetales()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
+      </div>
+      <div style="padding:1.5rem;" id="contenidoModalVegetales"></div>
     </div>
   </div>
 </body>
@@ -5877,8 +6662,8 @@ function imprimirRegistroHACCP(d) {
             if (tabName === 'historial') cargarHistorialFecha();
             else if (tabName === 'acondCarnes') { /* pestaña lista */ }
             else if (tabName === 'acondVegetales') { /* pestaña lista */ }
-            else if (tabName === 'carnes') { /* contenido carnes */ }
-            else if (tabName === 'vegetales') { /* contenido vegetales */ }
+            else if (tabName === 'carnes') { renderListaCarnes(); }
+            else if (tabName === 'vegetales') { renderListaVegetales(); }
             else if (tabName === 'envasado') renderEnvasado();
             else if (tabName === 'abatimiento') renderAbatimiento();
             else if (tabName === 'analytics') actualizarAnalytics();
@@ -9600,6 +10385,34 @@ function mostrarPopupGantt(eq) {
         <button onclick="cerrarModalHACCPAbatimiento()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
       </div>
       <div style="padding:1.5rem;" id="contenidoModalHACCPAbatimiento"></div>
+    </div>
+  </div>
+
+  <!-- MODAL REGISTRO CARNES -->
+  <div id="modalCarnes" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;overflow-y:auto;">
+    <div style="background:white;max-width:950px;margin:1.5rem auto;border-radius:16px;padding:0;overflow:hidden;">
+      <div style="background:linear-gradient(135deg,#991b1b,#dc2626);padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="color:white;font-weight:800;font-size:1.1rem;">🥩 Registro Preelaborados — Carnes</div>
+          <div style="color:rgba(255,255,255,.75);font-size:.8rem;margin-top:.2rem;">R-POE-03-GF-01 · Versión 01 · F.Vig: 01-09-2024</div>
+        </div>
+        <button onclick="cerrarModalCarnes()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
+      </div>
+      <div style="padding:1.5rem;" id="contenidoModalCarnes"></div>
+    </div>
+  </div>
+
+  <!-- MODAL REGISTRO VEGETALES -->
+  <div id="modalVegetales" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;overflow-y:auto;">
+    <div style="background:white;max-width:950px;margin:1.5rem auto;border-radius:16px;padding:0;overflow:hidden;">
+      <div style="background:linear-gradient(135deg,#065f46,#059669);padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="color:white;font-weight:800;font-size:1.1rem;">🥗 Registro Preelaborados — Vegetales</div>
+          <div style="color:rgba(255,255,255,.75);font-size:.8rem;margin-top:.2rem;">R-POE-03-GF-02 · Versión 02 · F.Vig: 15-12-2025</div>
+        </div>
+        <button onclick="cerrarModalVegetales()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
+      </div>
+      <div style="padding:1.5rem;" id="contenidoModalVegetales"></div>
     </div>
   </div>
 </body>
