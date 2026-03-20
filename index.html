@@ -273,7 +273,43 @@
             border-radius: 15px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.1);
             overflow-x: auto;
+            flex-wrap: wrap;
+            align-items: center;
         }
+        .nav-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .nav-dropdown-menu {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            z-index: 1000;
+            min-width: 160px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+        .nav-dropdown-menu.open { display: block; }
+        .nav-dropdown-item {
+            display: block;
+            width: 100%;
+            padding: 0.65rem 1.1rem;
+            border: none;
+            background: white;
+            text-align: left;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #374151;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+        .nav-dropdown-item:hover { background: #f0fdf4; color: #065f46; }
+        .nav-dropdown-item.active { background: #d1fae5; color: #065f46; }
         .nav-tab {
             padding: 0.75rem 1.5rem;
             border: none;
@@ -452,6 +488,37 @@
             <button class="nav-tab active" onclick="changeTab('dashboard')">📊 Dashboard</button>
             <button class="nav-tab" onclick="changeTab('gantt')">📅 Gantt</button>
             <button class="nav-tab" onclick="changeTab('ejecutivo')">👔 Vista Ejecutivo</button>
+            <!-- Acondicionamiento con submenú -->
+            <div class="nav-dropdown" id="dropdownAcondicionamiento">
+                <button class="nav-tab" onclick="toggleDropdownAcond(event)" id="btnAcondicionamiento"
+                    style="display:flex;align-items:center;gap:.4rem;">
+                    🔪 Acondicionamiento <span style="font-size:.7rem;">▼</span>
+                </button>
+                <div class="nav-dropdown-menu" id="menuAcondicionamiento">
+                    <button class="nav-dropdown-item" onclick="changeTab('acondCarnes');cerrarDropdownAcond()">
+                        🥩 Carnes
+                    </button>
+                    <button class="nav-dropdown-item" onclick="changeTab('acondVegetales');cerrarDropdownAcond()">
+                        🥦 Vegetales
+                    </button>
+                </div>
+            </div>
+            <!-- Dropdown Acondicionamiento -->
+            <div class="nav-dropdown" id="dropdownAcondicionamiento">
+                <button class="nav-tab" id="btnAcondicionamiento"
+                    onclick="toggleDropdownAcond(event)"
+                    style="display:flex;align-items:center;gap:.4rem;">
+                    🔪 Acondicionamiento <span style="font-size:.7rem;">▼</span>
+                </button>
+                <div class="nav-dropdown-menu" id="menuAcondicionamiento">
+                    <button class="nav-dropdown-item" onclick="changeTabAcond('carnes')">
+                        🥩 Carnes
+                    </button>
+                    <button class="nav-dropdown-item" onclick="changeTabAcond('vegetales')">
+                        🥗 Vegetales
+                    </button>
+                </div>
+            </div>
             <button class="nav-tab" onclick="changeTab('envasado')">📦 Envasado</button>
             <button class="nav-tab" onclick="changeTab('abatimiento')">❄️ Abatimiento</button>
             <button class="nav-tab" onclick="changeTab('planificador')">📅 Planificador</button>
@@ -603,6 +670,86 @@
         </div>
 
         <!-- TAB: PROCESOS ACTIVOS -->
+        <!-- TAB: ACONDICIONAMIENTO — CARNES -->
+        <div id="acondCarnes" class="tab-content">
+            <div class="analytics-section">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+                    <div>
+                        <h2 style="color:#dc2626;margin:0;">🥩 Acondicionamiento — Carnes</h2>
+                        <p style="color:#64748b;margin:.3rem 0 0;font-size:.9rem;">Registro y control del proceso de acondicionamiento de carnes</p>
+                    </div>
+                    <div style="background:#fee2e2;color:#dc2626;border-radius:20px;padding:.3rem .9rem;font-weight:700;font-size:.9rem;">Carnes</div>
+                </div>
+                <div id="contenidoAcondCarnes">
+                    <div style="text-align:center;color:#94a3b8;padding:4rem;">
+                        <div style="font-size:3rem;margin-bottom:1rem;">🥩</div>
+                        <p style="font-size:1.1rem;font-weight:600;">Módulo de Acondicionamiento de Carnes</p>
+                        <p style="font-size:.9rem;margin-top:.5rem;">Los registros de este proceso se cargarán aquí.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: ACONDICIONAMIENTO — VEGETALES -->
+        <div id="acondVegetales" class="tab-content">
+            <div class="analytics-section">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+                    <div>
+                        <h2 style="color:#16a34a;margin:0;">🥦 Acondicionamiento — Vegetales</h2>
+                        <p style="color:#64748b;margin:.3rem 0 0;font-size:.9rem;">Registro y control del proceso de acondicionamiento de vegetales</p>
+                    </div>
+                    <div style="background:#dcfce7;color:#16a34a;border-radius:20px;padding:.3rem .9rem;font-weight:700;font-size:.9rem;">Vegetales</div>
+                </div>
+                <div id="contenidoAcondVegetales">
+                    <div style="text-align:center;color:#94a3b8;padding:4rem;">
+                        <div style="font-size:3rem;margin-bottom:1rem;">🥦</div>
+                        <p style="font-size:1.1rem;font-weight:600;">Módulo de Acondicionamiento de Vegetales</p>
+                        <p style="font-size:.9rem;margin-top:.5rem;">Los registros de este proceso se cargarán aquí.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: ACONDICIONAMIENTO CARNES -->
+        <div id="carnes" class="tab-content">
+            <div class="analytics-section">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+                    <div style="display:flex;align-items:center;gap:1rem;">
+                        <button onclick="changeTabAcond('carnes')" style="background:#fee2e2;border:2px solid #ef4444;color:#dc2626;border-radius:20px;padding:.4rem 1rem;font-weight:700;cursor:pointer;font-size:.85rem;">🥩 Carnes</button>
+                        <button onclick="changeTabAcond('vegetales')" style="background:white;border:2px solid #10b981;color:#10b981;border-radius:20px;padding:.4rem 1rem;font-weight:700;cursor:pointer;font-size:.85rem;">🥗 Vegetales</button>
+                    </div>
+                    <h2 style="color:#dc2626;margin:0;">🥩 Acondicionamiento — Carnes</h2>
+                </div>
+                <div id="contenidoCarnes">
+                    <div style="text-align:center;color:#999;padding:4rem;">
+                        <div style="font-size:3rem;margin-bottom:1rem;">🥩</div>
+                        <p style="font-size:1.1rem;">Módulo de Acondicionamiento de Carnes</p>
+                        <p style="font-size:.9rem;margin-top:.5rem;color:#bbb;">Aquí se cargarán los registros de Carnes</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: ACONDICIONAMIENTO VEGETALES -->
+        <div id="vegetales" class="tab-content">
+            <div class="analytics-section">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+                    <div style="display:flex;align-items:center;gap:1rem;">
+                        <button onclick="changeTabAcond('carnes')" style="background:white;border:2px solid #ef4444;color:#dc2626;border-radius:20px;padding:.4rem 1rem;font-weight:700;cursor:pointer;font-size:.85rem;">🥩 Carnes</button>
+                        <button onclick="changeTabAcond('vegetales')" style="background:#d1fae5;border:2px solid #10b981;color:#065f46;border-radius:20px;padding:.4rem 1rem;font-weight:700;cursor:pointer;font-size:.85rem;">🥗 Vegetales</button>
+                    </div>
+                    <h2 style="color:#10b981;margin:0;">🥗 Acondicionamiento — Vegetales</h2>
+                </div>
+                <div id="contenidoVegetales">
+                    <div style="text-align:center;color:#999;padding:4rem;">
+                        <div style="font-size:3rem;margin-bottom:1rem;">🥗</div>
+                        <p style="font-size:1.1rem;">Módulo de Acondicionamiento de Vegetales</p>
+                        <p style="font-size:.9rem;margin-top:.5rem;color:#bbb;">Aquí se cargarán los registros de Vegetales</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- TAB: ENVASADO -->
         <div id="envasado" class="tab-content">
             <div class="analytics-section">
@@ -2358,6 +2505,26 @@
         }
 
         setInterval(actualizarContadorTurno, 60000);
+
+// ---- DROPDOWN ACONDICIONAMIENTO ----
+function toggleDropdownAcond(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('menuAcondicionamiento');
+  menu.classList.toggle('open');
+}
+
+function cerrarDropdownAcond() {
+  document.getElementById('menuAcondicionamiento')?.classList.remove('open');
+}
+
+// Cerrar al hacer clic fuera
+document.addEventListener('click', function(e) {
+  const dropdown = document.getElementById('dropdownAcondicionamiento');
+  if (dropdown && !dropdown.contains(e.target)) {
+    cerrarDropdownAcond();
+  }
+});
+
 
 
 // ---- RELOJ SALIDA ABATIMIENTO ----
@@ -5708,6 +5875,10 @@ function imprimirRegistroHACCP(d) {
             document.getElementById(tabName).classList.add('active');
             event.target.classList.add('active');
             if (tabName === 'historial') cargarHistorialFecha();
+            else if (tabName === 'acondCarnes') { /* pestaña lista */ }
+            else if (tabName === 'acondVegetales') { /* pestaña lista */ }
+            else if (tabName === 'carnes') { /* contenido carnes */ }
+            else if (tabName === 'vegetales') { /* contenido vegetales */ }
             else if (tabName === 'envasado') renderEnvasado();
             else if (tabName === 'abatimiento') renderAbatimiento();
             else if (tabName === 'analytics') actualizarAnalytics();
@@ -7866,6 +8037,38 @@ function activarBloquesProgramados() {
   }
 }
 
+
+
+// ---- ACONDICIONAMIENTO DROPDOWN ----
+function toggleDropdownAcond(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('menuAcondicionamiento');
+  menu.classList.toggle('open');
+  // Cerrar al hacer clic fuera
+  document.addEventListener('click', function cerrar() {
+    menu.classList.remove('open');
+    document.removeEventListener('click', cerrar);
+  });
+}
+
+function changeTabAcond(tab) {
+  // Cerrar dropdown
+  document.getElementById('menuAcondicionamiento')?.classList.remove('open');
+  // Marcar item activo en dropdown
+  document.querySelectorAll('.nav-dropdown-item').forEach(b => b.classList.remove('active'));
+  const items = document.querySelectorAll('.nav-dropdown-item');
+  items.forEach(b => {
+    if ((tab === 'carnes' && b.textContent.includes('Carnes')) ||
+        (tab === 'vegetales' && b.textContent.includes('Vegetales'))) {
+      b.classList.add('active');
+    }
+  });
+  // Marcar botón padre como activo
+  document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('btnAcondicionamiento')?.classList.add('active');
+  // Cambiar tab
+  changeTab(tab);
+}
 
 // ---- PREPARACIONES EN FRÍO - DASHBOARD ----
 function mostrarPrepsFriasEnDashboard(preps) {
