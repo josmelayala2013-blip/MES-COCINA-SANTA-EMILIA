@@ -11204,7 +11204,8 @@ function renderRegistrosCE() {
   const fecha = document.getElementById('fechaFiltroCE')?.value;
   const cont = document.getElementById('tablaRegistrosCE');
   if (!cont) return;
-  const registros = registrosCE.filter(r => r.fecha === fecha);
+  const registros = registrosCE.filter(r => r.fecha === fecha)
+    .sort((a,b) => (a.hora||'').localeCompare(b.hora||''));
   if (registros.length === 0) {
     cont.innerHTML = `<div style="background:#f8fafc;border-radius:10px;padding:2rem;text-align:center;color:#94a3b8;">
       <div style="font-size:2rem;margin-bottom:.5rem;">🌡️</div>
@@ -11213,65 +11214,109 @@ function renderRegistrosCE() {
     </div>`;
     return;
   }
-  cont.innerHTML = `
-    <div style="overflow-x:auto;">
-    <table style="width:100%;border-collapse:collapse;font-size:.85rem;">
-      <thead>
-        <tr style="background:#dc2626;color:white;">
-          <th style="padding:.5rem .75rem;">Hora</th>
-          <th style="padding:.5rem .75rem;">Área/Sección</th>
-          <th style="padding:.5rem .75rem;">Equipo</th>
-          <th style="padding:.5rem .75rem;">Producto</th>
-          <th style="padding:.5rem .75rem;">Lote</th>
-          <th style="padding:.5rem .75rem;">Temp °C</th>
-          <th style="padding:.5rem .75rem;">ACC</th>
-          <th style="padding:.5rem .75rem;">Verif. ACC</th>
-          <th style="padding:.5rem .75rem;">Color</th>
-          <th style="padding:.5rem .75rem;">Olor</th>
-          <th style="padding:.5rem .75rem;">Sabor</th>
-          <th style="padding:.5rem .75rem;">Textura</th>
-          <th style="padding:.5rem .75rem;">Elem. Ext.</th>
-          <th style="padding:.5rem .75rem;">Envase</th>
-          <th style="padding:.5rem .75rem;">Responsable</th>
-          <th style="padding:.5rem .75rem;">Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${registros.map((r,i) => `
-        <tr style="border-bottom:1px solid #f0f0f0;background:${i%2===0?'white':'#fafafa'};">
-          <td style="padding:.5rem .75rem;">${r.hora||'—'}</td>
-          <td style="padding:.5rem .75rem;">${r.area||'—'}</td>
-          <td style="padding:.5rem .75rem;">${r.equipo||'—'}</td>
-          <td style="padding:.5rem .75rem;font-weight:600;">${r.producto||'—'}</td>
-          <td style="padding:.5rem .75rem;">${r.lote||'—'}</td>
-          <td style="padding:.5rem .75rem;font-weight:700;color:${parseFloat(r.temp)>=75?'#16a34a':'#dc2626'};">${r.temp||'—'}°C</td>
-          <td style="padding:.5rem .75rem;text-align:center;">${r.reqACC==='si'?`<span style="background:#fee2e2;color:#dc2626;border-radius:8px;padding:.15rem .5rem;font-size:.78rem;font-weight:700;">${r.acc||'—'}</span>`:'<span style="color:#16a34a;">✓</span>'}</td>
-          <td style="padding:.5rem .75rem;text-align:center;">${r.verifACC||'—'}</td>
-          <td style="padding:.5rem .75rem;text-align:center;">${r.color||'—'}</td>
-          <td style="padding:.5rem .75rem;text-align:center;">${r.olor||'—'}</td>
-          <td style="padding:.5rem .75rem;text-align:center;">${r.sabor||'—'}</td>
-          <td style="padding:.5rem .75rem;text-align:center;">${r.textura||'—'}</td>
-          <td style="padding:.5rem .75rem;text-align:center;">${r.elemExt||'—'}</td>
-          <td style="padding:.5rem .75rem;">${r.tipoEnvase||'—'} ${r.loteEnvase?'/ '+r.loteEnvase:''}</td>
-          <td style="padding:.5rem .75rem;">${r.responsable||'—'}</td>
-          <td style="padding:.5rem .75rem;">
-            <button onclick="imprimirRegistroCE('${r.id}')" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:.3rem .6rem;cursor:pointer;font-size:.78rem;">🖨️</button>
-            <button onclick="eliminarRegistroCE('${r.id}')" style="background:#f3f4f6;color:#666;border:none;border-radius:6px;padding:.3rem .6rem;cursor:pointer;font-size:.78rem;margin-left:.25rem;">🗑️</button>
-          </td>
-        </tr>`).join('')}
-      </tbody>
-    </table></div>`;
+  cont.innerHTML = registros.map((r,ri) => {
+    const preps = r.preparaciones || [{producto:r.producto,lote:r.lote,temp:r.temp,reqACC:r.reqACC,acc:r.acc,verifACC:r.verifACC,color:r.color,olor:r.olor,sabor:r.sabor,textura:r.textura,elemExt:r.elemExt}];
+    return `
+    <div style="background:white;border-radius:12px;border:1px solid #fca5a5;margin-bottom:1rem;overflow:hidden;">
+      <div style="background:#fff7f7;padding:.75rem 1rem;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #fca5a5;">
+        <div style="display:flex;gap:1.5rem;align-items:center;">
+          <span style="font-weight:700;color:#dc2626;font-size:.95rem;">🕐 ${r.hora||'—'}</span>
+          <span style="font-size:.85rem;color:#666;">📍 ${r.area||'—'} · ${r.equipo||'—'}</span>
+          <span style="font-size:.85rem;color:#666;">📦 Envase: ${r.tipoEnvase||'—'} ${r.loteEnvase?'/ '+r.loteEnvase:''}</span>
+          <span style="font-size:.85rem;color:#666;">👤 ${r.responsable||'—'}</span>
+        </div>
+        <div style="display:flex;gap:.5rem;">
+          <button onclick="imprimirRegistroCE('${r.id}')" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:.3rem .7rem;cursor:pointer;font-size:.8rem;">🖨️ Imprimir</button>
+          <button onclick="eliminarRegistroCE('${r.id}')" style="background:#f3f4f6;color:#666;border:none;border-radius:6px;padding:.3rem .7rem;cursor:pointer;font-size:.8rem;">🗑️</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:.83rem;">
+        <thead><tr style="background:#dc2626;color:white;">
+          <th style="padding:.4rem .6rem;">#</th>
+          <th style="padding:.4rem .6rem;">Producto</th>
+          <th style="padding:.4rem .6rem;">Lote</th>
+          <th style="padding:.4rem .6rem;">Temp °C</th>
+          <th style="padding:.4rem .6rem;">ACC</th>
+          <th style="padding:.4rem .6rem;">Verif.</th>
+          <th style="padding:.4rem .6rem;">Color</th>
+          <th style="padding:.4rem .6rem;">Olor</th>
+          <th style="padding:.4rem .6rem;">Sabor</th>
+          <th style="padding:.4rem .6rem;">Textura</th>
+          <th style="padding:.4rem .6rem;">Elem.Ext</th>
+        </tr></thead>
+        <tbody>
+          ${preps.map((p,i) => `
+          <tr style="border-bottom:1px solid #f0f0f0;background:${i%2===0?'white':'#fffafa'};">
+            <td style="padding:.4rem .6rem;text-align:center;font-weight:700;color:#dc2626;">${i+1}</td>
+            <td style="padding:.4rem .6rem;font-weight:600;">${p.producto||'—'}</td>
+            <td style="padding:.4rem .6rem;">${p.lote||'—'}</td>
+            <td style="padding:.4rem .6rem;font-weight:700;text-align:center;color:${parseFloat(p.temp)>=65?'#16a34a':'#dc2626'};">${p.temp||'—'}°C</td>
+            <td style="padding:.4rem .6rem;text-align:center;">${p.reqACC==='si'?`<span style="background:#fee2e2;color:#dc2626;border-radius:6px;padding:.1rem .4rem;font-size:.75rem;font-weight:700;">${p.acc||'—'}</span>`:'<span style="color:#16a34a;">✓</span>'}</td>
+            <td style="padding:.4rem .6rem;text-align:center;">${p.verifACC?p.verifACC+'°C':'—'}</td>
+            <td style="padding:.4rem .6rem;text-align:center;">${p.color||'—'}</td>
+            <td style="padding:.4rem .6rem;text-align:center;">${p.olor||'—'}</td>
+            <td style="padding:.4rem .6rem;text-align:center;">${p.sabor||'—'}</td>
+            <td style="padding:.4rem .6rem;text-align:center;">${p.textura||'—'}</td>
+            <td style="padding:.4rem .6rem;text-align:center;">${p.elemExt||'—'}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table></div>
+    </div>`;
+  }).join('');
 }
 
 function abrirRegistroCoccionEnvasado() {
   const fecha = document.getElementById('fechaFiltroCE')?.value || new Date().toISOString().split('T')[0];
   const ahora = new Date().toTimeString().slice(0,5);
+
+  const filaPrep = (n) => `
+    <div style="background:white;border-radius:8px;padding:.75rem;border:1px solid #fca5a5;margin-bottom:.5rem;" id="ceFilaPrep${n}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;">
+        <span style="font-size:.8rem;font-weight:700;color:#dc2626;">Preparación ${n}</span>
+        ${n > 1 ? `<button onclick="ceEliminarFila(${n})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:.2rem .6rem;cursor:pointer;font-size:.75rem;">✕ Quitar</button>` : ''}
+      </div>
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:.5rem;margin-bottom:.5rem;">
+        <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">⑤ Producto/Preparación</label>
+          <input type="text" id="ceProducto${n}" placeholder="Nombre" style="width:100%;padding:.5rem;border-radius:6px;border:1px solid #fca5a5;font-size:.88rem;box-sizing:border-box;"></div>
+        <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">⑥ Lote</label>
+          <input type="text" id="ceLote${n}" placeholder="Lote" style="width:100%;padding:.5rem;border-radius:6px;border:1px solid #fca5a5;font-size:.88rem;box-sizing:border-box;"></div>
+        <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">⑦ Temp °C</label>
+          <input type="number" id="ceTemp${n}" step="0.1" placeholder="75.0" style="width:100%;padding:.5rem;border-radius:6px;border:1px solid #fca5a5;font-size:.9rem;font-weight:700;box-sizing:border-box;"></div>
+        <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">⑧ ¿Requiere ACC?</label>
+          <select id="ceReqACC${n}" onchange="ceToggleACC(${n})" style="width:100%;padding:.5rem;border-radius:6px;border:1px solid #fca5a5;font-size:.85rem;box-sizing:border-box;">
+            <option value="no">No</option><option value="si">Sí</option>
+          </select></div>
+      </div>
+      <div id="ceDivACC${n}" style="display:none;display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.5rem;">
+        <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">⑨ ACC N°</label>
+          <select id="ceACC${n}" style="width:100%;padding:.5rem;border-radius:6px;border:1px solid #fca5a5;font-size:.8rem;box-sizing:border-box;">
+            <option value="">— Seleccionar —</option>
+            <option value="ACC1">ACC1 — Tratamiento térmico >75°C por 30 min</option>
+            <option value="ACC2">ACC2 — Retirar y segregar como PNC</option>
+          </select></div>
+        <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">⑩ Verif. ACC (°C)</label>
+          <input type="number" id="ceVerifACC${n}" step="0.1" placeholder="Temp post-ACC" style="width:100%;padding:.5rem;border-radius:6px;border:1px solid #fca5a5;font-size:.88rem;box-sizing:border-box;"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:.4rem;">
+        ${['Color','Olor','Sabor','Textura','Elem.Ext'].map(attr => `
+        <div style="background:#fff7f7;border-radius:6px;padding:.4rem;text-align:center;border:1px solid #fca5a5;">
+          <div style="font-size:.68rem;font-weight:600;color:#333;margin-bottom:.3rem;">${attr}</div>
+          <div style="display:flex;gap:.3rem;justify-content:center;">
+            <label style="cursor:pointer;font-size:.8rem;"><input type="radio" name="ce${attr}${n}" value="✓" style="accent-color:#10b981;"> ✓</label>
+            <label style="cursor:pointer;font-size:.8rem;"><input type="radio" name="ce${attr}${n}" value="✗" style="accent-color:#ef4444;"> ✗</label>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+
   document.getElementById('contenidoModalCE').innerHTML = `
-    <div style="font-size:.82rem;color:#64748b;margin-bottom:1.25rem;background:#fff7f7;border-radius:8px;padding:.75rem;border-left:4px solid #dc2626;">
-      <strong>Instrucciones:</strong> Monitoreo debe realizarse 4 veces al día. Tome temperatura en el centro térmico del alimento.
+    <div style="font-size:.82rem;color:#64748b;margin-bottom:1rem;background:#fff7f7;border-radius:8px;padding:.75rem;border-left:4px solid #dc2626;">
+      <strong>Instrucciones:</strong> Monitoreo 4 veces al día. Tome temperatura en el centro térmico del alimento.
       LC Cocción: ≥75°C · LC Envasado: ≥65°C
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:1rem;">
+    <!-- Datos generales del monitoreo -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:1rem;">
       <div><label style="font-size:.8rem;font-weight:600;color:#dc2626;display:block;margin-bottom:.3rem;">① Fecha</label>
         <input type="date" id="ceFecha" value="${fecha}" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #fca5a5;font-size:.9rem;box-sizing:border-box;"></div>
       <div><label style="font-size:.8rem;font-weight:600;color:#dc2626;display:block;margin-bottom:.3rem;">② Hora Monitoreo</label>
@@ -11285,50 +11330,17 @@ function abrirRegistroCoccionEnvasado() {
         </select></div>
       <div><label style="font-size:.8rem;font-weight:600;color:#dc2626;display:block;margin-bottom:.3rem;">④ Equipo Monitoreado</label>
         <input type="text" id="ceEquipo" placeholder="Ej: Sartén 1, Marmita 2..." style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #fca5a5;font-size:.9rem;box-sizing:border-box;"></div>
-      <div><label style="font-size:.8rem;font-weight:600;color:#dc2626;display:block;margin-bottom:.3rem;">⑤ Producto / Preparación</label>
-        <input type="text" id="ceProducto" placeholder="Nombre del producto" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #fca5a5;font-size:.9rem;box-sizing:border-box;"></div>
-      <div><label style="font-size:.8rem;font-weight:600;color:#dc2626;display:block;margin-bottom:.3rem;">⑥ Lote</label>
-        <input type="text" id="ceLote" placeholder="Lote del producto" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #fca5a5;font-size:.9rem;box-sizing:border-box;"></div>
     </div>
-    <!-- Temperatura -->
-    <div style="background:#fff7f7;border-radius:10px;padding:1rem;margin-bottom:1rem;">
-      <div style="font-weight:700;color:#dc2626;margin-bottom:.75rem;font-size:.9rem;">⑦ Temperatura del Producto</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;">
-        <div><label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">Temp. °C (centro térmico)</label>
-          <input type="number" id="ceTemp" step="0.1" placeholder="Ej: 78.5" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #fca5a5;font-size:1rem;font-weight:700;box-sizing:border-box;"></div>
-        <div><label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">⑧ ¿Requiere ACC?</label>
-          <select id="ceReqACC" onchange="toggleVerifACC()" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #fca5a5;font-size:.9rem;box-sizing:border-box;">
-            <option value="no">No</option>
-            <option value="si">Sí</option>
-          </select></div>
-        <div id="divACC" style="display:none;">
-          <label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">⑨ ACC N°</label>
-          <select id="ceACC" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #fca5a5;font-size:.85rem;box-sizing:border-box;">
-            <option value="">— Seleccionar —</option>
-            <option value="ACC1">ACC1 — Tratamiento térmico hasta >75°C por 30 min</option>
-            <option value="ACC2">ACC2 — Retirar y segregar como Producto No Conforme</option>
-          </select></div>
-      </div>
-      <div id="divVerifACC" style="display:none;margin-top:.75rem;">
-        <label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">⑩ Verificación ACC (Temp. °C)</label>
-        <input type="number" id="ceVerifACC" step="0.1" placeholder="Temp. post-ACC" style="width:180px;padding:.6rem;border-radius:8px;border:1px solid #fca5a5;font-size:.9rem;box-sizing:border-box;">
-      </div>
+    <!-- Preparaciones (hasta 4) -->
+    <div style="font-weight:700;color:#dc2626;margin-bottom:.5rem;font-size:.9rem;">📋 Preparaciones verificadas</div>
+    <div id="ceListaPreps">
+      ${filaPrep(1)}
     </div>
-    <!-- Inspección calidad -->
-    <div style="background:#f0fdf4;border-radius:10px;padding:1rem;margin-bottom:1rem;">
-      <div style="font-weight:700;color:#333;margin-bottom:.75rem;font-size:.9rem;">⑪ Inspección de Calidad</div>
-      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:.5rem;">
-        ${['Color','Olor','Sabor','Textura','Pres. Elem. Extraños'].map(attr => `
-        <div style="background:white;border-radius:8px;padding:.6rem;text-align:center;border:1px solid #e2e8f0;">
-          <div style="font-size:.75rem;font-weight:600;color:#333;margin-bottom:.4rem;">${attr}</div>
-          <div style="display:flex;gap:.4rem;justify-content:center;">
-            <label style="cursor:pointer;"><input type="radio" name="ce${attr.replace(/[\s.]/g,'')}" value="✓" style="accent-color:#10b981;"> <span style="font-size:.9rem;">✓</span></label>
-            <label style="cursor:pointer;"><input type="radio" name="ce${attr.replace(/[\s.]/g,'')}" value="✗" style="accent-color:#ef4444;"> <span style="font-size:.9rem;">✗</span></label>
-          </div>
-        </div>`).join('')}
-      </div>
-    </div>
-    <!-- Envase -->
+    <div id="ceContadorPreps" data-count="1"></div>
+    <button id="ceBtnAgregarPrep" onclick="ceAgregarFila()" style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:8px;padding:.5rem 1rem;cursor:pointer;font-size:.85rem;font-weight:600;margin-bottom:1rem;">
+      ➕ Agregar preparación (máx. 4)
+    </button>
+    <!-- Envase y responsable -->
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1.25rem;">
       <div><label style="font-size:.8rem;font-weight:600;color:#333;display:block;margin-bottom:.3rem;">⑫ Tipo Envase Primario</label>
         <select id="ceTipoEnvase" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
@@ -11342,11 +11354,10 @@ function abrirRegistroCoccionEnvasado() {
       <div><label style="font-size:.8rem;font-weight:600;color:#333;display:block;margin-bottom:.3rem;">⑬ Responsable Monitoreo</label>
         <input type="text" id="ceResponsable" placeholder="Nombre y firma" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;"></div>
     </div>
-    <!-- LC -->
     <div style="background:#fffbeb;border-radius:8px;padding:.75rem;margin-bottom:1.25rem;font-size:.78rem;color:#64748b;">
-      <strong>Límites Críticos:</strong> Cocción ≥75°C · Envasado ≥65°C<br>
-      <strong>ACC1:</strong> Tratamiento térmico hasta >75°C por más de 30 min |
-      <strong>ACC2:</strong> Retirar y segregar como Producto No Conforme
+      <strong>LC:</strong> Cocción ≥75°C · Envasado ≥65°C &nbsp;|&nbsp;
+      <strong>ACC1:</strong> Tratamiento térmico hasta >75°C por más de 30 min &nbsp;|&nbsp;
+      <strong>ACC2:</strong> Retirar y segregar como PNC
     </div>
     <div style="display:flex;gap:.75rem;justify-content:flex-end;">
       <button onclick="cerrarModalCE()" style="padding:.75rem 1.5rem;border-radius:10px;border:1px solid #ddd;cursor:pointer;font-weight:600;color:#64748b;background:white;">Cancelar</button>
@@ -11355,39 +11366,111 @@ function abrirRegistroCoccionEnvasado() {
   document.getElementById('modalCE').style.display = 'block';
 }
 
-function toggleVerifACC() {
-  const req = document.getElementById('ceReqACC')?.value;
-  document.getElementById('divACC').style.display = req === 'si' ? 'block' : 'none';
-  document.getElementById('divVerifACC').style.display = req === 'si' ? 'block' : 'none';
+function ceAgregarFila() {
+  const cont = document.getElementById('ceContadorPreps');
+  let n = parseInt(cont.dataset.count) + 1;
+  if (n > 4) { alert('Máximo 4 preparaciones por registro'); return; }
+  cont.dataset.count = n;
+  const lista = document.getElementById('ceListaPreps');
+  const div = document.createElement('div');
+  div.innerHTML = `
+    <div style="background:white;border-radius:8px;padding:.75rem;border:1px solid #fca5a5;margin-bottom:.5rem;" id="ceFilaPrep${n}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;">
+        <span style="font-size:.8rem;font-weight:700;color:#dc2626;">Preparación ${n}</span>
+        <button onclick="ceEliminarFila(${n})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:.2rem .6rem;cursor:pointer;font-size:.75rem;">✕ Quitar</button>
+      </div>
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:.5rem;margin-bottom:.5rem;">
+        <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">⑤ Producto/Preparación</label>
+          <input type="text" id="ceProducto${n}" placeholder="Nombre" style="width:100%;padding:.5rem;border-radius:6px;border:1px solid #fca5a5;font-size:.88rem;box-sizing:border-box;"></div>
+        <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">⑥ Lote</label>
+          <input type="text" id="ceLote${n}" placeholder="Lote" style="width:100%;padding:.5rem;border-radius:6px;border:1px solid #fca5a5;font-size:.88rem;box-sizing:border-box;"></div>
+        <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">⑦ Temp °C</label>
+          <input type="number" id="ceTemp${n}" step="0.1" placeholder="75.0" style="width:100%;padding:.5rem;border-radius:6px;border:1px solid #fca5a5;font-size:.9rem;font-weight:700;box-sizing:border-box;"></div>
+        <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">⑧ ¿Requiere ACC?</label>
+          <select id="ceReqACC${n}" onchange="ceToggleACC(${n})" style="width:100%;padding:.5rem;border-radius:6px;border:1px solid #fca5a5;font-size:.85rem;box-sizing:border-box;">
+            <option value="no">No</option><option value="si">Sí</option>
+          </select></div>
+      </div>
+      <div id="ceDivACC${n}" style="display:none;display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.5rem;">
+        <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">⑨ ACC N°</label>
+          <select id="ceACC${n}" style="width:100%;padding:.5rem;border-radius:6px;border:1px solid #fca5a5;font-size:.8rem;box-sizing:border-box;">
+            <option value="">— Seleccionar —</option>
+            <option value="ACC1">ACC1 — Tratamiento térmico >75°C por 30 min</option>
+            <option value="ACC2">ACC2 — Retirar y segregar como PNC</option>
+          </select></div>
+        <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">⑩ Verif. ACC (°C)</label>
+          <input type="number" id="ceVerifACC${n}" step="0.1" placeholder="Temp post-ACC" style="width:100%;padding:.5rem;border-radius:6px;border:1px solid #fca5a5;font-size:.88rem;box-sizing:border-box;"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:.4rem;">
+        ${['Color','Olor','Sabor','Textura','Elem.Ext'].map(attr => `
+        <div style="background:#fff7f7;border-radius:6px;padding:.4rem;text-align:center;border:1px solid #fca5a5;">
+          <div style="font-size:.68rem;font-weight:600;color:#333;margin-bottom:.3rem;">${attr}</div>
+          <div style="display:flex;gap:.3rem;justify-content:center;">
+            <label style="cursor:pointer;font-size:.8rem;"><input type="radio" name="ce${attr}${n}" value="✓" style="accent-color:#10b981;"> ✓</label>
+            <label style="cursor:pointer;font-size:.8rem;"><input type="radio" name="ce${attr}${n}" value="✗" style="accent-color:#ef4444;"> ✗</label>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  lista.appendChild(div.firstElementChild);
+  if (n >= 4) document.getElementById('ceBtnAgregarPrep').style.display = 'none';
 }
+
+function ceEliminarFila(n) {
+  document.getElementById(`ceFilaPrep${n}`)?.remove();
+  const cont = document.getElementById('ceContadorPreps');
+  cont.dataset.count = parseInt(cont.dataset.count) - 1;
+  document.getElementById('ceBtnAgregarPrep').style.display = 'inline-block';
+}
+
+function ceToggleACC(n) {
+  const req = document.getElementById(`ceReqACC${n}`)?.value;
+  const div = document.getElementById(`ceDivACC${n}`);
+  if (div) div.style.display = req === 'si' ? 'grid' : 'none';
+}
+
+function toggleVerifACC() { ceToggleACC(1); }
 
 function cerrarModalCE() { document.getElementById('modalCE').style.display = 'none'; }
 
 function guardarRegistroCE() {
+  const n = parseInt(document.getElementById('ceContadorPreps')?.dataset.count) || 1;
+  const preparaciones = [];
+  for (let i = 1; i <= 4; i++) {
+    if (!document.getElementById(`ceProducto${i}`)) continue;
+    const prod = document.getElementById(`ceProducto${i}`)?.value;
+    const temp = document.getElementById(`ceTemp${i}`)?.value;
+    if (!prod && !temp) continue;
+    preparaciones.push({
+      producto: prod,
+      lote: document.getElementById(`ceLote${i}`)?.value,
+      temp: temp,
+      reqACC: document.getElementById(`ceReqACC${i}`)?.value,
+      acc: document.getElementById(`ceACC${i}`)?.value,
+      verifACC: document.getElementById(`ceVerifACC${i}`)?.value,
+      color: document.querySelector(`input[name="ceColor${i}"]:checked`)?.value,
+      olor: document.querySelector(`input[name="ceOlor${i}"]:checked`)?.value,
+      sabor: document.querySelector(`input[name="ceSabor${i}"]:checked`)?.value,
+      textura: document.querySelector(`input[name="ceTextura${i}"]:checked`)?.value,
+      elemExt: document.querySelector(`input[name="ceElem.Ext${i}"]:checked`)?.value,
+    });
+  }
+  if (preparaciones.length === 0) { alert('Ingresa al menos una preparación con producto y temperatura'); return; }
   const registro = {
     id: Date.now().toString(),
     fecha: document.getElementById('ceFecha')?.value,
     hora: document.getElementById('ceHora')?.value,
     area: document.getElementById('ceArea')?.value,
     equipo: document.getElementById('ceEquipo')?.value,
-    producto: document.getElementById('ceProducto')?.value,
-    lote: document.getElementById('ceLote')?.value,
-    temp: document.getElementById('ceTemp')?.value,
-    reqACC: document.getElementById('ceReqACC')?.value,
-    acc: document.getElementById('ceACC')?.value,
-    verifACC: document.getElementById('ceVerifACC')?.value,
-    color: document.querySelector('input[name="ceColor"]:checked')?.value,
-    olor: document.querySelector('input[name="ceOlor"]:checked')?.value,
-    sabor: document.querySelector('input[name="ceSabor"]:checked')?.value,
-    textura: document.querySelector('input[name="ceTextura"]:checked')?.value,
-    elemExt: document.querySelector('input[name="cePres.Elem.Extraños"]:checked')?.value,
+    preparaciones,
     tipoEnvase: document.getElementById('ceTipoEnvase')?.value,
     loteEnvase: document.getElementById('ceLoteEnvase')?.value,
     responsable: document.getElementById('ceResponsable')?.value,
     creadoEn: new Date().toLocaleString('es-CL')
   };
-  if (!registro.producto || !registro.temp) { alert('Ingresa al menos el producto y la temperatura'); return; }
   registrosCE.push(registro);
+  // Ordenar cronológicamente por hora
+  registrosCE.sort((a,b) => (a.fecha+a.hora).localeCompare(b.fecha+b.hora));
   guardarCE();
   cerrarModalCE();
   renderRegistrosCE();
@@ -11549,49 +11632,69 @@ function cerrarModalTransito() { document.getElementById('modalTransito').style.
 
 // ---- ALMACENAMIENTO (compartido túnel y tránsito) ----
 function _renderTablaAlmacenamiento(registros, tipo, color) {
-  return `<div style="overflow-x:auto;">
-    <table style="width:100%;border-collapse:collapse;font-size:.85rem;">
-      <thead><tr style="background:${color};color:white;">
-        <th style="padding:.5rem .75rem;">Hora</th>
-        <th style="padding:.5rem .75rem;">Sistema Enfriamiento</th>
-        <th style="padding:.5rem .75rem;">Orden</th>
-        <th style="padding:.5rem .75rem;">Limpieza</th>
-        <th style="padding:.5rem .75rem;">Producto (Tarja)</th>
-        <th style="padding:.5rem .75rem;">Lote</th>
-        <th style="padding:.5rem .75rem;">F. Venc.</th>
-        <th style="padding:.5rem .75rem;">Piso</th>
-        <th style="padding:.5rem .75rem;">Alérgeno</th>
-        <th style="padding:.5rem .75rem;">Especias</th>
-        <th style="padding:.5rem .75rem;">Prod. Term.</th>
-        <th style="padding:.5rem .75rem;">P. No Conf.</th>
-        <th style="padding:.5rem .75rem;">Rotación</th>
-        <th style="padding:.5rem .75rem;">Temp °C</th>
-        <th style="padding:.5rem .75rem;">Acciones</th>
-      </tr></thead>
-      <tbody>
-        ${registros.map((r,i) => `
-        <tr style="border-bottom:1px solid #f0f0f0;background:${i%2===0?'white':'#fafafa'};">
-          <td style="padding:.5rem .75rem;">${r.hora||'—'}</td>
-          <td style="padding:.5rem .75rem;">${r.sistemaEnfriamiento||'—'}</td>
-          <td style="padding:.5rem .75rem;text-align:center;">${r.orden||'—'}</td>
-          <td style="padding:.5rem .75rem;text-align:center;">${r.limpieza||'—'}</td>
-          <td style="padding:.5rem .75rem;font-weight:600;">${r.producto||'—'}</td>
-          <td style="padding:.5rem .75rem;">${r.lote||'—'}</td>
-          <td style="padding:.5rem .75rem;">${r.fVencimiento||'—'}</td>
-          <td style="padding:.5rem .75rem;text-align:center;">${r.piso||'—'}</td>
-          <td style="padding:.5rem .75rem;text-align:center;">${r.alergeno||'—'}</td>
-          <td style="padding:.5rem .75rem;text-align:center;">${r.especias||'—'}</td>
-          <td style="padding:.5rem .75rem;text-align:center;">${r.prodTerm||'—'}</td>
-          <td style="padding:.5rem .75rem;text-align:center;">${r.prodNoConf||'—'}</td>
-          <td style="padding:.5rem .75rem;text-align:center;">${r.rotacion||'—'}</td>
-          <td style="padding:.5rem .75rem;font-weight:700;color:${color};">${r.temp||'—'}°C</td>
-          <td style="padding:.5rem .75rem;">
-            <button onclick="imprimirRegistroAlmacenamiento('${r.id}','${tipo}')" style="background:#e0f2fe;color:${color};border:none;border-radius:6px;padding:.3rem .6rem;cursor:pointer;font-size:.78rem;">🖨️</button>
-            <button onclick="eliminarRegistroAlmacenamiento('${r.id}','${tipo}')" style="background:#f3f4f6;color:#666;border:none;border-radius:6px;padding:.3rem .6rem;cursor:pointer;font-size:.78rem;margin-left:.25rem;">🗑️</button>
-          </td>
-        </tr>`).join('')}
-      </tbody>
-    </table></div>`;
+  const sim = v => v === '✓' ? '<span style="color:#16a34a;font-weight:700;">✓</span>' : v === '✗' ? '<span style="color:#dc2626;font-weight:700;">✗</span>' : '—';
+  return registros.map((r,ri) => {
+    const mons = r.monitoreos || [{hora:r.hora,sistemaEnfriamiento:r.sistemaEnfriamiento,temp:r.temp,orden:r.orden,limpieza:r.limpieza,rotacion:r.rotacion,producto:r.producto,lote:r.lote,fVencimiento:r.fVencimiento,piso:r.piso,alergeno:r.alergeno,especias:r.especias,prodTerm:r.prodTerm,prodNoConf:r.prodNoConf}];
+    return `
+    <div style="background:white;border-radius:12px;border:1px solid #a5f3fc;margin-bottom:1rem;overflow:hidden;">
+      <div style="background:#f0fdfe;padding:.75rem 1rem;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #a5f3fc;">
+        <div style="display:flex;gap:1.5rem;align-items:center;">
+          <span style="font-weight:700;color:${color};font-size:.95rem;">📅 ${r.fecha||'—'}</span>
+          <span style="font-size:.85rem;color:#666;">👤 ${r.responsable||'—'}</span>
+          <span style="font-size:.82rem;color:#94a3b8;">${mons.length} monitoreo(s)</span>
+        </div>
+        <div style="display:flex;gap:.5rem;">
+          <button onclick="imprimirRegistroAlmacenamiento('${r.id}','${tipo}')" style="background:#e0f2fe;color:${color};border:none;border-radius:6px;padding:.3rem .7rem;cursor:pointer;font-size:.8rem;">🖨️ Imprimir</button>
+          <button onclick="eliminarRegistroAlmacenamiento('${r.id}','${tipo}')" style="background:#f3f4f6;color:#666;border:none;border-radius:6px;padding:.3rem .7rem;cursor:pointer;font-size:.8rem;">🗑️</button>
+        </div>
+      </div>
+      ${mons.map((m,mi) => `
+      <div style="border-bottom:${mi<mons.length-1?'1px solid #e0f2fe':'none'};padding:.75rem 1rem;">
+        <div style="font-size:.78rem;font-weight:700;color:${color};margin-bottom:.5rem;">Monitoreo ${mi+1} — 🕐 ${m.hora||'—'} · ${m.sistemaEnfriamiento||'—'}</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.5rem;font-size:.82rem;">
+          <div style="background:#f0fdfe;border-radius:6px;padding:.4rem;text-align:center;">
+            <div style="font-size:.7rem;color:#666;">⑨ Temp Equipo</div>
+            <div style="font-weight:700;color:${color};">${m.temp||'—'}°C</div>
+          </div>
+          <div style="background:#f0fdfe;border-radius:6px;padding:.4rem;text-align:center;">
+            <div style="font-size:.7rem;color:#666;">⑩ Temp Interna</div>
+            <div style="font-weight:700;">${m.tempInterna||'—'}°C</div>
+          </div>
+          <div style="background:#f0fdfe;border-radius:6px;padding:.4rem;text-align:center;">
+            <div style="font-size:.7rem;color:#666;">⑪ Humedad %</div>
+            <div style="font-weight:700;">${m.humedad||'—'}%</div>
+          </div>
+          <div style="background:#f0fdfe;border-radius:6px;padding:.4rem;text-align:center;">
+            <div style="font-size:.7rem;color:#666;">⑫ Temp Contrast.</div>
+            <div style="font-weight:700;">${m.tempContrast||'—'}°C</div>
+          </div>
+          <div style="background:#f0fdfe;border-radius:6px;padding:.4rem;text-align:center;">
+            <div style="font-size:.7rem;color:#666;">⑬ Temp Producto</div>
+            <div style="font-weight:700;">${m.tempProducto||'—'}°C</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:1rem;margin-top:.5rem;font-size:.82rem;flex-wrap:wrap;">
+          <span>④ Orden: ${sim(m.orden)}</span>
+          <span>⑤ Limpieza: ${sim(m.limpieza)}</span>
+          <span>⑧ Rotación: ${sim(m.rotacion)}</span>
+          <span style="font-weight:600;">Producto: ${m.producto||'—'}</span>
+          <span>Lote: ${m.lote||'—'}</span>
+          <span>F.Venc: ${m.fVencimiento||'—'}</span>
+          ${m.reqACC==='si'?`<span style="background:#fee2e2;color:#dc2626;border-radius:6px;padding:.1rem .4rem;font-weight:700;">ACC: ${m.acc||'—'}</span>`:''}
+        </div>
+      </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+function calcularFechaDesdeJuliano(juliano) {
+  if (!juliano || juliano.length < 3) return '';
+  const anio = new Date().getFullYear();
+  const dia = parseInt(juliano.slice(-3));
+  if (isNaN(dia) || dia < 1 || dia > 366) return '';
+  const fecha = new Date(anio, 0, dia);
+  fecha.setDate(fecha.getDate() + 15);
+  return fecha.toISOString().split('T')[0];
 }
 
 function _abrirModalAlmacenamiento(tipo, fecha, titulo, color, icono) {
@@ -11599,65 +11702,102 @@ function _abrirModalAlmacenamiento(tipo, fecha, titulo, color, icono) {
   const modalId = tipo === 'tunel' ? 'modalTunel' : 'modalTransito';
   const contId = tipo === 'tunel' ? 'contenidoModalTunel' : 'contenidoModalTransito';
   const lcText = tipo === 'tunel' ? 'LC: ≤ -5°C (Congelación)' : 'LC: ≤ 4°C (Refrigeración)';
+  const maxMonitoreos = 3;
+
+  const filaMonitoreo = (n) => `
+    <div style="background:white;border-radius:8px;padding:.75rem;border:1px solid #a5f3fc;margin-bottom:.5rem;" id="alFilaMon${n}_${tipo}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem;">
+        <span style="font-size:.8rem;font-weight:700;color:${color};">Monitoreo ${n}</span>
+        ${n > 1 ? `<button onclick="alEliminarFila(${n},'${tipo}')" style="background:#e0f2fe;color:${color};border:none;border-radius:6px;padding:.2rem .6rem;cursor:pointer;font-size:.75rem;">✕ Quitar</button>` : ''}
+      </div>
+      <!-- Info general del monitoreo -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.5rem;margin-bottom:.6rem;">
+        <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">② Hora</label>
+          <input type="time" id="alHora${n}_${tipo}" value="${n===1?ahora:''}" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #a5f3fc;font-size:.88rem;box-sizing:border-box;"></div>
+        <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">③ Sistema Enfriamiento</label>
+          <input type="text" id="alSistema${n}_${tipo}" placeholder="Ej: Cámara 1" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #a5f3fc;font-size:.88rem;box-sizing:border-box;"></div>
+        <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">⑨ Temp °C Equipo (PCC)</label>
+          <input type="number" id="alTemp${n}_${tipo}" step="0.1" placeholder="${tipo==='tunel'?'-18':'2'}" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #a5f3fc;font-size:.9rem;font-weight:700;box-sizing:border-box;"></div>
+        <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">⑩ Temp °C Interna</label>
+          <input type="number" id="alTempInterna${n}_${tipo}" step="0.1" placeholder="°C" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #a5f3fc;font-size:.88rem;box-sizing:border-box;"></div>
+        <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">⑪ Humedad %</label>
+          <input type="number" id="alHumedad${n}_${tipo}" step="0.1" min="0" max="100" placeholder="%" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #a5f3fc;font-size:.88rem;box-sizing:border-box;"></div>
+        <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">⑫ Temp Contrastación</label>
+          <input type="number" id="alTempContrast${n}_${tipo}" step="0.1" placeholder="°C" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #a5f3fc;font-size:.88rem;box-sizing:border-box;"></div>
+        <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">⑬ Temp Producto</label>
+          <input type="number" id="alTempProducto${n}_${tipo}" step="0.1" placeholder="°C" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #a5f3fc;font-size:.88rem;box-sizing:border-box;"></div>
+      </div>
+      <!-- Inspección de producto -->
+      <div style="background:#f0fdfe;border-radius:8px;padding:.6rem;margin-bottom:.5rem;">
+        <div style="font-size:.75rem;font-weight:700;color:${color};margin-bottom:.5rem;">Inspección de Producto</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:.4rem;margin-bottom:.5rem;">
+          ${['④ Orden','⑤ Limpieza','⑧ Rotación'].map(lbl => `
+          <div style="background:white;border-radius:6px;padding:.4rem;text-align:center;border:1px solid #e2e8f0;">
+            <div style="font-size:.68rem;font-weight:600;color:#333;margin-bottom:.3rem;">${lbl}</div>
+            <div style="display:flex;gap:.3rem;justify-content:center;">
+              <label style="cursor:pointer;font-size:.8rem;"><input type="radio" name="al${lbl.replace(/[⑤⑥⑦⑧④\s]/g,'')}${n}_${tipo}" value="✓"> ✓</label>
+              <label style="cursor:pointer;font-size:.8rem;"><input type="radio" name="al${lbl.replace(/[⑤⑥⑦⑧④\s]/g,'')}${n}_${tipo}" value="✗"> ✗</label>
+            </div>
+          </div>`).join('')}
+          <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">⑥ Producto (Tarja)</label>
+            <input type="text" id="alProducto${n}_${tipo}" placeholder="Nombre" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #e2e8f0;font-size:.82rem;box-sizing:border-box;"></div>
+          <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">Lote / Juliano</label>
+            <input type="text" id="alLote${n}_${tipo}" placeholder="Ej: 084" oninput="alCalcularVenc(${n},'${tipo}')" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #e2e8f0;font-size:.82rem;box-sizing:border-box;"></div>
+          <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">F. Vencimiento ${tipo==='tunel'?'(+15 días auto)':''}</label>
+            <input type="date" id="alFVenc${n}_${tipo}" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #e2e8f0;font-size:.82rem;box-sizing:border-box;"></div>
+        </div>
+        <!-- Separación -->
+        <div style="font-size:.72rem;font-weight:700;color:#333;margin-bottom:.35rem;">⑦ Separación de:</div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:.3rem;margin-bottom:.5rem;">
+          ${['Piso','Alérgeno','Especias','Prod.Term.','Prod.NC'].map(s => `
+          <div style="background:white;border-radius:6px;padding:.35rem;text-align:center;border:1px solid #e2e8f0;">
+            <div style="font-size:.65rem;font-weight:600;color:#333;margin-bottom:.25rem;">${s}</div>
+            <div style="display:flex;gap:.2rem;justify-content:center;">
+              <label style="cursor:pointer;font-size:.78rem;"><input type="radio" name="alSep${s.replace(/[\s.]/g,'')}${n}_${tipo}" value="✓"> ✓</label>
+              <label style="cursor:pointer;font-size:.78rem;"><input type="radio" name="alSep${s.replace(/[\s.]/g,'')}${n}_${tipo}" value="✗"> ✗</label>
+            </div>
+          </div>`).join('')}
+        </div>
+      </div>
+      <!-- Control PCC -->
+      <div style="background:#fffbeb;border-radius:8px;padding:.6rem;">
+        <div style="font-size:.75rem;font-weight:700;color:#92400e;margin-bottom:.5rem;">Control PCC — ¿Requiere ACC?</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:.4rem;">
+          <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">⑭ ¿Requiere ACC?</label>
+            <select id="alReqACC${n}_${tipo}" onchange="alToggleACC(${n},'${tipo}')" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #fde68a;font-size:.82rem;box-sizing:border-box;">
+              <option value="no">No</option><option value="si">Sí</option>
+            </select></div>
+          <div id="alDivACC${n}_${tipo}" style="display:none;"><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">⑮ ACC N°</label>
+            <input type="text" id="alACC${n}_${tipo}" placeholder="ACC-1, ACC-2..." style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #fde68a;font-size:.82rem;box-sizing:border-box;"></div>
+          <div id="alDivTempACC${n}_${tipo}" style="display:none;"><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">Temp Verif. ACC</label>
+            <input type="number" id="alTempACC${n}_${tipo}" step="0.1" placeholder="°C" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #fde68a;font-size:.82rem;box-sizing:border-box;"></div>
+          <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">⑯ Prod. Evaluado</label>
+            <input type="text" id="alProdEval${n}_${tipo}" placeholder="Nombre producto" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #fde68a;font-size:.82rem;box-sizing:border-box;"></div>
+        </div>
+      </div>
+    </div>`;
 
   document.getElementById(contId).innerHTML = `
-    <div style="font-size:.82rem;color:#64748b;margin-bottom:1.25rem;background:#f0fdfe;border-radius:8px;padding:.75rem;border-left:4px solid ${color};">
-      <strong>Instrucciones:</strong> ${tipo==='tunel'?'Frecuencia: 2 veces al día.':'Frecuencia: 4 veces al día, cada 3 horas aprox.'}
-      Reportar con ✓/✗ cada campo de inspección. ${lcText}
+    <div style="font-size:.82rem;color:#64748b;margin-bottom:1rem;background:#f0fdfe;border-radius:8px;padding:.75rem;border-left:4px solid ${color};">
+      <strong>Instrucciones:</strong> ${tipo==='tunel'?'Frecuencia: 2 veces al día (antes y después del turno).':'Frecuencia: 4 veces al día, cada 3 horas aprox.'}
+      ${lcText}
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:1rem;">
+    <!-- Datos del día -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1rem;">
       <div><label style="font-size:.8rem;font-weight:600;color:${color};display:block;margin-bottom:.3rem;">① Fecha</label>
-        <input type="date" id="alFecha" value="${fecha}" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #a5f3fc;font-size:.9rem;box-sizing:border-box;"></div>
-      <div><label style="font-size:.8rem;font-weight:600;color:${color};display:block;margin-bottom:.3rem;">② Hora</label>
-        <input type="time" id="alHora" value="${ahora}" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #a5f3fc;font-size:.9rem;box-sizing:border-box;"></div>
-      <div><label style="font-size:.8rem;font-weight:600;color:${color};display:block;margin-bottom:.3rem;">③ Sistema Enfriamiento</label>
-        <input type="text" id="alSistema" placeholder="Ej: Cámara 1, Túnel..." style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #a5f3fc;font-size:.9rem;box-sizing:border-box;"></div>
-      <div><label style="font-size:.8rem;font-weight:600;color:${color};display:block;margin-bottom:.3rem;">⑨ Temp °C Equipo</label>
-        <input type="number" id="alTemp" step="0.1" placeholder="${tipo==='tunel'?'-18':'-2'}" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #a5f3fc;font-size:1rem;font-weight:700;box-sizing:border-box;"></div>
+        <input type="date" id="alFecha_${tipo}" value="${fecha}" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #a5f3fc;font-size:.9rem;box-sizing:border-box;"></div>
+      <div><label style="font-size:.8rem;font-weight:600;color:${color};display:block;margin-bottom:.3rem;">Mes</label>
+        <input type="text" id="alMes_${tipo}" placeholder="Ej: Marzo 2026" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #a5f3fc;font-size:.9rem;box-sizing:border-box;"></div>
+      <div><label style="font-size:.8rem;font-weight:600;color:${color};display:block;margin-bottom:.3rem;">⑱ Responsable Verificación</label>
+        <input type="text" id="alResponsable_${tipo}" placeholder="Nombre" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #a5f3fc;font-size:.9rem;box-sizing:border-box;"></div>
     </div>
-    <!-- Inspección producto -->
-    <div style="background:#f0fdfe;border-radius:10px;padding:1rem;margin-bottom:1rem;">
-      <div style="font-weight:700;color:${color};margin-bottom:.75rem;font-size:.9rem;">Inspección de Producto</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.75rem;margin-bottom:.75rem;">
-        <div><label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">④ Orden</label>
-          <div style="display:flex;gap:.5rem;">
-            <label><input type="radio" name="alOrden" value="✓"> ✓</label>
-            <label><input type="radio" name="alOrden" value="✗"> ✗</label>
-          </div></div>
-        <div><label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">⑤ Limpieza</label>
-          <div style="display:flex;gap:.5rem;">
-            <label><input type="radio" name="alLimpieza" value="✓"> ✓</label>
-            <label><input type="radio" name="alLimpieza" value="✗"> ✗</label>
-          </div></div>
-        <div><label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">⑧ Rotación</label>
-          <div style="display:flex;gap:.5rem;">
-            <label><input type="radio" name="alRotacion" value="✓"> ✓</label>
-            <label><input type="radio" name="alRotacion" value="✗"> ✗</label>
-          </div></div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.75rem;">
-        <div><label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">⑥ Producto (Tarja)</label>
-          <input type="text" id="alProducto" placeholder="Nombre producto" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;"></div>
-        <div><label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">Lote</label>
-          <input type="text" id="alLote" placeholder="Lote" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;"></div>
-        <div><label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">F. Vencimiento</label>
-          <input type="date" id="alFVenc" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;"></div>
-      </div>
-    </div>
-    <!-- Separación -->
-    <div style="background:#f8fafc;border-radius:10px;padding:1rem;margin-bottom:1rem;">
-      <div style="font-weight:700;color:#333;margin-bottom:.75rem;font-size:.9rem;">⑦ Separación de:</div>
-      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:.5rem;">
-        ${['Piso','Alérgeno','Especias','Prod. Term.','Prod. No Conf.'].map(s=>`
-        <div style="background:white;border-radius:8px;padding:.6rem;text-align:center;border:1px solid #e2e8f0;">
-          <div style="font-size:.75rem;font-weight:600;color:#333;margin-bottom:.4rem;">${s}</div>
-          <div style="display:flex;gap:.4rem;justify-content:center;">
-            <label><input type="radio" name="alSep${s.replace(/[\s.]/g,'')}" value="✓"> ✓</label>
-            <label><input type="radio" name="alSep${s.replace(/[\s.]/g,'')}" value="✗"> ✗</label>
-          </div>
-        </div>`).join('')}
-      </div>
-    </div>
+    <!-- Monitoreos -->
+    <div style="font-weight:700;color:${color};margin-bottom:.5rem;font-size:.9rem;">📋 Monitoreos (máx. ${maxMonitoreos})</div>
+    <div id="alListaMons_${tipo}">${filaMonitoreo(1)}</div>
+    <div id="alContadorMons_${tipo}" data-count="1"></div>
+    <button id="alBtnAgregar_${tipo}" onclick="alAgregarFila('${tipo}')" style="background:#e0f2fe;color:${color};border:1px solid #a5f3fc;border-radius:8px;padding:.5rem 1rem;cursor:pointer;font-size:.85rem;font-weight:600;margin-bottom:1rem;">
+      ➕ Agregar monitoreo (máx. ${maxMonitoreos})
+    </button>
     <div style="background:#fffbeb;border-radius:8px;padding:.75rem;margin-bottom:1.25rem;font-size:.78rem;color:#64748b;">
       <strong>${lcText}</strong>
     </div>
@@ -11668,29 +11808,119 @@ function _abrirModalAlmacenamiento(tipo, fecha, titulo, color, icono) {
   document.getElementById(modalId).style.display = 'block';
 }
 
+function alCalcularVenc(n, tipo) {
+  if (tipo !== 'tunel') return;
+  const juliano = document.getElementById(`alLote${n}_${tipo}`)?.value;
+  const fVenc = calcularFechaDesdeJuliano(juliano);
+  if (fVenc) { const el = document.getElementById(`alFVenc${n}_${tipo}`); if(el) el.value = fVenc; }
+}
+
+function alToggleACC(n, tipo) {
+  const req = document.getElementById(`alReqACC${n}_${tipo}`)?.value;
+  const show = req === 'si';
+  const d1 = document.getElementById(`alDivACC${n}_${tipo}`);
+  const d2 = document.getElementById(`alDivTempACC${n}_${tipo}`);
+  if(d1) d1.style.display = show ? 'block' : 'none';
+  if(d2) d2.style.display = show ? 'block' : 'none';
+}
+
+function alAgregarFila(tipo) {
+  const cont = document.getElementById(`alContadorMons_${tipo}`);
+  let n = parseInt(cont.dataset.count) + 1;
+  if (n > 3) { alert('Máximo 3 monitoreos por registro'); return; }
+  cont.dataset.count = n;
+  const lista = document.getElementById(`alListaMons_${tipo}`);
+  const color = tipo === 'tunel' ? '#0e7490' : '#7c3aed';
+  const lcText = tipo === 'tunel' ? 'LC: ≤ -5°C' : 'LC: ≤ 4°C';
+  const ahora = new Date().toTimeString().slice(0,5);
+  // Reusar _abrirModalAlmacenamiento genera el HTML, pero aquí usamos innerHTML directo para agregar fila
+  const div = document.createElement('div');
+  // Generar fila simplificada igual a la función principal
+  div.innerHTML = document.getElementById(`alFilaMon1_${tipo}`).outerHTML
+    .replace(new RegExp(`alFilaMon1_${tipo}`, 'g'), `alFilaMon${n}_${tipo}`)
+    .replace(/Monitoreo 1/g, `Monitoreo ${n}`)
+    .replace(/value="[0-2][0-9]:[0-5][0-9]"/g, `value=""`)
+    .replace(/_1_/g, `_${n}_`)
+    .replace(new RegExp(`_1_${tipo}`, 'g'), `_${n}_${tipo}`)
+    .replace(new RegExp(`name="al([^"]+)1_${tipo}"`, 'g'), `name="al$1${n}_${tipo}"`)
+    .replace(new RegExp(`id="al([^"]+)1_${tipo}"`, 'g'), `id="al$1${n}_${tipo}"`)
+    .replace(new RegExp(`onclick="alEliminarFila\\(1,'${tipo}'\\)"`, 'g'), `onclick="alEliminarFila(${n},'${tipo}')"`)
+    .replace(new RegExp(`onclick="alCalcularVenc\\(1,'${tipo}'\\)"`, 'g'), `onclick="alCalcularVenc(${n},'${tipo}')"`)
+    .replace(new RegExp(`onclick="alToggleACC\\(1,'${tipo}'\\)"`, 'g'), `onclick="alToggleACC(${n},'${tipo}')"`)
+    .replace(/style="display:none;">/g, 'style="display:none;">');
+  // Limpiar valores de inputs
+  div.querySelectorAll('input[type=text], input[type=number], input[type=date], input[type=time]').forEach(i => i.value = '');
+  div.querySelectorAll('input[type=radio]').forEach(i => i.checked = false);
+  div.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
+  lista.appendChild(div.firstElementChild);
+  if (n >= 3) document.getElementById(`alBtnAgregar_${tipo}`).style.display = 'none';
+}
+
+function alEliminarFila(n, tipo) {
+  document.getElementById(`alFilaMon${n}_${tipo}`)?.remove();
+  const cont = document.getElementById(`alContadorMons_${tipo}`);
+  cont.dataset.count = parseInt(cont.dataset.count) - 1;
+  document.getElementById(`alBtnAgregar_${tipo}`).style.display = 'inline-block';
+}
+
 function guardarRegistroAlmacenamiento(tipo) {
+  const fecha = document.getElementById(`alFecha_${tipo}`)?.value;
+  const mes = document.getElementById(`alMes_${tipo}`)?.value;
+  const responsable = document.getElementById(`alResponsable_${tipo}`)?.value;
+  if (!fecha) { alert('Ingresa la fecha'); return; }
+
+  const n = parseInt(document.getElementById(`alContadorMons_${tipo}`)?.dataset.count) || 1;
+  const monitoreos = [];
+  for (let i = 1; i <= 3; i++) {
+    if (!document.getElementById(`alHora${i}_${tipo}`)) continue;
+    const hora = document.getElementById(`alHora${i}_${tipo}`)?.value;
+    const temp = document.getElementById(`alTemp${i}_${tipo}`)?.value;
+    if (!hora && !temp) continue;
+    monitoreos.push({
+      hora,
+      sistemaEnfriamiento: document.getElementById(`alSistema${i}_${tipo}`)?.value,
+      temp,
+      tempInterna: document.getElementById(`alTempInterna${i}_${tipo}`)?.value,
+      humedad: document.getElementById(`alHumedad${i}_${tipo}`)?.value,
+      tempContrast: document.getElementById(`alTempContrast${i}_${tipo}`)?.value,
+      tempProducto: document.getElementById(`alTempProducto${i}_${tipo}`)?.value,
+      orden: document.querySelector(`input[name="alOrden${i}_${tipo}"]:checked`)?.value,
+      limpieza: document.querySelector(`input[name="alLimpieza${i}_${tipo}"]:checked`)?.value,
+      rotacion: document.querySelector(`input[name="alRotacion${i}_${tipo}"]:checked`)?.value,
+      producto: document.getElementById(`alProducto${i}_${tipo}`)?.value,
+      lote: document.getElementById(`alLote${i}_${tipo}`)?.value,
+      fVencimiento: document.getElementById(`alFVenc${i}_${tipo}`)?.value,
+      piso: document.querySelector(`input[name="alSepPiso${i}_${tipo}"]:checked`)?.value,
+      alergeno: document.querySelector(`input[name="alSepAlérgeno${i}_${tipo}"]:checked`)?.value,
+      especias: document.querySelector(`input[name="alSepEspecias${i}_${tipo}"]:checked`)?.value,
+      prodTerm: document.querySelector(`input[name="alSepProd.Term.${i}_${tipo}"]:checked`)?.value,
+      prodNoConf: document.querySelector(`input[name="alSepProd.NC${i}_${tipo}"]:checked`)?.value,
+      reqACC: document.getElementById(`alReqACC${i}_${tipo}`)?.value,
+      acc: document.getElementById(`alACC${i}_${tipo}`)?.value,
+      tempACC: document.getElementById(`alTempACC${i}_${tipo}`)?.value,
+      prodEval: document.getElementById(`alProdEval${i}_${tipo}`)?.value,
+    });
+  }
+  if (monitoreos.length === 0) { alert('Ingresa al menos un monitoreo con hora y temperatura'); return; }
+
   const registro = {
     id: Date.now().toString(),
-    fecha: document.getElementById('alFecha')?.value,
-    hora: document.getElementById('alHora')?.value,
-    sistemaEnfriamiento: document.getElementById('alSistema')?.value,
-    temp: document.getElementById('alTemp')?.value,
-    orden: document.querySelector('input[name="alOrden"]:checked')?.value,
-    limpieza: document.querySelector('input[name="alLimpieza"]:checked')?.value,
-    rotacion: document.querySelector('input[name="alRotacion"]:checked')?.value,
-    producto: document.getElementById('alProducto')?.value,
-    lote: document.getElementById('alLote')?.value,
-    fVencimiento: document.getElementById('alFVenc')?.value,
-    piso: document.querySelector('input[name="alSepPiso"]:checked')?.value,
-    alergeno: document.querySelector('input[name="alSepAlérgeno"]:checked')?.value,
-    especias: document.querySelector('input[name="alSepEspecias"]:checked')?.value,
-    prodTerm: document.querySelector('input[name="alSepProd.Term."]:checked')?.value,
-    prodNoConf: document.querySelector('input[name="alSepProd.NoConf."]:checked')?.value,
+    fecha,
+    mes,
+    responsable,
+    monitoreos,
     creadoEn: new Date().toLocaleString('es-CL')
   };
-  if (!registro.fecha || !registro.temp) { alert('Ingresa al menos la fecha y temperatura'); return; }
-  if (tipo === 'tunel') { registrosTunel.push(registro); guardarTunel(); cerrarModalTunel(); renderRegistrosTunel(); }
-  else { registrosTransito.push(registro); guardarTransito(); cerrarModalTransito(); renderRegistrosTransito(); }
+
+  if (tipo === 'tunel') {
+    registrosTunel.push(registro);
+    registrosTunel.sort((a,b) => (a.fecha+(a.monitoreos[0]?.hora||'')).localeCompare(b.fecha+(b.monitoreos[0]?.hora||'')));
+    guardarTunel(); cerrarModalTunel(); renderRegistrosTunel();
+  } else {
+    registrosTransito.push(registro);
+    registrosTransito.sort((a,b) => (a.fecha+(a.monitoreos[0]?.hora||'')).localeCompare(b.fecha+(b.monitoreos[0]?.hora||'')));
+    guardarTransito(); cerrarModalTransito(); renderRegistrosTransito();
+  }
   if (confirm('¿Deseas imprimir el registro ahora?')) imprimirRegistroAlmacenamiento(registro.id, tipo);
 }
 
