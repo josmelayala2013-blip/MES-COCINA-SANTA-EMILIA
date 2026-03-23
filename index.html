@@ -9356,6 +9356,101 @@ function iniciarPreelaborado() {
   renderPreelaborados(tipo);
 }
 
+// ---- SISTEMA DE NOTIFICACIONES TOAST ----
+function mostrarToastPreelaborado(pre) {
+  // Crear contenedor si no existe
+  let cont = document.getElementById('toastContainer');
+  if (!cont) {
+    cont = document.createElement('div');
+    cont.id = 'toastContainer';
+    cont.style.cssText = 'position:fixed;top:1.5rem;right:1.5rem;z-index:99999;display:flex;flex-direction:column;gap:.75rem;pointer-events:none;';
+    document.body.appendChild(cont);
+  }
+
+  const tipo = pre.tipo === 'carnes' ? '🥩' : '🥗';
+  const color = pre.tipo === 'carnes' ? '#dc2626' : '#16a34a';
+  const bg = pre.tipo === 'carnes' ? '#fff7f7' : '#f0fdf4';
+  const border = pre.tipo === 'carnes' ? '#fca5a5' : '#86efac';
+
+  const toast = document.createElement('div');
+  toast.style.cssText = `
+    background:white;
+    border:2px solid ${border};
+    border-left:6px solid ${color};
+    border-radius:14px;
+    padding:1rem 1.25rem;
+    box-shadow:0 8px 30px rgba(0,0,0,0.15);
+    min-width:300px;
+    max-width:380px;
+    pointer-events:all;
+    animation:slideInToast .3s ease;
+  `;
+
+  toast.innerHTML = `
+    <div style="display:flex;align-items:flex-start;gap:.75rem;">
+      <div style="font-size:2rem;line-height:1;">${tipo}</div>
+      <div style="flex:1;">
+        <div style="font-weight:800;font-size:1rem;color:${color};margin-bottom:.2rem;">
+          ¡Preelaborado listo!
+        </div>
+        <div style="font-weight:700;font-size:.95rem;color:#333;margin-bottom:.25rem;">
+          ${pre.ingrediente}
+        </div>
+        <div style="font-size:.82rem;color:#666;line-height:1.4;">
+          ${pre.tipoCorte ? `Corte: ${pre.tipoCorte} · ` : ''}${pre.kg} kg · Operador: ${pre.operador}
+        </div>
+        <div style="font-size:.82rem;color:#10b981;font-weight:600;margin-top:.3rem;">
+          ✅ Disponible para uso en cocina
+        </div>
+        ${pre.opVinculada ? `<div style="font-size:.78rem;color:#667eea;margin-top:.2rem;">📋 OP ${pre.opVinculada}</div>` : ''}
+      </div>
+      <button onclick="this.closest('div[style*=white]').parentElement.remove()"
+        style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:1.1rem;padding:0;line-height:1;flex-shrink:0;">✕</button>
+    </div>
+  `;
+
+  cont.appendChild(toast);
+
+  // Sonido de notificación (beep simple)
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [523, 659, 784].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.3, ctx.currentTime + i * 0.15);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.15 + 0.2);
+      osc.start(ctx.currentTime + i * 0.15);
+      osc.stop(ctx.currentTime + i * 0.15 + 0.2);
+    });
+  } catch(e) {}
+
+  // Auto cerrar después de 8 segundos
+  setTimeout(() => {
+    toast.style.animation = 'fadeOutToast .3s ease forwards';
+    setTimeout(() => toast.remove(), 300);
+  }, 8000);
+}
+
+// Estilos de animación toast
+if (!document.getElementById('toastStyles')) {
+  const s = document.createElement('style');
+  s.id = 'toastStyles';
+  s.textContent = `
+    @keyframes slideInToast {
+      from { transform: translateX(120%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes fadeOutToast {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(120%); opacity: 0; }
+    }
+  `;
+  document.head.appendChild(s);
+}
+
 function finalizarPreelaborado(id) {
   const pre = preelaborados.find(p => p.id === id);
   if (!pre) return;
@@ -9368,6 +9463,8 @@ function finalizarPreelaborado(id) {
   if (timersPre[id]) { clearInterval(timersPre[id]); delete timersPre[id]; }
   guardarPreelaborados();
   renderPreelaborados(pre.tipo);
+  // Mostrar notificación
+  mostrarToastPreelaborado(pre);
 }
 
 function cancelarPreelaborado(id) {
