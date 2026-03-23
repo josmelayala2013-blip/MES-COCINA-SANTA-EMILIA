@@ -7263,16 +7263,29 @@ function renderComponentesModal() {
         <button onclick="eliminarComponente(${ci})" style="background:#ff6b6b;color:white;border:none;border-radius:8px;padding:.4rem .7rem;cursor:pointer;">🗑️</button>
       </div>
       <div style="margin-left:1rem;">
-        <div style="font-size:.85rem;color:#666;margin-bottom:.4rem;">Ingredientes brutos:</div>
+        <div style="display:grid;grid-template-columns:1fr 90px 70px 110px 28px;gap:.4rem;margin-bottom:.3rem;padding:0 .2rem;">
+          <span style="font-size:.72rem;color:#999;">Ingrediente</span>
+          <span style="font-size:.72rem;color:#999;">Cantidad</span>
+          <span style="font-size:.72rem;color:#999;">Unidad</span>
+          <span style="font-size:.72rem;color:#999;">Tipo ▼</span>
+          <span></span>
+        </div>
         ${comp.ingredientes.map((ing, ii) => `
-          <div style="display:flex;gap:.4rem;margin-bottom:.4rem;align-items:center;">
-            <input value="${ing.nombre}" onchange="componentesTemp[${ci}].ingredientes[${ii}].nombre=this.value" placeholder="Ingrediente" style="flex:1;padding:.4rem;border-radius:6px;border:1px solid #ddd;font-size:.9rem;">
-            <input type="number" value="${ing.cantidadBruta||''}" onchange="componentesTemp[${ci}].ingredientes[${ii}].cantidadBruta=parseFloat(this.value)||0" placeholder="Cantidad" style="width:90px;padding:.4rem;border-radius:6px;border:1px solid #ddd;font-size:.9rem;">
+          <div style="display:grid;grid-template-columns:1fr 90px 70px 110px 28px;gap:.4rem;margin-bottom:.4rem;align-items:center;">
+            <input value="${ing.nombre}" onchange="componentesTemp[${ci}].ingredientes[${ii}].nombre=this.value" placeholder="Ingrediente" style="padding:.4rem;border-radius:6px;border:1px solid #ddd;font-size:.9rem;">
+            <input type="number" value="${ing.cantidadBruta||''}" onchange="componentesTemp[${ci}].ingredientes[${ii}].cantidadBruta=parseFloat(this.value)||0" placeholder="Cantidad" style="padding:.4rem;border-radius:6px;border:1px solid #ddd;font-size:.9rem;">
             <select onchange="componentesTemp[${ci}].ingredientes[${ii}].unidad=this.value" style="padding:.4rem;border-radius:6px;border:1px solid #ddd;font-size:.9rem;">
               <option ${ing.unidad==='kg'?'selected':''}>kg</option>
               <option ${ing.unidad==='gr'?'selected':''}>gr</option>
               <option ${ing.unidad==='lt'?'selected':''}>lt</option>
               <option ${ing.unidad==='un'?'selected':''}>un</option>
+            </select>
+            <select onchange="componentesTemp[${ci}].ingredientes[${ii}].tipoPreelaborado=this.value"
+              style="padding:.4rem;border-radius:6px;border:1px solid #ddd;font-size:.82rem;font-weight:600;">
+              <option value="" ${!ing.tipoPreelaborado?'selected':''} style="color:#999;">— tipo —</option>
+              <option value="carnes" ${ing.tipoPreelaborado==='carnes'?'selected':''} style="color:#dc2626;">🥩 Carne</option>
+              <option value="vegetales" ${ing.tipoPreelaborado==='vegetales'?'selected':''} style="color:#16a34a;">🥗 Vegetal</option>
+              <option value="insumo" ${ing.tipoPreelaborado==='insumo'?'selected':''} style="color:#888;">📦 Insumo</option>
             </select>
             <button onclick="eliminarIngrediente(${ci},${ii})" style="background:#ffaaaa;border:none;border-radius:6px;padding:.3rem .6rem;cursor:pointer;">✕</button>
           </div>
@@ -7492,14 +7505,15 @@ function renderComponentesSandwich() {
           <button onclick="agregarIngredienteSandwich(${ci})" style="background:#fef3c7;color:#92400e;border:1px solid #f59e0b;border-radius:6px;padding:.25rem .7rem;font-size:.8rem;cursor:pointer;font-weight:600;">+ Ingrediente</button>
         </div>
         ${comp.ingredientes && comp.ingredientes.length > 0 ? `
-        <div style="display:grid;grid-template-columns:1fr 90px 70px 32px;gap:.3rem;margin-bottom:.3rem;padding:0 .2rem;">
+        <div style="display:grid;grid-template-columns:1fr 80px 65px 105px 28px;gap:.3rem;margin-bottom:.3rem;padding:0 .2rem;">
           <span style="font-size:.72rem;color:#999;">Ingrediente</span>
           <span style="font-size:.72rem;color:#999;">Cantidad</span>
           <span style="font-size:.72rem;color:#999;">Unidad</span>
+          <span style="font-size:.72rem;color:#999;">Tipo ▼</span>
           <span></span>
         </div>
         ${comp.ingredientes.map((ing, ii) => `
-          <div style="display:grid;grid-template-columns:1fr 90px 70px 32px;gap:.3rem;margin-bottom:.35rem;align-items:center;">
+          <div style="display:grid;grid-template-columns:1fr 80px 65px 105px 28px;gap:.3rem;margin-bottom:.35rem;align-items:center;">
             <input value="${ing.nombre}" oninput="componentesSandwichTemp[${ci}].ingredientes[${ii}].nombre=this.value"
               placeholder="Ej: Pechuga de pollo"
               style="padding:.35rem;border-radius:6px;border:1px solid #ddd;font-size:.82rem;width:100%;">
@@ -7513,6 +7527,13 @@ function renderComponentesSandwich() {
               <option value="lt" ${ing.unidad==='lt'?'selected':''}>lt</option>
               <option value="ml" ${ing.unidad==='ml'?'selected':''}>ml</option>
               <option value="un" ${ing.unidad==='un'?'selected':''}>un</option>
+            </select>
+            <select onchange="componentesSandwichTemp[${ci}].ingredientes[${ii}].tipoPreelaborado=this.value"
+              style="padding:.35rem;border-radius:6px;border:1px solid #ddd;font-size:.78rem;font-weight:600;width:100%;">
+              <option value="" ${!ing.tipoPreelaborado?'selected':''}>— tipo —</option>
+              <option value="carnes" ${ing.tipoPreelaborado==='carnes'?'selected':''} style="color:#dc2626;">🥩 Carne</option>
+              <option value="vegetales" ${ing.tipoPreelaborado==='vegetales'?'selected':''} style="color:#16a34a;">🥗 Vegetal</option>
+              <option value="insumo" ${ing.tipoPreelaborado==='insumo'?'selected':''} style="color:#888;">📦 Insumo</option>
             </select>
             <button onclick="eliminarIngredienteSandwich(${ci},${ii})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:5px;padding:.3rem .5rem;cursor:pointer;font-size:.78rem;">✕</button>
           </div>
@@ -8930,8 +8951,49 @@ window.addEventListener('load', () => {
 // ============================================================
 
 // Palabras clave para clasificar ingredientes
-const KEYWORDS_CARNES = ['pollo','vacuno','cerdo','pavo','carne','lomo','pechuga','filete','costilla','pierna','muslo','asado','molida','desmechada','proteina','proteína','ave','res','chancho'];
-const KEYWORDS_VEGETALES = ['cebolla','zanahoria','tomate','lechuga','zapallo','pimiento','puerro','apio','brocoli','brócoli','coliflor','espinaca','acelga','repollo','papas','papa','choclo','arveja','poroto','champiñon','champiñones','vegetal','verdura','ajo','perejil','cilantro','albahaca','pimiento'];
+const KEYWORDS_CARNES = [
+  // Aves
+  'pollo','pechuga','muslo','pierna','pavo','codorniz','ave',
+  // Vacuno
+  'vacuno','tapapecho','plateada','huachalomo','osobuco','malaya','choclillo',
+  'sobrecostilla','entraña','lomo liso','lomo vetado','punta de ganso',
+  'cogote','abastero','paleta','bife','asado','lomo','res',
+  // Cerdo
+  'cerdo','chancho','costillar','costilla','panceta','tocino','lomo cerdo',
+  'filete cerdo','paleta cerdo','plateada cerdo',
+  // Otros
+  'cordero','conejo','carne','filete','molida','desmechada','desmechado',
+  'mechada','mechado','proteina','proteína','jamon','jamón','chorizo',
+  'longaniza','salmon','salmón','atun','atún','pescado','mariscos',
+  'camarón','camaron','langostino','pulled'
+];
+const KEYWORDS_VEGETALES = [
+  // Los que aparecen exactamente en tus recetas
+  'cebolla','zanahoria','pimentón','pimenton','ajo','tomate',
+  // Lechugas y hojas
+  'lechuga','espinaca','acelga','repollo','col','berro','rúcula','rucula',
+  // Otros vegetales comunes
+  'zapallo','puerro','apio','brocoli','brócoli','coliflor','papa','papas',
+  'choclo','arveja','poroto','champiñon','champiñones',
+  'perejil','cilantro','albahaca','pepino','berenjena','alcachofa',
+  'esparrago','espárrago','betarraga','remolacha','nabo','rabanito',
+  'habas','lentejas','lenteja','garbanzos','garbanzo','maiz','maíz',
+  'palmito','portobello','shiitake','zucchini','zapallito',
+  'palta','aguacate','morron','morrón','cebollín','cebollin',
+  'tomate cherry','tomate rama','concentrado de tomate','triple concentrado'
+];
+const KEYWORDS_EXCLUIR = [
+  'aceite','sal','agua','azucar','azúcar','harina','vinagre','vino',
+  'mayonesa','mostaza','salsa','miel','pimienta','oregano','orégano',
+  'comino','curry','paprika','colorante','aditivo','conservante',
+  'almidón','almidon','maicena','fécula','fecula','levadura',
+  'caldo','base','fondo','demi','glace','crema','leche','queso',
+  'yogur','mantequilla','margarina','limón jugo','jugo','extracto',
+  'esencia','aroma','condimento','mezcla','mix','polvo','granulado',
+  'concentrado de sabor','ají color','aji color','merkén','merken',
+  'smik','smilk','bebida lactea','bebida láctea','mozzagouda',
+  'parmesano','cheddar','gouda','brie','camembert'
+];
 
 let preelaborados = JSON.parse(localStorage.getItem('mes_preelaborados') || '[]');
 let timersPre = {}; // timers activos por id
@@ -8958,8 +9020,14 @@ async function cargarPreelaboradosFirebase() {
   } catch(e) {}
 }
 
-function clasificarIngrediente(nombre) {
-  const n = nombre.toLowerCase();
+function clasificarIngrediente(nombre, tipoPreelaborado) {
+  // PRIORIDAD 1: usar el tipo definido manualmente en la receta
+  if (tipoPreelaborado === 'carnes') return 'carnes';
+  if (tipoPreelaborado === 'vegetales') return 'vegetales';
+  if (tipoPreelaborado === 'insumo') return null;
+  // PRIORIDAD 2: fallback por palabras clave (para recetas antiguas sin tipo definido)
+  const n = (nombre || '').toLowerCase();
+  if (KEYWORDS_EXCLUIR.some(k => n.includes(k))) return null;
   if (KEYWORDS_CARNES.some(k => n.includes(k))) return 'carnes';
   if (KEYWORDS_VEGETALES.some(k => n.includes(k))) return 'vegetales';
   return null;
@@ -8988,25 +9056,22 @@ function setFechaPreManana(tipo) {
 }
 
 function getOPsQueRequieren(tipo, fechaCocina) {
-  // fechaCocina ya viene en formato YYYY-MM-DD
   return ordenesProduccion.filter(op => {
-    // op.fecha puede venir en YYYY-MM-DD o DD/MM/YYYY según cómo se guardó
     let opFecha = op.fecha || '';
-    // Normalizar a YYYY-MM-DD si viene en DD/MM/YYYY
     if (opFecha.includes('/')) {
       const [d, m, y] = opFecha.split('/');
       opFecha = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
     }
     if (opFecha !== fechaCocina) return false;
-    const ingredientes = (op.componentes || []).flatMap(c => c.ingredientes || []);
-    return ingredientes.some(ing => clasificarIngrediente(ing.nombre || '') === tipo);
+    const todosIngredientes = (op.componentes || []).flatMap(c => c.ingredientes || []);
+    return todosIngredientes.some(ing => clasificarIngrediente(ing.nombre || '', ing.tipoPreelaborado) === tipo);
   });
 }
 
 function getIngredientesDeTipo(op, tipo) {
   return (op.componentes || [])
     .flatMap(c => (c.ingredientes || []).map(ing => ({ ...ing, componente: c.nombre })))
-    .filter(ing => clasificarIngrediente(ing.nombre || '') === tipo);
+    .filter(ing => clasificarIngrediente(ing.nombre || '', ing.tipoPreelaborado) === tipo);
 }
 
 function renderOPsRequeridas(tipo) {
