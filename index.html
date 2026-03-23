@@ -11823,7 +11823,9 @@ function _abrirModalAlmacenamiento(tipo, fecha, titulo, color, icono) {
         </div>
         <div id="alDivACC${n}_${tipo}" style="display:none;grid-template-columns:1fr 1fr;gap:.4rem;margin-top:.4rem;">
           <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">⑮ ACC N°</label>
-            <input type="text" id="alACC${n}_${tipo}" placeholder="ACC-1, ACC-2..." style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #fde68a;font-size:.82rem;box-sizing:border-box;"></div>
+            <select id="alACC${n}_${tipo}" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #fde68a;font-size:.78rem;box-sizing:border-box;">
+              ${tipo==='tunel'?`<option value="">— Seleccionar —</option><option value="ACC-1">ACC-1 — Alimento supera -12°C → enviar a abatimiento ≥30 min</option><option value="ACC-2">ACC-2 — Alimento >-12°C por más de 180 min → no recongelar</option><option value="ACC-3">ACC-3 — Revisión/reparación sistema de enfriamiento</option><option value="ACC-4">ACC-4 — Falla equipo → notificar mantenimiento</option>`:`<option value="">— Seleccionar —</option><option value="ACC-1">ACC-1 — Alimento >4°C y &lt;7°C → enviar a abatimiento ≥30 min</option><option value="ACC-2">ACC-2 — Alimento >7°C por más de 180 min → segregar como PNC</option><option value="ACC-3">ACC-3 — Revisión/reparación sistema de enfriamiento</option><option value="ACC-4">ACC-4 — Falla equipo refrigeración → notificar mantenimiento</option>`}
+            </select></div>
           <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">Temp Verif. ACC (°C)</label>
             <input type="number" id="alTempACC${n}_${tipo}" step="0.1" placeholder="°C" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #fde68a;font-size:.82rem;box-sizing:border-box;"></div>
         </div>
@@ -11948,7 +11950,9 @@ function alAgregarFila(tipo) {
         </div>
         <div id="alDivACC${n}_${tipo}" style="display:none;grid-template-columns:1fr 1fr;gap:.4rem;margin-top:.4rem;">
           <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">⑮ ACC N°</label>
-            <input type="text" id="alACC${n}_${tipo}" placeholder="ACC-1, ACC-2..." style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #fde68a;font-size:.82rem;box-sizing:border-box;"></div>
+            <select id="alACC${n}_${tipo}" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #fde68a;font-size:.78rem;box-sizing:border-box;">
+              ${tipo==='tunel'?`<option value="">— Seleccionar —</option><option value="ACC-1">ACC-1 — Alimento supera -12°C → enviar a abatimiento ≥30 min</option><option value="ACC-2">ACC-2 — Alimento >-12°C por más de 180 min → no recongelar</option><option value="ACC-3">ACC-3 — Revisión/reparación sistema de enfriamiento</option><option value="ACC-4">ACC-4 — Falla equipo → notificar mantenimiento</option>`:`<option value="">— Seleccionar —</option><option value="ACC-1">ACC-1 — Alimento >4°C y &lt;7°C → enviar a abatimiento ≥30 min</option><option value="ACC-2">ACC-2 — Alimento >7°C por más de 180 min → segregar como PNC</option><option value="ACC-3">ACC-3 — Revisión/reparación sistema de enfriamiento</option><option value="ACC-4">ACC-4 — Falla equipo refrigeración → notificar mantenimiento</option>`}
+            </select></div>
           <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">Temp Verif. ACC (°C)</label>
             <input type="number" id="alTempACC${n}_${tipo}" step="0.1" placeholder="°C" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #fde68a;font-size:.82rem;box-sizing:border-box;"></div>
         </div>
