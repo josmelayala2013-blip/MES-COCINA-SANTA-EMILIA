@@ -10326,6 +10326,39 @@ function mostrarToastHACCP(tipo, ingrediente) {
   setTimeout(() => { toast.style.animation = 'fadeOutToast .3s ease forwards'; setTimeout(() => toast.remove(), 300); }, 5000);
 }
 
+
+function _mostrarToastImprimir(tipo, id) {
+  let cont = document.getElementById('toastContainer');
+  if (!cont) {
+    cont = document.createElement('div');
+    cont.id = 'toastContainer';
+    cont.style.cssText = 'position:fixed;top:1.5rem;right:1.5rem;z-index:99999;display:flex;flex-direction:column;gap:.75rem;pointer-events:none;';
+    document.body.appendChild(cont);
+  }
+  const colores = {ce:'#991b1b', tunel:'#0e7490', transito:'#7c3aed'};
+  const color = colores[tipo] || '#333';
+  const labels = {ce:'Cocción y Envasado', tunel:'Túnel Abatimiento', transito:'C. Tránsito'};
+  const label = labels[tipo] || tipo;
+
+  const toast = document.createElement('div');
+  toast.style.cssText = `background:white;border:2px solid ${color};border-left:6px solid ${color};border-radius:14px;padding:1rem 1.25rem;box-shadow:0 8px 30px rgba(0,0,0,0.15);min-width:300px;pointer-events:all;`;
+  toast.innerHTML = `
+    <div style="font-weight:800;font-size:.95rem;color:${color};margin-bottom:.5rem;">✅ Registro guardado — ${label}</div>
+    <div style="font-size:.82rem;color:#666;margin-bottom:.75rem;">¿Deseas imprimir el registro?</div>
+    <div style="display:flex;gap:.5rem;">
+      <button onclick="${tipo==='ce'?`imprimirRegistroCE('${id}')`:`imprimirRegistroAlmacenamiento('${id}','${tipo}')`};this.closest('[style*=white]').remove();"
+        style="flex:1;padding:.5rem;background:${color};color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.88rem;">
+        🖨️ Imprimir
+      </button>
+      <button onclick="this.closest('[style*=white]').remove();"
+        style="padding:.5rem .75rem;background:#f3f4f6;color:#666;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:.88rem;">
+        Ahora no
+      </button>
+    </div>`;
+  cont.appendChild(toast);
+  setTimeout(() => toast.remove(), 15000);
+}
+
 // Inicializar al cargar
 async function cargarRecetasFirebase(intentos = 0) {
   if (!window.db || !window.firestoreLoaded) {
@@ -11474,7 +11507,8 @@ function guardarRegistroCE() {
   guardarCE();
   cerrarModalCE();
   renderRegistrosCE();
-  if (confirm('¿Deseas imprimir el registro ahora?')) imprimirRegistroCE(registro.id);
+  // Mostrar toast con botón imprimir
+  _mostrarToastImprimir('ce', registro.id);
 }
 
 function eliminarRegistroCE(id) {
@@ -11784,12 +11818,14 @@ function _abrirModalAlmacenamiento(tipo, fecha, titulo, color, icono) {
             <select id="alReqACC${n}_${tipo}" onchange="alToggleACC(${n},'${tipo}')" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #fde68a;font-size:.82rem;box-sizing:border-box;">
               <option value="no">No</option><option value="si">Sí</option>
             </select></div>
-          <div id="alDivACC${n}_${tipo}" style="display:none;"><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">⑮ ACC N°</label>
-            <input type="text" id="alACC${n}_${tipo}" placeholder="ACC-1, ACC-2..." style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #fde68a;font-size:.82rem;box-sizing:border-box;"></div>
-          <div id="alDivTempACC${n}_${tipo}" style="display:none;"><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">Temp Verif. ACC</label>
-            <input type="number" id="alTempACC${n}_${tipo}" step="0.1" placeholder="°C" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #fde68a;font-size:.82rem;box-sizing:border-box;"></div>
           <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">⑯ Prod. Evaluado</label>
             <input type="text" id="alProdEval${n}_${tipo}" placeholder="Nombre producto" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #fde68a;font-size:.82rem;box-sizing:border-box;"></div>
+        </div>
+        <div id="alDivACC${n}_${tipo}" style="display:none;grid-template-columns:1fr 1fr;gap:.4rem;margin-top:.4rem;">
+          <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">⑮ ACC N°</label>
+            <input type="text" id="alACC${n}_${tipo}" placeholder="ACC-1, ACC-2..." style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #fde68a;font-size:.82rem;box-sizing:border-box;"></div>
+          <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">Temp Verif. ACC (°C)</label>
+            <input type="number" id="alTempACC${n}_${tipo}" step="0.1" placeholder="°C" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #fde68a;font-size:.82rem;box-sizing:border-box;"></div>
         </div>
       </div>
     </div>`;
@@ -11836,9 +11872,7 @@ function alToggleACC(n, tipo) {
   const req = document.getElementById(`alReqACC${n}_${tipo}`)?.value;
   const show = req === 'si';
   const d1 = document.getElementById(`alDivACC${n}_${tipo}`);
-  const d2 = document.getElementById(`alDivTempACC${n}_${tipo}`);
-  if(d1) d1.style.display = show ? 'block' : 'none';
-  if(d2) d2.style.display = show ? 'block' : 'none';
+  if(d1) d1.style.display = show ? 'grid' : 'none';
 }
 
 function alAgregarFila(tipo) {
@@ -11909,12 +11943,14 @@ function alAgregarFila(tipo) {
             <select id="alReqACC${n}_${tipo}" onchange="alToggleACC(${n},'${tipo}')" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #fde68a;font-size:.82rem;box-sizing:border-box;">
               <option value="no">No</option><option value="si">Sí</option>
             </select></div>
-          <div id="alDivACC${n}_${tipo}" style="display:none;"><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">⑮ ACC N°</label>
-            <input type="text" id="alACC${n}_${tipo}" placeholder="ACC-1, ACC-2..." style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #fde68a;font-size:.82rem;box-sizing:border-box;"></div>
-          <div id="alDivTempACC${n}_${tipo}" style="display:none;"><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">Temp Verif. ACC</label>
-            <input type="number" id="alTempACC${n}_${tipo}" step="0.1" placeholder="°C" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #fde68a;font-size:.82rem;box-sizing:border-box;"></div>
           <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">⑯ Prod. Evaluado</label>
             <input type="text" id="alProdEval${n}_${tipo}" placeholder="Nombre producto" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #fde68a;font-size:.82rem;box-sizing:border-box;"></div>
+        </div>
+        <div id="alDivACC${n}_${tipo}" style="display:none;grid-template-columns:1fr 1fr;gap:.4rem;margin-top:.4rem;">
+          <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">⑮ ACC N°</label>
+            <input type="text" id="alACC${n}_${tipo}" placeholder="ACC-1, ACC-2..." style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #fde68a;font-size:.82rem;box-sizing:border-box;"></div>
+          <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">Temp Verif. ACC (°C)</label>
+            <input type="number" id="alTempACC${n}_${tipo}" step="0.1" placeholder="°C" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #fde68a;font-size:.82rem;box-sizing:border-box;"></div>
         </div>
       </div>
     </div>`;
@@ -11987,7 +12023,8 @@ function guardarRegistroAlmacenamiento(tipo) {
     registrosTransito.sort((a,b) => (a.fecha+(a.monitoreos[0]?.hora||'')).localeCompare(b.fecha+(b.monitoreos[0]?.hora||'')));
     guardarTransito(); cerrarModalTransito(); renderRegistrosTransito();
   }
-  if (confirm('¿Deseas imprimir el registro ahora?')) imprimirRegistroAlmacenamiento(registro.id, tipo);
+  // Mostrar toast con botón imprimir
+  _mostrarToastImprimir(tipo, registro.id);
 }
 
 function eliminarRegistroAlmacenamiento(id, tipo) {
