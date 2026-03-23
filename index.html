@@ -8988,9 +8988,16 @@ function setFechaPreManana(tipo) {
 }
 
 function getOPsQueRequieren(tipo, fechaCocina) {
-  // Retorna OPs de cocina cuya fecha === fechaCocina y que tengan ingredientes del tipo
+  // fechaCocina ya viene en formato YYYY-MM-DD
   return ordenesProduccion.filter(op => {
-    if (op.fecha !== fechaCocina) return false;
+    // op.fecha puede venir en YYYY-MM-DD o DD/MM/YYYY según cómo se guardó
+    let opFecha = op.fecha || '';
+    // Normalizar a YYYY-MM-DD si viene en DD/MM/YYYY
+    if (opFecha.includes('/')) {
+      const [d, m, y] = opFecha.split('/');
+      opFecha = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+    }
+    if (opFecha !== fechaCocina) return false;
     const ingredientes = (op.componentes || []).flatMap(c => c.ingredientes || []);
     return ingredientes.some(ing => clasificarIngrediente(ing.nombre || '') === tipo);
   });
@@ -9007,15 +9014,16 @@ function renderOPsRequeridas(tipo) {
   const fechaInput = document.getElementById(fechaEl)?.value;
   if (!fechaInput) return;
 
-  // El preelaborado es 1 día ANTES de la cocina
+  // El preelaborado es 1 día ANTES de la cocina → cocina = fechaInput + 1 día
   const d = new Date(fechaInput + 'T12:00:00');
   d.setDate(d.getDate() + 1);
-  const fechaCocina = d.toISOString().split('T')[0];
-  // Convertir a formato dd/mm/yyyy para comparar con op.fecha
-  const [yy, mm, dd] = fechaCocina.split('-');
-  const fechaCocinaStr = `${dd}/${mm}/${yy}`;
+  const fechaCocina = d.toISOString().split('T')[0]; // YYYY-MM-DD
 
-  const ops = getOPsQueRequieren(tipo, fechaCocinaStr);
+  // Para mostrar al usuario en formato legible
+  const [yy, mm, dd] = fechaCocina.split('-');
+  const fechaCocinaDisplay = `${dd}/${mm}/${yy}`;
+
+  const ops = getOPsQueRequieren(tipo, fechaCocina);
   const contId = tipo === 'carnes' ? 'opsRequierenCarnes' : 'opsRequierenVegetales';
   const alertId = tipo === 'carnes' ? 'alertaOPsCarnes' : 'alertaOPsVegetales';
   const cont = document.getElementById(contId);
@@ -9024,7 +9032,7 @@ function renderOPsRequeridas(tipo) {
   if (!cont) return;
 
   if (ops.length === 0) {
-    cont.innerHTML = `<div style="background:#f8fafc;border-radius:10px;padding:1rem;color:#94a3b8;font-size:.9rem;text-align:center;">Sin OPs de cocina programadas para el ${fechaCocinaStr} que requieran ${tipo === 'carnes' ? 'carnes/proteínas' : 'vegetales'}.</div>`;
+    cont.innerHTML = `<div style="background:#f8fafc;border-radius:10px;padding:1rem;color:#94a3b8;font-size:.9rem;text-align:center;">Sin OPs de cocina programadas para el ${fechaCocinaDisplay} que requieran ${tipo === 'carnes' ? 'carnes/proteínas' : 'vegetales'}.<br><span style="font-size:.8rem;">Verifica que la receta tenga ingredientes de tipo ${tipo === 'carnes' ? 'carne/proteína' : 'vegetal'} cargados.</span></div>`;
     if (alerta) alerta.textContent = '';
     return;
   }
@@ -9038,7 +9046,7 @@ function renderOPsRequeridas(tipo) {
   cont.innerHTML = `
     <div style="background:${bg};border:1px solid ${border};border-radius:12px;padding:1rem;margin-bottom:.5rem;">
       <div style="font-weight:700;color:${color};margin-bottom:.75rem;font-size:.95rem;">
-        📋 OPs de cocina del ${fechaCocinaStr} que requieren preelaborado de ${tipo === 'carnes' ? 'carnes' : 'vegetales'}:
+        📋 OPs de cocina del ${fechaCocinaDisplay} que requieren preelaborado de ${tipo === 'carnes' ? 'carnes' : 'vegetales'}:
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.75rem;">
         ${ops.map(op => {
@@ -9050,10 +9058,10 @@ function renderOPsRequeridas(tipo) {
             <div style="font-size:.82rem;font-weight:600;color:${color};margin-bottom:.3rem;">${tipo === 'carnes' ? '🥩' : '🥗'} Ingredientes requeridos:</div>
             ${ings.map(ing => `
               <div style="font-size:.82rem;color:#555;padding:.15rem 0;">
-                • ${ing.nombre}: <strong>${ing.cantidadTotal || ing.cantidadBruta || '?'} ${ing.unidad || 'kg'}</strong> 
+                • ${ing.nombre}: <strong>${ing.cantidadTotal || ing.cantidadBruta || '?'} ${ing.unidad || 'kg'}</strong>
                 <span style="color:#999;">(${ing.componente})</span>
               </div>`).join('')}
-            <button onclick="abrirModalPreelaboradoDesdeOP('${tipo}','${op.id}')" 
+            <button onclick="abrirModalPreelaboradoDesdeOP('${tipo}','${op.id}')"
               style="margin-top:.6rem;background:${color};color:white;border:none;border-radius:7px;padding:.35rem .8rem;font-size:.8rem;font-weight:600;cursor:pointer;width:100%;">
               ➕ Crear preelaborado para esta OP
             </button>
@@ -9202,21 +9210,20 @@ function abrirModalPreelaborado(tipo, opId) {
     titulo.textContent = '🥗 Nuevo Preelaborado — Vegetales';
   }
 
-  // Cargar ingredientes sugeridos desde OPs
+  // Cargar ingredientes sugeridos desde OPs del día siguiente
   const selIng = document.getElementById('preIngrediente');
   selIng.innerHTML = '<option value="">— Selecciona ingrediente —</option>';
   const fechaInput = getFechaPreInput(tipo);
   if (fechaInput) {
     const d = new Date(fechaInput + 'T12:00:00');
     d.setDate(d.getDate() + 1);
-    const [yy,mm,dd] = d.toISOString().split('T')[0].split('-');
-    const fechaCocina = `${dd}/${mm}/${yy}`;
+    const fechaCocina = d.toISOString().split('T')[0]; // YYYY-MM-DD
     const ops = getOPsQueRequieren(tipo, fechaCocina);
     const ings = [...new Set(ops.flatMap(op => getIngredientesDeTipo(op, tipo)).map(i => i.nombre))];
     ings.forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; selIng.appendChild(o); });
   }
 
-  // Cargar operadores — usa personal preelaborado si existe, sino cocina
+  // Cargar operadores
   const selOp = document.getElementById('preOperador');
   const listaPersonal = personal.preelaborado || personal.cocina || [];
   selOp.innerHTML = '<option value="">— Selecciona operador —</option>' + listaPersonal.map(n => `<option value="${n}">${n}</option>`).join('');
