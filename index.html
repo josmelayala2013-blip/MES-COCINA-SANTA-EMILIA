@@ -631,10 +631,10 @@
                     🔪 Acondicionamiento <span style="font-size:.7rem;">▼</span>
                 </button>
                 <div class="nav-dropdown-menu" id="menuAcondicionamiento">
-                    <button class="nav-dropdown-item" onclick="changeTab('acondCarnes');cerrarDropdownAcond()">
+                    <button class="nav-dropdown-item" onclick="changeTabAcond('carnes');cerrarDropdownAcond()">
                         🥩 Carnes
                     </button>
-                    <button class="nav-dropdown-item" onclick="changeTab('acondVegetales');cerrarDropdownAcond()">
+                    <button class="nav-dropdown-item" onclick="changeTabAcond('vegetales');cerrarDropdownAcond()">
                         🥦 Vegetales
                     </button>
                 </div>
@@ -792,46 +792,6 @@
 
         <!-- TAB: PROCESOS ACTIVOS -->
         <!-- TAB: ACONDICIONAMIENTO — CARNES -->
-        <div id="acondCarnes" class="tab-content">
-            <div class="analytics-section">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
-                    <div>
-                        <h2 style="color:#dc2626;margin:0;">🥩 Acondicionamiento — Carnes</h2>
-                        <p style="color:#64748b;margin:.3rem 0 0;font-size:.9rem;">Registro y control del proceso de acondicionamiento de carnes</p>
-                    </div>
-                    <div style="background:#fee2e2;color:#dc2626;border-radius:20px;padding:.3rem .9rem;font-weight:700;font-size:.9rem;">Carnes</div>
-                </div>
-                <div id="contenidoAcondCarnes">
-                    <div style="text-align:center;color:#94a3b8;padding:4rem;">
-                        <div style="font-size:3rem;margin-bottom:1rem;">🥩</div>
-                        <p style="font-size:1.1rem;font-weight:600;">Módulo de Acondicionamiento de Carnes</p>
-                        <p style="font-size:.9rem;margin-top:.5rem;">Los registros de este proceso se cargarán aquí.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB: ACONDICIONAMIENTO — VEGETALES -->
-        <div id="acondVegetales" class="tab-content">
-            <div class="analytics-section">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
-                    <div>
-                        <h2 style="color:#16a34a;margin:0;">🥦 Acondicionamiento — Vegetales</h2>
-                        <p style="color:#64748b;margin:.3rem 0 0;font-size:.9rem;">Registro y control del proceso de acondicionamiento de vegetales</p>
-                    </div>
-                    <div style="background:#dcfce7;color:#16a34a;border-radius:20px;padding:.3rem .9rem;font-weight:700;font-size:.9rem;">Vegetales</div>
-                </div>
-                <div id="contenidoAcondVegetales">
-                    <div style="text-align:center;color:#94a3b8;padding:4rem;">
-                        <div style="font-size:3rem;margin-bottom:1rem;">🥦</div>
-                        <p style="font-size:1.1rem;font-weight:600;">Módulo de Acondicionamiento de Vegetales</p>
-                        <p style="font-size:.9rem;margin-top:.5rem;">Los registros de este proceso se cargarán aquí.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB: ACONDICIONAMIENTO CARNES -->
         <!-- TAB: PREELABORADO CARNES -->
         <div id="carnes" class="tab-content">
           <div class="analytics-section">
