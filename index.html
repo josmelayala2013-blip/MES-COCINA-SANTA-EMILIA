@@ -851,6 +851,7 @@
               <button onclick="setFechaPreHoy('carnes')" style="background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;border-radius:8px;padding:.45rem .9rem;font-weight:600;cursor:pointer;font-size:.85rem;">Hoy</button>
               <button onclick="setFechaPreManana('carnes')" style="background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;border-radius:8px;padding:.45rem .9rem;font-weight:600;cursor:pointer;font-size:.85rem;">Mañana</button>
               <div id="alertaOPsCarnes" style="margin-left:auto;font-size:.85rem;color:#dc2626;font-weight:600;"></div>
+              <button onclick="diagnosticoPreelaborado()" style="background:#f1f5f9;border:1px solid #e2e8f0;color:#64748b;border-radius:8px;padding:.35rem .8rem;font-size:.78rem;cursor:pointer;">🔍 Diagnóstico</button>
             </div>
             <!-- OPs del día siguiente que requieren carnes -->
             <div id="opsRequierenCarnes" style="margin-bottom:1.5rem;"></div>
@@ -9037,6 +9038,43 @@ function getFechaPreInput(tipo) {
   const id = tipo === 'carnes' ? 'fechaPreCarnes' : 'fechaPreVegetales';
   const el = document.getElementById(id);
   return el ? el.value : '';
+}
+
+function diagnosticoPreelaborado() {
+  const hoy = new Date().toISOString().split('T')[0];
+  const manana = new Date(); manana.setDate(manana.getDate() + 1);
+  const mananaStr = manana.toISOString().split('T')[0];
+
+  console.log('=== DIAGNÓSTICO PREELABORADO ===');
+  console.log('Hoy (YYYY-MM-DD):', hoy);
+  console.log('Mañana (YYYY-MM-DD):', mananaStr);
+  console.log('Total OPs:', ordenesProduccion.length);
+  ordenesProduccion.forEach(op => {
+    console.log(`OP ${op.numeroOp} | fecha: "${op.fecha}" | componentes: ${op.componentes?.length}`);
+    (op.componentes || []).forEach(c => {
+      (c.ingredientes || []).forEach(ing => {
+        console.log(`  → ${ing.nombre} | tipoPreelaborado: "${ing.tipoPreelaborado || 'SIN TIPO'}"`);
+      });
+    });
+  });
+
+  // Mostrar alerta con el resultado
+  if (ordenesProduccion.length === 0) {
+    alert('⚠️ No hay OPs cargadas en el sistema.');
+    return;
+  }
+  const op = ordenesProduccion[0];
+  let msg = `📋 DIAGNÓSTICO\n\n`;
+  msg += `Hoy: ${hoy}\n`;
+  msg += `Mañana: ${mananaStr}\n\n`;
+  msg += `OP encontrada: ${op.numeroOp}\n`;
+  msg += `Fecha guardada en OP: "${op.fecha}"\n\n`;
+  const ings = (op.componentes || []).flatMap(c => c.ingredientes || []);
+  msg += `Ingredientes (${ings.length}):\n`;
+  ings.forEach(ing => {
+    msg += `• ${ing.nombre} → tipo: "${ing.tipoPreelaborado || 'sin tipo'}"\n`;
+  });
+  alert(msg);
 }
 
 function setFechaPreHoy(tipo) {
