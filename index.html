@@ -10342,19 +10342,37 @@ function _mostrarToastImprimir(tipo, id) {
 
   const toast = document.createElement('div');
   toast.style.cssText = `background:white;border:2px solid ${color};border-left:6px solid ${color};border-radius:14px;padding:1rem 1.25rem;box-shadow:0 8px 30px rgba(0,0,0,0.15);min-width:300px;pointer-events:all;`;
-  toast.innerHTML = `
-    <div style="font-weight:800;font-size:.95rem;color:${color};margin-bottom:.5rem;">✅ Registro guardado — ${label}</div>
-    <div style="font-size:.82rem;color:#666;margin-bottom:.75rem;">¿Deseas imprimir el registro?</div>
-    <div style="display:flex;gap:.5rem;">
-      <button onclick="${tipo==='ce'?`imprimirRegistroCE('${id}')`:`imprimirRegistroAlmacenamiento('${id}','${tipo}')`};this.closest('[style*=white]').remove();"
-        style="flex:1;padding:.5rem;background:${color};color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.88rem;">
-        🖨️ Imprimir
-      </button>
-      <button onclick="this.closest('[style*=white]').remove();"
-        style="padding:.5rem .75rem;background:#f3f4f6;color:#666;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:.88rem;">
-        Ahora no
-      </button>
-    </div>`;
+
+  const titulo = document.createElement('div');
+  titulo.style.cssText = `font-weight:800;font-size:.95rem;color:${color};margin-bottom:.5rem;`;
+  titulo.textContent = '✅ Registro guardado — ' + label;
+
+  const subtitulo = document.createElement('div');
+  subtitulo.style.cssText = 'font-size:.82rem;color:#666;margin-bottom:.75rem;';
+  subtitulo.textContent = '¿Deseas imprimir el registro?';
+
+  const fila = document.createElement('div');
+  fila.style.cssText = 'display:flex;gap:.5rem;';
+
+  const btnImprimir = document.createElement('button');
+  btnImprimir.style.cssText = `flex:1;padding:.5rem;background:${color};color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.88rem;`;
+  btnImprimir.textContent = '🖨️ Imprimir';
+  btnImprimir.addEventListener('click', function() {
+    if (tipo === 'ce') imprimirRegistroCE(id);
+    else imprimirRegistroAlmacenamiento(id, tipo);
+    toast.remove();
+  });
+
+  const btnNo = document.createElement('button');
+  btnNo.style.cssText = 'padding:.5rem .75rem;background:#f3f4f6;color:#666;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:.88rem;';
+  btnNo.textContent = 'Ahora no';
+  btnNo.addEventListener('click', () => toast.remove());
+
+  fila.appendChild(btnImprimir);
+  fila.appendChild(btnNo);
+  toast.appendChild(titulo);
+  toast.appendChild(subtitulo);
+  toast.appendChild(fila);
   cont.appendChild(toast);
   setTimeout(() => toast.remove(), 15000);
 }
