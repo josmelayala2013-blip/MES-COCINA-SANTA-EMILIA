@@ -9675,6 +9675,26 @@ function abrirHACCPPreCarnes(pre) {
       <input type="text" id="hpcResponsable" value="${pre.operador || ''}" placeholder="Nombre y firma" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
     </div>
 
+    <!-- TEMPERATURA SALA -->
+    <div style="background:#fff7f7;border-radius:10px;padding:1rem;margin-bottom:1.25rem;">
+      <div style="font-weight:700;color:#dc2626;margin-bottom:.75rem;font-size:.9rem;">🌡️ Verificación de Temperatura de Sala</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;">
+        <div>
+          <label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">Temperatura (°C)</label>
+          <input type="number" id="hpcTempSala" step="0.1" placeholder="Ej: 3.5" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #fca5a5;font-size:.9rem;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">Hora de toma</label>
+          <input type="time" id="hpcHoraTempSala" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #fca5a5;font-size:.9rem;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">Verificador</label>
+          <input type="text" id="hpcVerificador" placeholder="Nombre verificador" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #fca5a5;font-size:.9rem;box-sizing:border-box;">
+        </div>
+      </div>
+      <div style="font-size:.75rem;color:#dc2626;margin-top:.5rem;">LC: ≤ 4°C para todas las carnes</div>
+    </div>
+
     <!-- LÍMITE CRÍTICO -->
     <div style="background:#fff7f7;border-radius:8px;padding:.75rem;margin-bottom:1.25rem;font-size:.78rem;color:#64748b;">
       <strong>LC:</strong> ≤ 4°C para todas las carnes<br>
@@ -9719,6 +9739,9 @@ function guardarHACCPPreCarnes(preId) {
     ausenciaEE: document.querySelector('input[name="hpcAttrAusenciaElem.Extraños"]:checked')?.value,
     accionCorrectiva: document.getElementById('hpcAC')?.value,
     responsable: document.getElementById('hpcResponsable')?.value,
+    tempSala: document.getElementById('hpcTempSala')?.value,
+    horaTempSala: document.getElementById('hpcHoraTempSala')?.value,
+    verificador: document.getElementById('hpcVerificador')?.value,
     registradoEn: new Date().toLocaleString('es-CL')
   };
   guardarPreelaborados();
@@ -9833,6 +9856,12 @@ function imprimirHACCPPreCarnes(pre) {
     <div class="firma-label">⑨ Responsable de la Elaboración</div>
     <div style="font-size:11pt;font-weight:bold;margin-bottom:10px;">${d.responsable || '—'}</div>
     <div class="firma-linea">Nombre y Firma</div>
+  </div>
+  <div class="firma-item">
+    <div class="firma-label">🌡️ Temperatura de Sala &nbsp;<span style="font-size:7pt;color:#999;">LC: ≤ 4°C</span></div>
+    <div style="font-size:18pt;font-weight:bold;color:${d.tempSala && parseFloat(d.tempSala) <= 4 ? '#16a34a' : d.tempSala ? '#dc2626' : '#333'};">${d.tempSala ? d.tempSala + ' °C' : '—'}</div>
+    <div style="font-size:8pt;color:#666;margin-top:3px;">Hora: ${d.horaTempSala || '—'}</div>
+    <div style="font-size:8pt;color:#666;">Verificador: ${d.verificador || '—'}</div>
   </div>
   <div class="firma-item">
     <div class="firma-label">Verificación de Calidad</div>
