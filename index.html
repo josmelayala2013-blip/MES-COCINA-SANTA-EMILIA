@@ -10317,16 +10317,18 @@ function _mostrarToastImprimir(tipo, id) {
   if (!cont) {
     cont = document.createElement('div');
     cont.id = 'toastContainer';
-    cont.style.cssText = 'position:fixed;top:1.5rem;right:1.5rem;z-index:99999;display:flex;flex-direction:column;gap:.75rem;pointer-events:none;';
     document.body.appendChild(cont);
   }
+  // Asegurar que el contenedor permite clicks
+  cont.style.cssText = 'position:fixed;top:1.5rem;right:1.5rem;z-index:99999;display:flex;flex-direction:column;gap:.75rem;pointer-events:all;';
+
   const colores = {ce:'#991b1b', tunel:'#0e7490', transito:'#7c3aed'};
   const color = colores[tipo] || '#333';
   const labels = {ce:'Cocción y Envasado', tunel:'Túnel Abatimiento', transito:'C. Tránsito'};
   const label = labels[tipo] || tipo;
 
   const toast = document.createElement('div');
-  toast.style.cssText = `background:white;border:2px solid ${color};border-left:6px solid ${color};border-radius:14px;padding:1rem 1.25rem;box-shadow:0 8px 30px rgba(0,0,0,0.15);min-width:300px;pointer-events:all;`;
+  toast.style.cssText = `background:white;border:2px solid ${color};border-left:6px solid ${color};border-radius:14px;padding:1rem 1.25rem;box-shadow:0 8px 30px rgba(0,0,0,0.15);min-width:320px;pointer-events:all;cursor:default;`;
 
   const titulo = document.createElement('div');
   titulo.style.cssText = `font-weight:800;font-size:.95rem;color:${color};margin-bottom:.5rem;`;
@@ -10337,21 +10339,24 @@ function _mostrarToastImprimir(tipo, id) {
   subtitulo.textContent = '¿Deseas imprimir el registro?';
 
   const fila = document.createElement('div');
-  fila.style.cssText = 'display:flex;gap:.5rem;';
+  fila.style.cssText = 'display:flex;gap:.5rem;pointer-events:all;';
 
   const btnImprimir = document.createElement('button');
-  btnImprimir.style.cssText = `flex:1;padding:.5rem;background:${color};color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.88rem;`;
+  btnImprimir.style.cssText = `flex:1;padding:.6rem;background:${color};color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem;pointer-events:all;`;
   btnImprimir.textContent = '🖨️ Imprimir';
-  btnImprimir.addEventListener('click', function() {
+  btnImprimir.type = 'button';
+  btnImprimir.onclick = function(e) {
+    e.stopPropagation();
     if (tipo === 'ce') imprimirRegistroCE(id);
     else imprimirRegistroAlmacenamiento(id, tipo);
     toast.remove();
-  });
+  };
 
   const btnNo = document.createElement('button');
-  btnNo.style.cssText = 'padding:.5rem .75rem;background:#f3f4f6;color:#666;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:.88rem;';
+  btnNo.style.cssText = 'padding:.6rem .9rem;background:#f3f4f6;color:#666;border:1px solid #e2e8f0;border-radius:8px;font-weight:600;cursor:pointer;font-size:.9rem;pointer-events:all;';
   btnNo.textContent = 'Ahora no';
-  btnNo.addEventListener('click', () => toast.remove());
+  btnNo.type = 'button';
+  btnNo.onclick = function(e) { e.stopPropagation(); toast.remove(); };
 
   fila.appendChild(btnImprimir);
   fila.appendChild(btnNo);
@@ -10359,7 +10364,8 @@ function _mostrarToastImprimir(tipo, id) {
   toast.appendChild(subtitulo);
   toast.appendChild(fila);
   cont.appendChild(toast);
-  setTimeout(() => toast.remove(), 15000);
+  // 30 segundos para que el usuario lo vea
+  setTimeout(() => { if (toast.parentNode) toast.remove(); }, 30000);
 }
 
 // Inicializar al cargar
