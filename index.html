@@ -72,6 +72,10 @@
                 loginScreen.style.display = 'none';
                 appContent.style.display = 'block';
                 if (userEmailEl) userEmailEl.textContent = user.email;
+                // Mostrar botón Calidad solo a usuarios autorizados
+                setTimeout(() => {
+                  if (typeof verificarAccesoCalidad === 'function') verificarAccesoCalidad(user.email);
+                }, 500);
             } else {
                 loginScreen.style.display = 'flex';
                 appContent.style.display = 'none';
@@ -649,6 +653,29 @@
             <button class="nav-tab" onclick="changeTab('productos')">🍽️ Productos</button>
             <button class="nav-tab" onclick="changeTab('recetas')">📋 Recetas</button>
             <button class="nav-tab" onclick="changeTab('personal')">👥 Personal</button>
+            <!-- BOTÓN CALIDAD — acceso restringido a calidad y jefe de planta -->
+            <div class="nav-dropdown" id="dropdownCalidad" style="display:none;">
+                <button class="nav-tab" onclick="toggleDropdownCalidad(event)" id="btnCalidad"
+                    style="display:flex;align-items:center;gap:.4rem;background:linear-gradient(135deg,#0e7490,#0891b2);color:white;">
+                    🔬 Calidad <span style="font-size:.7rem;">▼</span>
+                </button>
+                <div class="nav-dropdown-menu" id="menuCalidad">
+                    <button class="nav-dropdown-item" onclick="changeTabCalidad('pcc1');cerrarDropdownCalidad()">
+                        🧊 Almacenamiento (PCC1)
+                    </button>
+                    <div style="border-top:1px solid #e2e8f0;margin:.25rem 0;"></div>
+                    <div style="font-size:.7rem;color:#94a3b8;padding:.3rem 1rem .1rem;font-weight:600;text-transform:uppercase;">Procesos Cocción y Abatimiento</div>
+                    <button class="nav-dropdown-item" onclick="changeTabCalidad('tempCoccionEnvasado');cerrarDropdownCalidad()">
+                        🌡️ Verif. Temp. Cocción y Envasado
+                    </button>
+                    <button class="nav-dropdown-item" onclick="changeTabCalidad('tempTunel');cerrarDropdownCalidad()">
+                        ❄️ Verif. Temp. Almacenamiento - Túnel Abatimiento
+                    </button>
+                    <button class="nav-dropdown-item" onclick="changeTabCalidad('tempTransito');cerrarDropdownCalidad()">
+                        🧊 Verif. Temp. Almacenamiento - C. Tránsito
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- TAB: DASHBOARD -->
@@ -1438,6 +1465,133 @@
     </div>
 
     <!-- MODALES (todos los modales del v2.0) -->
+
+<!-- ============================================================ -->
+<!-- TABS MÓDULO CALIDAD                                          -->
+<!-- ============================================================ -->
+
+<!-- TAB: ALMACENAMIENTO PCC1 -->
+<div id="pcc1" class="tab-content">
+  <div class="analytics-section">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
+      <div>
+        <h2 style="color:#0e7490;margin:0;">🧊 Almacenamiento (PCC1)</h2>
+        <p style="color:#64748b;font-size:.9rem;margin-top:.3rem;">Verificación y control de puntos críticos de almacenamiento</p>
+      </div>
+      <div style="background:#e0f2fe;color:#0e7490;border-radius:20px;padding:.3rem .9rem;font-weight:700;font-size:.9rem;">PCC1</div>
+    </div>
+    <div style="text-align:center;color:#94a3b8;padding:4rem;">
+      <div style="font-size:3rem;margin-bottom:1rem;">🧊</div>
+      <p style="font-size:1.1rem;font-weight:600;">Módulo en construcción</p>
+      <p style="font-size:.9rem;margin-top:.5rem;">Sube los documentos HACCP de Almacenamiento para activar este módulo.</p>
+    </div>
+  </div>
+</div>
+
+<!-- TAB: VERIFICACIÓN TEMP COCCIÓN Y ENVASADO -->
+<div id="tempCoccionEnvasado" class="tab-content">
+  <div class="analytics-section">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
+      <h2 style="color:#dc2626;margin:0;">🌡️ Verificación de Temperatura — Cocción y Envasado</h2>
+      <div style="display:flex;gap:.75rem;align-items:center;">
+        <div style="background:#fee2e2;color:#dc2626;border-radius:20px;padding:.3rem .9rem;font-weight:700;font-size:.85rem;">R-POE-03-GF-10 v01</div>
+        <button onclick="abrirRegistroCoccionEnvasado()" style="background:linear-gradient(135deg,#dc2626,#ef4444);color:white;border:none;border-radius:10px;padding:.65rem 1.25rem;font-weight:700;cursor:pointer;font-size:.9rem;">➕ Nuevo Registro</button>
+      </div>
+    </div>
+    <!-- Filtro fecha -->
+    <div style="background:#fff7f7;border-radius:12px;padding:1rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+      <span style="font-weight:600;color:#dc2626;">📅 Filtrar por fecha:</span>
+      <input type="date" id="fechaFiltroCE" onchange="renderRegistrosCE()" style="padding:.5rem .75rem;border-radius:8px;border:2px solid #fca5a5;font-size:.95rem;font-weight:600;">
+      <button onclick="setFechaHoyCE()" style="background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;border-radius:8px;padding:.45rem .9rem;font-weight:600;cursor:pointer;font-size:.85rem;">Hoy</button>
+    </div>
+    <!-- Tabla registros -->
+    <div id="tablaRegistrosCE"></div>
+  </div>
+</div>
+
+<!-- TAB: VERIFICACIÓN TEMP TÚNEL ABATIMIENTO -->
+<div id="tempTunel" class="tab-content">
+  <div class="analytics-section">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
+      <h2 style="color:#0e7490;margin:0;">❄️ Verificación de Temperatura — Túnel de Abatimiento</h2>
+      <div style="display:flex;gap:.75rem;align-items:center;">
+        <div style="background:#e0f2fe;color:#0e7490;border-radius:20px;padding:.3rem .9rem;font-weight:700;font-size:.85rem;">R-POE-02-GF-02 · Congelación</div>
+        <button onclick="abrirRegistroTunel()" style="background:linear-gradient(135deg,#0e7490,#0891b2);color:white;border:none;border-radius:10px;padding:.65rem 1.25rem;font-weight:700;cursor:pointer;font-size:.9rem;">➕ Nuevo Registro</button>
+      </div>
+    </div>
+    <div style="background:#f0fdfe;border-radius:12px;padding:1rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+      <span style="font-weight:600;color:#0e7490;">📅 Filtrar por fecha:</span>
+      <input type="date" id="fechaFiltroTunel" onchange="renderRegistrosTunel()" style="padding:.5rem .75rem;border-radius:8px;border:2px solid #a5f3fc;font-size:.95rem;font-weight:600;">
+      <button onclick="setFechaHoyTunel()" style="background:#e0f2fe;border:1px solid #a5f3fc;color:#0e7490;border-radius:8px;padding:.45rem .9rem;font-weight:600;cursor:pointer;font-size:.85rem;">Hoy</button>
+    </div>
+    <div id="tablaRegistrosTunel"></div>
+  </div>
+</div>
+
+<!-- TAB: VERIFICACIÓN TEMP C. TRÁNSITO -->
+<div id="tempTransito" class="tab-content">
+  <div class="analytics-section">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
+      <h2 style="color:#7c3aed;margin:0;">🧊 Verificación de Temperatura — C. Tránsito</h2>
+      <div style="display:flex;gap:.75rem;align-items:center;">
+        <div style="background:#ede9fe;color:#7c3aed;border-radius:20px;padding:.3rem .9rem;font-weight:700;font-size:.85rem;">R-POE-02-GF-02 · Refrigeración</div>
+        <button onclick="abrirRegistroTransito()" style="background:linear-gradient(135deg,#7c3aed,#8b5cf6);color:white;border:none;border-radius:10px;padding:.65rem 1.25rem;font-weight:700;cursor:pointer;font-size:.9rem;">➕ Nuevo Registro</button>
+      </div>
+    </div>
+    <div style="background:#faf5ff;border-radius:12px;padding:1rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+      <span style="font-weight:600;color:#7c3aed;">📅 Filtrar por fecha:</span>
+      <input type="date" id="fechaFiltroTransito" onchange="renderRegistrosTransito()" style="padding:.5rem .75rem;border-radius:8px;border:2px solid #ddd6fe;font-size:.95rem;font-weight:600;">
+      <button onclick="setFechaHoyTransito()" style="background:#ede9fe;border:1px solid #ddd6fe;color:#7c3aed;border-radius:8px;padding:.45rem .9rem;font-weight:600;cursor:pointer;font-size:.85rem;">Hoy</button>
+    </div>
+    <div id="tablaRegistrosTransito"></div>
+  </div>
+</div>
+
+<!-- MODALES CALIDAD -->
+
+<!-- Modal: Cocción y Envasado -->
+<div id="modalCE" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;overflow-y:auto;">
+  <div style="background:white;max-width:900px;margin:1.5rem auto;border-radius:16px;overflow:hidden;">
+    <div style="background:linear-gradient(135deg,#dc2626,#ef4444);padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div style="color:white;font-weight:800;font-size:1.1rem;">🌡️ Verificación Temperatura — Cocción y Envasado</div>
+        <div style="color:rgba(255,255,255,.75);font-size:.8rem;margin-top:.2rem;">R-POE-03-GF-10 · Versión 01 · Vigencia: 06-01-2025</div>
+      </div>
+      <button onclick="cerrarModalCE()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
+    </div>
+    <div style="padding:1.5rem;" id="contenidoModalCE"></div>
+  </div>
+</div>
+
+<!-- Modal: Túnel Abatimiento -->
+<div id="modalTunel" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;overflow-y:auto;">
+  <div style="background:white;max-width:900px;margin:1.5rem auto;border-radius:16px;overflow:hidden;">
+    <div style="background:linear-gradient(135deg,#0e7490,#0891b2);padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div style="color:white;font-weight:800;font-size:1.1rem;">❄️ Verificación Temperatura — Túnel de Abatimiento</div>
+        <div style="color:rgba(255,255,255,.75);font-size:.8rem;margin-top:.2rem;">R-POE-02-GF-02 · Versión 02 · Congelación</div>
+      </div>
+      <button onclick="cerrarModalTunel()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
+    </div>
+    <div style="padding:1.5rem;" id="contenidoModalTunel"></div>
+  </div>
+</div>
+
+<!-- Modal: C. Tránsito -->
+<div id="modalTransito" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;overflow-y:auto;">
+  <div style="background:white;max-width:900px;margin:1.5rem auto;border-radius:16px;overflow:hidden;">
+    <div style="background:linear-gradient(135deg,#7c3aed,#8b5cf6);padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div style="color:white;font-weight:800;font-size:1.1rem;">🧊 Verificación Temperatura — C. Tránsito</div>
+        <div style="color:rgba(255,255,255,.75);font-size:.8rem;margin-top:.2rem;">R-POE-02-GF-02 · Versión 02 · Refrigeración</div>
+      </div>
+      <button onclick="cerrarModalTransito()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
+    </div>
+    <div style="padding:1.5rem;" id="contenidoModalTransito"></div>
+  </div>
+</div>
+
+<!-- MODALES (todos los modales del v2.0) -->
 
 <!-- MODALES -->
     
@@ -10968,6 +11122,657 @@ function mostrarPopupGantt(eq) {
         }
 
         window.onload = init;
+
+// ============================================================
+// MÓDULO CALIDAD
+// ============================================================
+
+const CALIDAD_USERS = ['calidad@gustofresco.cl', 'jayala@gustofresco.cl'];
+
+// Mostrar/ocultar botón Calidad según usuario logueado
+function verificarAccesoCalidad(email) {
+  const dropdown = document.getElementById('dropdownCalidad');
+  if (dropdown) {
+    dropdown.style.display = CALIDAD_USERS.includes(email) ? 'inline-block' : 'none';
+  }
+}
+
+// Dropdown Calidad
+function toggleDropdownCalidad(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('menuCalidad');
+  const isOpen = menu.classList.contains('open');
+  document.querySelectorAll('.nav-dropdown-menu').forEach(m => m.classList.remove('open'));
+  if (!isOpen) menu.classList.add('open');
+}
+function cerrarDropdownCalidad() {
+  document.getElementById('menuCalidad')?.classList.remove('open');
+}
+document.addEventListener('click', () => cerrarDropdownCalidad());
+
+// Cambiar tab Calidad
+function changeTabCalidad(tab) {
+  cerrarDropdownCalidad();
+  document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('btnCalidad')?.classList.add('active');
+  changeTab(tab);
+  // Inicializar fecha del tab
+  const fechaHoy = new Date().toISOString().split('T')[0];
+  if (tab === 'tempCoccionEnvasado') {
+    const el = document.getElementById('fechaFiltroCE');
+    if (el && !el.value) { el.value = fechaHoy; renderRegistrosCE(); }
+  } else if (tab === 'tempTunel') {
+    const el = document.getElementById('fechaFiltroTunel');
+    if (el && !el.value) { el.value = fechaHoy; renderRegistrosTunel(); }
+  } else if (tab === 'tempTransito') {
+    const el = document.getElementById('fechaFiltroTransito');
+    if (el && !el.value) { el.value = fechaHoy; renderRegistrosTransito(); }
+  }
+}
+
+// ---- DATOS ----
+let registrosCE = JSON.parse(localStorage.getItem('cal_ce') || '[]');
+let registrosTunel = JSON.parse(localStorage.getItem('cal_tunel') || '[]');
+let registrosTransito = JSON.parse(localStorage.getItem('cal_transito') || '[]');
+
+function guardarCE() {
+  localStorage.setItem('cal_ce', JSON.stringify(registrosCE));
+  if (window.db && window.firestoreLoaded) {
+    try { const {doc,setDoc}=window.firestoreFunctions; setDoc(doc(window.db,'mes-data','calidad-ce'),{registros:registrosCE,ts:new Date().toISOString()}); } catch(e){}
+  }
+}
+function guardarTunel() {
+  localStorage.setItem('cal_tunel', JSON.stringify(registrosTunel));
+  if (window.db && window.firestoreLoaded) {
+    try { const {doc,setDoc}=window.firestoreFunctions; setDoc(doc(window.db,'mes-data','calidad-tunel'),{registros:registrosTunel,ts:new Date().toISOString()}); } catch(e){}
+  }
+}
+function guardarTransito() {
+  localStorage.setItem('cal_transito', JSON.stringify(registrosTransito));
+  if (window.db && window.firestoreLoaded) {
+    try { const {doc,setDoc}=window.firestoreFunctions; setDoc(doc(window.db,'mes-data','calidad-transito'),{registros:registrosTransito,ts:new Date().toISOString()}); } catch(e){}
+  }
+}
+
+// ---- COCCIÓN Y ENVASADO ----
+function setFechaHoyCE() {
+  const el = document.getElementById('fechaFiltroCE');
+  if (el) { el.value = new Date().toISOString().split('T')[0]; renderRegistrosCE(); }
+}
+
+function renderRegistrosCE() {
+  const fecha = document.getElementById('fechaFiltroCE')?.value;
+  const cont = document.getElementById('tablaRegistrosCE');
+  if (!cont) return;
+  const registros = registrosCE.filter(r => r.fecha === fecha);
+  if (registros.length === 0) {
+    cont.innerHTML = `<div style="background:#f8fafc;border-radius:10px;padding:2rem;text-align:center;color:#94a3b8;">
+      <div style="font-size:2rem;margin-bottom:.5rem;">🌡️</div>
+      <div style="font-weight:600;">Sin registros para esta fecha</div>
+      <div style="font-size:.85rem;margin-top:.3rem;">Haz click en "Nuevo Registro" para agregar</div>
+    </div>`;
+    return;
+  }
+  cont.innerHTML = `
+    <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:.85rem;">
+      <thead>
+        <tr style="background:#dc2626;color:white;">
+          <th style="padding:.5rem .75rem;">Hora</th>
+          <th style="padding:.5rem .75rem;">Área/Sección</th>
+          <th style="padding:.5rem .75rem;">Equipo</th>
+          <th style="padding:.5rem .75rem;">Producto</th>
+          <th style="padding:.5rem .75rem;">Lote</th>
+          <th style="padding:.5rem .75rem;">Temp °C</th>
+          <th style="padding:.5rem .75rem;">ACC</th>
+          <th style="padding:.5rem .75rem;">Verif. ACC</th>
+          <th style="padding:.5rem .75rem;">Color</th>
+          <th style="padding:.5rem .75rem;">Olor</th>
+          <th style="padding:.5rem .75rem;">Sabor</th>
+          <th style="padding:.5rem .75rem;">Textura</th>
+          <th style="padding:.5rem .75rem;">Elem. Ext.</th>
+          <th style="padding:.5rem .75rem;">Envase</th>
+          <th style="padding:.5rem .75rem;">Responsable</th>
+          <th style="padding:.5rem .75rem;">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${registros.map((r,i) => `
+        <tr style="border-bottom:1px solid #f0f0f0;background:${i%2===0?'white':'#fafafa'};">
+          <td style="padding:.5rem .75rem;">${r.hora||'—'}</td>
+          <td style="padding:.5rem .75rem;">${r.area||'—'}</td>
+          <td style="padding:.5rem .75rem;">${r.equipo||'—'}</td>
+          <td style="padding:.5rem .75rem;font-weight:600;">${r.producto||'—'}</td>
+          <td style="padding:.5rem .75rem;">${r.lote||'—'}</td>
+          <td style="padding:.5rem .75rem;font-weight:700;color:${parseFloat(r.temp)>=75?'#16a34a':'#dc2626'};">${r.temp||'—'}°C</td>
+          <td style="padding:.5rem .75rem;text-align:center;">${r.reqACC==='si'?`<span style="background:#fee2e2;color:#dc2626;border-radius:8px;padding:.15rem .5rem;font-size:.78rem;font-weight:700;">${r.acc||'—'}</span>`:'<span style="color:#16a34a;">✓</span>'}</td>
+          <td style="padding:.5rem .75rem;text-align:center;">${r.verifACC||'—'}</td>
+          <td style="padding:.5rem .75rem;text-align:center;">${r.color||'—'}</td>
+          <td style="padding:.5rem .75rem;text-align:center;">${r.olor||'—'}</td>
+          <td style="padding:.5rem .75rem;text-align:center;">${r.sabor||'—'}</td>
+          <td style="padding:.5rem .75rem;text-align:center;">${r.textura||'—'}</td>
+          <td style="padding:.5rem .75rem;text-align:center;">${r.elemExt||'—'}</td>
+          <td style="padding:.5rem .75rem;">${r.tipoEnvase||'—'} ${r.loteEnvase?'/ '+r.loteEnvase:''}</td>
+          <td style="padding:.5rem .75rem;">${r.responsable||'—'}</td>
+          <td style="padding:.5rem .75rem;">
+            <button onclick="imprimirRegistroCE('${r.id}')" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:.3rem .6rem;cursor:pointer;font-size:.78rem;">🖨️</button>
+            <button onclick="eliminarRegistroCE('${r.id}')" style="background:#f3f4f6;color:#666;border:none;border-radius:6px;padding:.3rem .6rem;cursor:pointer;font-size:.78rem;margin-left:.25rem;">🗑️</button>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>`;
+}
+
+function abrirRegistroCoccionEnvasado() {
+  const fecha = document.getElementById('fechaFiltroCE')?.value || new Date().toISOString().split('T')[0];
+  const ahora = new Date().toTimeString().slice(0,5);
+  document.getElementById('contenidoModalCE').innerHTML = `
+    <div style="font-size:.82rem;color:#64748b;margin-bottom:1.25rem;background:#fff7f7;border-radius:8px;padding:.75rem;border-left:4px solid #dc2626;">
+      <strong>Instrucciones:</strong> Monitoreo debe realizarse 4 veces al día. Tome temperatura en el centro térmico del alimento.
+      LC Cocción: ≥75°C · LC Envasado: ≥65°C
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:1rem;">
+      <div><label style="font-size:.8rem;font-weight:600;color:#dc2626;display:block;margin-bottom:.3rem;">① Fecha</label>
+        <input type="date" id="ceFecha" value="${fecha}" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #fca5a5;font-size:.9rem;box-sizing:border-box;"></div>
+      <div><label style="font-size:.8rem;font-weight:600;color:#dc2626;display:block;margin-bottom:.3rem;">② Hora Monitoreo</label>
+        <input type="time" id="ceHora" value="${ahora}" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #fca5a5;font-size:.9rem;box-sizing:border-box;"></div>
+      <div><label style="font-size:.8rem;font-weight:600;color:#dc2626;display:block;margin-bottom:.3rem;">③ Área / Sección</label>
+        <select id="ceArea" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #fca5a5;font-size:.9rem;box-sizing:border-box;">
+          <option value="">— Seleccionar —</option>
+          <option value="Cocina">Cocina</option>
+          <option value="Envasado">Envasado</option>
+          <option value="Preelaborado">Preelaborado</option>
+        </select></div>
+      <div><label style="font-size:.8rem;font-weight:600;color:#dc2626;display:block;margin-bottom:.3rem;">④ Equipo Monitoreado</label>
+        <input type="text" id="ceEquipo" placeholder="Ej: Sartén 1, Marmita 2..." style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #fca5a5;font-size:.9rem;box-sizing:border-box;"></div>
+      <div><label style="font-size:.8rem;font-weight:600;color:#dc2626;display:block;margin-bottom:.3rem;">⑤ Producto / Preparación</label>
+        <input type="text" id="ceProducto" placeholder="Nombre del producto" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #fca5a5;font-size:.9rem;box-sizing:border-box;"></div>
+      <div><label style="font-size:.8rem;font-weight:600;color:#dc2626;display:block;margin-bottom:.3rem;">⑥ Lote</label>
+        <input type="text" id="ceLote" placeholder="Lote del producto" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #fca5a5;font-size:.9rem;box-sizing:border-box;"></div>
+    </div>
+    <!-- Temperatura -->
+    <div style="background:#fff7f7;border-radius:10px;padding:1rem;margin-bottom:1rem;">
+      <div style="font-weight:700;color:#dc2626;margin-bottom:.75rem;font-size:.9rem;">⑦ Temperatura del Producto</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;">
+        <div><label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">Temp. °C (centro térmico)</label>
+          <input type="number" id="ceTemp" step="0.1" placeholder="Ej: 78.5" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #fca5a5;font-size:1rem;font-weight:700;box-sizing:border-box;"></div>
+        <div><label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">⑧ ¿Requiere ACC?</label>
+          <select id="ceReqACC" onchange="toggleVerifACC()" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #fca5a5;font-size:.9rem;box-sizing:border-box;">
+            <option value="no">No</option>
+            <option value="si">Sí</option>
+          </select></div>
+        <div id="divACC" style="display:none;">
+          <label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">⑨ ACC N°</label>
+          <select id="ceACC" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #fca5a5;font-size:.85rem;box-sizing:border-box;">
+            <option value="">— Seleccionar —</option>
+            <option value="ACC1">ACC1 — Tratamiento térmico hasta >75°C por 30 min</option>
+            <option value="ACC2">ACC2 — Retirar y segregar como Producto No Conforme</option>
+          </select></div>
+      </div>
+      <div id="divVerifACC" style="display:none;margin-top:.75rem;">
+        <label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">⑩ Verificación ACC (Temp. °C)</label>
+        <input type="number" id="ceVerifACC" step="0.1" placeholder="Temp. post-ACC" style="width:180px;padding:.6rem;border-radius:8px;border:1px solid #fca5a5;font-size:.9rem;box-sizing:border-box;">
+      </div>
+    </div>
+    <!-- Inspección calidad -->
+    <div style="background:#f0fdf4;border-radius:10px;padding:1rem;margin-bottom:1rem;">
+      <div style="font-weight:700;color:#333;margin-bottom:.75rem;font-size:.9rem;">⑪ Inspección de Calidad</div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:.5rem;">
+        ${['Color','Olor','Sabor','Textura','Pres. Elem. Extraños'].map(attr => `
+        <div style="background:white;border-radius:8px;padding:.6rem;text-align:center;border:1px solid #e2e8f0;">
+          <div style="font-size:.75rem;font-weight:600;color:#333;margin-bottom:.4rem;">${attr}</div>
+          <div style="display:flex;gap:.4rem;justify-content:center;">
+            <label style="cursor:pointer;"><input type="radio" name="ce${attr.replace(/[\s.]/g,'')}" value="✓" style="accent-color:#10b981;"> <span style="font-size:.9rem;">✓</span></label>
+            <label style="cursor:pointer;"><input type="radio" name="ce${attr.replace(/[\s.]/g,'')}" value="✗" style="accent-color:#ef4444;"> <span style="font-size:.9rem;">✗</span></label>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>
+    <!-- Envase -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1.25rem;">
+      <div><label style="font-size:.8rem;font-weight:600;color:#333;display:block;margin-bottom:.3rem;">⑫ Tipo Envase Primario</label>
+        <select id="ceTipoEnvase" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
+          <option value="">— Seleccionar —</option>
+          <option value="B">B — Bolsa</option>
+          <option value="P">P — Pote</option>
+          <option value="C">C — Caja</option>
+        </select></div>
+      <div><label style="font-size:.8rem;font-weight:600;color:#333;display:block;margin-bottom:.3rem;">Lote Insumo</label>
+        <input type="text" id="ceLoteEnvase" placeholder="Lote envase" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;"></div>
+      <div><label style="font-size:.8rem;font-weight:600;color:#333;display:block;margin-bottom:.3rem;">⑬ Responsable Monitoreo</label>
+        <input type="text" id="ceResponsable" placeholder="Nombre y firma" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;"></div>
+    </div>
+    <!-- LC -->
+    <div style="background:#fffbeb;border-radius:8px;padding:.75rem;margin-bottom:1.25rem;font-size:.78rem;color:#64748b;">
+      <strong>Límites Críticos:</strong> Cocción ≥75°C · Envasado ≥65°C<br>
+      <strong>ACC1:</strong> Tratamiento térmico hasta >75°C por más de 30 min |
+      <strong>ACC2:</strong> Retirar y segregar como Producto No Conforme
+    </div>
+    <div style="display:flex;gap:.75rem;justify-content:flex-end;">
+      <button onclick="cerrarModalCE()" style="padding:.75rem 1.5rem;border-radius:10px;border:1px solid #ddd;cursor:pointer;font-weight:600;color:#64748b;background:white;">Cancelar</button>
+      <button onclick="guardarRegistroCE()" style="padding:.75rem 1.5rem;border-radius:10px;border:none;background:linear-gradient(135deg,#dc2626,#ef4444);color:white;cursor:pointer;font-weight:700;font-size:1rem;">💾 Guardar Registro</button>
+    </div>`;
+  document.getElementById('modalCE').style.display = 'block';
+}
+
+function toggleVerifACC() {
+  const req = document.getElementById('ceReqACC')?.value;
+  document.getElementById('divACC').style.display = req === 'si' ? 'block' : 'none';
+  document.getElementById('divVerifACC').style.display = req === 'si' ? 'block' : 'none';
+}
+
+function cerrarModalCE() { document.getElementById('modalCE').style.display = 'none'; }
+
+function guardarRegistroCE() {
+  const registro = {
+    id: Date.now().toString(),
+    fecha: document.getElementById('ceFecha')?.value,
+    hora: document.getElementById('ceHora')?.value,
+    area: document.getElementById('ceArea')?.value,
+    equipo: document.getElementById('ceEquipo')?.value,
+    producto: document.getElementById('ceProducto')?.value,
+    lote: document.getElementById('ceLote')?.value,
+    temp: document.getElementById('ceTemp')?.value,
+    reqACC: document.getElementById('ceReqACC')?.value,
+    acc: document.getElementById('ceACC')?.value,
+    verifACC: document.getElementById('ceVerifACC')?.value,
+    color: document.querySelector('input[name="ceColor"]:checked')?.value,
+    olor: document.querySelector('input[name="ceOlor"]:checked')?.value,
+    sabor: document.querySelector('input[name="ceSabor"]:checked')?.value,
+    textura: document.querySelector('input[name="ceTextura"]:checked')?.value,
+    elemExt: document.querySelector('input[name="cePres.Elem.Extraños"]:checked')?.value,
+    tipoEnvase: document.getElementById('ceTipoEnvase')?.value,
+    loteEnvase: document.getElementById('ceLoteEnvase')?.value,
+    responsable: document.getElementById('ceResponsable')?.value,
+    creadoEn: new Date().toLocaleString('es-CL')
+  };
+  if (!registro.producto || !registro.temp) { alert('Ingresa al menos el producto y la temperatura'); return; }
+  registrosCE.push(registro);
+  guardarCE();
+  cerrarModalCE();
+  renderRegistrosCE();
+  if (confirm('¿Deseas imprimir el registro ahora?')) imprimirRegistroCE(registro.id);
+}
+
+function eliminarRegistroCE(id) {
+  if (!confirm('¿Eliminar este registro?')) return;
+  registrosCE = registrosCE.filter(r => r.id !== id);
+  guardarCE();
+  renderRegistrosCE();
+}
+
+function imprimirRegistroCE(id) {
+  const r = registrosCE.find(x => x.id === id);
+  if (!r) return;
+  const color = '#991b1b';
+  const [y,m,d] = (r.fecha||'').split('-');
+  const fechaDisplay = r.fecha ? `${d}/${m}/${y}` : '—';
+  const v = window.open('', '_blank', 'width=1100,height=750');
+  v.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+<title>Verif. Temp. Cocción y Envasado</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}body{font-family:Arial,sans-serif;font-size:9pt;color:#000;background:white;}
+  @page{size:A4 landscape;margin:10mm;}@media print{.no-print{display:none;}}
+  .print-btn{position:fixed;top:10px;right:10px;background:${color};color:white;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:11pt;z-index:999;}
+  .header{display:flex;justify-content:space-between;align-items:center;border:2px solid ${color};margin-bottom:5px;}
+  .header-logo{padding:6px 10px;font-size:9pt;color:${color};font-weight:bold;}
+  .header-titulo{flex:1;text-align:center;padding:6px;border-left:1px solid ${color};border-right:1px solid ${color};}
+  .header-titulo h2{font-size:11pt;font-weight:bold;color:${color};}
+  .header-codigo{padding:6px 10px;font-size:8pt;text-align:right;line-height:1.6;}
+  .instrucciones{font-size:7pt;border:1px solid #ccc;padding:5px;margin-bottom:5px;color:#555;line-height:1.4;}
+  .datos-gen{display:flex;border:1px solid ${color};margin-bottom:5px;flex-wrap:wrap;}
+  .dato-item{flex:1;min-width:100px;padding:4px 6px;border-right:1px solid ${color};}
+  .dato-item:last-child{border-right:none;}
+  .dato-label{font-size:7pt;font-weight:bold;color:${color};}
+  .dato-val{font-size:9.5pt;font-weight:bold;margin-top:2px;}
+  .seccion-titulo{background:${color};color:white;padding:4px 8px;font-size:8.5pt;font-weight:bold;margin-bottom:3px;}
+  table{width:100%;border-collapse:collapse;margin-bottom:6px;}
+  th{background:${color};color:white;padding:4px 6px;font-size:8pt;border:1px solid #c53030;text-align:center;}
+  td{padding:5px 6px;border:1px solid #ccc;font-size:9.5pt;text-align:center;}
+  .sensorial{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;}
+  .sens-item{flex:1;min-width:100px;border:1px solid ${color};padding:5px;text-align:center;}
+  .sens-label{font-size:7.5pt;font-weight:bold;color:${color};margin-bottom:3px;}
+  .sens-val{font-size:16pt;font-weight:bold;}
+  .sens-ok{color:#16a34a;}.sens-nok{color:#dc2626;}
+  .acc-box{border:1px solid #f59e0b;background:#fffbeb;padding:5px;margin-bottom:5px;font-size:7.5pt;line-height:1.5;}
+  .firma-box{display:flex;gap:10px;margin-top:6px;}
+  .firma-item{flex:1;border:1px solid ${color};padding:6px;text-align:center;}
+  .firma-label{font-size:7.5pt;color:${color};font-weight:bold;margin-bottom:15px;}
+  .firma-linea{border-top:1px solid #000;padding-top:3px;font-size:8pt;}
+</style></head><body>
+<button class="print-btn no-print" onclick="window.print()">🖨️ Imprimir</button>
+<div class="header">
+  <div class="header-logo">🏭 MES Cocina</div>
+  <div class="header-titulo"><h2>🌡️ VERIFICACIÓN DE TEMPERATURA — COCCIÓN Y ENVASADO</h2></div>
+  <div class="header-codigo">R-POE-03-GF-10<br>Versión: 01<br>F. Vigencia: 06-01-2025</div>
+</div>
+<div class="instrucciones">
+  <strong>Instrucciones:</strong> Monitoreo 4 veces al día. (1) Fecha. (2) Hora. (3) Área/Sección. (4) Equipo. (5) Producto/Preparación. (6) Lote. (7) Temperatura centro térmico. (8) ¿Requiere ACC? (9) N° ACC. (10) Verificación post-ACC. (11) Inspección calidad. (12) Envase primario. (13) Responsable.
+</div>
+<div class="datos-gen">
+  <div class="dato-item"><div class="dato-label">① Fecha</div><div class="dato-val">${fechaDisplay}</div></div>
+  <div class="dato-item"><div class="dato-label">② Hora</div><div class="dato-val">${r.hora||'—'}</div></div>
+  <div class="dato-item"><div class="dato-label">③ Área/Sección</div><div class="dato-val">${r.area||'—'}</div></div>
+  <div class="dato-item"><div class="dato-label">④ Equipo</div><div class="dato-val">${r.equipo||'—'}</div></div>
+  <div class="dato-item"><div class="dato-label">⑤ Producto</div><div class="dato-val">${r.producto||'—'}</div></div>
+  <div class="dato-item"><div class="dato-label">⑥ Lote</div><div class="dato-val">${r.lote||'—'}</div></div>
+</div>
+<div class="seccion-titulo">⑦ Control de Temperatura</div>
+<table><tr>
+  <th>Temperatura (°C)</th><th>⑧ ¿Requiere ACC?</th><th>⑨ ACC N°</th><th>⑩ Verificación ACC (°C)</th>
+</tr><tr>
+  <td style="font-size:16pt;font-weight:bold;color:${parseFloat(r.temp)>=75?'#16a34a':'#dc2626'};">${r.temp||'—'}°C</td>
+  <td>${r.reqACC==='si'?'<span style="color:#dc2626;font-weight:bold;">SÍ</span>':'<span style="color:#16a34a;">NO</span>'}</td>
+  <td>${r.acc||'—'}</td>
+  <td>${r.verifACC?r.verifACC+'°C':'—'}</td>
+</tr></table>
+<div class="seccion-titulo">⑪ Inspección de Calidad</div>
+<div class="sensorial">
+  ${[['Color',r.color],['Olor',r.olor],['Sabor',r.sabor],['Textura',r.textura],['Pres. Elem. Extraños',r.elemExt]].map(([l,v])=>`
+  <div class="sens-item"><div class="sens-label">${l}</div>
+  <div class="sens-val ${v==='✓'?'sens-ok':'sens-nok'}">${v||'—'}</div></div>`).join('')}
+</div>
+<div class="seccion-titulo">⑫ Envase Primario</div>
+<table><tr><th>Tipo de Insumo</th><th>Lote de Insumo</th></tr>
+<tr><td>${r.tipoEnvase||'—'}</td><td>${r.loteEnvase||'—'}</td></tr></table>
+<div class="acc-box">
+  <strong>Límites Críticos:</strong> Cocción ≥75°C · Envasado ≥65°C &nbsp;|&nbsp;
+  <strong>ACC1:</strong> Tratamiento térmico hasta >75°C por más de 30 min &nbsp;|&nbsp;
+  <strong>ACC2:</strong> Retirar y segregar como Producto No Conforme
+</div>
+<div class="firma-box">
+  <div class="firma-item"><div class="firma-label">⑬ Responsable del Monitoreo</div>
+    <div style="font-size:11pt;font-weight:bold;margin-bottom:10px;">${r.responsable||'—'}</div>
+    <div class="firma-linea">Nombre y Firma</div></div>
+  <div class="firma-item"><div class="firma-label">Verificación Calidad</div>
+    <div class="firma-linea" style="margin-top:25px;">Nombre y Firma</div></div>
+  <div class="firma-item"><div class="firma-label">Registrado en sistema</div>
+    <div style="font-size:9pt;margin-top:8px;">${r.creadoEn||'—'}</div></div>
+</div>
+</body></html>`);
+  v.document.close();
+}
+
+// ---- TÚNEL ABATIMIENTO ----
+function setFechaHoyTunel() {
+  const el = document.getElementById('fechaFiltroTunel');
+  if (el) { el.value = new Date().toISOString().split('T')[0]; renderRegistrosTunel(); }
+}
+
+function renderRegistrosTunel() {
+  const fecha = document.getElementById('fechaFiltroTunel')?.value;
+  const cont = document.getElementById('tablaRegistrosTunel');
+  if (!cont) return;
+  const registros = registrosTunel.filter(r => r.fecha === fecha);
+  if (registros.length === 0) {
+    cont.innerHTML = `<div style="background:#f8fafc;border-radius:10px;padding:2rem;text-align:center;color:#94a3b8;">
+      <div style="font-size:2rem;margin-bottom:.5rem;">❄️</div>
+      <div style="font-weight:600;">Sin registros para esta fecha</div>
+    </div>`;
+    return;
+  }
+  cont.innerHTML = _renderTablaAlmacenamiento(registros, 'tunel', '#0e7490');
+}
+
+function abrirRegistroTunel() {
+  const fecha = document.getElementById('fechaFiltroTunel')?.value || new Date().toISOString().split('T')[0];
+  _abrirModalAlmacenamiento('tunel', fecha, 'Congelación — Túnel de Abatimiento', '#0e7490', '❄️');
+}
+function cerrarModalTunel() { document.getElementById('modalTunel').style.display = 'none'; }
+
+// ---- C. TRÁNSITO ----
+function setFechaHoyTransito() {
+  const el = document.getElementById('fechaFiltroTransito');
+  if (el) { el.value = new Date().toISOString().split('T')[0]; renderRegistrosTransito(); }
+}
+
+function renderRegistrosTransito() {
+  const fecha = document.getElementById('fechaFiltroTransito')?.value;
+  const cont = document.getElementById('tablaRegistrosTransito');
+  if (!cont) return;
+  const registros = registrosTransito.filter(r => r.fecha === fecha);
+  if (registros.length === 0) {
+    cont.innerHTML = `<div style="background:#f8fafc;border-radius:10px;padding:2rem;text-align:center;color:#94a3b8;">
+      <div style="font-size:2rem;margin-bottom:.5rem;">🧊</div>
+      <div style="font-weight:600;">Sin registros para esta fecha</div>
+    </div>`;
+    return;
+  }
+  cont.innerHTML = _renderTablaAlmacenamiento(registros, 'transito', '#7c3aed');
+}
+
+function abrirRegistroTransito() {
+  const fecha = document.getElementById('fechaFiltroTransito')?.value || new Date().toISOString().split('T')[0];
+  _abrirModalAlmacenamiento('transito', fecha, 'Refrigeración — C. Tránsito', '#7c3aed', '🧊');
+}
+function cerrarModalTransito() { document.getElementById('modalTransito').style.display = 'none'; }
+
+// ---- ALMACENAMIENTO (compartido túnel y tránsito) ----
+function _renderTablaAlmacenamiento(registros, tipo, color) {
+  return `<div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:.85rem;">
+      <thead><tr style="background:${color};color:white;">
+        <th style="padding:.5rem .75rem;">Hora</th>
+        <th style="padding:.5rem .75rem;">Sistema Enfriamiento</th>
+        <th style="padding:.5rem .75rem;">Orden</th>
+        <th style="padding:.5rem .75rem;">Limpieza</th>
+        <th style="padding:.5rem .75rem;">Producto (Tarja)</th>
+        <th style="padding:.5rem .75rem;">Lote</th>
+        <th style="padding:.5rem .75rem;">F. Venc.</th>
+        <th style="padding:.5rem .75rem;">Piso</th>
+        <th style="padding:.5rem .75rem;">Alérgeno</th>
+        <th style="padding:.5rem .75rem;">Especias</th>
+        <th style="padding:.5rem .75rem;">Prod. Term.</th>
+        <th style="padding:.5rem .75rem;">P. No Conf.</th>
+        <th style="padding:.5rem .75rem;">Rotación</th>
+        <th style="padding:.5rem .75rem;">Temp °C</th>
+        <th style="padding:.5rem .75rem;">Acciones</th>
+      </tr></thead>
+      <tbody>
+        ${registros.map((r,i) => `
+        <tr style="border-bottom:1px solid #f0f0f0;background:${i%2===0?'white':'#fafafa'};">
+          <td style="padding:.5rem .75rem;">${r.hora||'—'}</td>
+          <td style="padding:.5rem .75rem;">${r.sistemaEnfriamiento||'—'}</td>
+          <td style="padding:.5rem .75rem;text-align:center;">${r.orden||'—'}</td>
+          <td style="padding:.5rem .75rem;text-align:center;">${r.limpieza||'—'}</td>
+          <td style="padding:.5rem .75rem;font-weight:600;">${r.producto||'—'}</td>
+          <td style="padding:.5rem .75rem;">${r.lote||'—'}</td>
+          <td style="padding:.5rem .75rem;">${r.fVencimiento||'—'}</td>
+          <td style="padding:.5rem .75rem;text-align:center;">${r.piso||'—'}</td>
+          <td style="padding:.5rem .75rem;text-align:center;">${r.alergeno||'—'}</td>
+          <td style="padding:.5rem .75rem;text-align:center;">${r.especias||'—'}</td>
+          <td style="padding:.5rem .75rem;text-align:center;">${r.prodTerm||'—'}</td>
+          <td style="padding:.5rem .75rem;text-align:center;">${r.prodNoConf||'—'}</td>
+          <td style="padding:.5rem .75rem;text-align:center;">${r.rotacion||'—'}</td>
+          <td style="padding:.5rem .75rem;font-weight:700;color:${color};">${r.temp||'—'}°C</td>
+          <td style="padding:.5rem .75rem;">
+            <button onclick="imprimirRegistroAlmacenamiento('${r.id}','${tipo}')" style="background:#e0f2fe;color:${color};border:none;border-radius:6px;padding:.3rem .6rem;cursor:pointer;font-size:.78rem;">🖨️</button>
+            <button onclick="eliminarRegistroAlmacenamiento('${r.id}','${tipo}')" style="background:#f3f4f6;color:#666;border:none;border-radius:6px;padding:.3rem .6rem;cursor:pointer;font-size:.78rem;margin-left:.25rem;">🗑️</button>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>`;
+}
+
+function _abrirModalAlmacenamiento(tipo, fecha, titulo, color, icono) {
+  const ahora = new Date().toTimeString().slice(0,5);
+  const modalId = tipo === 'tunel' ? 'modalTunel' : 'modalTransito';
+  const contId = tipo === 'tunel' ? 'contenidoModalTunel' : 'contenidoModalTransito';
+  const lcText = tipo === 'tunel' ? 'LC: ≤ -5°C (Congelación)' : 'LC: ≤ 4°C (Refrigeración)';
+
+  document.getElementById(contId).innerHTML = `
+    <div style="font-size:.82rem;color:#64748b;margin-bottom:1.25rem;background:#f0fdfe;border-radius:8px;padding:.75rem;border-left:4px solid ${color};">
+      <strong>Instrucciones:</strong> ${tipo==='tunel'?'Frecuencia: 2 veces al día.':'Frecuencia: 4 veces al día, cada 3 horas aprox.'}
+      Reportar con ✓/✗ cada campo de inspección. ${lcText}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:1rem;">
+      <div><label style="font-size:.8rem;font-weight:600;color:${color};display:block;margin-bottom:.3rem;">① Fecha</label>
+        <input type="date" id="alFecha" value="${fecha}" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #a5f3fc;font-size:.9rem;box-sizing:border-box;"></div>
+      <div><label style="font-size:.8rem;font-weight:600;color:${color};display:block;margin-bottom:.3rem;">② Hora</label>
+        <input type="time" id="alHora" value="${ahora}" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #a5f3fc;font-size:.9rem;box-sizing:border-box;"></div>
+      <div><label style="font-size:.8rem;font-weight:600;color:${color};display:block;margin-bottom:.3rem;">③ Sistema Enfriamiento</label>
+        <input type="text" id="alSistema" placeholder="Ej: Cámara 1, Túnel..." style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #a5f3fc;font-size:.9rem;box-sizing:border-box;"></div>
+      <div><label style="font-size:.8rem;font-weight:600;color:${color};display:block;margin-bottom:.3rem;">⑨ Temp °C Equipo</label>
+        <input type="number" id="alTemp" step="0.1" placeholder="${tipo==='tunel'?'-18':'-2'}" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #a5f3fc;font-size:1rem;font-weight:700;box-sizing:border-box;"></div>
+    </div>
+    <!-- Inspección producto -->
+    <div style="background:#f0fdfe;border-radius:10px;padding:1rem;margin-bottom:1rem;">
+      <div style="font-weight:700;color:${color};margin-bottom:.75rem;font-size:.9rem;">Inspección de Producto</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.75rem;margin-bottom:.75rem;">
+        <div><label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">④ Orden</label>
+          <div style="display:flex;gap:.5rem;">
+            <label><input type="radio" name="alOrden" value="✓"> ✓</label>
+            <label><input type="radio" name="alOrden" value="✗"> ✗</label>
+          </div></div>
+        <div><label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">⑤ Limpieza</label>
+          <div style="display:flex;gap:.5rem;">
+            <label><input type="radio" name="alLimpieza" value="✓"> ✓</label>
+            <label><input type="radio" name="alLimpieza" value="✗"> ✗</label>
+          </div></div>
+        <div><label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">⑧ Rotación</label>
+          <div style="display:flex;gap:.5rem;">
+            <label><input type="radio" name="alRotacion" value="✓"> ✓</label>
+            <label><input type="radio" name="alRotacion" value="✗"> ✗</label>
+          </div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.75rem;">
+        <div><label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">⑥ Producto (Tarja)</label>
+          <input type="text" id="alProducto" placeholder="Nombre producto" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;"></div>
+        <div><label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">Lote</label>
+          <input type="text" id="alLote" placeholder="Lote" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;"></div>
+        <div><label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">F. Vencimiento</label>
+          <input type="date" id="alFVenc" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;"></div>
+      </div>
+    </div>
+    <!-- Separación -->
+    <div style="background:#f8fafc;border-radius:10px;padding:1rem;margin-bottom:1rem;">
+      <div style="font-weight:700;color:#333;margin-bottom:.75rem;font-size:.9rem;">⑦ Separación de:</div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:.5rem;">
+        ${['Piso','Alérgeno','Especias','Prod. Term.','Prod. No Conf.'].map(s=>`
+        <div style="background:white;border-radius:8px;padding:.6rem;text-align:center;border:1px solid #e2e8f0;">
+          <div style="font-size:.75rem;font-weight:600;color:#333;margin-bottom:.4rem;">${s}</div>
+          <div style="display:flex;gap:.4rem;justify-content:center;">
+            <label><input type="radio" name="alSep${s.replace(/[\s.]/g,'')}" value="✓"> ✓</label>
+            <label><input type="radio" name="alSep${s.replace(/[\s.]/g,'')}" value="✗"> ✗</label>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>
+    <div style="background:#fffbeb;border-radius:8px;padding:.75rem;margin-bottom:1.25rem;font-size:.78rem;color:#64748b;">
+      <strong>${lcText}</strong>
+    </div>
+    <div style="display:flex;gap:.75rem;justify-content:flex-end;">
+      <button onclick="${tipo==='tunel'?'cerrarModalTunel()':'cerrarModalTransito()'}" style="padding:.75rem 1.5rem;border-radius:10px;border:1px solid #ddd;cursor:pointer;font-weight:600;color:#64748b;background:white;">Cancelar</button>
+      <button onclick="guardarRegistroAlmacenamiento('${tipo}')" style="padding:.75rem 1.5rem;border-radius:10px;border:none;background:linear-gradient(135deg,${color},${color}dd);color:white;cursor:pointer;font-weight:700;font-size:1rem;">💾 Guardar Registro</button>
+    </div>`;
+  document.getElementById(modalId).style.display = 'block';
+}
+
+function guardarRegistroAlmacenamiento(tipo) {
+  const registro = {
+    id: Date.now().toString(),
+    fecha: document.getElementById('alFecha')?.value,
+    hora: document.getElementById('alHora')?.value,
+    sistemaEnfriamiento: document.getElementById('alSistema')?.value,
+    temp: document.getElementById('alTemp')?.value,
+    orden: document.querySelector('input[name="alOrden"]:checked')?.value,
+    limpieza: document.querySelector('input[name="alLimpieza"]:checked')?.value,
+    rotacion: document.querySelector('input[name="alRotacion"]:checked')?.value,
+    producto: document.getElementById('alProducto')?.value,
+    lote: document.getElementById('alLote')?.value,
+    fVencimiento: document.getElementById('alFVenc')?.value,
+    piso: document.querySelector('input[name="alSepPiso"]:checked')?.value,
+    alergeno: document.querySelector('input[name="alSepAlérgeno"]:checked')?.value,
+    especias: document.querySelector('input[name="alSepEspecias"]:checked')?.value,
+    prodTerm: document.querySelector('input[name="alSepProd.Term."]:checked')?.value,
+    prodNoConf: document.querySelector('input[name="alSepProd.NoConf."]:checked')?.value,
+    creadoEn: new Date().toLocaleString('es-CL')
+  };
+  if (!registro.fecha || !registro.temp) { alert('Ingresa al menos la fecha y temperatura'); return; }
+  if (tipo === 'tunel') { registrosTunel.push(registro); guardarTunel(); cerrarModalTunel(); renderRegistrosTunel(); }
+  else { registrosTransito.push(registro); guardarTransito(); cerrarModalTransito(); renderRegistrosTransito(); }
+  if (confirm('¿Deseas imprimir el registro ahora?')) imprimirRegistroAlmacenamiento(registro.id, tipo);
+}
+
+function eliminarRegistroAlmacenamiento(id, tipo) {
+  if (!confirm('¿Eliminar este registro?')) return;
+  if (tipo === 'tunel') { registrosTunel = registrosTunel.filter(r=>r.id!==id); guardarTunel(); renderRegistrosTunel(); }
+  else { registrosTransito = registrosTransito.filter(r=>r.id!==id); guardarTransito(); renderRegistrosTransito(); }
+}
+
+function imprimirRegistroAlmacenamiento(id, tipo) {
+  const lista = tipo === 'tunel' ? registrosTunel : registrosTransito;
+  const r = lista.find(x => x.id === id);
+  if (!r) return;
+  const color = tipo === 'tunel' ? '#0e7490' : '#7c3aed';
+  const titulo = tipo === 'tunel' ? 'VERIFICACIÓN DE TEMPERATURA — TÚNEL DE ABATIMIENTO' : 'VERIFICACIÓN DE TEMPERATURA — C. TRÁNSITO';
+  const lcText = tipo === 'tunel' ? 'LC: ≤ -5°C (Congelación)' : 'LC: ≤ 4°C (Refrigeración)';
+  const [y,m,d] = (r.fecha||'').split('-');
+  const fechaDisplay = r.fecha ? `${d}/${m}/${y}` : '—';
+  const sim = v => v === '✓' ? '<span style="color:#16a34a;font-size:14pt;font-weight:bold;">✓</span>' : v === '✗' ? '<span style="color:#dc2626;font-size:14pt;font-weight:bold;">✗</span>' : '—';
+
+  const v = window.open('', '_blank', 'width=1100,height=750');
+  v.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+<title>${titulo}</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}body{font-family:Arial,sans-serif;font-size:9pt;color:#000;background:white;}
+  @page{size:A4 landscape;margin:10mm;}@media print{.no-print{display:none;}}
+  .print-btn{position:fixed;top:10px;right:10px;background:${color};color:white;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:11pt;z-index:999;}
+  .header{display:flex;justify-content:space-between;align-items:center;border:2px solid ${color};margin-bottom:5px;}
+  .header-logo{padding:6px 10px;font-size:9pt;color:${color};font-weight:bold;}
+  .header-titulo{flex:1;text-align:center;padding:6px;border-left:1px solid ${color};border-right:1px solid ${color};}
+  .header-titulo h2{font-size:10pt;font-weight:bold;color:${color};}
+  .header-codigo{padding:6px 10px;font-size:8pt;text-align:right;line-height:1.6;}
+  .seccion-titulo{background:${color};color:white;padding:4px 8px;font-size:8.5pt;font-weight:bold;margin-bottom:3px;}
+  table{width:100%;border-collapse:collapse;margin-bottom:6px;}
+  th{background:${color};color:white;padding:4px 6px;font-size:8pt;border:1px solid ${color};text-align:center;}
+  td{padding:5px 6px;border:1px solid #ccc;font-size:9pt;text-align:center;}
+  .acc-box{border:1px solid #f59e0b;background:#fffbeb;padding:5px;margin-bottom:5px;font-size:7.5pt;line-height:1.5;}
+  .firma-box{display:flex;gap:10px;margin-top:6px;}
+  .firma-item{flex:1;border:1px solid ${color};padding:6px;text-align:center;}
+  .firma-label{font-size:7.5pt;color:${color};font-weight:bold;margin-bottom:15px;}
+  .firma-linea{border-top:1px solid #000;padding-top:3px;font-size:8pt;}
+</style></head><body>
+<button class="print-btn no-print" onclick="window.print()">🖨️ Imprimir</button>
+<div class="header">
+  <div class="header-logo">🏭 MES Cocina</div>
+  <div class="header-titulo"><h2>${tipo==='tunel'?'❄️':'🧊'} ${titulo}</h2></div>
+  <div class="header-codigo">R-POE-02-GF-02<br>Versión: 02<br>F. Vigencia: 17-03-2025</div>
+</div>
+<div class="seccion-titulo">Información General</div>
+<table><tr>
+  <th>① Fecha</th><th>② Hora</th><th>③ Sistema Enfriamiento</th><th>⑨ Temp °C Equipo</th>
+</tr><tr>
+  <td>${fechaDisplay}</td><td>${r.hora||'—'}</td><td>${r.sistemaEnfriamiento||'—'}</td>
+  <td style="font-size:16pt;font-weight:bold;color:${color};">${r.temp||'—'}°C</td>
+</tr></table>
+<div class="seccion-titulo">Inspección de Producto</div>
+<table><tr>
+  <th>④ Orden</th><th>⑤ Limpieza</th><th>Producto (Tarja)</th><th>Lote</th><th>F. Vencimiento</th><th>⑧ Rotación</th>
+</tr><tr>
+  <td>${sim(r.orden)}</td><td>${sim(r.limpieza)}</td><td style="font-weight:bold;">${r.producto||'—'}</td>
+  <td>${r.lote||'—'}</td><td>${r.fVencimiento||'—'}</td><td>${sim(r.rotacion)}</td>
+</tr></table>
+<div class="seccion-titulo">⑦ Separación de Productos</div>
+<table><tr>
+  <th>Piso</th><th>Alérgeno</th><th>Especias</th><th>Prod. Terminado</th><th>Prod. No Conforme</th>
+</tr><tr>
+  <td>${sim(r.piso)}</td><td>${sim(r.alergeno)}</td><td>${sim(r.especias)}</td>
+  <td>${sim(r.prodTerm)}</td><td>${sim(r.prodNoConf)}</td>
+</tr></table>
+<div class="acc-box"><strong>${lcText}</strong></div>
+<div class="firma-box">
+  <div class="firma-item"><div class="firma-label">Responsable de Verificación</div>
+    <div class="firma-linea" style="margin-top:25px;">Nombre y Firma</div></div>
+  <div class="firma-item"><div class="firma-label">Verificación Calidad</div>
+    <div class="firma-linea" style="margin-top:25px;">Nombre y Firma</div></div>
+  <div class="firma-item"><div class="firma-label">Registrado en sistema</div>
+    <div style="font-size:9pt;margin-top:8px;">${r.creadoEn||'—'}</div></div>
+</div>
+</body></html>`);
+  v.document.close();
+}
+
     </script>
 
 
