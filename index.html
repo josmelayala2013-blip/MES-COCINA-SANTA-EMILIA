@@ -3666,6 +3666,35 @@ ${d.acc ? `
       <div style="padding:1.5rem;" id="contenidoModalHACCPAbatimiento"></div>
     </div>
   </div>
+
+  <!-- MODAL HACCP PREELABORADO CARNES -->
+  <div id="modalHACCPPreCarnes" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;overflow-y:auto;">
+    <div style="background:white;max-width:900px;margin:1.5rem auto;border-radius:16px;overflow:hidden;">
+      <div style="background:linear-gradient(135deg,#dc2626,#ef4444);padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="color:white;font-weight:800;font-size:1.1rem;">📋 Registro HACCP — Preelaborado de Carnes</div>
+          <div style="color:rgba(255,255,255,.75);font-size:.8rem;margin-top:.2rem;">R-POE-03-GF-01 · Versión 02 · Vigencia: 15-12-2025</div>
+        </div>
+        <button onclick="cerrarHACCPPreCarnes()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
+      </div>
+      <div style="padding:1.5rem;" id="contenidoHACCPPreCarnes"></div>
+    </div>
+  </div>
+
+  <!-- MODAL HACCP PREELABORADO VEGETALES -->
+  <div id="modalHACCPPreVegetales" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;overflow-y:auto;">
+    <div style="background:white;max-width:900px;margin:1.5rem auto;border-radius:16px;overflow:hidden;">
+      <div style="background:linear-gradient(135deg,#16a34a,#22c55e);padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="color:white;font-weight:800;font-size:1.1rem;">📋 Registro HACCP — Preelaborado de Vegetales</div>
+          <div style="color:rgba(255,255,255,.75);font-size:.8rem;margin-top:.2rem;">R-POE-03-GF-02 · Versión 02 · Vigencia: 15-12-2025</div>
+        </div>
+        <button onclick="cerrarHACCPPreVegetales()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
+      </div>
+      <div style="padding:1.5rem;" id="contenidoHACCPPreVegetales"></div>
+    </div>
+  </div>
+
     </div> <!-- /appContent -->
 </body>
 </html>`;
@@ -4326,6 +4355,35 @@ function imprimirRegistroHACCP(d) {
       <div style="padding:1.5rem;" id="contenidoModalHACCPAbatimiento"></div>
     </div>
   </div>
+
+  <!-- MODAL HACCP PREELABORADO CARNES -->
+  <div id="modalHACCPPreCarnes" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;overflow-y:auto;">
+    <div style="background:white;max-width:900px;margin:1.5rem auto;border-radius:16px;overflow:hidden;">
+      <div style="background:linear-gradient(135deg,#dc2626,#ef4444);padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="color:white;font-weight:800;font-size:1.1rem;">📋 Registro HACCP — Preelaborado de Carnes</div>
+          <div style="color:rgba(255,255,255,.75);font-size:.8rem;margin-top:.2rem;">R-POE-03-GF-01 · Versión 02 · Vigencia: 15-12-2025</div>
+        </div>
+        <button onclick="cerrarHACCPPreCarnes()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
+      </div>
+      <div style="padding:1.5rem;" id="contenidoHACCPPreCarnes"></div>
+    </div>
+  </div>
+
+  <!-- MODAL HACCP PREELABORADO VEGETALES -->
+  <div id="modalHACCPPreVegetales" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;overflow-y:auto;">
+    <div style="background:white;max-width:900px;margin:1.5rem auto;border-radius:16px;overflow:hidden;">
+      <div style="background:linear-gradient(135deg,#16a34a,#22c55e);padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="color:white;font-weight:800;font-size:1.1rem;">📋 Registro HACCP — Preelaborado de Vegetales</div>
+          <div style="color:rgba(255,255,255,.75);font-size:.8rem;margin-top:.2rem;">R-POE-03-GF-02 · Versión 02 · Vigencia: 15-12-2025</div>
+        </div>
+        <button onclick="cerrarHACCPPreVegetales()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
+      </div>
+      <div style="padding:1.5rem;" id="contenidoHACCPPreVegetales"></div>
+    </div>
+  </div>
+
     </div> <!-- /appContent -->
 </body>
 </html>`;
@@ -9184,8 +9242,12 @@ function renderEstacionesPre(tipo) {
           style="padding:.65rem;background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.88rem;">
           ✅ Finalizar
         </button>
+        <button onclick="abrirHACCPPreelaborado('${p.id}')"
+          style="padding:.65rem;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.88rem;">
+          📋 HACCP
+        </button>
         <button onclick="cancelarPreelaborado('${p.id}')"
-          style="padding:.65rem;background:#f3f4f6;color:#666;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:.88rem;">
+          style="padding:.65rem;background:#f3f4f6;color:#666;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:.88rem;grid-column:1/-1;">
           ✕ Cancelar
         </button>
       </div>
@@ -9492,6 +9554,356 @@ window.addEventListener('load', () => {
   }, 3000);
 });
 
+// ============================================================
+// HACCP PREELABORADO CARNES — R-POE-03-GF-01
+// ============================================================
+function abrirHACCPPreelaborado(preId) {
+  const pre = preelaborados.find(p => p.id === preId);
+  if (!pre) return;
+  if (pre.tipo === 'carnes') abrirHACCPPreCarnes(pre);
+  else abrirHACCPPreVegetales(pre);
+}
+
+function abrirHACCPPreCarnes(pre) {
+  const fecha = pre.fecha || new Date().toISOString().split('T')[0];
+  const [y,m,d] = fecha.split('-');
+  const fechaDisplay = `${d}/${m}/${y}`;
+  const op = pre.opVinculada || '';
+
+  const html = `
+    <div style="font-size:.82rem;color:#64748b;margin-bottom:1.25rem;background:#fff7f7;border-radius:8px;padding:.75rem;border-left:4px solid #dc2626;">
+      <strong>Instrucciones:</strong> Complete todos los campos del registro. Use ✓ para aprobado y ✗ para rechazado en las evaluaciones sensoriales.
+      Si existe acción correctiva requerida, indique el número correspondiente según tabla al pie.
+    </div>
+
+    <!-- DATOS GENERALES -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:1.25rem;">
+      <div>
+        <label style="font-size:.8rem;font-weight:600;color:#dc2626;display:block;margin-bottom:.3rem;">📅 Fecha (1)</label>
+        <input type="date" id="hpcFecha" value="${fecha}" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #fca5a5;font-size:.9rem;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:.8rem;font-weight:600;color:#dc2626;display:block;margin-bottom:.3rem;">🔪 Preparación (2)</label>
+        <input type="text" id="hpcPreparacion" value="${pre.ingrediente || ''}" placeholder="Ej: Filete, Troceado..." style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #fca5a5;font-size:.9rem;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:.8rem;font-weight:600;color:#dc2626;display:block;margin-bottom:.3rem;">🥩 Producto (3)</label>
+        <input type="text" id="hpcProducto" value="${pre.ingrediente || ''}" placeholder="Nombre del producto" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #fca5a5;font-size:.9rem;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:.8rem;font-weight:600;color:#dc2626;display:block;margin-bottom:.3rem;">📋 N° Orden Producción (4)</label>
+        <input type="text" id="hpcOP" value="${op}" placeholder="N° OP" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #fca5a5;font-size:.9rem;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:.8rem;font-weight:600;color:#dc2626;display:block;margin-bottom:.3rem;">🏷️ Lote Materia Prima (5)</label>
+        <input type="text" id="hpcLoteMP" placeholder="Lote MP" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #fca5a5;font-size:.9rem;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:.8rem;font-weight:600;color:#dc2626;display:block;margin-bottom:.3rem;">❄️ Condición Almacenamiento (6)</label>
+        <select id="hpcCondicion" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #fca5a5;font-size:.9rem;box-sizing:border-box;">
+          <option value="">— Seleccionar —</option>
+          <option value="R">R — Refrigerado</option>
+          <option value="C">C — Congelado</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- CONTROL DE PROCESO -->
+    <div style="background:#f8f9ff;border-radius:10px;padding:1rem;margin-bottom:1.25rem;">
+      <div style="font-weight:700;color:#333;margin-bottom:.75rem;font-size:.9rem;">⚙️ Control de Proceso de Producción (7)</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.75rem;">
+        <div>
+          <label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">Kg Bruto</label>
+          <input type="number" id="hpcKgBruto" value="${pre.kg || ''}" step="0.01" min="0" placeholder="0.00" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">Kg Neto</label>
+          <input type="number" id="hpcKgNeto" step="0.01" min="0" placeholder="0.00" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">Kg Despunte</label>
+          <input type="number" id="hpcKgDespunte" step="0.01" min="0" placeholder="0.00" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">Kg Merma</label>
+          <input type="number" id="hpcKgMerma" step="0.01" min="0" placeholder="0.00" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">Lote Empaque</label>
+          <input type="text" id="hpcLoteEmpaque" placeholder="Lote" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">Lote Asignado</label>
+          <input type="text" id="hpcLoteAsignado" placeholder="Lote producto" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
+        </div>
+      </div>
+    </div>
+
+    <!-- INSPECCIÓN CALIDAD -->
+    <div style="background:#f0fdf4;border-radius:10px;padding:1rem;margin-bottom:1.25rem;">
+      <div style="font-weight:700;color:#333;margin-bottom:.75rem;font-size:.9rem;">🔍 Inspección de Calidad (8)</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.75rem;">
+        ${['Olor','Color','Textura','Ausencia Elem. Extraños'].map(attr => `
+        <div style="background:white;border-radius:8px;padding:.75rem;text-align:center;border:1px solid #e2e8f0;">
+          <div style="font-size:.82rem;font-weight:600;color:#333;margin-bottom:.5rem;">${attr}</div>
+          <div style="display:flex;gap:.5rem;justify-content:center;">
+            <label style="cursor:pointer;display:flex;align-items:center;gap:.25rem;">
+              <input type="radio" name="hpcAttr${attr.replace(/\s/g,'')}" value="ok" style="accent-color:#10b981;">
+              <span style="font-size:1rem;">✓</span>
+            </label>
+            <label style="cursor:pointer;display:flex;align-items:center;gap:.25rem;">
+              <input type="radio" name="hpcAttr${attr.replace(/\s/g,'')}" value="nok" style="accent-color:#ef4444;">
+              <span style="font-size:1rem;">✗</span>
+            </label>
+          </div>
+        </div>`).join('')}
+      </div>
+      <div style="margin-top:.75rem;">
+        <label style="font-size:.8rem;font-weight:600;color:#333;display:block;margin-bottom:.3rem;">Acción Correctiva (N° si aplica)</label>
+        <select id="hpcAC" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.85rem;box-sizing:border-box;">
+          <option value="">— Sin acción correctiva —</option>
+          <option value="1">AC 1 — Refrigerar hasta ≤4°C</option>
+          <option value="2">AC 2 — Eliminar producto (falla sensorial) + higienización sala</option>
+          <option value="3">AC 3 — Identificar elemento extraño, informar a Calidad, gestionar PNC</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- RESPONSABLE -->
+    <div style="margin-bottom:1.25rem;">
+      <label style="font-size:.8rem;font-weight:600;color:#333;display:block;margin-bottom:.3rem;">👤 Responsable de la Elaboración (9)</label>
+      <input type="text" id="hpcResponsable" value="${pre.operador || ''}" placeholder="Nombre y firma" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
+    </div>
+
+    <!-- LÍMITE CRÍTICO -->
+    <div style="background:#fff7f7;border-radius:8px;padding:.75rem;margin-bottom:1.25rem;font-size:.78rem;color:#64748b;">
+      <strong>LC:</strong> ≤ 4°C para todas las carnes<br>
+      <strong>AC1:</strong> Refrigerar hasta alcanzar temp. de refrigeración (&lt;4°C) |
+      <strong>AC2:</strong> Eliminar producto sin características sensoriales acordes + higienización sala |
+      <strong>AC3:</strong> Identificar elemento extraño → informar Calidad → gestionar PNC → notificar proveedor
+    </div>
+
+    <div style="display:flex;gap:.75rem;justify-content:flex-end;">
+      <button onclick="cerrarHACCPPreCarnes()" style="padding:.75rem 1.5rem;border-radius:10px;border:1px solid #ddd;cursor:pointer;font-weight:600;color:#64748b;background:white;">Cancelar</button>
+      <button onclick="guardarHACCPPreCarnes('${pre.id}')" style="padding:.75rem 1.5rem;border-radius:10px;border:none;background:linear-gradient(135deg,#dc2626,#ef4444);color:white;cursor:pointer;font-weight:700;font-size:1rem;">💾 Guardar Registro HACCP</button>
+    </div>
+  `;
+
+  document.getElementById('contenidoHACCPPreCarnes').innerHTML = html;
+  document.getElementById('modalHACCPPreCarnes').style.display = 'block';
+}
+
+function cerrarHACCPPreCarnes() {
+  document.getElementById('modalHACCPPreCarnes').style.display = 'none';
+}
+
+function guardarHACCPPreCarnes(preId) {
+  const pre = preelaborados.find(p => p.id === preId);
+  if (!pre) return;
+  pre.haccp = {
+    fecha: document.getElementById('hpcFecha')?.value,
+    preparacion: document.getElementById('hpcPreparacion')?.value,
+    producto: document.getElementById('hpcProducto')?.value,
+    nOP: document.getElementById('hpcOP')?.value,
+    loteMP: document.getElementById('hpcLoteMP')?.value,
+    condicion: document.getElementById('hpcCondicion')?.value,
+    kgBruto: document.getElementById('hpcKgBruto')?.value,
+    kgNeto: document.getElementById('hpcKgNeto')?.value,
+    kgDespunte: document.getElementById('hpcKgDespunte')?.value,
+    kgMerma: document.getElementById('hpcKgMerma')?.value,
+    loteEmpaque: document.getElementById('hpcLoteEmpaque')?.value,
+    loteAsignado: document.getElementById('hpcLoteAsignado')?.value,
+    olor: document.querySelector('input[name="hpcAttrOlor"]:checked')?.value,
+    color: document.querySelector('input[name="hpcAttrColor"]:checked')?.value,
+    textura: document.querySelector('input[name="hpcAttrTextura"]:checked')?.value,
+    ausenciaEE: document.querySelector('input[name="hpcAttrAusenciaElem.Extraños"]:checked')?.value,
+    accionCorrectiva: document.getElementById('hpcAC')?.value,
+    responsable: document.getElementById('hpcResponsable')?.value,
+    registradoEn: new Date().toLocaleString('es-CL')
+  };
+  guardarPreelaborados();
+  cerrarHACCPPreCarnes();
+  mostrarToastHACCP('carnes', pre.ingrediente);
+}
+
+// ============================================================
+// HACCP PREELABORADO VEGETALES — R-POE-03-GF-02
+// ============================================================
+function abrirHACCPPreVegetales(pre) {
+  const fecha = pre.fecha || new Date().toISOString().split('T')[0];
+
+  const html = `
+    <div style="font-size:.82rem;color:#64748b;margin-bottom:1.25rem;background:#f0fdf4;border-radius:8px;padding:.75rem;border-left:4px solid #16a34a;">
+      <strong>Instrucciones:</strong> Complete todos los campos. Use ✓/✗ en sanitización y evaluación sensorial.
+      Reportar sanitizado con agua ozonificada antes del acondicionamiento.
+    </div>
+
+    <!-- DATOS GENERALES -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:1.25rem;">
+      <div>
+        <label style="font-size:.8rem;font-weight:600;color:#16a34a;display:block;margin-bottom:.3rem;">📅 Fecha (1)</label>
+        <input type="date" id="hpvFecha" value="${fecha}" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #86efac;font-size:.9rem;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:.8rem;font-weight:600;color:#16a34a;display:block;margin-bottom:.3rem;">🔪 Preparación (2)</label>
+        <input type="text" id="hpvPreparacion" value="${pre.tipoCorte || ''}" placeholder="Ej: Juliana, Brunoise..." style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #86efac;font-size:.9rem;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:.8rem;font-weight:600;color:#16a34a;display:block;margin-bottom:.3rem;">🥗 Materia Prima (3)</label>
+        <input type="text" id="hpvMateriaPrima" value="${pre.ingrediente || ''}" placeholder="Nombre vegetal" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #86efac;font-size:.9rem;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:.8rem;font-weight:600;color:#16a34a;display:block;margin-bottom:.3rem;">🏷️ Lote MP (4)</label>
+        <input type="text" id="hpvLoteMP" placeholder="Lote materia prima" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #86efac;font-size:.9rem;box-sizing:border-box;">
+      </div>
+    </div>
+
+    <!-- CONTROL DE PROCESO -->
+    <div style="background:#f8f9ff;border-radius:10px;padding:1rem;margin-bottom:1.25rem;">
+      <div style="font-weight:700;color:#333;margin-bottom:.75rem;font-size:.9rem;">⚙️ Control de Proceso de Producción (5)</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.75rem;">
+        <div>
+          <label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">Kg Bruto</label>
+          <input type="number" id="hpvKgBruto" value="${pre.kg || ''}" step="0.01" min="0" placeholder="0.00" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">Kg Neto</label>
+          <input type="number" id="hpvKgNeto" step="0.01" min="0" placeholder="0.00" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">Kg Merma</label>
+          <input type="number" id="hpvKgMerma" step="0.01" min="0" placeholder="0.00" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">Cant. Bolsas</label>
+          <input type="number" id="hpvBolsas" step="1" min="0" placeholder="0" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">Lote Empaque</label>
+          <input type="text" id="hpvLoteEmpaque" placeholder="Lote" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:.78rem;color:#666;display:block;margin-bottom:.25rem;">Lote Asignado</label>
+          <input type="text" id="hpvLoteAsignado" placeholder="Lote producto" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
+        </div>
+      </div>
+    </div>
+
+    <!-- SANITIZACIÓN + EVALUACIÓN SENSORIAL -->
+    <div style="background:#f0fdf4;border-radius:10px;padding:1rem;margin-bottom:1.25rem;">
+      <div style="font-weight:700;color:#333;margin-bottom:.75rem;font-size:.9rem;">🧪 Sanitización y Evaluación Sensorial</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.75rem;">
+        ${[
+          {id:'hpvSanitizacion', label:'Sanitización (6)', desc:'Agua ozonificada'},
+          {id:'hpvColor', label:'Color (7)', desc:'Evaluación sensorial'},
+          {id:'hpvOlor', label:'Olor (7)', desc:'Evaluación sensorial'},
+          {id:'hpvTextura', label:'Textura (7)', desc:'Evaluación sensorial'}
+        ].map(f => `
+        <div style="background:white;border-radius:8px;padding:.75rem;text-align:center;border:1px solid #e2e8f0;">
+          <div style="font-size:.82rem;font-weight:600;color:#333;margin-bottom:.15rem;">${f.label}</div>
+          <div style="font-size:.72rem;color:#94a3b8;margin-bottom:.5rem;">${f.desc}</div>
+          <div style="display:flex;gap:.5rem;justify-content:center;">
+            <label style="cursor:pointer;display:flex;align-items:center;gap:.25rem;">
+              <input type="radio" name="${f.id}" value="ok" style="accent-color:#10b981;">
+              <span style="font-size:1rem;">✓</span>
+            </label>
+            <label style="cursor:pointer;display:flex;align-items:center;gap:.25rem;">
+              <input type="radio" name="${f.id}" value="nok" style="accent-color:#ef4444;">
+              <span style="font-size:1rem;">✗</span>
+            </label>
+          </div>
+        </div>`).join('')}
+      </div>
+      <div style="margin-top:.75rem;">
+        <label style="font-size:.8rem;font-weight:600;color:#333;display:block;margin-bottom:.3rem;">Acción Correctiva (8)</label>
+        <select id="hpvAC" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.85rem;box-sizing:border-box;">
+          <option value="">— Sin acción correctiva —</option>
+          <option value="1">AC 1 — Comunicar a Calidad y Producción, eliminar producto</option>
+          <option value="2">AC 2 — Gestionar devolución al proveedor</option>
+          <option value="3">AC 3 — Equipo Eko3© no funciona → notificar a Calidad</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- RESPONSABLE -->
+    <div style="margin-bottom:1.25rem;">
+      <label style="font-size:.8rem;font-weight:600;color:#333;display:block;margin-bottom:.3rem;">👤 Responsable Elaboración (9)</label>
+      <input type="text" id="hpvResponsable" value="${pre.operador || ''}" placeholder="Nombre y firma" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
+    </div>
+
+    <div style="background:#f0fdf4;border-radius:8px;padding:.75rem;margin-bottom:1.25rem;font-size:.78rem;color:#64748b;">
+      <strong>AC1:</strong> Comunicar a Calidad y Producción → eliminar producto involucrado |
+      <strong>AC2:</strong> Gestionar devolución al proveedor |
+      <strong>AC3:</strong> Equipo Eko3© no funciona → notificar a Calidad para revisión
+    </div>
+
+    <div style="display:flex;gap:.75rem;justify-content:flex-end;">
+      <button onclick="cerrarHACCPPreVegetales()" style="padding:.75rem 1.5rem;border-radius:10px;border:1px solid #ddd;cursor:pointer;font-weight:600;color:#64748b;background:white;">Cancelar</button>
+      <button onclick="guardarHACCPPreVegetales('${pre.id}')" style="padding:.75rem 1.5rem;border-radius:10px;border:none;background:linear-gradient(135deg,#16a34a,#22c55e);color:white;cursor:pointer;font-weight:700;font-size:1rem;">💾 Guardar Registro HACCP</button>
+    </div>
+  `;
+
+  document.getElementById('contenidoHACCPPreVegetales').innerHTML = html;
+  document.getElementById('modalHACCPPreVegetales').style.display = 'block';
+}
+
+function cerrarHACCPPreVegetales() {
+  document.getElementById('modalHACCPPreVegetales').style.display = 'none';
+}
+
+function guardarHACCPPreVegetales(preId) {
+  const pre = preelaborados.find(p => p.id === preId);
+  if (!pre) return;
+  pre.haccp = {
+    fecha: document.getElementById('hpvFecha')?.value,
+    preparacion: document.getElementById('hpvPreparacion')?.value,
+    materiaPrima: document.getElementById('hpvMateriaPrima')?.value,
+    loteMP: document.getElementById('hpvLoteMP')?.value,
+    kgBruto: document.getElementById('hpvKgBruto')?.value,
+    kgNeto: document.getElementById('hpvKgNeto')?.value,
+    kgMerma: document.getElementById('hpvKgMerma')?.value,
+    cantBolsas: document.getElementById('hpvBolsas')?.value,
+    loteEmpaque: document.getElementById('hpvLoteEmpaque')?.value,
+    loteAsignado: document.getElementById('hpvLoteAsignado')?.value,
+    sanitizacion: document.querySelector('input[name="hpvSanitizacion"]:checked')?.value,
+    color: document.querySelector('input[name="hpvColor"]:checked')?.value,
+    olor: document.querySelector('input[name="hpvOlor"]:checked')?.value,
+    textura: document.querySelector('input[name="hpvTextura"]:checked')?.value,
+    accionCorrectiva: document.getElementById('hpvAC')?.value,
+    responsable: document.getElementById('hpvResponsable')?.value,
+    registradoEn: new Date().toLocaleString('es-CL')
+  };
+  guardarPreelaborados();
+  cerrarHACCPPreVegetales();
+  mostrarToastHACCP('vegetales', pre.ingrediente);
+}
+
+function mostrarToastHACCP(tipo, ingrediente) {
+  const color = tipo === 'carnes' ? '#dc2626' : '#16a34a';
+  const icono = tipo === 'carnes' ? '🥩' : '🥗';
+  let cont = document.getElementById('toastContainer');
+  if (!cont) {
+    cont = document.createElement('div');
+    cont.id = 'toastContainer';
+    cont.style.cssText = 'position:fixed;top:1.5rem;right:1.5rem;z-index:99999;display:flex;flex-direction:column;gap:.75rem;pointer-events:none;';
+    document.body.appendChild(cont);
+  }
+  const toast = document.createElement('div');
+  toast.style.cssText = `background:white;border:2px solid ${color};border-left:6px solid ${color};border-radius:14px;padding:1rem 1.25rem;box-shadow:0 8px 30px rgba(0,0,0,0.15);min-width:280px;pointer-events:all;animation:slideInToast .3s ease;`;
+  toast.innerHTML = `
+    <div style="display:flex;align-items:center;gap:.75rem;">
+      <span style="font-size:1.5rem;">${icono}</span>
+      <div style="flex:1;">
+        <div style="font-weight:800;font-size:.9rem;color:${color};">✅ Registro HACCP guardado</div>
+        <div style="font-size:.82rem;color:#666;margin-top:.15rem;">${ingrediente}</div>
+      </div>
+      <button onclick="this.closest('div[style*=white]').parentElement.remove()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:1rem;">✕</button>
+    </div>`;
+  cont.appendChild(toast);
+  setTimeout(() => { toast.style.animation = 'fadeOutToast .3s ease forwards'; setTimeout(() => toast.remove(), 300); }, 5000);
+}
+
+// Inicializar al cargar
 async function cargarRecetasFirebase(intentos = 0) {
   if (!window.db || !window.firestoreLoaded) {
     if (intentos < 10) {
@@ -10381,6 +10793,35 @@ function mostrarPopupGantt(eq) {
       <div style="padding:1.5rem;" id="contenidoModalHACCPAbatimiento"></div>
     </div>
   </div>
+
+  <!-- MODAL HACCP PREELABORADO CARNES -->
+  <div id="modalHACCPPreCarnes" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;overflow-y:auto;">
+    <div style="background:white;max-width:900px;margin:1.5rem auto;border-radius:16px;overflow:hidden;">
+      <div style="background:linear-gradient(135deg,#dc2626,#ef4444);padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="color:white;font-weight:800;font-size:1.1rem;">📋 Registro HACCP — Preelaborado de Carnes</div>
+          <div style="color:rgba(255,255,255,.75);font-size:.8rem;margin-top:.2rem;">R-POE-03-GF-01 · Versión 02 · Vigencia: 15-12-2025</div>
+        </div>
+        <button onclick="cerrarHACCPPreCarnes()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
+      </div>
+      <div style="padding:1.5rem;" id="contenidoHACCPPreCarnes"></div>
+    </div>
+  </div>
+
+  <!-- MODAL HACCP PREELABORADO VEGETALES -->
+  <div id="modalHACCPPreVegetales" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;overflow-y:auto;">
+    <div style="background:white;max-width:900px;margin:1.5rem auto;border-radius:16px;overflow:hidden;">
+      <div style="background:linear-gradient(135deg,#16a34a,#22c55e);padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="color:white;font-weight:800;font-size:1.1rem;">📋 Registro HACCP — Preelaborado de Vegetales</div>
+          <div style="color:rgba(255,255,255,.75);font-size:.8rem;margin-top:.2rem;">R-POE-03-GF-02 · Versión 02 · Vigencia: 15-12-2025</div>
+        </div>
+        <button onclick="cerrarHACCPPreVegetales()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
+      </div>
+      <div style="padding:1.5rem;" id="contenidoHACCPPreVegetales"></div>
+    </div>
+  </div>
+
     </div> <!-- /appContent -->
 </body>
 </html>
