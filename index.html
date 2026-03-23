@@ -832,43 +832,110 @@
         </div>
 
         <!-- TAB: ACONDICIONAMIENTO CARNES -->
+        <!-- TAB: PREELABORADO CARNES -->
         <div id="carnes" class="tab-content">
-            <div class="analytics-section">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
-                    <div style="display:flex;align-items:center;gap:1rem;">
-                        <button onclick="changeTabAcond('carnes')" style="background:#fee2e2;border:2px solid #ef4444;color:#dc2626;border-radius:20px;padding:.4rem 1rem;font-weight:700;cursor:pointer;font-size:.85rem;">🥩 Carnes</button>
-                        <button onclick="changeTabAcond('vegetales')" style="background:white;border:2px solid #10b981;color:#10b981;border-radius:20px;padding:.4rem 1rem;font-weight:700;cursor:pointer;font-size:.85rem;">🥗 Vegetales</button>
-                    </div>
-                    <h2 style="color:#dc2626;margin:0;">🥩 Acondicionamiento — Carnes</h2>
-                </div>
-                <div id="contenidoCarnes">
-                    <div style="text-align:center;color:#999;padding:4rem;">
-                        <div style="font-size:3rem;margin-bottom:1rem;">🥩</div>
-                        <p style="font-size:1.1rem;">Módulo de Acondicionamiento de Carnes</p>
-                        <p style="font-size:.9rem;margin-top:.5rem;color:#bbb;">Aquí se cargarán los registros de Carnes</p>
-                    </div>
-                </div>
+          <div class="analytics-section">
+            <!-- Header -->
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
+              <div style="display:flex;align-items:center;gap:1rem;">
+                <button onclick="changeTabAcond('carnes')" style="background:#fee2e2;border:2px solid #ef4444;color:#dc2626;border-radius:20px;padding:.4rem 1rem;font-weight:700;cursor:pointer;font-size:.85rem;">🥩 Carnes</button>
+                <button onclick="changeTabAcond('vegetales')" style="background:white;border:2px solid #10b981;color:#10b981;border-radius:20px;padding:.4rem 1rem;font-weight:700;cursor:pointer;font-size:.85rem;">🥗 Vegetales</button>
+              </div>
+              <h2 style="color:#dc2626;margin:0;">🥩 Preelaborado — Carnes</h2>
+              <button onclick="abrirModalPreelaborado('carnes')" style="background:linear-gradient(135deg,#dc2626,#ef4444);color:white;border:none;border-radius:10px;padding:.65rem 1.25rem;font-weight:700;cursor:pointer;font-size:.9rem;">➕ Nuevo Preelaborado</button>
             </div>
+            <!-- Fecha selector -->
+            <div style="background:#fff7f7;border-radius:12px;padding:1rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+              <span style="font-weight:600;color:#dc2626;">📅 Ver preelaborados para:</span>
+              <input type="date" id="fechaPreCarnes" onchange="renderPreelaborados('carnes')" style="padding:.5rem .75rem;border-radius:8px;border:2px solid #fca5a5;font-size:.95rem;font-weight:600;color:#333;">
+              <button onclick="setFechaPreHoy('carnes')" style="background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;border-radius:8px;padding:.45rem .9rem;font-weight:600;cursor:pointer;font-size:.85rem;">Hoy</button>
+              <button onclick="setFechaPreManana('carnes')" style="background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;border-radius:8px;padding:.45rem .9rem;font-weight:600;cursor:pointer;font-size:.85rem;">Mañana</button>
+              <div id="alertaOPsCarnes" style="margin-left:auto;font-size:.85rem;color:#dc2626;font-weight:600;"></div>
+            </div>
+            <!-- OPs del día siguiente que requieren carnes -->
+            <div id="opsRequierenCarnes" style="margin-bottom:1.5rem;"></div>
+            <!-- Estaciones activas -->
+            <div id="estacionesCarnes" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.25rem;margin-bottom:1.5rem;"></div>
+            <!-- Historial del día -->
+            <div id="historialPreCarnes"></div>
+          </div>
         </div>
 
-        <!-- TAB: ACONDICIONAMIENTO VEGETALES -->
+        <!-- TAB: PREELABORADO VEGETALES -->
         <div id="vegetales" class="tab-content">
-            <div class="analytics-section">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
-                    <div style="display:flex;align-items:center;gap:1rem;">
-                        <button onclick="changeTabAcond('carnes')" style="background:white;border:2px solid #ef4444;color:#dc2626;border-radius:20px;padding:.4rem 1rem;font-weight:700;cursor:pointer;font-size:.85rem;">🥩 Carnes</button>
-                        <button onclick="changeTabAcond('vegetales')" style="background:#d1fae5;border:2px solid #10b981;color:#065f46;border-radius:20px;padding:.4rem 1rem;font-weight:700;cursor:pointer;font-size:.85rem;">🥗 Vegetales</button>
-                    </div>
-                    <h2 style="color:#10b981;margin:0;">🥗 Acondicionamiento — Vegetales</h2>
-                </div>
-                <div id="contenidoVegetales">
-                    <div style="text-align:center;color:#999;padding:4rem;">
-                        <div style="font-size:3rem;margin-bottom:1rem;">🥗</div>
-                        <p style="font-size:1.1rem;">Módulo de Acondicionamiento de Vegetales</p>
-                        <p style="font-size:.9rem;margin-top:.5rem;color:#bbb;">Aquí se cargarán los registros de Vegetales</p>
-                    </div>
-                </div>
+          <div class="analytics-section">
+            <!-- Header -->
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
+              <div style="display:flex;align-items:center;gap:1rem;">
+                <button onclick="changeTabAcond('carnes')" style="background:white;border:2px solid #ef4444;color:#dc2626;border-radius:20px;padding:.4rem 1rem;font-weight:700;cursor:pointer;font-size:.85rem;">🥩 Carnes</button>
+                <button onclick="changeTabAcond('vegetales')" style="background:#d1fae5;border:2px solid #10b981;color:#065f46;border-radius:20px;padding:.4rem 1rem;font-weight:700;cursor:pointer;font-size:.85rem;">🥗 Vegetales</button>
+              </div>
+              <h2 style="color:#16a34a;margin:0;">🥗 Preelaborado — Vegetales</h2>
+              <button onclick="abrirModalPreelaborado('vegetales')" style="background:linear-gradient(135deg,#16a34a,#22c55e);color:white;border:none;border-radius:10px;padding:.65rem 1.25rem;font-weight:700;cursor:pointer;font-size:.9rem;">➕ Nuevo Preelaborado</button>
             </div>
+            <!-- Fecha selector -->
+            <div style="background:#f0fdf4;border-radius:12px;padding:1rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+              <span style="font-weight:600;color:#16a34a;">📅 Ver preelaborados para:</span>
+              <input type="date" id="fechaPreVegetales" onchange="renderPreelaborados('vegetales')" style="padding:.5rem .75rem;border-radius:8px;border:2px solid #86efac;font-size:.95rem;font-weight:600;color:#333;">
+              <button onclick="setFechaPreHoy('vegetales')" style="background:#d1fae5;border:1px solid #86efac;color:#16a34a;border-radius:8px;padding:.45rem .9rem;font-weight:600;cursor:pointer;font-size:.85rem;">Hoy</button>
+              <button onclick="setFechaPreManana('vegetales')" style="background:#d1fae5;border:1px solid #86efac;color:#16a34a;border-radius:8px;padding:.45rem .9rem;font-weight:600;cursor:pointer;font-size:.85rem;">Mañana</button>
+              <div id="alertaOPsVegetales" style="margin-left:auto;font-size:.85rem;color:#16a34a;font-weight:600;"></div>
+            </div>
+            <!-- OPs del día siguiente que requieren vegetales -->
+            <div id="opsRequierenVegetales" style="margin-bottom:1.5rem;"></div>
+            <!-- Estaciones activas -->
+            <div id="estacionesVegetales" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.25rem;margin-bottom:1.5rem;"></div>
+            <!-- Historial del día -->
+            <div id="historialPreVegetales"></div>
+          </div>
+        </div>
+
+        <!-- MODAL PREELABORADO -->
+        <div id="modalPreelaborado" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;overflow-y:auto;">
+          <div style="background:white;max-width:600px;margin:2rem auto;border-radius:16px;overflow:hidden;">
+            <div id="modalPreHeaderBar" style="padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
+              <div id="modalPreTitulo" style="color:white;font-weight:800;font-size:1.1rem;"></div>
+              <button onclick="cerrarModalPre()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
+            </div>
+            <div style="padding:1.5rem;">
+              <input type="hidden" id="preTipo">
+              <!-- Ingrediente -->
+              <div style="margin-bottom:1rem;">
+                <label style="font-weight:600;color:#444;font-size:.9rem;">🥩 Ingrediente a preelaborar</label>
+                <select id="preIngrediente" style="width:100%;padding:.75rem;border-radius:8px;border:2px solid #e5e7eb;margin-top:.4rem;font-size:.95rem;">
+                  <option value="">— Selecciona ingrediente —</option>
+                </select>
+              </div>
+              <!-- O ingresar manual -->
+              <div style="margin-bottom:1rem;">
+                <label style="font-weight:600;color:#444;font-size:.9rem;">✏️ O ingresa nombre manual</label>
+                <input type="text" id="preIngredienteManual" placeholder="Ej: Pechuga de pollo, Zanahoria..." style="width:100%;padding:.75rem;border-radius:8px;border:2px solid #e5e7eb;margin-top:.4rem;font-size:.95rem;box-sizing:border-box;">
+              </div>
+              <!-- Tipo de corte -->
+              <div style="margin-bottom:1rem;">
+                <label style="font-weight:600;color:#444;font-size:.9rem;">🔪 Tipo de corte / preparación</label>
+                <input type="text" id="preTipoCorte" placeholder="Ej: Filete, Troceado, Juliana, Brunoise..." style="width:100%;padding:.75rem;border-radius:8px;border:2px solid #e5e7eb;margin-top:.4rem;font-size:.95rem;box-sizing:border-box;">
+              </div>
+              <!-- KG -->
+              <div style="margin-bottom:1rem;">
+                <label style="font-weight:600;color:#444;font-size:.9rem;">⚖️ KG a preelaborar</label>
+                <input type="number" id="preKg" placeholder="0.0" min="0" step="0.1" style="width:100%;padding:.75rem;border-radius:8px;border:2px solid #e5e7eb;margin-top:.4rem;font-size:.95rem;box-sizing:border-box;">
+              </div>
+              <!-- Operador -->
+              <div style="margin-bottom:1rem;">
+                <label style="font-weight:600;color:#444;font-size:.9rem;">👤 Operador asignado</label>
+                <select id="preOperador" style="width:100%;padding:.75rem;border-radius:8px;border:2px solid #e5e7eb;margin-top:.4rem;font-size:.95rem;"></select>
+              </div>
+              <!-- OP vinculada -->
+              <div style="margin-bottom:1.5rem;">
+                <label style="font-weight:600;color:#444;font-size:.9rem;">📋 OP de cocina vinculada (opcional)</label>
+                <select id="preOpVinculada" style="width:100%;padding:.75rem;border-radius:8px;border:2px solid #e5e7eb;margin-top:.4rem;font-size:.95rem;">
+                  <option value="">— Sin vincular —</option>
+                </select>
+              </div>
+              <button onclick="iniciarPreelaborado()" style="width:100%;padding:1rem;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:10px;font-weight:700;font-size:1rem;cursor:pointer;">▶️ Iniciar Preelaborado</button>
+            </div>
+          </div>
         </div>
 
         <!-- TAB: ENVASADO -->
@@ -1383,6 +1450,21 @@
         onkeypress="if(event.key==='Enter') agregarPersonal('abatimiento')">
         <button onclick="agregarPersonal('abatimiento')"
         style="background:#3b82f6;color:white;border:none;border-radius:8px;padding:.6rem 1rem;cursor:pointer;font-weight:600;">
+        ➕
+        </button>
+        </div>
+        </div>
+
+        <!-- PREELABORADO -->
+        <div style="background:white;border-radius:15px;padding:1.5rem;box-shadow:0 4px 15px rgba(0,0,0,0.08);border-top:4px solid #dc2626;">
+        <h3 style="color:#dc2626;margin-bottom:1rem;">🔪 Preelaborado</h3>
+        <div id="listaPersonalPreelaborado"></div>
+        <div style="display:flex;gap:.5rem;margin-top:1rem;">
+        <input id="nuevoPersonalPreelaborado" type="text" placeholder="Nombre del operario..."
+        style="flex:1;padding:.6rem;border-radius:8px;border:2px solid #fca5a5;font-size:.9rem;"
+        onkeypress="if(event.key==='Enter') agregarPersonal('preelaborado')">
+        <button onclick="agregarPersonal('preelaborado')"
+        style="background:#dc2626;color:white;border:none;border-radius:8px;padding:.6rem 1rem;cursor:pointer;font-weight:600;">
         ➕
         </button>
         </div>
@@ -6009,7 +6091,8 @@ function imprimirRegistroHACCP(d) {
             else if (tabName === 'personal') { 
                 renderListaPersonal('cocina'); 
                 renderListaPersonal('envasado'); 
-                renderListaPersonal('abatimiento'); 
+                renderListaPersonal('abatimiento');
+                renderListaPersonal('preelaborado');
             }
             else if (tabName === 'planificador') { initPlanificador(); renderSelectorPlanProductos(); renderPlanVisual(); setTimeout(() => { cargarSelectorOPs(); initFechaPlan(); renderListaOPs(); }, 1500); }
             else if (tabName === 'gantt') { renderGanttGrid(); iniciarLineaHora(); renderGanttBloques(); iniciarCronometroGantt(); }
@@ -8192,6 +8275,10 @@ function changeTabAcond(tab) {
   document.getElementById('btnAcondicionamiento')?.classList.add('active');
   // Cambiar tab
   changeTab(tab);
+  // Inicializar módulo preelaborado
+  if (tab === 'carnes' || tab === 'vegetales') {
+    initPreelaboradoTab(tab);
+  }
 }
 
 // ---- PREPARACIONES EN FRÍO - DASHBOARD ----
@@ -8714,7 +8801,8 @@ function toggleEstadoOP(id) {
 let personal = JSON.parse(localStorage.getItem('mes_personal') || JSON.stringify({
   cocina: ['Maestro 1', 'Maestro 2', 'Ayudante 1'],
   envasado: ['Operario Env 1', 'Operario Env 2'],
-  abatimiento: ['Operario Abat 1']
+  abatimiento: ['Operario Abat 1'],
+  preelaborado: ['Preelaborador 1', 'Preelaborador 2']
 }));
 
 function guardarPersonal() {
@@ -8835,6 +8923,406 @@ window.addEventListener('load', () => {
     await cargarRecetasFirebase();
     renderListaRecetas();
   }, 2000);
+});
+
+// ============================================================
+// MÓDULO PREELABORADO — CARNES Y VEGETALES
+// ============================================================
+
+// Palabras clave para clasificar ingredientes
+const KEYWORDS_CARNES = ['pollo','vacuno','cerdo','pavo','carne','lomo','pechuga','filete','costilla','pierna','muslo','asado','molida','desmechada','proteina','proteína','ave','res','chancho'];
+const KEYWORDS_VEGETALES = ['cebolla','zanahoria','tomate','lechuga','zapallo','pimiento','puerro','apio','brocoli','brócoli','coliflor','espinaca','acelga','repollo','papas','papa','choclo','arveja','poroto','champiñon','champiñones','vegetal','verdura','ajo','perejil','cilantro','albahaca','pimiento'];
+
+let preelaborados = JSON.parse(localStorage.getItem('mes_preelaborados') || '[]');
+let timersPre = {}; // timers activos por id
+
+function guardarPreelaborados() {
+  localStorage.setItem('mes_preelaborados', JSON.stringify(preelaborados));
+  if (window.db && window.firestoreLoaded) {
+    try {
+      const { doc, setDoc } = window.firestoreFunctions;
+      setDoc(doc(window.db, 'mes-data', 'preelaborados'), { preelaborados, ultimaActualizacion: new Date().toISOString() });
+    } catch(e) {}
+  }
+}
+
+async function cargarPreelaboradosFirebase() {
+  if (!window.db || !window.firestoreLoaded) return;
+  try {
+    const { doc, getDoc } = window.firestoreFunctions;
+    const snap = await getDoc(doc(window.db, 'mes-data', 'preelaborados'));
+    if (snap.exists() && snap.data().preelaborados) {
+      preelaborados = snap.data().preelaborados;
+      localStorage.setItem('mes_preelaborados', JSON.stringify(preelaborados));
+    }
+  } catch(e) {}
+}
+
+function clasificarIngrediente(nombre) {
+  const n = nombre.toLowerCase();
+  if (KEYWORDS_CARNES.some(k => n.includes(k))) return 'carnes';
+  if (KEYWORDS_VEGETALES.some(k => n.includes(k))) return 'vegetales';
+  return null;
+}
+
+function getFechaPreInput(tipo) {
+  const id = tipo === 'carnes' ? 'fechaPreCarnes' : 'fechaPreVegetales';
+  const el = document.getElementById(id);
+  return el ? el.value : '';
+}
+
+function setFechaPreHoy(tipo) {
+  const id = tipo === 'carnes' ? 'fechaPreCarnes' : 'fechaPreVegetales';
+  const el = document.getElementById(id);
+  if (el) { el.value = new Date().toISOString().split('T')[0]; renderPreelaborados(tipo); }
+}
+
+function setFechaPreManana(tipo) {
+  const id = tipo === 'carnes' ? 'fechaPreCarnes' : 'fechaPreVegetales';
+  const el = document.getElementById(id);
+  if (el) {
+    const d = new Date(); d.setDate(d.getDate() + 1);
+    el.value = d.toISOString().split('T')[0];
+    renderPreelaborados(tipo);
+  }
+}
+
+function getOPsQueRequieren(tipo, fechaCocina) {
+  // Retorna OPs de cocina cuya fecha === fechaCocina y que tengan ingredientes del tipo
+  return ordenesProduccion.filter(op => {
+    if (op.fecha !== fechaCocina) return false;
+    const ingredientes = (op.componentes || []).flatMap(c => c.ingredientes || []);
+    return ingredientes.some(ing => clasificarIngrediente(ing.nombre || '') === tipo);
+  });
+}
+
+function getIngredientesDeTipo(op, tipo) {
+  return (op.componentes || [])
+    .flatMap(c => (c.ingredientes || []).map(ing => ({ ...ing, componente: c.nombre })))
+    .filter(ing => clasificarIngrediente(ing.nombre || '') === tipo);
+}
+
+function renderOPsRequeridas(tipo) {
+  const fechaEl = tipo === 'carnes' ? 'fechaPreCarnes' : 'fechaPreVegetales';
+  const fechaInput = document.getElementById(fechaEl)?.value;
+  if (!fechaInput) return;
+
+  // El preelaborado es 1 día ANTES de la cocina
+  const d = new Date(fechaInput + 'T12:00:00');
+  d.setDate(d.getDate() + 1);
+  const fechaCocina = d.toISOString().split('T')[0];
+  // Convertir a formato dd/mm/yyyy para comparar con op.fecha
+  const [yy, mm, dd] = fechaCocina.split('-');
+  const fechaCocinaStr = `${dd}/${mm}/${yy}`;
+
+  const ops = getOPsQueRequieren(tipo, fechaCocinaStr);
+  const contId = tipo === 'carnes' ? 'opsRequierenCarnes' : 'opsRequierenVegetales';
+  const alertId = tipo === 'carnes' ? 'alertaOPsCarnes' : 'alertaOPsVegetales';
+  const cont = document.getElementById(contId);
+  const alerta = document.getElementById(alertId);
+
+  if (!cont) return;
+
+  if (ops.length === 0) {
+    cont.innerHTML = `<div style="background:#f8fafc;border-radius:10px;padding:1rem;color:#94a3b8;font-size:.9rem;text-align:center;">Sin OPs de cocina programadas para el ${fechaCocinaStr} que requieran ${tipo === 'carnes' ? 'carnes/proteínas' : 'vegetales'}.</div>`;
+    if (alerta) alerta.textContent = '';
+    return;
+  }
+
+  if (alerta) alerta.textContent = `⚠️ ${ops.length} OP(s) de cocina requieren preelaborado`;
+
+  const color = tipo === 'carnes' ? '#dc2626' : '#16a34a';
+  const bg = tipo === 'carnes' ? '#fff7f7' : '#f0fdf4';
+  const border = tipo === 'carnes' ? '#fca5a5' : '#86efac';
+
+  cont.innerHTML = `
+    <div style="background:${bg};border:1px solid ${border};border-radius:12px;padding:1rem;margin-bottom:.5rem;">
+      <div style="font-weight:700;color:${color};margin-bottom:.75rem;font-size:.95rem;">
+        📋 OPs de cocina del ${fechaCocinaStr} que requieren preelaborado de ${tipo === 'carnes' ? 'carnes' : 'vegetales'}:
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.75rem;">
+        ${ops.map(op => {
+          const ings = getIngredientesDeTipo(op, tipo);
+          return `
+          <div style="background:white;border-radius:10px;padding:.85rem;border-left:4px solid ${color};">
+            <div style="font-weight:700;color:#333;margin-bottom:.4rem;">OP ${op.numeroOp} — ${op.nombre}</div>
+            <div style="font-size:.82rem;color:#666;margin-bottom:.5rem;">${op.platos?.toLocaleString()} unidades · ${op.kgTotalesTerminados} kg terminados</div>
+            <div style="font-size:.82rem;font-weight:600;color:${color};margin-bottom:.3rem;">${tipo === 'carnes' ? '🥩' : '🥗'} Ingredientes requeridos:</div>
+            ${ings.map(ing => `
+              <div style="font-size:.82rem;color:#555;padding:.15rem 0;">
+                • ${ing.nombre}: <strong>${ing.cantidadTotal || ing.cantidadBruta || '?'} ${ing.unidad || 'kg'}</strong> 
+                <span style="color:#999;">(${ing.componente})</span>
+              </div>`).join('')}
+            <button onclick="abrirModalPreelaboradoDesdeOP('${tipo}','${op.id}')" 
+              style="margin-top:.6rem;background:${color};color:white;border:none;border-radius:7px;padding:.35rem .8rem;font-size:.8rem;font-weight:600;cursor:pointer;width:100%;">
+              ➕ Crear preelaborado para esta OP
+            </button>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+function renderEstacionesPre(tipo) {
+  const contId = tipo === 'carnes' ? 'estacionesCarnes' : 'estacionesVegetales';
+  const cont = document.getElementById(contId);
+  if (!cont) return;
+
+  const fechaInput = getFechaPreInput(tipo);
+  const activos = preelaborados.filter(p => p.tipo === tipo && p.estado === 'activo' && p.fecha === fechaInput);
+
+  if (activos.length === 0) {
+    cont.innerHTML = `<div style="background:#f8fafc;border-radius:12px;padding:2rem;text-align:center;color:#94a3b8;grid-column:1/-1;">
+      <div style="font-size:2.5rem;margin-bottom:.5rem;">${tipo === 'carnes' ? '🥩' : '🥗'}</div>
+      <div style="font-weight:600;">Sin preelaborados activos</div>
+      <div style="font-size:.85rem;margin-top:.3rem;">Usa "Nuevo Preelaborado" para iniciar</div>
+    </div>`;
+    return;
+  }
+
+  const color = tipo === 'carnes' ? '#dc2626' : '#16a34a';
+  const bg = tipo === 'carnes' ? '#fff7f7' : '#f0fdf4';
+
+  cont.innerHTML = activos.map(p => {
+    const elapsed = Math.floor((Date.now() - new Date(p.inicio).getTime()) / 1000);
+    const mm = String(Math.floor(elapsed / 60)).padStart(2,'0');
+    const ss = String(elapsed % 60).padStart(2,'0');
+    return `
+    <div id="cardPre_${p.id}" style="background:white;border-radius:14px;padding:1.25rem;box-shadow:0 4px 15px rgba(0,0,0,0.1);border-left:5px solid ${color};">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem;">
+        <div>
+          <div style="font-weight:800;font-size:1.05rem;color:#333;">${p.ingrediente}</div>
+          <div style="font-size:.8rem;color:#666;margin-top:.15rem;">🔪 ${p.tipoCorte || 'Sin especificar'}</div>
+        </div>
+        <span style="background:${bg};color:${color};border-radius:20px;padding:.25rem .75rem;font-size:.75rem;font-weight:700;">EN PROCESO</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.75rem;">
+        <div style="background:#f8fafc;border-radius:8px;padding:.5rem;text-align:center;">
+          <div style="font-size:.75rem;color:#666;">⚖️ KG</div>
+          <div style="font-weight:700;color:#333;">${p.kg} kg</div>
+        </div>
+        <div style="background:#f8fafc;border-radius:8px;padding:.5rem;text-align:center;">
+          <div style="font-size:.75rem;color:#666;">👤 Operador</div>
+          <div style="font-weight:700;color:#333;font-size:.9rem;">${p.operador}</div>
+        </div>
+      </div>
+      ${p.opVinculada ? `<div style="font-size:.8rem;color:#667eea;margin-bottom:.5rem;">📋 OP vinculada: ${p.opVinculada}</div>` : ''}
+      <div style="text-align:center;font-size:1.6rem;font-weight:800;color:${color};font-family:monospace;margin:.5rem 0;" id="timerPre_${p.id}">${mm}:${ss}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;">
+        <button onclick="finalizarPreelaborado('${p.id}')" 
+          style="padding:.65rem;background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.88rem;">
+          ✅ Finalizar
+        </button>
+        <button onclick="cancelarPreelaborado('${p.id}')"
+          style="padding:.65rem;background:#f3f4f6;color:#666;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:.88rem;">
+          ✕ Cancelar
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Iniciar timers
+  activos.forEach(p => iniciarTimerPre(p.id));
+}
+
+function iniciarTimerPre(id) {
+  if (timersPre[id]) clearInterval(timersPre[id]);
+  timersPre[id] = setInterval(() => {
+    const pre = preelaborados.find(p => p.id === id);
+    if (!pre || pre.estado !== 'activo') { clearInterval(timersPre[id]); return; }
+    const el = document.getElementById(`timerPre_${id}`);
+    if (!el) { clearInterval(timersPre[id]); return; }
+    const elapsed = Math.floor((Date.now() - new Date(pre.inicio).getTime()) / 1000);
+    const mm = String(Math.floor(elapsed / 60)).padStart(2,'0');
+    const ss = String(elapsed % 60).padStart(2,'0');
+    el.textContent = `${mm}:${ss}`;
+  }, 1000);
+}
+
+function renderHistorialPre(tipo) {
+  const contId = tipo === 'carnes' ? 'historialPreCarnes' : 'historialPreVegetales';
+  const cont = document.getElementById(contId);
+  if (!cont) return;
+
+  const fechaInput = getFechaPreInput(tipo);
+  const finalizados = preelaborados.filter(p => p.tipo === tipo && p.estado === 'finalizado' && p.fecha === fechaInput);
+
+  if (finalizados.length === 0) {
+    cont.innerHTML = '';
+    return;
+  }
+
+  const color = tipo === 'carnes' ? '#dc2626' : '#16a34a';
+  cont.innerHTML = `
+    <div style="background:white;border-radius:12px;padding:1.25rem;box-shadow:0 2px 8px rgba(0,0,0,0.07);">
+      <h3 style="color:${color};margin:0 0 1rem;font-size:.95rem;">✅ Preelaborados finalizados del día</h3>
+      <table style="width:100%;border-collapse:collapse;font-size:.88rem;">
+        <thead>
+          <tr style="background:#f8fafc;">
+            <th style="padding:.5rem .75rem;text-align:left;color:#666;font-weight:600;">Ingrediente</th>
+            <th style="padding:.5rem .75rem;text-align:left;color:#666;font-weight:600;">Corte</th>
+            <th style="padding:.5rem .75rem;text-align:right;color:#666;font-weight:600;">KG</th>
+            <th style="padding:.5rem .75rem;text-align:left;color:#666;font-weight:600;">Operador</th>
+            <th style="padding:.5rem .75rem;text-align:right;color:#666;font-weight:600;">Duración</th>
+            <th style="padding:.5rem .75rem;text-align:left;color:#666;font-weight:600;">OP</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${finalizados.map((p,i) => `
+          <tr style="border-bottom:1px solid #f3f4f6;background:${i%2===0?'white':'#fafafa'};">
+            <td style="padding:.5rem .75rem;font-weight:600;">${p.ingrediente}</td>
+            <td style="padding:.5rem .75rem;color:#666;">${p.tipoCorte || '—'}</td>
+            <td style="padding:.5rem .75rem;text-align:right;font-weight:700;color:#10b981;">${p.kg} kg</td>
+            <td style="padding:.5rem .75rem;">${p.operador}</td>
+            <td style="padding:.5rem .75rem;text-align:right;font-family:monospace;color:${color};">${p.duracion || '—'}</td>
+            <td style="padding:.5rem .75rem;font-size:.8rem;color:#667eea;">${p.opVinculada || '—'}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function renderPreelaborados(tipo) {
+  renderOPsRequeridas(tipo);
+  renderEstacionesPre(tipo);
+  renderHistorialPre(tipo);
+}
+
+function abrirModalPreelaborado(tipo, opId) {
+  const modal = document.getElementById('modalPreelaborado');
+  const header = document.getElementById('modalPreHeaderBar');
+  const titulo = document.getElementById('modalPreTitulo');
+  document.getElementById('preTipo').value = tipo;
+
+  if (tipo === 'carnes') {
+    header.style.background = 'linear-gradient(135deg,#dc2626,#ef4444)';
+    titulo.textContent = '🥩 Nuevo Preelaborado — Carnes';
+  } else {
+    header.style.background = 'linear-gradient(135deg,#16a34a,#22c55e)';
+    titulo.textContent = '🥗 Nuevo Preelaborado — Vegetales';
+  }
+
+  // Cargar ingredientes sugeridos desde OPs
+  const selIng = document.getElementById('preIngrediente');
+  selIng.innerHTML = '<option value="">— Selecciona ingrediente —</option>';
+  const fechaInput = getFechaPreInput(tipo);
+  if (fechaInput) {
+    const d = new Date(fechaInput + 'T12:00:00');
+    d.setDate(d.getDate() + 1);
+    const [yy,mm,dd] = d.toISOString().split('T')[0].split('-');
+    const fechaCocina = `${dd}/${mm}/${yy}`;
+    const ops = getOPsQueRequieren(tipo, fechaCocina);
+    const ings = [...new Set(ops.flatMap(op => getIngredientesDeTipo(op, tipo)).map(i => i.nombre))];
+    ings.forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; selIng.appendChild(o); });
+  }
+
+  // Cargar operadores — usa personal preelaborado si existe, sino cocina
+  const selOp = document.getElementById('preOperador');
+  const listaPersonal = personal.preelaborado || personal.cocina || [];
+  selOp.innerHTML = '<option value="">— Selecciona operador —</option>' + listaPersonal.map(n => `<option value="${n}">${n}</option>`).join('');
+
+  // Cargar OPs vinculables
+  const selOP = document.getElementById('preOpVinculada');
+  selOP.innerHTML = '<option value="">— Sin vincular —</option>' + ordenesProduccion.filter(op => op.estado !== 'completada').map(op => `<option value="${op.numeroOp}" ${op.id === opId ? 'selected' : ''}>OP ${op.numeroOp} — ${op.nombre}</option>`).join('');
+
+  // Prellenar ingrediente si viene de una OP
+  if (opId) {
+    const op = ordenesProduccion.find(o => o.id === opId);
+    if (op) {
+      const ings = getIngredientesDeTipo(op, tipo);
+      if (ings.length > 0) {
+        const opt = selIng.querySelector(`option[value="${ings[0].nombre}"]`);
+        if (opt) selIng.value = ings[0].nombre;
+        document.getElementById('preKg').value = ings[0].cantidadTotal || ings[0].cantidadBruta || '';
+      }
+    }
+  }
+
+  document.getElementById('preIngredienteManual').value = '';
+  document.getElementById('preTipoCorte').value = '';
+  modal.style.display = 'block';
+}
+
+function abrirModalPreelaboradoDesdeOP(tipo, opId) {
+  abrirModalPreelaborado(tipo, opId);
+}
+
+function cerrarModalPre() {
+  document.getElementById('modalPreelaborado').style.display = 'none';
+}
+
+function iniciarPreelaborado() {
+  const tipo = document.getElementById('preTipo').value;
+  const ingSelect = document.getElementById('preIngrediente').value;
+  const ingManual = document.getElementById('preIngredienteManual').value.trim();
+  const ingrediente = ingSelect || ingManual;
+  const tipoCorte = document.getElementById('preTipoCorte').value.trim();
+  const kg = parseFloat(document.getElementById('preKg').value) || 0;
+  const operador = document.getElementById('preOperador').value;
+  const opVinculada = document.getElementById('preOpVinculada').value;
+  const fechaInput = getFechaPreInput(tipo);
+
+  if (!ingrediente) { alert('Selecciona o escribe el ingrediente a preelaborar'); return; }
+  if (!kg || kg <= 0) { alert('Ingresa los KG a preelaborar'); return; }
+  if (!operador) { alert('Selecciona un operador'); return; }
+  if (!fechaInput) { alert('Selecciona una fecha primero'); return; }
+
+  const pre = {
+    id: Date.now().toString(),
+    tipo,
+    ingrediente,
+    tipoCorte,
+    kg,
+    operador,
+    opVinculada,
+    fecha: fechaInput,
+    inicio: new Date().toISOString(),
+    estado: 'activo'
+  };
+
+  preelaborados.push(pre);
+  guardarPreelaborados();
+  cerrarModalPre();
+  renderPreelaborados(tipo);
+}
+
+function finalizarPreelaborado(id) {
+  const pre = preelaborados.find(p => p.id === id);
+  if (!pre) return;
+  const elapsed = Math.floor((Date.now() - new Date(pre.inicio).getTime()) / 1000);
+  const mm = String(Math.floor(elapsed / 60)).padStart(2,'0');
+  const ss = String(elapsed % 60).padStart(2,'0');
+  pre.estado = 'finalizado';
+  pre.fin = new Date().toISOString();
+  pre.duracion = `${mm}:${ss}`;
+  if (timersPre[id]) { clearInterval(timersPre[id]); delete timersPre[id]; }
+  guardarPreelaborados();
+  renderPreelaborados(pre.tipo);
+}
+
+function cancelarPreelaborado(id) {
+  if (!confirm('¿Cancelar este preelaborado?')) return;
+  preelaborados = preelaborados.filter(p => p.id !== id);
+  if (timersPre[id]) { clearInterval(timersPre[id]); delete timersPre[id]; }
+  guardarPreelaborados();
+  // Render ambos por si acaso
+  renderPreelaborados('carnes');
+  renderPreelaborados('vegetales');
+}
+
+// Inicializar fechas y render al cargar el tab
+const _origChangeTab = typeof changeTab === 'function' ? changeTab : null;
+function initPreelaboradoTab(tipo) {
+  setTimeout(() => {
+    setFechaPreHoy(tipo);
+  }, 100);
+}
+
+// Cargar preelaborados de Firebase al iniciar
+window.addEventListener('load', () => {
+  setTimeout(async () => {
+    await cargarPreelaboradosFirebase();
+  }, 3000);
 });
 
 async function cargarRecetasFirebase(intentos = 0) {
