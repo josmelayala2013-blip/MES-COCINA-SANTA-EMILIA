@@ -12088,14 +12088,21 @@ function guardarRegistroAlmacenamiento(tipo) {
   if (tipo === 'tunel') {
     registrosTunel.push(registro);
     registrosTunel.sort((a,b) => (a.fecha+(a.monitoreos[0]?.hora||'')).localeCompare(b.fecha+(b.monitoreos[0]?.hora||'')));
-    guardarTunel(); cerrarModalTunel(); renderRegistrosTunel();
+    guardarTunel(); 
+    cerrarModalTunel();
+    // Guardar referencia directa para impresión inmediata
+    window._ultimoRegistroCalidad = { registro, tipo };
+    _mostrarToastImprimir(tipo, registro.id);
+    renderRegistrosTunel();
   } else {
     registrosTransito.push(registro);
     registrosTransito.sort((a,b) => (a.fecha+(a.monitoreos[0]?.hora||'')).localeCompare(b.fecha+(b.monitoreos[0]?.hora||'')));
-    guardarTransito(); cerrarModalTransito(); renderRegistrosTransito();
+    guardarTransito(); 
+    cerrarModalTransito();
+    window._ultimoRegistroCalidad = { registro, tipo };
+    _mostrarToastImprimir(tipo, registro.id);
+    renderRegistrosTransito();
   }
-  // Mostrar toast con botón imprimir
-  _mostrarToastImprimir(tipo, registro.id);
 }
 
 function eliminarRegistroAlmacenamiento(id, tipo) {
@@ -12106,8 +12113,12 @@ function eliminarRegistroAlmacenamiento(id, tipo) {
 
 function imprimirRegistroAlmacenamiento(id, tipo) {
   const lista = tipo === 'tunel' ? registrosTunel : registrosTransito;
-  const r = lista.find(x => x.id === id);
-  if (!r) return;
+  let r = lista.find(x => x.id === id || x.id === String(id));
+  // Fallback: usar el último registro guardado si no lo encuentra por ID
+  if (!r && window._ultimoRegistroCalidad && window._ultimoRegistroCalidad.tipo === tipo) {
+    r = window._ultimoRegistroCalidad.registro;
+  }
+  if (!r) { alert('No se encontró el registro. Intenta imprimir desde el botón 🖨️ en la tabla.'); return; }
   const color = tipo === 'tunel' ? '#0e7490' : '#7c3aed';
   const titulo = tipo === 'tunel' ? 'VERIFICACIÓN DE TEMPERATURA — TÚNEL DE ABATIMIENTO' : 'VERIFICACIÓN DE TEMPERATURA — C. TRÁNSITO';
   const lcText = tipo === 'tunel' ? 'LC: ≤ -5°C (Congelación)' : 'LC: ≤ 4°C (Refrigeración)';
