@@ -3209,7 +3209,6 @@ function generarPDFHACCPAbatimiento() {
 }
 
 function imprimirRegistroHACCPAbatimiento(d) {
-  const ventana = window.open('', '_blank', 'width=900,height=700');
   const esRefrig = d.tipo === 'refrigeracion';
   const tituloDoc = esRefrig ? 'CONTROL DE PROCESO - ABATIMIENTO' : 'CONTROL DE PROCESO - CONGELACIÓN';
   const codigoDoc = esRefrig ? 'R-POE-03-GF-05(A)' : 'R-POE-03-GF-05(B)';
@@ -3362,9 +3361,7 @@ function imprimirRegistroHACCPAbatimiento(d) {
     </div> <!-- /appContent -->
 </body>
 </html>`;
-
-  ventana.document.write(html);
-  ventana.document.close();
+  _imprimirContenido(html);
   ventana.onload = () => { ventana.focus(); };
 }
 
@@ -3651,8 +3648,6 @@ function generarPDFHACCPEnvasado() {
 }
 
 function imprimirRegistroHACCPEnvasado(d) {
-  const ventana = window.open('', '_blank', 'width=900,height=700');
-
   const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -3852,9 +3847,7 @@ ${d.acc ? `
     </div> <!-- /appContent -->
 </body>
 </html>`;
-
-  ventana.document.write(html);
-  ventana.document.close();
+  _imprimirContenido(html);
   ventana.onload = () => { ventana.focus(); };
 }
 
@@ -4290,8 +4283,6 @@ function generarPDFHACCP() {
 }
 
 function imprimirRegistroHACCP(d) {
-  const ventana = window.open('', '_blank', 'width=900,height=700');
-
   const filaIngredientes = d.ingredientes.map(ing => `
     <tr>
       <td>${ing.nombre}</td>
@@ -4541,9 +4532,7 @@ function imprimirRegistroHACCP(d) {
     </div> <!-- /appContent -->
 </body>
 </html>`;
-
-  ventana.document.write(html);
-  ventana.document.close();
+  _imprimirContenido(html);
   ventana.onload = () => { ventana.focus(); };
   
   document.getElementById('firmaEstado').innerHTML = '✅ <strong>Firmado</strong> — ' + d.firmaNombre + ' · ' + d.firmaTimestamp;
@@ -9914,8 +9903,7 @@ function imprimirHACCPPreCarnes(pre) {
   const color = '#991b1b';
   const simbolo = v => v === 'ok' ? '✓' : v === 'nok' ? '✗' : '—';
 
-  const ventana = window.open('', '_blank', 'width=1000,height=720');
-  ventana.document.write(`<!DOCTYPE html>
+  _imprimirContenido(`<!DOCTYPE html>
 <html lang="es"><head><meta charset="UTF-8">
 <title>HACCP Preelaborado Carnes — ${pre.ingrediente}</title>
 <style>
@@ -10027,7 +10015,6 @@ function imprimirHACCPPreCarnes(pre) {
   </div>
 </div>
 </body></html>`);
-  ventana.document.close();
 }
 
 // ============================================================
@@ -10192,8 +10179,7 @@ function imprimirHACCPPreVegetales(pre) {
   const color = '#15803d';
   const simbolo = v => v === 'ok' ? '✓' : v === 'nok' ? '✗' : '—';
 
-  const ventana = window.open('', '_blank', 'width=1000,height=720');
-  ventana.document.write(`<!DOCTYPE html>
+  _imprimirContenido(`<!DOCTYPE html>
 <html lang="es"><head><meta charset="UTF-8">
 <title>HACCP Preelaborado Vegetales — ${pre.ingrediente}</title>
 <style>
@@ -10298,7 +10284,6 @@ function imprimirHACCPPreVegetales(pre) {
   </div>
 </div>
 </body></html>`);
-  ventana.document.close();
 }
 
 function mostrarToastHACCP(tipo, ingrediente) {
@@ -11536,6 +11521,24 @@ function eliminarRegistroCE(id) {
   renderRegistrosCE();
 }
 
+
+// ---- IMPRESIÓN VIA IFRAME (sin popup) ----
+function _imprimirContenido(htmlContent) {
+  let iframe = document.getElementById('_iframePrint');
+  if (!iframe) {
+    iframe = document.createElement('iframe');
+    iframe.id = '_iframePrint';
+    iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;';
+    document.body.appendChild(iframe);
+  }
+  const doc = iframe.contentWindow.document;
+  doc.open();
+  doc.write(htmlContent);
+  doc.close();
+  iframe.contentWindow.focus();
+  setTimeout(() => iframe.contentWindow.print(), 500);
+}
+
 function imprimirRegistroCE(id) {
   const r = registrosCE.find(x => x.id === id);
   if (!r) return;
@@ -11544,8 +11547,7 @@ function imprimirRegistroCE(id) {
   const fechaDisplay = r.fecha ? `${d}/${m}/${y}` : '—';
   const preps = r.preparaciones || [{producto:r.producto,lote:r.lote,temp:r.temp,reqACC:r.reqACC,acc:r.acc,verifACC:r.verifACC,color:r.color,olor:r.olor,sabor:r.sabor,textura:r.textura,elemExt:r.elemExt}];
 
-  const v = window.open('', '_blank', 'width=1100,height=750');
-  v.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+  _imprimirContenido(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
 <title>Verif. Temp. Cocción y Envasado</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;}
@@ -11642,7 +11644,6 @@ function imprimirRegistroCE(id) {
     <div style="font-size:9pt;margin-top:8px;">${r.creadoEn||'—'}</div></div>
 </div>
 </body></html>`);
-  v.document.close();
 }
 
 // ---- TÚNEL ABATIMIENTO ----
@@ -12067,8 +12068,7 @@ function imprimirRegistroAlmacenamiento(id, tipo) {
   const mons = r.monitoreos || [{hora:r.hora,sistemaEnfriamiento:r.sistemaEnfriamiento,temp:r.temp,orden:r.orden,limpieza:r.limpieza,rotacion:r.rotacion,producto:r.producto,lote:r.lote,fVencimiento:r.fVencimiento,piso:r.piso,alergeno:r.alergeno,especias:r.especias,prodTerm:r.prodTerm,prodNoConf:r.prodNoConf}];
   const sim = v => v==='✓'?'<span style="color:#16a34a;font-weight:bold;font-size:11pt;">✓</span>':v==='✗'?'<span style="color:#dc2626;font-weight:bold;font-size:11pt;">✗</span>':'—';
 
-  const v = window.open('', '_blank', 'width=1100,height=750');
-  v.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+  _imprimirContenido(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
 <title>${titulo}</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;}
@@ -12166,7 +12166,6 @@ ${mons.map((mon,mi) => `
     <div style="font-size:9pt;margin-top:8px;">${r.creadoEn||'—'}</div></div>
 </div>
 </body></html>`);
-  v.document.close();
 }
 
     </script>
