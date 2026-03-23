@@ -9724,6 +9724,127 @@ function guardarHACCPPreCarnes(preId) {
   guardarPreelaborados();
   cerrarHACCPPreCarnes();
   mostrarToastHACCP('carnes', pre.ingrediente);
+  // Ofrecer impresión
+  if (confirm('¿Deseas imprimir el registro HACCP ahora?')) {
+    imprimirHACCPPreCarnes(pre);
+  }
+}
+
+function imprimirHACCPPreCarnes(pre) {
+  const d = pre.haccp || {};
+  const [y,m,dd] = (d.fecha || pre.fecha || '').split('-');
+  const fechaDisplay = d.fecha ? `${dd}/${m}/${y}` : '—';
+  const color = '#991b1b';
+  const simbolo = v => v === 'ok' ? '✓' : v === 'nok' ? '✗' : '—';
+
+  const ventana = window.open('', '_blank', 'width=1000,height=720');
+  ventana.document.write(`<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8">
+<title>HACCP Preelaborado Carnes — ${pre.ingrediente}</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: Arial, sans-serif; font-size: 9pt; color: #000; background: white; }
+  @page { size: A4 landscape; margin: 10mm; }
+  @media print { .no-print { display: none; } }
+  .print-btn { position:fixed; top:10px; right:10px; background:${color}; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-size:11pt; z-index:999; }
+  .header { display:flex; justify-content:space-between; align-items:center; border:2px solid ${color}; margin-bottom:5px; }
+  .header-logo { padding:6px 10px; font-size:9pt; color:${color}; font-weight:bold; }
+  .header-titulo { flex:1; text-align:center; padding:6px; border-left:1px solid ${color}; border-right:1px solid ${color}; }
+  .header-titulo h2 { font-size:11pt; font-weight:bold; color:${color}; }
+  .header-codigo { padding:6px 10px; font-size:8pt; text-align:right; line-height:1.6; }
+  .instrucciones { font-size:7pt; border:1px solid #ccc; padding:5px; margin-bottom:5px; color:#555; line-height:1.4; }
+  .datos-gen { display:flex; border:1px solid ${color}; margin-bottom:5px; flex-wrap:wrap; }
+  .dato-item { flex:1; min-width:120px; padding:4px 6px; border-right:1px solid ${color}; }
+  .dato-item:last-child { border-right:none; }
+  .dato-label { font-size:7pt; font-weight:bold; color:${color}; }
+  .dato-val { font-size:9.5pt; font-weight:bold; margin-top:2px; }
+  .seccion-titulo { background:${color}; color:white; padding:4px 8px; font-size:8.5pt; font-weight:bold; margin-bottom:3px; }
+  table { width:100%; border-collapse:collapse; margin-bottom:6px; }
+  th { background:${color}; color:white; padding:4px 6px; font-size:8pt; border:1px solid #c53030; text-align:center; }
+  td { padding:5px 6px; border:1px solid #ccc; font-size:9.5pt; text-align:center; min-height:22px; }
+  .sensorial { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px; }
+  .sens-item { flex:1; min-width:120px; border:1px solid ${color}; padding:5px; text-align:center; }
+  .sens-label { font-size:7.5pt; font-weight:bold; color:${color}; margin-bottom:3px; }
+  .sens-val { font-size:16pt; font-weight:bold; }
+  .sens-ok { color:#16a34a; }
+  .sens-nok { color:#dc2626; }
+  .acc-box { border:1px solid #f59e0b; background:#fffbeb; padding:5px; margin-bottom:5px; font-size:7.5pt; line-height:1.5; }
+  .acc-titulo { font-weight:bold; color:#92400e; margin-bottom:3px; }
+  .firma-box { display:flex; gap:10px; margin-top:6px; }
+  .firma-item { flex:1; border:1px solid ${color}; padding:6px; text-align:center; }
+  .firma-label { font-size:7.5pt; color:${color}; font-weight:bold; margin-bottom:15px; }
+  .firma-linea { border-top:1px solid #000; padding-top:3px; font-size:8pt; }
+</style></head><body>
+<button class="print-btn no-print" onclick="window.print()">🖨️ Imprimir</button>
+
+<div class="header">
+  <div class="header-logo">🏭 MES Cocina</div>
+  <div class="header-titulo"><h2>🥩 REGISTRO DE PRODUCTOS PREELABORADOS — CARNES</h2></div>
+  <div class="header-codigo">R-POE-03-GF-01<br>Versión: 02<br>F. Vigencia: 15-12-2025</div>
+</div>
+
+<div class="instrucciones">
+  <strong>Instrucciones:</strong> (1) Fecha de preparación. (2) Tipo de preparación/corte. (3) Producto utilizado. (4) N° Orden de Producción. (5) Lote de materia prima. (6) Condición de almacenamiento: C=Congelado, R=Refrigerado.
+  (7) Control de proceso: Kg bruto, neto, despunte y merma. (8) Evaluación sensorial: ✓ cumple / ✗ no cumple. En caso de acción correctiva indicar número. (9) Responsable de la elaboración.
+</div>
+
+<div class="datos-gen">
+  <div class="dato-item"><div class="dato-label">① Fecha</div><div class="dato-val">${fechaDisplay}</div></div>
+  <div class="dato-item"><div class="dato-label">② Preparación</div><div class="dato-val">${d.preparacion || '—'}</div></div>
+  <div class="dato-item"><div class="dato-label">③ Producto</div><div class="dato-val">${d.producto || pre.ingrediente}</div></div>
+  <div class="dato-item"><div class="dato-label">④ N° OP</div><div class="dato-val">${d.nOP || '—'}</div></div>
+  <div class="dato-item"><div class="dato-label">⑤ Lote MP</div><div class="dato-val">${d.loteMP || '—'}</div></div>
+  <div class="dato-item"><div class="dato-label">⑥ Condición</div><div class="dato-val">${d.condicion || '—'}</div></div>
+</div>
+
+<div class="seccion-titulo">⑦ Control de Proceso de Producción</div>
+<table>
+  <tr>
+    <th>Kg Bruto</th><th>Kg Neto</th><th>Kg Despunte</th><th>Kg Merma</th><th>Lote Empaque</th><th>Lote Asignado</th>
+  </tr>
+  <tr>
+    <td>${d.kgBruto || '—'}</td>
+    <td>${d.kgNeto || '—'}</td>
+    <td>${d.kgDespunte || '—'}</td>
+    <td>${d.kgMerma || '—'}</td>
+    <td>${d.loteEmpaque || '—'}</td>
+    <td>${d.loteAsignado || '—'}</td>
+  </tr>
+</table>
+
+<div class="seccion-titulo">⑧ Inspección de Calidad</div>
+<div class="sensorial">
+  <div class="sens-item"><div class="sens-label">Olor</div><div class="sens-val ${d.olor==='ok'?'sens-ok':'sens-nok'}">${simbolo(d.olor)}</div></div>
+  <div class="sens-item"><div class="sens-label">Color</div><div class="sens-val ${d.color==='ok'?'sens-ok':'sens-nok'}">${simbolo(d.color)}</div></div>
+  <div class="sens-item"><div class="sens-label">Textura</div><div class="sens-val ${d.textura==='ok'?'sens-ok':'sens-nok'}">${simbolo(d.textura)}</div></div>
+  <div class="sens-item"><div class="sens-label">Ausencia Elem. Extraños</div><div class="sens-val ${d.ausenciaEE==='ok'?'sens-ok':'sens-nok'}">${simbolo(d.ausenciaEE)}</div></div>
+  <div class="sens-item"><div class="sens-label">Acción Correctiva</div><div class="sens-val" style="font-size:11pt;">${d.accionCorrectiva || '—'}</div></div>
+</div>
+
+<div class="acc-box">
+  <div class="acc-titulo">Acciones Correctivas:</div>
+  AC1: Los productos cárnicos deberán refrigerarse hasta alcanzar temperatura de refrigeración (&lt;4°C). &nbsp;|&nbsp;
+  AC2: Si el producto no cumple características sensoriales, eliminar inmediatamente + higienización sala. &nbsp;|&nbsp;
+  AC3: Identificar elemento extraño → informar a Calidad → decisión liberación → gestionar como PNC si no se libera → notificar proveedor.
+</div>
+
+<div class="firma-box">
+  <div class="firma-item">
+    <div class="firma-label">⑨ Responsable de la Elaboración</div>
+    <div style="font-size:11pt;font-weight:bold;margin-bottom:10px;">${d.responsable || '—'}</div>
+    <div class="firma-linea">Nombre y Firma</div>
+  </div>
+  <div class="firma-item">
+    <div class="firma-label">Verificación de Calidad</div>
+    <div class="firma-linea" style="margin-top:25px;">Nombre y Firma</div>
+  </div>
+  <div class="firma-item">
+    <div class="firma-label">Registrado en sistema</div>
+    <div style="font-size:9pt;margin-top:8px;">${d.registradoEn || '—'}</div>
+  </div>
+</div>
+</body></html>`);
+  ventana.document.close();
 }
 
 // ============================================================
@@ -9876,6 +9997,125 @@ function guardarHACCPPreVegetales(preId) {
   guardarPreelaborados();
   cerrarHACCPPreVegetales();
   mostrarToastHACCP('vegetales', pre.ingrediente);
+  if (confirm('¿Deseas imprimir el registro HACCP ahora?')) {
+    imprimirHACCPPreVegetales(pre);
+  }
+}
+
+function imprimirHACCPPreVegetales(pre) {
+  const d = pre.haccp || {};
+  const [y,m,dd] = (d.fecha || pre.fecha || '').split('-');
+  const fechaDisplay = d.fecha ? `${dd}/${m}/${y}` : '—';
+  const color = '#15803d';
+  const simbolo = v => v === 'ok' ? '✓' : v === 'nok' ? '✗' : '—';
+
+  const ventana = window.open('', '_blank', 'width=1000,height=720');
+  ventana.document.write(`<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8">
+<title>HACCP Preelaborado Vegetales — ${pre.ingrediente}</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: Arial, sans-serif; font-size: 9pt; color: #000; background: white; }
+  @page { size: A4 landscape; margin: 10mm; }
+  @media print { .no-print { display: none; } }
+  .print-btn { position:fixed; top:10px; right:10px; background:${color}; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-size:11pt; z-index:999; }
+  .header { display:flex; justify-content:space-between; align-items:center; border:2px solid ${color}; margin-bottom:5px; }
+  .header-logo { padding:6px 10px; font-size:9pt; color:${color}; font-weight:bold; }
+  .header-titulo { flex:1; text-align:center; padding:6px; border-left:1px solid ${color}; border-right:1px solid ${color}; }
+  .header-titulo h2 { font-size:11pt; font-weight:bold; color:${color}; }
+  .header-codigo { padding:6px 10px; font-size:8pt; text-align:right; line-height:1.6; }
+  .instrucciones { font-size:7pt; border:1px solid #ccc; padding:5px; margin-bottom:5px; color:#555; line-height:1.4; }
+  .datos-gen { display:flex; border:1px solid ${color}; margin-bottom:5px; flex-wrap:wrap; }
+  .dato-item { flex:1; min-width:120px; padding:4px 6px; border-right:1px solid ${color}; }
+  .dato-item:last-child { border-right:none; }
+  .dato-label { font-size:7pt; font-weight:bold; color:${color}; }
+  .dato-val { font-size:9.5pt; font-weight:bold; margin-top:2px; }
+  .seccion-titulo { background:${color}; color:white; padding:4px 8px; font-size:8.5pt; font-weight:bold; margin-bottom:3px; }
+  table { width:100%; border-collapse:collapse; margin-bottom:6px; }
+  th { background:${color}; color:white; padding:4px 6px; font-size:8pt; border:1px solid #16a34a; text-align:center; }
+  td { padding:5px 6px; border:1px solid #ccc; font-size:9.5pt; text-align:center; min-height:22px; }
+  .sensorial { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px; }
+  .sens-item { flex:1; min-width:120px; border:1px solid ${color}; padding:5px; text-align:center; }
+  .sens-label { font-size:7.5pt; font-weight:bold; color:${color}; margin-bottom:3px; }
+  .sens-val { font-size:16pt; font-weight:bold; }
+  .sens-ok { color:#16a34a; }
+  .sens-nok { color:#dc2626; }
+  .acc-box { border:1px solid #f59e0b; background:#fffbeb; padding:5px; margin-bottom:5px; font-size:7.5pt; line-height:1.5; }
+  .acc-titulo { font-weight:bold; color:#92400e; margin-bottom:3px; }
+  .firma-box { display:flex; gap:10px; margin-top:6px; }
+  .firma-item { flex:1; border:1px solid ${color}; padding:6px; text-align:center; }
+  .firma-label { font-size:7.5pt; color:${color}; font-weight:bold; margin-bottom:15px; }
+  .firma-linea { border-top:1px solid #000; padding-top:3px; font-size:8pt; }
+</style></head><body>
+<button class="print-btn no-print" onclick="window.print()">🖨️ Imprimir</button>
+
+<div class="header">
+  <div class="header-logo">🏭 MES Cocina</div>
+  <div class="header-titulo"><h2>🥗 REGISTRO DE PRODUCTOS PREELABORADOS — VEGETALES</h2></div>
+  <div class="header-codigo">R-POE-03-GF-02<br>Versión: 02<br>F. Vigencia: 15-12-2025</div>
+</div>
+
+<div class="instrucciones">
+  <strong>Instrucciones:</strong> (1) Fecha de preparación. (2) Tipo de preparación/corte. (3) Materia prima empleada. (4) Lote de materia prima.
+  (5) Control de proceso: Kg bruto, neto, merma, cantidad de bolsas, lote empaque y lote asignado.
+  (6) Sanitización con agua ozonificada: ✓ realizado / ✗ no realizado. (7) Evaluación sensorial: ✓ cumple / ✗ no cumple. (8) Acción correctiva si aplica. (9) Responsable del acondicionamiento.
+</div>
+
+<div class="datos-gen">
+  <div class="dato-item"><div class="dato-label">① Fecha</div><div class="dato-val">${fechaDisplay}</div></div>
+  <div class="dato-item"><div class="dato-label">② Preparación</div><div class="dato-val">${d.preparacion || '—'}</div></div>
+  <div class="dato-item"><div class="dato-label">③ Materia Prima</div><div class="dato-val">${d.materiaPrima || pre.ingrediente}</div></div>
+  <div class="dato-item"><div class="dato-label">④ Lote MP</div><div class="dato-val">${d.loteMP || '—'}</div></div>
+</div>
+
+<div class="seccion-titulo">⑤ Control de Proceso de Producción</div>
+<table>
+  <tr>
+    <th>Kg Bruto</th><th>Kg Neto</th><th>Kg Merma</th><th>Cant. Bolsas</th><th>Lote Empaque</th><th>Lote Asignado</th>
+  </tr>
+  <tr>
+    <td>${d.kgBruto || '—'}</td>
+    <td>${d.kgNeto || '—'}</td>
+    <td>${d.kgMerma || '—'}</td>
+    <td>${d.cantBolsas || '—'}</td>
+    <td>${d.loteEmpaque || '—'}</td>
+    <td>${d.loteAsignado || '—'}</td>
+  </tr>
+</table>
+
+<div class="seccion-titulo">⑥⑦ Sanitización y Evaluación Sensorial</div>
+<div class="sensorial">
+  <div class="sens-item"><div class="sens-label">⑥ Sanitización</div><div class="sens-val ${d.sanitizacion==='ok'?'sens-ok':'sens-nok'}">${simbolo(d.sanitizacion)}</div><div style="font-size:7pt;color:#666;">Agua ozonificada</div></div>
+  <div class="sens-item"><div class="sens-label">Color</div><div class="sens-val ${d.color==='ok'?'sens-ok':'sens-nok'}">${simbolo(d.color)}</div></div>
+  <div class="sens-item"><div class="sens-label">Olor</div><div class="sens-val ${d.olor==='ok'?'sens-ok':'sens-nok'}">${simbolo(d.olor)}</div></div>
+  <div class="sens-item"><div class="sens-label">Textura</div><div class="sens-val ${d.textura==='ok'?'sens-ok':'sens-nok'}">${simbolo(d.textura)}</div></div>
+  <div class="sens-item"><div class="sens-label">⑧ Acción Correctiva</div><div class="sens-val" style="font-size:11pt;">${d.accionCorrectiva || '—'}</div></div>
+</div>
+
+<div class="acc-box">
+  <div class="acc-titulo">Acciones Correctivas:</div>
+  AC1: Comunicar a Calidad y Producción → eliminar producto involucrado. &nbsp;|&nbsp;
+  AC2: Gestionar devolución al proveedor. &nbsp;|&nbsp;
+  AC3: Equipo Eko3© no funciona → notificar a Calidad para revisión del equipo.
+</div>
+
+<div class="firma-box">
+  <div class="firma-item">
+    <div class="firma-label">⑨ Responsable Elaboración</div>
+    <div style="font-size:11pt;font-weight:bold;margin-bottom:10px;">${d.responsable || '—'}</div>
+    <div class="firma-linea">Nombre y Firma</div>
+  </div>
+  <div class="firma-item">
+    <div class="firma-label">Verificación de Calidad</div>
+    <div class="firma-linea" style="margin-top:25px;">Nombre y Firma</div>
+  </div>
+  <div class="firma-item">
+    <div class="firma-label">Registrado en sistema</div>
+    <div style="font-size:9pt;margin-top:8px;">${d.registradoEn || '—'}</div>
+  </div>
+</div>
+</body></html>`);
+  ventana.document.close();
 }
 
 function mostrarToastHACCP(tipo, ingrediente) {
