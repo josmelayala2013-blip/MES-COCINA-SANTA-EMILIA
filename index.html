@@ -9692,7 +9692,7 @@ function abrirHACCPPreCarnes(pre) {
           <input type="text" id="hpcVerificador" placeholder="Nombre verificador" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #fca5a5;font-size:.9rem;box-sizing:border-box;">
         </div>
       </div>
-      <div style="font-size:.75rem;color:#dc2626;margin-top:.5rem;">LC: ≤ 4°C para todas las carnes</div>
+      <div style="font-size:.75rem;color:#dc2626;margin-top:.5rem;">LC: ≤ 15°C ± 3°C</div>
     </div>
 
     <!-- LÍMITE CRÍTICO -->
@@ -9858,8 +9858,8 @@ function imprimirHACCPPreCarnes(pre) {
     <div class="firma-linea">Nombre y Firma</div>
   </div>
   <div class="firma-item">
-    <div class="firma-label">🌡️ Temperatura de Sala &nbsp;<span style="font-size:7pt;color:#999;">LC: ≤ 4°C</span></div>
-    <div style="font-size:18pt;font-weight:bold;color:${d.tempSala && parseFloat(d.tempSala) <= 4 ? '#16a34a' : d.tempSala ? '#dc2626' : '#333'};">${d.tempSala ? d.tempSala + ' °C' : '—'}</div>
+    <div class="firma-label">🌡️ Temperatura de Sala &nbsp;<span style="font-size:7pt;color:#999;">LC: ≤ 15°C ± 3°C</span></div>
+    <div style="font-size:18pt;font-weight:bold;color:${d.tempSala && parseFloat(d.tempSala) <= 15 ? '#16a34a' : d.tempSala ? '#dc2626' : '#333'};">${d.tempSala ? d.tempSala + ' °C' : '—'}</div>
     <div style="font-size:8pt;color:#666;margin-top:3px;">Hora: ${d.horaTempSala || '—'}</div>
     <div style="font-size:8pt;color:#666;">Verificador: ${d.verificador || '—'}</div>
   </div>
