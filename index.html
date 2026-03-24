@@ -943,6 +943,19 @@
                 </div>
                 <div id="contenidoEnvasado"></div>
             </div>
+            <!-- Panel HACCP Pendientes Envasado -->
+            <div id="dashHACCPPendientesEnvasado" style="display:none;margin:0 1.5rem 1.5rem;background:#faf5ff;border-radius:15px;padding:1.25rem;border-left:5px solid #8b5cf6;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
+                    <h3 style="color:#5b21b6;margin:0;font-size:1rem;">📋 Registros HACCP Envasado Pendientes</h3>
+                    <span id="badgeHACCPEnvasado" style="background:#8b5cf6;color:white;border-radius:20px;padding:.2rem .75rem;font-size:.8rem;font-weight:700;">0</span>
+                </div>
+                <div id="listaHACCPPendientesEnvasado" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.75rem;"></div>
+            </div>
+            <!-- Historial HACCP Envasado del Día -->
+            <div id="historialHACCPEnvasado" style="display:none;margin:0 1.5rem 1.5rem;background:#f5f3ff;border-radius:15px;padding:1.25rem;border-left:5px solid #7c3aed;">
+                <h3 style="color:#5b21b6;margin:0 0 .75rem;">✅ Registros HACCP Completados Hoy — Envasado</h3>
+                <div id="listaHistorialHACCPEnvasado"></div>
+            </div>
         </div>
 
         <!-- TAB: ABATIMIENTO -->
@@ -953,6 +966,19 @@
                     <div id="badgeAbatimiento" style="background:#06b6d4;color:white;border-radius:20px;padding:.3rem .9rem;font-weight:700;font-size:.9rem;">0 activos</div>
                 </div>
                 <div id="contenidoAbatimiento"></div>
+            </div>
+            <!-- Panel HACCP Pendientes Abatimiento -->
+            <div id="dashHACCPPendientesAbatimiento" style="display:none;margin:0 1.5rem 1.5rem;background:#f0fdfe;border-radius:15px;padding:1.25rem;border-left:5px solid #06b6d4;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
+                    <h3 style="color:#0e7490;margin:0;font-size:1rem;">📋 Registros HACCP Abatimiento Pendientes</h3>
+                    <span id="badgeHACCPAbatimiento" style="background:#06b6d4;color:white;border-radius:20px;padding:.2rem .75rem;font-size:.8rem;font-weight:700;">0</span>
+                </div>
+                <div id="listaHACCPPendientesAbatimiento" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.75rem;"></div>
+            </div>
+            <!-- Historial HACCP Abatimiento del Día -->
+            <div id="historialHACCPAbatimiento" style="display:none;margin:0 1.5rem 1.5rem;background:#ecfeff;border-radius:15px;padding:1.25rem;border-left:5px solid #0891b2;">
+                <h3 style="color:#0e7490;margin:0 0 .75rem;">✅ Registros HACCP Completados Hoy — Abatimiento</h3>
+                <div id="listaHistorialHACCPAbatimiento"></div>
             </div>
         </div>
 
@@ -2057,6 +2083,11 @@
             setTimeout(() => renderHACCPPendientes(), 1000);
             // Cargar historial HACCP desde Firebase
             setTimeout(() => cargarHACCPHistorialFirebase(), 1500);
+            // Inicializar pendientes de envasado y abatimiento
+            setTimeout(() => {
+                renderHACCPPendientesModulo('envasado');
+                renderHACCPPendientesModulo('abatimiento');
+            }, 1200);
         }
 
         function inicializarDateSelector() {
@@ -5277,6 +5308,9 @@ function imprimirRegistroHACCP(d) {
             procesosAbatimiento.push(proceso);
             procesosEnvasado.splice(procesoActual, 1);
 
+            // Crear pendiente HACCP envasado
+            crearHACCPPendienteModulo('envasado', proceso);
+
             guardarDatos();
             renderProcesosActivos();
             updateStats();
@@ -5378,6 +5412,9 @@ function imprimirRegistroHACCP(d) {
                 historialPorFecha[fecha] = [];
             }
             historialPorFecha[fecha].push(proceso);
+
+            // Crear pendiente HACCP abatimiento
+            crearHACCPPendienteModulo('abatimiento', proceso);
             
             // ====================================
             // SISTEMA DE APRENDIZAJE AUTOMÁTICO
@@ -12291,6 +12328,442 @@ function mostrarPopupGantt(eq) {
             if (dateEl) { dateEl.value = fecha; cargarHistorialFecha(); }
             fechaSeleccionada = fecha;
             mostrarHistorialDia(fecha);
+        }
+
+        // ============================================================
+        // SISTEMA HACCP PENDIENTES — ENVASADO Y ABATIMIENTO
+        // ============================================================
+
+        let haccpPendientesEnvasado = JSON.parse(localStorage.getItem('mes_haccp_pend_envasado') || '[]');
+        let haccpPendientesAbatimiento = JSON.parse(localStorage.getItem('mes_haccp_pend_abatimiento') || '[]');
+
+        function guardarHACCPPendientesModulo(modulo) {
+            if (modulo === 'envasado') {
+                localStorage.setItem('mes_haccp_pend_envasado', JSON.stringify(haccpPendientesEnvasado));
+                if (window.db && window.firestoreLoaded) {
+                    try { const {doc,setDoc}=window.firestoreFunctions; setDoc(doc(window.db,'mes-data','haccp-pend-envasado'),{pendientes:haccpPendientesEnvasado,ts:new Date().toISOString()}); } catch(e) {}
+                }
+            } else {
+                localStorage.setItem('mes_haccp_pend_abatimiento', JSON.stringify(haccpPendientesAbatimiento));
+                if (window.db && window.firestoreLoaded) {
+                    try { const {doc,setDoc}=window.firestoreFunctions; setDoc(doc(window.db,'mes-data','haccp-pend-abatimiento'),{pendientes:haccpPendientesAbatimiento,ts:new Date().toISOString()}); } catch(e) {}
+                }
+            }
+        }
+
+        function crearHACCPPendienteModulo(modulo, proceso) {
+            const hoy = new Date().toISOString().split('T')[0];
+            const horaFin = new Date().toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'});
+            const pendiente = {
+                id: Date.now().toString(),
+                fecha: new Date().toLocaleDateString('es-CL'),
+                fechaISO: hoy,
+                horaFin,
+                modulo,
+                equipoNombre: proceso.equipoNombre || '—',
+                producto: proceso.producto || '—',
+                numeroOP: proceso.numeroOP || '—',
+                operador: proceso.operador || proceso.manipulador || '—',
+                kgProgramados: proceso.kgProgramados || 0,
+                kgReales: proceso.kgReales || proceso.kgAbatimiento || 0,
+                tiempoFormateado: modulo === 'envasado' ? (proceso.tiempoEnvasadoFormateado || '—') : (proceso.tiempoAbatimientoFormateado || '—'),
+                estado: 'pendiente',
+                completadoPor: null,
+                completadoEn: null,
+                datosHACCP: null
+            };
+            if (modulo === 'envasado') {
+                haccpPendientesEnvasado.push(pendiente);
+                guardarHACCPPendientesModulo('envasado');
+                renderHACCPPendientesModulo('envasado');
+            } else {
+                haccpPendientesAbatimiento.push(pendiente);
+                guardarHACCPPendientesModulo('abatimiento');
+                renderHACCPPendientesModulo('abatimiento');
+            }
+        }
+
+        function renderHACCPPendientesModulo(modulo) {
+            const lista = modulo === 'envasado' ? haccpPendientesEnvasado : haccpPendientesAbatimiento;
+            const panel = document.getElementById(`dashHACCPPendientes${modulo==='envasado'?'Envasado':'Abatimiento'}`);
+            const cont = document.getElementById(`listaHACCPPendientes${modulo==='envasado'?'Envasado':'Abatimiento'}`);
+            const badge = document.getElementById(`badgeHACCP${modulo==='envasado'?'Envasado':'Abatimiento'}`);
+            const histPanel = document.getElementById(`historialHACCP${modulo==='envasado'?'Envasado':'Abatimiento'}`);
+            const histCont = document.getElementById(`listaHistorialHACCP${modulo==='envasado'?'Envasado':'Abatimiento'}`);
+            if (!panel || !cont) return;
+
+            const hoy = new Date().toISOString().split('T')[0];
+            const color = modulo === 'envasado' ? '#8b5cf6' : '#0e7490';
+            const icono = modulo === 'envasado' ? '📦' : '❄️';
+
+            // Marcar vencidos
+            lista.forEach(p => {
+                if (p.estado === 'pendiente' && p.fechaISO < hoy) p.estado = 'vencido';
+            });
+
+            const activos = lista.filter(p => p.estado !== 'completado');
+            const completadosHoy = lista.filter(p => p.estado === 'completado' && p.fechaISO === hoy);
+
+            // Panel pendientes
+            if (activos.length === 0) {
+                panel.style.display = 'none';
+            } else {
+                panel.style.display = 'block';
+                if (badge) badge.textContent = activos.filter(p=>p.estado==='pendiente').length;
+                cont.innerHTML = activos.map(p => {
+                    const esVencido = p.estado === 'vencido';
+                    const colorBorde = esVencido ? '#ef4444' : color;
+                    const colorFondo = esVencido ? '#fef2f2' : (modulo==='envasado'?'#faf5ff':'#f0fdfe');
+                    const etiqueta = esVencido
+                        ? '<span style="background:#fee2e2;color:#991b1b;border-radius:20px;padding:.15rem .6rem;font-size:.72rem;font-weight:700;">⚠️ Vencido</span>'
+                        : '<span style="background:#ede9fe;color:#5b21b6;border-radius:20px;padding:.15rem .6rem;font-size:.72rem;font-weight:700;">⏳ Pendiente</span>';
+                    return `
+                    <div style="background:${colorFondo};border-radius:12px;padding:1rem;border-left:4px solid ${colorBorde};">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem;">
+                            <div style="font-weight:700;font-size:.95rem;color:#333;">${icono} ${p.producto}</div>
+                            ${etiqueta}
+                        </div>
+                        <div style="font-size:.8rem;color:#666;margin-bottom:.3rem;">📅 ${p.fecha} · 🕐 ${p.horaFin}</div>
+                        <div style="font-size:.8rem;color:#666;margin-bottom:.3rem;">⚙️ ${p.equipoNombre} · 👤 ${p.operador}</div>
+                        <div style="font-size:.8rem;color:#666;margin-bottom:.75rem;">📋 OP: ${p.numeroOP} · ⚖️ ${p.kgReales} kg</div>
+                        <button onclick="abrirHACCPPendienteModulo('${p.id}','${modulo}')"
+                            style="width:100%;padding:.6rem;background:linear-gradient(135deg,${color},${color}cc);color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.88rem;">
+                            📋 Completar Registro HACCP
+                        </button>
+                    </div>`;
+                }).join('');
+            }
+
+            // Panel historial completados hoy
+            if (completadosHoy.length === 0) {
+                if (histPanel) histPanel.style.display = 'none';
+            } else {
+                if (histPanel) histPanel.style.display = 'block';
+                if (histCont) {
+                    histCont.innerHTML = completadosHoy.map(p => {
+                        const d = p.datosHACCP || {};
+                        return `
+                        <div style="border:2px solid ${color}33;border-left:4px solid ${color};border-radius:10px;padding:.85rem;margin-bottom:.6rem;background:white;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem;">
+                                <div>
+                                    <strong style="color:#333;">${p.producto}</strong>
+                                    <div style="font-size:.78rem;color:#666;">👤 ${p.completadoPor||'—'} · ${p.completadoEn||'—'}</div>
+                                </div>
+                                <button onclick="reimprimirHACCPModulo('${p.id}','${modulo}')"
+                                    style="background:${color};color:white;border:none;border-radius:7px;padding:.3rem .75rem;cursor:pointer;font-size:.8rem;font-weight:600;">
+                                    🖨️ Reimprimir
+                                </button>
+                            </div>
+                        </div>`;
+                    }).join('');
+                }
+            }
+        }
+
+        function abrirHACCPPendienteModulo(id, modulo) {
+            const lista = modulo === 'envasado' ? haccpPendientesEnvasado : haccpPendientesAbatimiento;
+            const p = lista.find(x => x.id === id);
+            if (!p) return;
+            window._haccpModuloActual = { id, modulo };
+
+            if (modulo === 'envasado') {
+                // Simular proceso para abrir el modal HACCP de envasado existente
+                const procesoFake = { producto: p.producto, numeroOP: p.numeroOP, equipoNombre: p.equipoNombre };
+                window._haaccpEnvasadoIdx = null;
+                window._haccpEnvasadoDesde = 'pendiente';
+                window._haccpEnvasadoData = p;
+                abrirRegistroHACCPEnvasadoPendiente(p);
+            } else {
+                window._haaccpAbatIdx = null;
+                window._haccpAbatDesde = 'pendiente';
+                window._haccpAbatData = p;
+                abrirRegistroHACCPAbatimientoPendiente(p);
+            }
+        }
+
+        function abrirRegistroHACCPEnvasadoPendiente(p) {
+            const contEl = document.getElementById('contenidoModalHACCPEnvasado');
+            if (!contEl) { alert('Modal HACCP Envasado no disponible'); return; }
+
+            contEl.innerHTML = `
+              <div style="background:#f5f3ff;border-radius:8px;padding:.75rem;margin-bottom:1rem;border-left:4px solid #8b5cf6;font-size:.85rem;color:#5b21b6;">
+                <strong>📋 Registro HACCP desde pendiente</strong><br>
+                Envasado finalizado el ${p.fecha} a las ${p.horaFin} — ${p.producto}
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:.75rem;margin-bottom:1rem;">
+                <div><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.2rem;">Lote</label>
+                  <input type="text" id="epLote" placeholder="Lote producto" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+                <div><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.2rem;">Fecha</label>
+                  <input type="date" id="epFecha" value="${p.fechaISO}" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+                <div><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.2rem;">Responsable</label>
+                  <input type="text" id="epResponsable" value="${p.operador}" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+                <div><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.2rem;">Preparación</label>
+                  <input type="text" id="epPreparacion" value="${p.producto}" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+                <div><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.2rem;">OP</label>
+                  <input type="text" id="epOP" value="${p.numeroOP}" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+                <div><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.2rem;">Equipo Origen</label>
+                  <input type="text" id="epEquipo" value="${p.equipoNombre}" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+                <div><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.2rem;">Cantidad (kg)</label>
+                  <input type="number" id="epCantidad" value="${p.kgReales}" step="0.1" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+                <div><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.2rem;">Merma (kg)</label>
+                  <input type="number" id="epMerma" value="0" step="0.1" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+                <div><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.2rem;">Formato</label>
+                  <input type="text" id="epFormato" placeholder="Ej: Pote 250g" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+                <div><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.2rem;">Lote Empaque</label>
+                  <input type="text" id="epLoteEmpaque" placeholder="Lote envase" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+                <div><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.2rem;">Hora Inicio</label>
+                  <input type="time" id="epHoraInicio" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+                <div><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.2rem;">Temp Inicio °C</label>
+                  <input type="number" id="epTempInicio" step="0.1" placeholder="°C" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+                <div><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.2rem;">Hora Fin</label>
+                  <input type="time" id="epHoraFin" value="${p.horaFin}" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+                <div><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.2rem;">Temp Fin °C</label>
+                  <input type="number" id="epTempFin" step="0.1" placeholder="°C" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+              </div>
+              <!-- Cumple temperatura -->
+              <div style="background:#f5f3ff;border-radius:10px;padding:.85rem;margin-bottom:1rem;">
+                <div style="font-weight:700;color:#5b21b6;margin-bottom:.6rem;font-size:.88rem;">¿Cumple temperatura de envasado? (≥65°C)</div>
+                <div style="display:flex;gap:.5rem;">
+                  <button onclick="setCumpleEnvasado('C',this)" style="padding:.4rem 1rem;border-radius:8px;border:2px solid #10b981;background:white;color:#10b981;font-weight:700;cursor:pointer;">✓ Cumple</button>
+                  <button onclick="setCumpleEnvasado('NC',this)" style="padding:.4rem 1rem;border-radius:8px;border:2px solid #ef4444;background:white;color:#ef4444;font-weight:700;cursor:pointer;">✗ No Cumple</button>
+                </div>
+                <input type="hidden" id="epCumpleTemp" value="">
+              </div>
+              <!-- ACC -->
+              <div style="margin-bottom:1rem;">
+                <label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.3rem;">ACC (si aplica)</label>
+                <select id="epACC" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;">
+                  <option value="">No aplica</option>
+                  <option value="ACC01">ACC01 — Temp <65°C → continuar calentamiento</option>
+                  <option value="ACC02">ACC02 — Retirar producto como PNC</option>
+                  <option value="ACC03">ACC03 — Falla equipo → cambio equipo</option>
+                </select>
+              </div>
+              <div style="margin-bottom:1.25rem;"><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.3rem;">Observaciones</label>
+                <textarea id="epObs" rows="2" placeholder="Observaciones..." style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;resize:vertical;"></textarea></div>
+              <!-- Firma -->
+              <div style="background:#f5f3ff;border-radius:10px;padding:.85rem;margin-bottom:1.25rem;">
+                <div style="font-weight:700;color:#5b21b6;margin-bottom:.6rem;font-size:.88rem;">🔐 Firma Digital</div>
+                <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;">
+                  <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">Nombre</label>
+                    <input type="text" id="epFirmaNombre" value="${p.operador}" style="padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;width:180px;"></div>
+                  <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">PIN (4 dígitos)</label>
+                    <input type="password" id="epFirmaPIN" maxlength="4" placeholder="••••" style="padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;width:100px;text-align:center;letter-spacing:.2rem;"></div>
+                </div>
+              </div>
+              <div style="display:flex;gap:.75rem;justify-content:flex-end;">
+                <button onclick="cerrarModalHACCPEnvasado()" style="padding:.75rem 1.5rem;border-radius:10px;border:1px solid #ddd;cursor:pointer;font-weight:600;color:#64748b;">Cancelar</button>
+                <button onclick="guardarHACCPEnvasadoPendiente('${p.id}')"
+                  style="padding:.75rem 1.5rem;border-radius:10px;border:none;background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:white;cursor:pointer;font-weight:700;font-size:1rem;">
+                  💾 Guardar HACCP Envasado
+                </button>
+              </div>`;
+
+            document.getElementById('modalHACCPEnvasado').style.display = 'block';
+        }
+
+        let _epCumpleVal = '';
+        function setCumpleEnvasado(val, btn) {
+            _epCumpleVal = val;
+            document.getElementById('epCumpleTemp').value = val;
+            document.querySelectorAll('[onclick^="setCumpleEnvasado"]').forEach(b => {
+                b.style.background = 'white';
+                b.style.color = b.onclick.toString().includes("'C'") ? '#10b981' : '#ef4444';
+            });
+            btn.style.background = val === 'C' ? '#10b981' : '#ef4444';
+            btn.style.color = 'white';
+        }
+
+        function guardarHACCPEnvasadoPendiente(pendienteId) {
+            const pin = document.getElementById('epFirmaPIN')?.value;
+            if (!pin || pin.length < 4) { alert('Ingresa PIN de 4 dígitos'); return; }
+
+            const p = haccpPendientesEnvasado.find(x => x.id === pendienteId);
+            if (!p) return;
+
+            const datos = {
+                lote: document.getElementById('epLote')?.value,
+                fecha: document.getElementById('epFecha')?.value,
+                responsable: document.getElementById('epResponsable')?.value,
+                preparacion: document.getElementById('epPreparacion')?.value,
+                op: document.getElementById('epOP')?.value,
+                equipoOrigen: document.getElementById('epEquipo')?.value,
+                cantidad: document.getElementById('epCantidad')?.value,
+                merma: document.getElementById('epMerma')?.value,
+                formato: document.getElementById('epFormato')?.value,
+                loteEmpaque: document.getElementById('epLoteEmpaque')?.value,
+                horaInicio: document.getElementById('epHoraInicio')?.value,
+                tempInicio: document.getElementById('epTempInicio')?.value,
+                horaFin: document.getElementById('epHoraFin')?.value,
+                tempFin: document.getElementById('epTempFin')?.value,
+                cumpleTemp: document.getElementById('epCumpleTemp')?.value,
+                acc: document.getElementById('epACC')?.value,
+                observaciones: document.getElementById('epObs')?.value,
+                firmaNombre: document.getElementById('epFirmaNombre')?.value,
+                firmaTimestamp: new Date().toLocaleString('es-CL'),
+            };
+
+            p.estado = 'completado';
+            p.completadoPor = datos.firmaNombre || '—';
+            p.completadoEn = new Date().toLocaleString('es-CL');
+            p.datosHACCP = datos;
+
+            guardarHACCPPendientesModulo('envasado');
+            guardarEnHistorialHACCP('envasado', datos);
+            cerrarModalHACCPEnvasado();
+            renderHACCPPendientesModulo('envasado');
+
+            if (confirm('¿Deseas imprimir el registro HACCP de Envasado?')) {
+                imprimirRegistroHACCPEnvasado(datos);
+            }
+        }
+
+        function abrirRegistroHACCPAbatimientoPendiente(p) {
+            const contEl = document.getElementById('contenidoModalHACCPAbatimiento');
+            if (!contEl) { alert('Modal HACCP Abatimiento no disponible'); return; }
+
+            contEl.innerHTML = `
+              <div style="background:#f0fdfe;border-radius:8px;padding:.75rem;margin-bottom:1rem;border-left:4px solid #0e7490;font-size:.85rem;color:#0e7490;">
+                <strong>📋 Registro HACCP desde pendiente</strong><br>
+                Abatimiento finalizado el ${p.fecha} a las ${p.horaFin} — ${p.producto}
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:.75rem;margin-bottom:1rem;">
+                <div><label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.2rem;">Fecha Ingreso</label>
+                  <input type="date" id="apFechaIngreso" value="${p.fechaISO}" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+                <div><label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.2rem;">Responsable</label>
+                  <input type="text" id="apResponsable" value="${p.operador}" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+                <div><label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.2rem;">Tipo Proceso</label>
+                  <select id="apTipo" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;">
+                    <option value="refrigeracion">Refrigeración</option>
+                    <option value="congelacion">Congelación</option>
+                  </select></div>
+                <div><label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.2rem;">Tipo Formato</label>
+                  <input type="text" id="apTipoFormato" placeholder="Ej: Pote, Bolsa" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+                <div><label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.2rem;">Hora Ingreso</label>
+                  <input type="time" id="apHoraIngreso" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+                <div><label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.2rem;">Producto</label>
+                  <input type="text" id="apProducto" value="${p.producto}" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+                <div><label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.2rem;">OP</label>
+                  <input type="text" id="apOP" value="${p.numeroOP}" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+                <div><label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.2rem;">Lote</label>
+                  <input type="text" id="apLote" placeholder="Lote" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+                <div><label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.2rem;">Cantidad (kg)</label>
+                  <input type="number" id="apCantidad" value="${p.kgReales}" step="0.1" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+                <div><label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.2rem;">Fecha Salida</label>
+                  <input type="date" id="apFechaSalida" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+                <div><label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.2rem;">Hora Salida</label>
+                  <input type="time" id="apHoraSalida" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+                <div><label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.2rem;">Temp Salida °C</label>
+                  <input type="number" id="apTempSalida" step="0.1" placeholder="°C" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+              </div>
+              <!-- Cumple temperatura -->
+              <div style="background:#f0fdfe;border-radius:10px;padding:.85rem;margin-bottom:1rem;">
+                <div style="font-weight:700;color:#0e7490;margin-bottom:.6rem;font-size:.88rem;">¿Cumple temperatura de salida?</div>
+                <div style="display:flex;gap:.5rem;">
+                  <button onclick="setCumpleAbatimiento('C',this)" style="padding:.4rem 1rem;border-radius:8px;border:2px solid #10b981;background:white;color:#10b981;font-weight:700;cursor:pointer;">✓ Cumple</button>
+                  <button onclick="setCumpleAbatimiento('NC',this)" style="padding:.4rem 1rem;border-radius:8px;border:2px solid #ef4444;background:white;color:#ef4444;font-weight:700;cursor:pointer;">✗ No Cumple</button>
+                </div>
+                <input type="hidden" id="apCumpleTemp" value="">
+              </div>
+              <!-- ACC -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+                <div><label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.3rem;">ACC (si aplica)</label>
+                  <select id="apACC" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.85rem;box-sizing:border-box;">
+                    <option value="">No aplica</option>
+                    <option value="ACC01">ACC01 — Temp no alcanzada → continuar abatimiento</option>
+                    <option value="ACC02">ACC02 — Retirar como PNC</option>
+                    <option value="ACC03">ACC03 — Falla equipo → mantenimiento</option>
+                  </select></div>
+                <div><label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.3rem;">Temp Verificación ACC °C</label>
+                  <input type="number" id="apTempACC" step="0.1" placeholder="°C" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+              </div>
+              <div style="margin-bottom:1rem;"><label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.3rem;">Responsable Salida</label>
+                <input type="text" id="apRespSalida" value="${p.operador}" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+              <div style="margin-bottom:1.25rem;"><label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.3rem;">Observaciones</label>
+                <textarea id="apObs" rows="2" placeholder="Observaciones..." style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;resize:vertical;"></textarea></div>
+              <!-- Firma -->
+              <div style="background:#f0fdfe;border-radius:10px;padding:.85rem;margin-bottom:1.25rem;">
+                <div style="font-weight:700;color:#0e7490;margin-bottom:.6rem;font-size:.88rem;">🔐 Firma Digital</div>
+                <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;">
+                  <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">Nombre</label>
+                    <input type="text" id="apFirmaNombre" value="${p.operador}" style="padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;width:180px;"></div>
+                  <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">PIN (4 dígitos)</label>
+                    <input type="password" id="apFirmaPIN" maxlength="4" placeholder="••••" style="padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;width:100px;text-align:center;letter-spacing:.2rem;"></div>
+                </div>
+              </div>
+              <div style="display:flex;gap:.75rem;justify-content:flex-end;">
+                <button onclick="cerrarModalHACCPAbatimiento()" style="padding:.75rem 1.5rem;border-radius:10px;border:1px solid #ddd;cursor:pointer;font-weight:600;color:#64748b;">Cancelar</button>
+                <button onclick="guardarHACCPAbatimientoPendiente('${p.id}')"
+                  style="padding:.75rem 1.5rem;border-radius:10px;border:none;background:linear-gradient(135deg,#0e7490,#0891b2);color:white;cursor:pointer;font-weight:700;font-size:1rem;">
+                  💾 Guardar HACCP Abatimiento
+                </button>
+              </div>`;
+
+            document.getElementById('modalHACCPAbatimiento').style.display = 'block';
+        }
+
+        let _apCumpleVal = '';
+        function setCumpleAbatimiento(val, btn) {
+            _apCumpleVal = val;
+            document.getElementById('apCumpleTemp').value = val;
+            document.querySelectorAll('[onclick^="setCumpleAbatimiento"]').forEach(b => {
+                b.style.background = 'white';
+                b.style.color = b.onclick.toString().includes("'C'") ? '#10b981' : '#ef4444';
+            });
+            btn.style.background = val === 'C' ? '#10b981' : '#ef4444';
+            btn.style.color = 'white';
+        }
+
+        function guardarHACCPAbatimientoPendiente(pendienteId) {
+            const pin = document.getElementById('apFirmaPIN')?.value;
+            if (!pin || pin.length < 4) { alert('Ingresa PIN de 4 dígitos'); return; }
+
+            const p = haccpPendientesAbatimiento.find(x => x.id === pendienteId);
+            if (!p) return;
+
+            const datos = {
+                tipo: document.getElementById('apTipo')?.value,
+                fechaIngreso: document.getElementById('apFechaIngreso')?.value,
+                responsable: document.getElementById('apResponsable')?.value,
+                tipoFormato: document.getElementById('apTipoFormato')?.value,
+                horaIngreso: document.getElementById('apHoraIngreso')?.value,
+                producto: document.getElementById('apProducto')?.value,
+                op: document.getElementById('apOP')?.value,
+                lote: document.getElementById('apLote')?.value,
+                cantidad: document.getElementById('apCantidad')?.value,
+                fechaSalida: document.getElementById('apFechaSalida')?.value,
+                horaSalida: document.getElementById('apHoraSalida')?.value,
+                tempSalida: document.getElementById('apTempSalida')?.value,
+                cumpleTemp: document.getElementById('apCumpleTemp')?.value,
+                acc: document.getElementById('apACC')?.value,
+                tempACC: document.getElementById('apTempACC')?.value,
+                respSalida: document.getElementById('apRespSalida')?.value,
+                observaciones: document.getElementById('apObs')?.value,
+                firmaNombre: document.getElementById('apFirmaNombre')?.value,
+                firmaTimestamp: new Date().toLocaleString('es-CL'),
+            };
+
+            p.estado = 'completado';
+            p.completadoPor = datos.firmaNombre || '—';
+            p.completadoEn = new Date().toLocaleString('es-CL');
+            p.datosHACCP = datos;
+
+            guardarHACCPPendientesModulo('abatimiento');
+            guardarEnHistorialHACCP('abatimiento', datos);
+            cerrarModalHACCPAbatimiento();
+            renderHACCPPendientesModulo('abatimiento');
+
+            if (confirm('¿Deseas imprimir el registro HACCP de Abatimiento?')) {
+                imprimirRegistroHACCPAbatimiento(datos);
+            }
+        }
+
+        function reimprimirHACCPModulo(id, modulo) {
+            const lista = modulo === 'envasado' ? haccpPendientesEnvasado : haccpPendientesAbatimiento;
+            const p = lista.find(x => x.id === id);
+            if (!p || !p.datosHACCP) return;
+            if (modulo === 'envasado') imprimirRegistroHACCPEnvasado(p.datosHACCP);
+            else imprimirRegistroHACCPAbatimiento(p.datosHACCP);
         }
 
         window.onload = init;
