@@ -1336,6 +1336,46 @@
         </div>
         </div>
 
+        <!-- Modal Ave Mayo -->
+        <div id="modalAveMayo" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;overflow-y:auto;">
+        <div style="background:white;max-width:700px;margin:2rem auto;border-radius:20px;padding:2rem;position:relative;">
+          <button onclick="cerrarModalAveMayo()" style="position:absolute;top:1rem;right:1rem;background:none;border:none;font-size:1.5rem;cursor:pointer;">✕</button>
+          <h2 style="color:#10b981;margin-bottom:1.5rem;">🥗 Receta Ave Mayo</h2>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+            <div>
+              <label style="font-weight:600;display:block;margin-bottom:.3rem;">SKU *</label>
+              <input id="amSku" type="text" placeholder="Ej: AM-001" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;">
+            </div>
+            <div>
+              <label style="font-weight:600;display:block;margin-bottom:.3rem;">Nombre *</label>
+              <input id="amNombre" type="text" placeholder="Ej: Ave Mayo Clásica" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;">
+            </div>
+            <div>
+              <label style="font-weight:600;display:block;margin-bottom:.3rem;">Rendimiento Esperado (%)</label>
+              <input id="amRendimiento" type="number" placeholder="Ej: 95" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;">
+            </div>
+          </div>
+          <div style="margin-bottom:1rem;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
+              <h3 style="color:#059669;margin:0;">🧩 Componentes</h3>
+              <button onclick="agregarComponenteAveMayo()" style="background:#10b981;color:white;padding:.4rem 1rem;border-radius:8px;border:none;cursor:pointer;">+ Componente</button>
+            </div>
+            <div style="font-size:.8rem;color:#065f46;background:#d1fae5;border-radius:8px;padding:.5rem .75rem;margin-bottom:.75rem;">
+              💡 Ingresa el gramaje de cada componente <strong>por unidad</strong>
+            </div>
+            <div id="listaComponentesAveMayo"></div>
+          </div>
+          <div style="margin-bottom:1rem;">
+            <label style="font-weight:600;display:block;margin-bottom:.3rem;">📝 Observaciones</label>
+            <textarea id="amObservaciones" rows="2" placeholder="Notas importantes..." style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;resize:vertical;"></textarea>
+          </div>
+          <div style="display:flex;gap:1rem;justify-content:flex-end;">
+            <button onclick="cerrarModalAveMayo()" style="padding:.75rem 1.5rem;border-radius:10px;border:1px solid #ddd;cursor:pointer;">Cancelar</button>
+            <button onclick="guardarRecetaAveMayo()" style="background:linear-gradient(135deg,#10b981,#059669);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">💾 Guardar Ave Mayo</button>
+          </div>
+        </div>
+        </div>
+
         <!-- Modal Nueva/Editar Receta -->
         <div id="modalReceta" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;overflow-y:auto;">
         <div style="background:white;max-width:800px;margin:2rem auto;border-radius:20px;padding:2rem;position:relative;">
@@ -7750,6 +7790,181 @@ function guardarRecetaSandwich() {
 
   guardarRecetasStorage();
   cerrarModalSandwich();
+  renderListaRecetas();
+  cargarSelectorOPsSimple();
+}
+
+// ---- AVE MAYO ----
+let aveMayoEditandoId = null;
+let componentesAveMayoTemp = [];
+
+function abrirModalRecetaAveMayo(id = null) {
+  aveMayoEditandoId = id;
+  componentesAveMayoTemp = [];
+  if (id) {
+    const r = recetas.find(x => x.id === id);
+    document.getElementById('amSku').value = r.sku || '';
+    document.getElementById('amNombre').value = r.nombre || '';
+    document.getElementById('amRendimiento').value = r.rendimientoEsperado || '';
+    document.getElementById('amObservaciones').value = r.observaciones || '';
+    componentesAveMayoTemp = JSON.parse(JSON.stringify(r.componentes || [])).map(c => ({
+      ...c,
+      gramajePorUnidad: c.gramajePorUnidad !== undefined ? c.gramajePorUnidad : (c.gramajePorcion || 0),
+      unidadComponente: c.unidadComponente || 'gr',
+      tiempoCoccionMin: c.tiempoCoccionMin || 30,
+      preparacionFria: c.preparacionFria || false
+    }));
+  } else {
+    document.getElementById('amSku').value = '';
+    document.getElementById('amNombre').value = '';
+    document.getElementById('amRendimiento').value = '';
+    document.getElementById('amObservaciones').value = '';
+    componentesAveMayoTemp = [];
+  }
+  renderComponentesAveMayo();
+  document.getElementById('modalAveMayo').style.display = 'block';
+}
+
+function cerrarModalAveMayo() {
+  document.getElementById('modalAveMayo').style.display = 'none';
+}
+
+function agregarComponenteAveMayo() {
+  componentesAveMayoTemp.push({ nombre: '', gramajePorUnidad: 0, unidadComponente: 'gr', tiempoCoccionMin: 30, preparacionFria: false, ingredientes: [] });
+  renderComponentesAveMayo();
+}
+
+function eliminarComponenteAveMayo(idx) {
+  componentesAveMayoTemp.splice(idx, 1);
+  renderComponentesAveMayo();
+}
+
+function agregarIngredienteAveMayo(ci) {
+  componentesAveMayoTemp[ci].ingredientes.push({ nombre: '', cantidadBruta: 0, unidad: 'kg', tipoPreelaborado: '' });
+  renderComponentesAveMayo();
+}
+
+function eliminarIngredienteAveMayo(ci, ii) {
+  componentesAveMayoTemp[ci].ingredientes.splice(ii, 1);
+  renderComponentesAveMayo();
+}
+
+function renderComponentesAveMayo() {
+  const cont = document.getElementById('listaComponentesAveMayo');
+  if (!cont) return;
+  if (componentesAveMayoTemp.length === 0) {
+    cont.innerHTML = '<p style="color:#999;font-size:.9rem;">Agrega al menos un componente (ej: Ave, Mayo, Acompañamiento)</p>';
+    return;
+  }
+  cont.innerHTML = componentesAveMayoTemp.map((comp, ci) => `
+    <div style="background:${comp.preparacionFria?'#f0fdf4':'#f0fdf4'};border-radius:10px;padding:1rem;margin-bottom:.75rem;border-left:4px solid #10b981;">
+      <div style="display:flex;gap:.5rem;margin-bottom:.75rem;align-items:center;">
+        <input value="${comp.nombre}" oninput="componentesAveMayoTemp[${ci}].nombre=this.value"
+          placeholder="Nombre componente (ej: Pollo cocido, Mayo)"
+          style="flex:1;padding:.45rem;border-radius:7px;border:1px solid #ddd;font-size:.9rem;">
+        <label style="display:flex;align-items:center;gap:.3rem;cursor:pointer;white-space:nowrap;font-size:.78rem;font-weight:700;color:${comp.preparacionFria?'#059669':'#94a3b8'};background:${comp.preparacionFria?'#d1fae5':'#f1f5f9'};padding:.3rem .5rem;border-radius:6px;border:1px solid ${comp.preparacionFria?'#6ee7b7':'#e2e8f0'};">
+          <input type="checkbox" ${comp.preparacionFria?'checked':''} onchange="componentesAveMayoTemp[${ci}].preparacionFria=this.checked;renderComponentesAveMayo()" style="accent-color:#10b981;width:14px;height:14px;">
+          ❄️ Frío
+        </label>
+        <input type="number" value="${comp.gramajePorUnidad||''}" oninput="componentesAveMayoTemp[${ci}].gramajePorUnidad=parseFloat(this.value)||0"
+          placeholder="Cantidad" style="width:80px;padding:.45rem;border-radius:7px;border:1px solid #ddd;font-size:.9rem;">
+        <select onchange="componentesAveMayoTemp[${ci}].unidadComponente=this.value"
+          style="width:65px;padding:.45rem;border-radius:7px;border:1px solid #ddd;font-size:.9rem;color:#065f46;font-weight:600;">
+          <option value="gr" ${(comp.unidadComponente||'gr')==='gr'?'selected':''}>gr</option>
+          <option value="un" ${(comp.unidadComponente||'gr')==='un'?'selected':''}>un</option>
+          <option value="kg" ${(comp.unidadComponente||'gr')==='kg'?'selected':''}>kg</option>
+          <option value="lt" ${(comp.unidadComponente||'gr')==='lt'?'selected':''}>lt</option>
+          <option value="ml" ${(comp.unidadComponente||'gr')==='ml'?'selected':''}>ml</option>
+        </select>
+        ${!comp.preparacionFria ? `
+        <div style="display:flex;flex-direction:column;align-items:center;gap:.1rem;">
+          <input type="number" value="${comp.tiempoCoccionMin||''}" oninput="componentesAveMayoTemp[${ci}].tiempoCoccionMin=parseInt(this.value)||0" placeholder="30" min="1" max="480"
+            style="width:60px;padding:.45rem;border-radius:7px;border:1px solid #a5b4fc;background:#eef2ff;text-align:center;font-weight:700;color:#4f46e5;">
+          <span style="font-size:.6rem;color:#94a3b8;white-space:nowrap;">⏱ min</span>
+        </div>` : ''}
+        <button onclick="eliminarComponenteAveMayo(${ci})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:7px;padding:.4rem .7rem;cursor:pointer;">✕</button>
+      </div>
+      <div style="margin-left:.5rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;">
+          <span style="font-size:.8rem;font-weight:600;color:#065f46;">🧂 Ingredientes del componente</span>
+          <button onclick="agregarIngredienteAveMayo(${ci})" style="background:#d1fae5;color:#065f46;border:1px solid #10b981;border-radius:6px;padding:.25rem .7rem;font-size:.8rem;cursor:pointer;font-weight:600;">+ Ingrediente</button>
+        </div>
+        ${comp.ingredientes && comp.ingredientes.length > 0 ? `
+        <div style="display:grid;grid-template-columns:1fr 80px 65px 105px 28px;gap:.3rem;margin-bottom:.3rem;padding:0 .2rem;">
+          <span style="font-size:.72rem;color:#999;">Ingrediente</span>
+          <span style="font-size:.72rem;color:#999;">Cantidad</span>
+          <span style="font-size:.72rem;color:#999;">Unidad</span>
+          <span style="font-size:.72rem;color:#999;">Tipo ▼</span>
+          <span></span>
+        </div>
+        ${comp.ingredientes.map((ing, ii) => `
+          <div style="display:grid;grid-template-columns:1fr 80px 65px 105px 28px;gap:.3rem;margin-bottom:.35rem;align-items:center;">
+            <input value="${ing.nombre}" oninput="componentesAveMayoTemp[${ci}].ingredientes[${ii}].nombre=this.value"
+              placeholder="Ej: Pechuga de pollo"
+              style="padding:.35rem;border-radius:6px;border:1px solid #ddd;font-size:.82rem;width:100%;">
+            <input type="number" value="${ing.cantidadBruta||''}" oninput="componentesAveMayoTemp[${ci}].ingredientes[${ii}].cantidadBruta=parseFloat(this.value)||0"
+              placeholder="0" style="padding:.35rem;border-radius:6px;border:1px solid #ddd;font-size:.82rem;width:100%;">
+            <select onchange="componentesAveMayoTemp[${ci}].ingredientes[${ii}].unidad=this.value"
+              style="padding:.35rem;border-radius:6px;border:1px solid #ddd;font-size:.82rem;width:100%;">
+              <option value="kg" ${ing.unidad==='kg'?'selected':''}>kg</option>
+              <option value="gr" ${ing.unidad==='gr'?'selected':''}>gr</option>
+              <option value="lt" ${ing.unidad==='lt'?'selected':''}>lt</option>
+              <option value="ml" ${ing.unidad==='ml'?'selected':''}>ml</option>
+              <option value="un" ${ing.unidad==='un'?'selected':''}>un</option>
+            </select>
+            <select onchange="componentesAveMayoTemp[${ci}].ingredientes[${ii}].tipoPreelaborado=this.value"
+              style="padding:.35rem;border-radius:6px;border:1px solid #ddd;font-size:.78rem;font-weight:600;width:100%;">
+              <option value="" ${!ing.tipoPreelaborado?'selected':''}>— tipo —</option>
+              <option value="carnes" ${ing.tipoPreelaborado==='carnes'?'selected':''} style="color:#dc2626;">🥩 Carne</option>
+              <option value="vegetales" ${ing.tipoPreelaborado==='vegetales'?'selected':''} style="color:#16a34a;">🥗 Vegetal</option>
+              <option value="insumo" ${ing.tipoPreelaborado==='insumo'?'selected':''} style="color:#888;">📦 Insumo</option>
+            </select>
+            <button onclick="eliminarIngredienteAveMayo(${ci},${ii})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:5px;padding:.3rem .5rem;cursor:pointer;font-size:.78rem;">✕</button>
+          </div>
+        `).join('')}
+        ` : `<p style="font-size:.78rem;color:#bbb;margin:.3rem 0 0 .2rem;">Sin ingredientes — usa "+ Ingrediente" para agregar</p>`}
+      </div>
+    </div>
+  `).join('');
+}
+
+function guardarRecetaAveMayo() {
+  const sku = document.getElementById('amSku').value.trim();
+  const nombre = document.getElementById('amNombre').value.trim();
+  if (!sku || !nombre) { alert('SKU y nombre son obligatorios'); return; }
+  if (componentesAveMayoTemp.length === 0) { alert('Agrega al menos un componente'); return; }
+  if (componentesAveMayoTemp.some(c => !c.nombre || !c.gramajePorUnidad)) {
+    alert('Completa nombre y gramaje en cada componente'); return;
+  }
+  const gramajeTotalGr = componentesAveMayoTemp.reduce((s, c) => s + (c.gramajePorUnidad || 0), 0);
+  const componentes = componentesAveMayoTemp.map(c => ({
+    nombre: c.nombre,
+    gramajePorcion: c.gramajePorUnidad,
+    unidadComponente: c.unidadComponente || 'gr',
+    preparacionFria: c.preparacionFria || false,
+    ingredientes: c.ingredientes || []
+  }));
+  const receta = {
+    id: aveMayoEditandoId || Date.now().toString(),
+    sku, nombre,
+    tipo: 'avemayo',
+    gramaje: gramajeTotalGr,
+    envase: 0,
+    rendimientoEsperado: parseFloat(document.getElementById('amRendimiento').value) || 100,
+    observaciones: document.getElementById('amObservaciones').value,
+    componentes,
+    historialRendimientos: aveMayoEditandoId ? (recetas.find(r=>r.id===aveMayoEditandoId)?.historialRendimientos||[]) : [],
+    fechaCreacion: aveMayoEditandoId ? (recetas.find(r=>r.id===aveMayoEditandoId)?.fechaCreacion||new Date().toLocaleDateString('es-CL')) : new Date().toLocaleDateString('es-CL'),
+    version: aveMayoEditandoId ? ((recetas.find(r=>r.id===aveMayoEditandoId)?.version||1)+1) : 1
+  };
+  if (aveMayoEditandoId) {
+    const idx = recetas.findIndex(r => r.id === aveMayoEditandoId);
+    recetas[idx] = receta;
+  } else {
+    recetas.push(receta);
+  }
+  guardarRecetasStorage();
+  cerrarModalAveMayo();
   renderListaRecetas();
   cargarSelectorOPsSimple();
 }
