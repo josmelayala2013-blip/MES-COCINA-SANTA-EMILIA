@@ -971,9 +971,42 @@
                 <div class="search-bar">
                     <input type="search" id="searchHistory" placeholder="🔍 Buscar por OP, producto, equipo..." oninput="filtrarHistorial()">
                 </div>
+                <!-- Botones de vista -->
+                <div style="display:flex;gap:.5rem;margin-left:auto;">
+                    <button id="btnVistaDia" onclick="setVistaHistorial('dia')"
+                        style="padding:.45rem 1rem;border-radius:8px;border:2px solid #667eea;background:#667eea;color:white;font-weight:700;cursor:pointer;font-size:.85rem;">
+                        📋 Por Día
+                    </button>
+                    <button id="btnVistaMes" onclick="setVistaHistorial('mes')"
+                        style="padding:.45rem 1rem;border-radius:8px;border:2px solid #667eea;background:white;color:#667eea;font-weight:700;cursor:pointer;font-size:.85rem;">
+                        📅 Vista Mensual HACCP
+                    </button>
+                </div>
             </div>
             <div id="historySummary"></div>
             <div id="historialContent"></div>
+            <!-- Panel vista mensual HACCP -->
+            <div id="panelMensualHACCP" style="display:none;padding:1.5rem;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
+                    <h2 style="color:#1e3a5f;margin:0;">📅 Resumen Mensual HACCP</h2>
+                    <div style="display:flex;gap:.75rem;align-items:center;">
+                        <button onclick="cambiarMesHACCP(-1)" style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1rem;">◀</button>
+                        <span id="labelMesHACCP" style="font-weight:700;color:#1e3a5f;font-size:1rem;min-width:140px;text-align:center;"></span>
+                        <button onclick="cambiarMesHACCP(1)" style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1rem;">▶</button>
+                    </div>
+                </div>
+                <!-- Leyenda -->
+                <div style="display:flex;gap:1rem;margin-bottom:1.25rem;flex-wrap:wrap;">
+                    <div style="display:flex;align-items:center;gap:.4rem;font-size:.82rem;"><span style="width:14px;height:14px;border-radius:4px;background:#d1fae5;border:1px solid #10b981;display:inline-block;"></span>Todos completos</div>
+                    <div style="display:flex;align-items:center;gap:.4rem;font-size:.82rem;"><span style="width:14px;height:14px;border-radius:4px;background:#fef3c7;border:1px solid #f59e0b;display:inline-block;"></span>Con pendientes</div>
+                    <div style="display:flex;align-items:center;gap:.4rem;font-size:.82rem;"><span style="width:14px;height:14px;border-radius:4px;background:#fee2e2;border:1px solid #ef4444;display:inline-block;"></span>Con vencidos</div>
+                    <div style="display:flex;align-items:center;gap:.4rem;font-size:.82rem;"><span style="width:14px;height:14px;border-radius:4px;background:#f1f5f9;border:1px solid #e2e8f0;display:inline-block;"></span>Sin producción</div>
+                </div>
+                <!-- Calendario -->
+                <div id="calendarioHACCP" style="margin-bottom:2rem;"></div>
+                <!-- Tabla resumen -->
+                <div id="tablaResumenHACCP"></div>
+            </div>
         </div>
 
         <!-- TAB: ANALYTICS -->
@@ -5568,6 +5601,14 @@ function imprimirRegistroHACCP(d) {
                 ? historial.reduce((sum, h) => sum + (h.tiempoCoccion || 0), 0) / historial.length 
                 : 0;
 
+            // HACCP completados del día
+            const haccpDia = haccpPendientes.filter(p =>
+                p.fechaISO === fecha && p.estado === 'completado'
+            );
+            const haccpPendDia = haccpPendientes.filter(p =>
+                p.fechaISO === fecha && p.estado !== 'completado'
+            );
+
             summaryContainer.innerHTML = `
                 <div class="history-summary">
                     <h3>📅 Resumen del ${fecha === getHoy() ? 'Día de Hoy' : formatFecha(fecha)}</h3>
@@ -5585,61 +5626,155 @@ function imprimirRegistroHACCP(d) {
                             <div class="value">${formatTime(Math.floor(tiempoCoccionPromedio))}</div>
                         </div>
                         <div class="summary-item">
-                            <div class="label">Fecha</div>
-                            <div class="value" style="font-size: 1.2rem;">${fecha === getHoy() ? 'HOY' : formatFecha(fecha)}</div>
+                            <div class="label">HACCP Completados</div>
+                            <div class="value" style="color:${haccpDia.length>0?'#10b981':'#94a3b8'};">
+                                ${haccpDia.length} / ${haccpDia.length + haccpPendDia.length}
+                            </div>
                         </div>
                     </div>
                 </div>
             `;
 
+            // Sección producciones
+            let htmlProducciones = '';
             if (historial.length === 0) {
-                container.innerHTML = `
-                    <div style="background: white; padding: 3rem; border-radius: 15px; text-align: center; color: #999;">
-                        <div style="font-size: 4rem; margin-bottom: 1rem;">📭</div>
+                htmlProducciones = `
+                    <div style="background:white;padding:3rem;border-radius:15px;text-align:center;color:#999;">
+                        <div style="font-size:4rem;margin-bottom:1rem;">📭</div>
                         <h3>No hay producciones registradas en esta fecha</h3>
-                        <p style="margin-top: 0.5rem;">Selecciona otra fecha o inicia una nueva producción</p>
-                    </div>
-                `;
-                return;
+                        <p style="margin-top:0.5rem;">Selecciona otra fecha o inicia una nueva producción</p>
+                    </div>`;
+            } else {
+                htmlProducciones = `
+                    <div style="background:white;padding:2rem;border-radius:15px;box-shadow:0 5px 15px rgba(0,0,0,0.1);margin-bottom:1.5rem;">
+                        <h3 style="color:#667eea;margin-bottom:1.5rem;">📋 Producciones del Día (${totalProducciones})</h3>
+                        ${historial.map((h, index) => `
+                            <div style="border:2px solid #e5e7eb;border-radius:10px;padding:1rem;margin-bottom:1rem;background:#f9fafb;">
+                                <div style="display:flex;justify-content:space-between;margin-bottom:0.5rem;">
+                                    <div>
+                                        <strong style="color:#667eea;font-size:1.1rem;">${h.producto}</strong>
+                                        <div class="op-badge" style="margin-top:0.25rem;">OP: ${h.numeroOP}</div>
+                                    </div>
+                                    <span style="color:#666;">${h.equipoNombre}</span>
+                                </div>
+                                <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:0.5rem;font-size:0.9rem;">
+                                    <div>Operador: <strong>${h.operador}</strong></div>
+                                    <div>Manipulador: <strong>${h.manipulador}</strong></div>
+                                    <div>Programado: <strong>${h.kgProgramados} kg</strong></div>
+                                    <div>Real: <strong>${h.kgReales} kg</strong></div>
+                                    <div>Abatimiento: <strong>${h.kgAbatimiento} kg</strong></div>
+                                    <div>Final: <strong>${h.kgFinales} kg</strong></div>
+                                    <div>Diferencia: <strong style="color:${h.diferencia >= 0 ? '#10b981' : '#ef4444'}">${h.diferencia > 0 ? '+' : ''}${h.diferencia?.toFixed(1) || 0} kg</strong></div>
+                                    <div>Temp: <strong>${h.temperatura || 'N/A'}°C</strong></div>
+                                </div>
+                                <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid #e5e7eb;">
+                                    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:0.5rem;font-size:0.85rem;color:#666;">
+                                        <div>⏱️ Cocción: <strong>${h.tiempoCoccionFormateado}</strong></div>
+                                        <div>🧹 Limpieza: <strong>${h.tiempoLimpiezaFormateado || 'N/A'}</strong></div>
+                                        <div>📦 Envasado: <strong>${h.tiempoEnvasadoFormateado}</strong></div>
+                                        <div>❄️ Abatimiento: <strong>${h.tiempoAbatimientoFormateado}</strong></div>
+                                    </div>
+                                </div>
+                                <div style="margin-top:0.5rem;text-align:right;font-size:0.85rem;color:#666;">
+                                    Finalizado: <strong>${new Date(h.finalizadoCompleto).toLocaleTimeString('es-CL')}</strong>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>`;
             }
 
-            container.innerHTML = `
-                <div style="background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
-                    <h3 style="color: #667eea; margin-bottom: 1.5rem;">📋 Producciones del Día (${totalProducciones})</h3>
-                    ${historial.map((h, index) => `
-                        <div style="border: 2px solid #e5e7eb; border-radius: 10px; padding: 1rem; margin-bottom: 1rem; background: #f9fafb;">
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                                <div>
-                                    <strong style="color: #667eea; font-size: 1.1rem;">${h.producto}</strong>
-                                    <div class="op-badge" style="margin-top: 0.25rem;">OP: ${h.numeroOP}</div>
-                                </div>
-                                <span style="color: #666;">${h.equipoNombre}</span>
-                            </div>
-                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; font-size: 0.9rem;">
-                                <div>Operador: <strong>${h.operador}</strong></div>
-                                <div>Manipulador: <strong>${h.manipulador}</strong></div>
-                                <div>Programado: <strong>${h.kgProgramados} kg</strong></div>
-                                <div>Real: <strong>${h.kgReales} kg</strong></div>
-                                <div>Abatimiento: <strong>${h.kgAbatimiento} kg</strong></div>
-                                <div>Final: <strong>${h.kgFinales} kg</strong></div>
-                                <div>Diferencia: <strong style="color: ${h.diferencia >= 0 ? '#10b981' : '#ef4444'}">${h.diferencia > 0 ? '+' : ''}${h.diferencia?.toFixed(1) || 0} kg</strong></div>
-                                <div>Temp: <strong>${h.temperatura || 'N/A'}°C</strong></div>
-                            </div>
-                            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
-                                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; font-size: 0.85rem; color: #666;">
-                                    <div>⏱️ Cocción: <strong>${h.tiempoCoccionFormateado}</strong></div>
-                                    <div>🧹 Limpieza: <strong>${h.tiempoLimpiezaFormateado || 'N/A'}</strong></div>
-                                    <div>📦 Envasado: <strong>${h.tiempoEnvasadoFormateado}</strong></div>
-                                    <div>❄️ Abatimiento: <strong>${h.tiempoAbatimientoFormateado}</strong></div>
-                                </div>
-                            </div>
-                            <div style="margin-top: 0.5rem; text-align: right; font-size: 0.85rem; color: #666;">
-                                Finalizado: <strong>${new Date(h.finalizadoCompleto).toLocaleTimeString('es-CL')}</strong>
-                            </div>
+            // Sección HACCP del día
+            let htmlHACCP = '';
+            if (haccpDia.length > 0 || haccpPendDia.length > 0) {
+                htmlHACCP = `
+                <div style="background:white;padding:2rem;border-radius:15px;box-shadow:0 5px 15px rgba(0,0,0,0.1);">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+                        <h3 style="color:#1e3a5f;margin:0;">📋 Registros HACCP del Día</h3>
+                        <div style="display:flex;gap:.5rem;">
+                            ${haccpDia.length > 0 ? `<span style="background:#d1fae5;color:#065f46;border-radius:20px;padding:.2rem .75rem;font-size:.8rem;font-weight:700;">✅ ${haccpDia.length} completado(s)</span>` : ''}
+                            ${haccpPendDia.length > 0 ? `<span style="background:#fee2e2;color:#991b1b;border-radius:20px;padding:.2rem .75rem;font-size:.8rem;font-weight:700;">⚠️ ${haccpPendDia.length} pendiente(s)</span>` : ''}
                         </div>
-                    `).join('')}
-                </div>
-            `;
+                    </div>
+                    <!-- Completados -->
+                    ${haccpDia.map(p => {
+                        const d = p.datosHACCP || {};
+                        const sim = v => v==='C'?'<span style="color:#16a34a;font-weight:700;">✓ C</span>':v==='NC'?'<span style="color:#dc2626;font-weight:700;">✗ NC</span>':'—';
+                        return `
+                        <div style="border:2px solid #d1fae5;border-radius:10px;padding:1rem;margin-bottom:1rem;background:#f0fdf4;">
+                            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem;">
+                                <div>
+                                    <strong style="color:#065f46;font-size:1rem;">✅ ${p.producto}</strong>
+                                    <div style="font-size:.8rem;color:#666;margin-top:.2rem;">
+                                        ⚙️ ${p.equipoNombre} · 👤 ${p.operador} · 🕐 ${p.horaFinCoccion}
+                                    </div>
+                                </div>
+                                <div style="text-align:right;">
+                                    <button onclick="imprimirHACCPDesdePendiente(${JSON.stringify(d).replace(/"/g,'&quot;')})"
+                                        style="background:#1e3a5f;color:white;border:none;border-radius:8px;padding:.35rem .8rem;cursor:pointer;font-size:.8rem;font-weight:600;">
+                                        🖨️ Imprimir
+                                    </button>
+                                    <div style="font-size:.72rem;color:#94a3b8;margin-top:.25rem;">Completado: ${p.completadoEn||'—'}</div>
+                                    <div style="font-size:.72rem;color:#94a3b8;">Por: ${p.completadoPor||'—'}</div>
+                                </div>
+                            </div>
+                            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.5rem;font-size:.82rem;">
+                                <div style="background:white;border-radius:6px;padding:.4rem;text-align:center;border:1px solid #e2e8f0;">
+                                    <div style="font-size:.7rem;color:#666;">Temperatura</div>
+                                    <div style="font-weight:700;color:${parseFloat(d.temperatura)>=75?'#16a34a':'#dc2626'};">${d.temperatura||'—'}°C</div>
+                                </div>
+                                <div style="background:white;border-radius:6px;padding:.4rem;text-align:center;border:1px solid #e2e8f0;">
+                                    <div style="font-size:.7rem;color:#666;">Kg Reales</div>
+                                    <div style="font-weight:700;">${d.kgReales||p.kgReales||'—'} kg</div>
+                                </div>
+                                <div style="background:white;border-radius:6px;padding:.4rem;text-align:center;border:1px solid #e2e8f0;">
+                                    <div style="font-size:.7rem;color:#666;">Color</div>
+                                    <div>${sim(d.color)}</div>
+                                </div>
+                                <div style="background:white;border-radius:6px;padding:.4rem;text-align:center;border:1px solid #e2e8f0;">
+                                    <div style="font-size:.7rem;color:#666;">Olor</div>
+                                    <div>${sim(d.olor)}</div>
+                                </div>
+                                <div style="background:white;border-radius:6px;padding:.4rem;text-align:center;border:1px solid #e2e8f0;">
+                                    <div style="font-size:.7rem;color:#666;">Sabor</div>
+                                    <div>${sim(d.sabor)}</div>
+                                </div>
+                                <div style="background:white;border-radius:6px;padding:.4rem;text-align:center;border:1px solid #e2e8f0;">
+                                    <div style="font-size:.7rem;color:#666;">Textura</div>
+                                    <div>${sim(d.textura)}</div>
+                                </div>
+                                <div style="background:white;border-radius:6px;padding:.4rem;text-align:center;border:1px solid #e2e8f0;">
+                                    <div style="font-size:.7rem;color:#666;">Aus. EE</div>
+                                    <div>${sim(d.ausEE)}</div>
+                                </div>
+                                ${d.reqACC==='si' ? `
+                                <div style="background:#fff7ed;border-radius:6px;padding:.4rem;text-align:center;border:1px solid #fed7aa;">
+                                    <div style="font-size:.7rem;color:#666;">ACC</div>
+                                    <div style="font-weight:700;font-size:.78rem;color:#ea580c;">${d.acc||'—'}</div>
+                                </div>` : ''}
+                            </div>
+                            ${d.observaciones ? `<div style="margin-top:.5rem;font-size:.8rem;color:#666;background:white;border-radius:6px;padding:.4rem .6rem;border:1px solid #e2e8f0;">📝 ${d.observaciones}</div>` : ''}
+                        </div>`;
+                    }).join('')}
+                    <!-- Pendientes del día -->
+                    ${haccpPendDia.map(p => `
+                        <div style="border:2px solid #fca5a5;border-radius:10px;padding:1rem;margin-bottom:1rem;background:#fff5f5;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;">
+                                <div>
+                                    <strong style="color:#dc2626;font-size:1rem;">⚠️ ${p.producto} — Sin completar</strong>
+                                    <div style="font-size:.8rem;color:#666;margin-top:.2rem;">
+                                        ⚙️ ${p.equipoNombre} · 👤 ${p.operador} · 🕐 ${p.horaFinCoccion}
+                                    </div>
+                                </div>
+                                <button onclick="changeTab('dashboard');setTimeout(()=>abrirHACCPPendiente('${p.id}'),300)"
+                                    style="background:#dc2626;color:white;border:none;border-radius:8px;padding:.4rem .9rem;cursor:pointer;font-size:.82rem;font-weight:600;white-space:nowrap;">
+                                    📋 Completar ahora
+                                </button>
+                            </div>
+                        </div>`).join('')}
+                </div>`;
+            }
+
+            container.innerHTML = htmlProducciones + htmlHACCP;
         }
 
         function filtrarHistorial() {
@@ -11728,6 +11863,229 @@ function mostrarPopupGantt(eq) {
             p.completadoEn = new Date().toLocaleString('es-CL');
             guardarHACCPPendientes();
             renderHACCPPendientes();
+        }
+
+        // ============================================
+        // VISTA MENSUAL HACCP
+        // ============================================
+        let _vistaHistorial = 'dia';
+        let _mesMostrado = new Date();
+
+        function setVistaHistorial(vista) {
+            _vistaHistorial = vista;
+            const btnDia = document.getElementById('btnVistaDia');
+            const btnMes = document.getElementById('btnVistaMes');
+            const panelMes = document.getElementById('panelMensualHACCP');
+            const summary = document.getElementById('historySummary');
+            const content = document.getElementById('historialContent');
+
+            if (vista === 'mes') {
+                btnDia.style.background = 'white';
+                btnDia.style.color = '#667eea';
+                btnMes.style.background = '#667eea';
+                btnMes.style.color = 'white';
+                panelMes.style.display = 'block';
+                summary.style.display = 'none';
+                content.style.display = 'none';
+                renderVistaMensualHACCP();
+            } else {
+                btnDia.style.background = '#667eea';
+                btnDia.style.color = 'white';
+                btnMes.style.background = 'white';
+                btnMes.style.color = '#667eea';
+                panelMes.style.display = 'none';
+                summary.style.display = 'block';
+                content.style.display = 'block';
+                cargarHistorialFecha();
+            }
+        }
+
+        function cambiarMesHACCP(dir) {
+            _mesMostrado = new Date(_mesMostrado.getFullYear(), _mesMostrado.getMonth() + dir, 1);
+            renderVistaMensualHACCP();
+        }
+
+        function renderVistaMensualHACCP() {
+            const anio = _mesMostrado.getFullYear();
+            const mes = _mesMostrado.getMonth();
+            const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+            const dias = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+            document.getElementById('labelMesHACCP').textContent = `${meses[mes]} ${anio}`;
+
+            // Construir mapa de datos por fecha ISO
+            const dataPorDia = {};
+            haccpPendientes.forEach(p => {
+                const f = p.fechaISO;
+                if (!f) return;
+                const [y,m] = f.split('-');
+                if (parseInt(y) !== anio || parseInt(m)-1 !== mes) return;
+                if (!dataPorDia[f]) dataPorDia[f] = { completados:0, pendientes:0, vencidos:0, registros:[] };
+                if (p.estado === 'completado') dataPorDia[f].completados++;
+                else if (p.estado === 'vencido') dataPorDia[f].vencidos++;
+                else dataPorDia[f].pendientes++;
+                dataPorDia[f].registros.push(p);
+            });
+
+            // Calendario
+            const primerDia = new Date(anio, mes, 1).getDay();
+            const diasEnMes = new Date(anio, mes+1, 0).getDate();
+            const hoy = new Date().toISOString().split('T')[0];
+
+            let calHtml = `<div style="background:white;border-radius:15px;padding:1.25rem;box-shadow:0 4px 15px rgba(0,0,0,0.08);margin-bottom:1.5rem;">
+                <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:8px;">
+                    ${dias.map(d => `<div style="text-align:center;font-size:.75rem;font-weight:700;color:#94a3b8;padding:.3rem;">${d}</div>`).join('')}
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;">`;
+
+            // Espacios vacíos antes del primer día
+            for (let i=0; i<primerDia; i++) {
+                calHtml += `<div style="height:72px;"></div>`;
+            }
+
+            for (let d=1; d<=diasEnMes; d++) {
+                const fechaISO = `${anio}-${String(mes+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const data = dataPorDia[fechaISO];
+                const esHoy = fechaISO === hoy;
+                const tieneHist = historialPorFecha?.[fechaISO]?.length > 0;
+
+                let bgColor = '#f8fafc', borderColor = '#e2e8f0', textColor = '#94a3b8';
+                let badge = '';
+
+                if (data) {
+                    if (data.vencidos > 0) {
+                        bgColor = '#fee2e2'; borderColor = '#ef4444'; textColor = '#991b1b';
+                        badge = `<span style="background:#ef4444;color:white;border-radius:10px;padding:.05rem .35rem;font-size:.65rem;font-weight:700;">⚠️${data.vencidos}</span>`;
+                    } else if (data.pendientes > 0) {
+                        bgColor = '#fef3c7'; borderColor = '#f59e0b'; textColor = '#92400e';
+                        badge = `<span style="background:#f59e0b;color:white;border-radius:10px;padding:.05rem .35rem;font-size:.65rem;font-weight:700;">⏳${data.pendientes}</span>`;
+                    } else if (data.completados > 0) {
+                        bgColor = '#d1fae5'; borderColor = '#10b981'; textColor = '#065f46';
+                        badge = `<span style="background:#10b981;color:white;border-radius:10px;padding:.05rem .35rem;font-size:.65rem;font-weight:700;">✓${data.completados}</span>`;
+                    }
+                } else if (tieneHist) {
+                    bgColor = '#fef9ef'; borderColor = '#fcd34d'; textColor = '#78350f';
+                    badge = `<span style="font-size:.65rem;color:#78350f;">sin HACCP</span>`;
+                }
+
+                calHtml += `
+                <div onclick="irAFechaHistorial('${fechaISO}')" style="
+                    height:72px;background:${bgColor};border:2px solid ${borderColor};border-radius:10px;
+                    padding:.4rem;cursor:pointer;transition:transform .1s;display:flex;flex-direction:column;justify-content:space-between;
+                    ${esHoy?'box-shadow:0 0 0 3px #667eea;':''}
+                " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                    <div style="font-size:.85rem;font-weight:${esHoy?'800':'600'};color:${textColor};">${d}${esHoy?' •':''}</div>
+                    <div style="font-size:.7rem;color:${textColor};">${data?`${data.completados+data.pendientes+data.vencidos} reg.`:tieneHist?'prod.':''}</div>
+                    <div>${badge}</div>
+                </div>`;
+            }
+            calHtml += `</div></div>`;
+            document.getElementById('calendarioHACCP').innerHTML = calHtml;
+
+            // Tabla resumen del mes
+            const fechasConData = Object.keys(dataPorDia).sort();
+            // También incluir días con producción pero sin HACCP
+            const fechasConProd = Object.keys(historialPorFecha||{}).filter(f => {
+                const [y,m] = f.split('-');
+                return parseInt(y)===anio && parseInt(m)-1===mes && !dataPorDia[f];
+            });
+
+            let tablaHtml = `
+            <div style="background:white;border-radius:15px;padding:1.5rem;box-shadow:0 4px 15px rgba(0,0,0,0.08);">
+                <h3 style="color:#1e3a5f;margin-bottom:1.25rem;">📊 Tabla Resumen del Mes</h3>`;
+
+            if (fechasConData.length === 0 && fechasConProd.length === 0) {
+                tablaHtml += `<div style="text-align:center;color:#94a3b8;padding:2rem;">Sin registros en este mes</div>`;
+            } else {
+                tablaHtml += `
+                <div style="overflow-x:auto;">
+                <table style="width:100%;border-collapse:collapse;font-size:.85rem;">
+                    <thead>
+                        <tr style="background:#1e3a5f;color:white;">
+                            <th style="padding:.6rem .75rem;text-align:left;">Fecha</th>
+                            <th style="padding:.6rem .75rem;text-align:center;">✅ Completados</th>
+                            <th style="padding:.6rem .75rem;text-align:center;">⏳ Pendientes</th>
+                            <th style="padding:.6rem .75rem;text-align:center;">⚠️ Vencidos</th>
+                            <th style="padding:.6rem .75rem;text-align:left;">Productos</th>
+                            <th style="padding:.6rem .75rem;text-align:left;">Completado por</th>
+                            <th style="padding:.6rem .75rem;text-align:center;">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${fechasConData.map((f,i) => {
+                            const data = dataPorDia[f];
+                            const [y,m,d] = f.split('-');
+                            const fechaLabel = `${d}/${m}/${y}`;
+                            const esVencido = data.vencidos > 0;
+                            const esPendiente = data.pendientes > 0;
+                            const rowColor = esVencido ? '#fff5f5' : esPendiente ? '#fffbeb' : i%2===0 ? 'white' : '#f8fafc';
+                            const productos = [...new Set(data.registros.map(r=>r.producto))].join(', ');
+                            const responsables = [...new Set(data.registros.filter(r=>r.completadoPor).map(r=>r.completadoPor))].join(', ') || '—';
+                            return `
+                            <tr style="border-bottom:1px solid #f0f0f0;background:${rowColor};">
+                                <td style="padding:.55rem .75rem;font-weight:700;">${fechaLabel}</td>
+                                <td style="padding:.55rem .75rem;text-align:center;">
+                                    <span style="background:#d1fae5;color:#065f46;border-radius:20px;padding:.1rem .6rem;font-weight:700;">${data.completados}</span>
+                                </td>
+                                <td style="padding:.55rem .75rem;text-align:center;">
+                                    ${data.pendientes > 0 ? `<span style="background:#fef3c7;color:#92400e;border-radius:20px;padding:.1rem .6rem;font-weight:700;">${data.pendientes}</span>` : '<span style="color:#94a3b8;">—</span>'}
+                                </td>
+                                <td style="padding:.55rem .75rem;text-align:center;">
+                                    ${data.vencidos > 0 ? `<span style="background:#fee2e2;color:#991b1b;border-radius:20px;padding:.1rem .6rem;font-weight:700;">${data.vencidos}</span>` : '<span style="color:#94a3b8;">—</span>'}
+                                </td>
+                                <td style="padding:.55rem .75rem;font-size:.8rem;color:#555;">${productos}</td>
+                                <td style="padding:.55rem .75rem;font-size:.8rem;color:#555;">${responsables}</td>
+                                <td style="padding:.55rem .75rem;text-align:center;">
+                                    <button onclick="irAFechaHistorial('${f}')"
+                                        style="background:#667eea;color:white;border:none;border-radius:6px;padding:.3rem .7rem;cursor:pointer;font-size:.78rem;font-weight:600;">
+                                        Ver día
+                                    </button>
+                                </td>
+                            </tr>`;
+                        }).join('')}
+                        ${fechasConProd.map((f,i) => {
+                            const [y,m,d] = f.split('-');
+                            return `
+                            <tr style="border-bottom:1px solid #f0f0f0;background:#fef9ef;">
+                                <td style="padding:.55rem .75rem;font-weight:700;">${d}/${m}/${y}</td>
+                                <td colspan="3" style="padding:.55rem .75rem;text-align:center;color:#78350f;font-size:.82rem;">Sin registros HACCP — hay producción</td>
+                                <td style="padding:.55rem .75rem;font-size:.8rem;color:#555;">${(historialPorFecha[f]||[]).map(h=>h.producto).join(', ')}</td>
+                                <td style="padding:.55rem .75rem;">—</td>
+                                <td style="padding:.55rem .75rem;text-align:center;">
+                                    <button onclick="irAFechaHistorial('${f}')"
+                                        style="background:#667eea;color:white;border:none;border-radius:6px;padding:.3rem .7rem;cursor:pointer;font-size:.78rem;font-weight:600;">
+                                        Ver día
+                                    </button>
+                                </td>
+                            </tr>`;
+                        }).join('')}
+                    </tbody>
+                    <tfoot>
+                        <tr style="background:#f8fafc;font-weight:700;border-top:2px solid #e2e8f0;">
+                            <td style="padding:.6rem .75rem;">TOTAL MES</td>
+                            <td style="padding:.6rem .75rem;text-align:center;color:#065f46;">${fechasConData.reduce((s,f)=>s+dataPorDia[f].completados,0)}</td>
+                            <td style="padding:.6rem .75rem;text-align:center;color:#92400e;">${fechasConData.reduce((s,f)=>s+dataPorDia[f].pendientes,0)}</td>
+                            <td style="padding:.6rem .75rem;text-align:center;color:#991b1b;">${fechasConData.reduce((s,f)=>s+dataPorDia[f].vencidos,0)}</td>
+                            <td colspan="3" style="padding:.6rem .75rem;color:#666;font-size:.82rem;">
+                                Cumplimiento: ${fechasConData.length > 0 ?
+                                    Math.round(fechasConData.reduce((s,f)=>s+dataPorDia[f].completados,0) /
+                                    Math.max(1, fechasConData.reduce((s,f)=>s+dataPorDia[f].completados+dataPorDia[f].pendientes+dataPorDia[f].vencidos,0)) * 100) : 0}%
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table></div>`;
+            }
+            tablaHtml += `</div>`;
+            document.getElementById('tablaResumenHACCP').innerHTML = tablaHtml;
+        }
+
+        function irAFechaHistorial(fecha) {
+            // Cambiar a vista día y cargar esa fecha
+            setVistaHistorial('dia');
+            const dateEl = document.getElementById('dateSelector');
+            if (dateEl) { dateEl.value = fecha; cargarHistorialFecha(); }
+            fechaSeleccionada = fecha;
+            mostrarHistorialDia(fecha);
         }
 
         window.onload = init;
