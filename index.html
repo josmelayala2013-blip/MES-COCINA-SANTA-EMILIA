@@ -75,6 +75,7 @@
                 // Mostrar botón Calidad solo a usuarios autorizados
                 setTimeout(() => {
                   if (typeof verificarAccesoCalidad === 'function') verificarAccesoCalidad(user.email);
+                  if (typeof verificarAccesoAdmin === 'function') verificarAccesoAdmin(user.email);
                 }, 500);
             } else {
                 loginScreen.style.display = 'flex';
@@ -653,6 +654,7 @@
             <button class="nav-tab" onclick="changeTab('productos')">🍽️ Productos</button>
             <button class="nav-tab" onclick="changeTab('recetas')">📋 Recetas</button>
             <button class="nav-tab" onclick="changeTab('personal')">👥 Personal</button>
+            <button class="nav-tab" id="btnAdmin" style="display:none;background:linear-gradient(135deg,#374151,#4b5563);color:white;" onclick="changeTab('administracion')">⚙️ Admin</button>
             <!-- BOTÓN CALIDAD — acceso restringido a calidad y jefe de planta -->
             <div class="nav-dropdown" id="dropdownCalidad" style="display:none;">
                 <button class="nav-tab" onclick="toggleDropdownCalidad(event)" id="btnCalidad"
@@ -855,6 +857,19 @@
             <!-- Historial del día -->
             <div id="historialPreCarnes"></div>
           </div>
+          <!-- Panel HACCP Pendientes Carnes -->
+          <div id="dashHACCPPendientesCarnes" style="display:none;margin:0 1.5rem 1.5rem;background:#fff7f7;border-radius:15px;padding:1.25rem;border-left:5px solid #dc2626;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
+              <h3 style="color:#991b1b;margin:0;font-size:1rem;">📋 Registros HACCP Carnes Pendientes</h3>
+              <span id="badgeHACCPCarnes" style="background:#dc2626;color:white;border-radius:20px;padding:.2rem .75rem;font-size:.8rem;font-weight:700;">0</span>
+            </div>
+            <div id="listaHACCPPendientesCarnes" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.75rem;"></div>
+          </div>
+          <!-- Historial HACCP Carnes del Día -->
+          <div id="historialHACCPCarnes" style="display:none;margin:0 1.5rem 1.5rem;background:#fef2f2;border-radius:15px;padding:1.25rem;border-left:5px solid #ef4444;">
+            <h3 style="color:#991b1b;margin:0 0 .75rem;">✅ Registros HACCP Completados Hoy — Carnes</h3>
+            <div id="listaHistorialHACCPCarnes"></div>
+          </div>
         </div>
 
         <!-- TAB: PREELABORADO VEGETALES -->
@@ -883,6 +898,19 @@
             <div id="estacionesVegetales" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.25rem;margin-bottom:1.5rem;"></div>
             <!-- Historial del día -->
             <div id="historialPreVegetales"></div>
+          </div>
+          <!-- Panel HACCP Pendientes Vegetales -->
+          <div id="dashHACCPPendientesVegetales" style="display:none;margin:0 1.5rem 1.5rem;background:#f0fdf4;border-radius:15px;padding:1.25rem;border-left:5px solid #16a34a;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
+              <h3 style="color:#065f46;margin:0;font-size:1rem;">📋 Registros HACCP Vegetales Pendientes</h3>
+              <span id="badgeHACCPVegetales" style="background:#16a34a;color:white;border-radius:20px;padding:.2rem .75rem;font-size:.8rem;font-weight:700;">0</span>
+            </div>
+            <div id="listaHACCPPendientesVegetales" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.75rem;"></div>
+          </div>
+          <!-- Historial HACCP Vegetales del Día -->
+          <div id="historialHACCPVegetales" style="display:none;margin:0 1.5rem 1.5rem;background:#f0fdf4;border-radius:15px;padding:1.25rem;border-left:5px solid #22c55e;">
+            <h3 style="color:#065f46;margin:0 0 .75rem;">✅ Registros HACCP Completados Hoy — Vegetales</h3>
+            <div id="listaHistorialHACCPVegetales"></div>
           </div>
         </div>
 
@@ -1698,6 +1726,68 @@
   </div>
 </div>
 
+<!-- TAB: ADMINISTRACIÓN -->
+<div id="administracion" class="tab-content">
+  <div class="analytics-section">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+      <h2 style="color:#374151;margin:0;">⚙️ Panel de Administración</h2>
+      <div style="background:#fee2e2;color:#991b1b;border-radius:20px;padding:.3rem .9rem;font-weight:700;font-size:.85rem;">⚠️ Solo administrador</div>
+    </div>
+    <!-- Autenticación -->
+    <div id="adminAuthPanel" style="background:#f8fafc;border-radius:12px;padding:1.5rem;margin-bottom:1.5rem;text-align:center;">
+      <div style="font-size:2rem;margin-bottom:.75rem;">🔐</div>
+      <div style="font-weight:700;color:#374151;margin-bottom:1rem;">Ingresa tu PIN de administrador para continuar</div>
+      <div style="display:flex;gap:.75rem;justify-content:center;align-items:center;">
+        <input type="password" id="adminPIN" maxlength="6" placeholder="••••••"
+          style="padding:.6rem 1rem;border-radius:8px;border:2px solid #e2e8f0;font-size:1.2rem;width:140px;text-align:center;letter-spacing:.3rem;">
+        <button onclick="autenticarAdmin()"
+          style="padding:.6rem 1.25rem;background:#374151;color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.95rem;">
+          Entrar
+        </button>
+      </div>
+      <div id="adminAuthMsg" style="margin-top:.75rem;font-size:.85rem;color:#ef4444;"></div>
+    </div>
+    <!-- Panel de limpieza (oculto hasta autenticar) -->
+    <div id="adminPanel" style="display:none;">
+      <!-- Sección: borrar por colección -->
+      <div style="background:white;border-radius:12px;padding:1.5rem;box-shadow:0 2px 12px rgba(0,0,0,0.07);margin-bottom:1.5rem;">
+        <h3 style="color:#374151;margin-bottom:1.25rem;">🗑️ Borrar por Colección</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;" id="adminColeccionGrid"></div>
+      </div>
+      <!-- Sección: borrar por rango de fechas -->
+      <div style="background:white;border-radius:12px;padding:1.5rem;box-shadow:0 2px 12px rgba(0,0,0,0.07);margin-bottom:1.5rem;">
+        <h3 style="color:#374151;margin-bottom:1.25rem;">📅 Borrar por Rango de Fechas</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:1.25rem;">
+          <div><label style="font-size:.82rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">Desde</label>
+            <input type="date" id="adminFechaDesde" style="width:100%;padding:.6rem;border-radius:8px;border:2px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;"></div>
+          <div><label style="font-size:.82rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">Hasta</label>
+            <input type="date" id="adminFechaHasta" style="width:100%;padding:.6rem;border-radius:8px;border:2px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;"></div>
+          <div style="display:flex;flex-direction:column;justify-content:flex-end;">
+            <label style="font-size:.82rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">Colección</label>
+            <select id="adminColeccionFecha" style="width:100%;padding:.6rem;border-radius:8px;border:2px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
+              <option value="historial">📋 Historial de Producción</option>
+              <option value="haccp-pendientes">🍳 HACCP Pendientes Cocina</option>
+              <option value="haccp-historial">📑 Historial HACCP</option>
+              <option value="haccp-pend-envasado">📦 HACCP Pendientes Envasado</option>
+              <option value="haccp-pend-abatimiento">❄️ HACCP Pendientes Abatimiento</option>
+              <option value="preelaborados">🥩 Preelaborados</option>
+            </select>
+          </div>
+        </div>
+        <button onclick="confirmarBorrarPorFecha()"
+          style="background:linear-gradient(135deg,#dc2626,#ef4444);color:white;border:none;border-radius:10px;padding:.7rem 1.5rem;font-weight:700;cursor:pointer;font-size:.95rem;">
+          🗑️ Borrar registros en ese rango
+        </button>
+      </div>
+      <!-- Log de acciones -->
+      <div style="background:white;border-radius:12px;padding:1.5rem;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
+        <h3 style="color:#374151;margin-bottom:.75rem;">📜 Log de acciones</h3>
+        <div id="adminLog" style="font-size:.82rem;color:#666;background:#f8fafc;border-radius:8px;padding:1rem;min-height:60px;font-family:monospace;max-height:200px;overflow-y:auto;">Sin acciones registradas.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- MODALES (todos los modales del v2.0) -->
 
 <!-- MODALES -->
@@ -2087,6 +2177,8 @@
             setTimeout(() => {
                 renderHACCPPendientesModulo('envasado');
                 renderHACCPPendientesModulo('abatimiento');
+                renderHACCPPendientesPre('carnes');
+                renderHACCPPendientesPre('vegetales');
             }, 1200);
         }
 
@@ -10231,6 +10323,8 @@ function finalizarPreelaborado(id) {
   if (timersPre[id]) { clearInterval(timersPre[id]); delete timersPre[id]; }
   guardarPreelaborados();
   renderPreelaborados(pre.tipo);
+  // Crear pendiente HACCP en el panel del módulo
+  crearHACCPPendientePre(pre);
   // Mostrar notificación
   mostrarToastPreelaborado(pre);
 }
@@ -10452,6 +10546,17 @@ function guardarHACCPPreCarnes(preId) {
   };
   guardarPreelaborados();
   cerrarHACCPPreCarnes();
+  // Marcar pendiente como completado
+  const _pendCarnes = haccpPendientesCarnes.find(p => p.preId === preId);
+  if (_pendCarnes) {
+    _pendCarnes.estado = 'completado';
+    _pendCarnes.completadoPor = pre.haccp.responsable || '—';
+    _pendCarnes.completadoEn = new Date().toLocaleString('es-CL');
+    _pendCarnes.datosHACCP = pre.haccp;
+    guardarHACCPPendientesPre('carnes');
+    renderHACCPPendientesPre('carnes');
+  }
+  guardarEnHistorialHACCP('carnes', {...pre.haccp, preparacion: pre.ingrediente});
   mostrarToastHACCP('carnes', pre.ingrediente);
   // Ofrecer impresión
   if (confirm('¿Deseas imprimir el registro HACCP ahora?')) {
@@ -10729,6 +10834,17 @@ function guardarHACCPPreVegetales(preId) {
   };
   guardarPreelaborados();
   cerrarHACCPPreVegetales();
+  // Marcar pendiente como completado
+  const _pendVeg = haccpPendientesVegetales.find(p => p.preId === preId);
+  if (_pendVeg) {
+    _pendVeg.estado = 'completado';
+    _pendVeg.completadoPor = pre.haccp.responsable || '—';
+    _pendVeg.completadoEn = new Date().toLocaleString('es-CL');
+    _pendVeg.datosHACCP = pre.haccp;
+    guardarHACCPPendientesPre('vegetales');
+    renderHACCPPendientesPre('vegetales');
+  }
+  guardarEnHistorialHACCP('vegetales', {...pre.haccp, preparacion: pre.ingrediente});
   mostrarToastHACCP('vegetales', pre.ingrediente);
   if (confirm('¿Deseas imprimir el registro HACCP ahora?')) {
     imprimirHACCPPreVegetales(pre);
@@ -12764,6 +12880,342 @@ function mostrarPopupGantt(eq) {
             if (!p || !p.datosHACCP) return;
             if (modulo === 'envasado') imprimirRegistroHACCPEnvasado(p.datosHACCP);
             else imprimirRegistroHACCPAbatimiento(p.datosHACCP);
+        }
+
+        // ============================================================
+        // HACCP PENDIENTES PREELABORADO (CARNES Y VEGETALES)
+        // ============================================================
+        let haccpPendientesCarnes = JSON.parse(localStorage.getItem('mes_haccp_pend_carnes') || '[]');
+        let haccpPendientesVegetales = JSON.parse(localStorage.getItem('mes_haccp_pend_vegetales') || '[]');
+
+        function guardarHACCPPendientesPre(tipo) {
+            if (tipo === 'carnes') {
+                localStorage.setItem('mes_haccp_pend_carnes', JSON.stringify(haccpPendientesCarnes));
+                if (window.db && window.firestoreLoaded) {
+                    try { const {doc,setDoc}=window.firestoreFunctions; setDoc(doc(window.db,'mes-data','haccp-pend-carnes'),{pendientes:haccpPendientesCarnes,ts:new Date().toISOString()}); } catch(e){}
+                }
+            } else {
+                localStorage.setItem('mes_haccp_pend_vegetales', JSON.stringify(haccpPendientesVegetales));
+                if (window.db && window.firestoreLoaded) {
+                    try { const {doc,setDoc}=window.firestoreFunctions; setDoc(doc(window.db,'mes-data','haccp-pend-vegetales'),{pendientes:haccpPendientesVegetales,ts:new Date().toISOString()}); } catch(e){}
+                }
+            }
+        }
+
+        function crearHACCPPendientePre(pre) {
+            const tipo = pre.tipo; // 'carnes' o 'vegetales'
+            const hoy = new Date().toISOString().split('T')[0];
+            const horaFin = new Date().toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'});
+            const pendiente = {
+                id: Date.now().toString(),
+                preId: pre.id,
+                fecha: new Date().toLocaleDateString('es-CL'),
+                fechaISO: hoy,
+                horaFin,
+                tipo,
+                ingrediente: pre.ingrediente || '—',
+                responsable: pre.responsable || '—',
+                kgBruto: pre.kgBruto || 0,
+                duracion: pre.duracion || '—',
+                estado: 'pendiente',
+                completadoPor: null,
+                completadoEn: null,
+                datosHACCP: null
+            };
+            if (tipo === 'carnes') {
+                // Evitar duplicados del mismo preelaborado
+                haccpPendientesCarnes = haccpPendientesCarnes.filter(p => p.preId !== pre.id);
+                haccpPendientesCarnes.push(pendiente);
+                guardarHACCPPendientesPre('carnes');
+                renderHACCPPendientesPre('carnes');
+            } else {
+                haccpPendientesVegetales = haccpPendientesVegetales.filter(p => p.preId !== pre.id);
+                haccpPendientesVegetales.push(pendiente);
+                guardarHACCPPendientesPre('vegetales');
+                renderHACCPPendientesPre('vegetales');
+            }
+        }
+
+        function renderHACCPPendientesPre(tipo) {
+            const lista = tipo === 'carnes' ? haccpPendientesCarnes : haccpPendientesVegetales;
+            const sufijo = tipo === 'carnes' ? 'Carnes' : 'Vegetales';
+            const panel = document.getElementById(`dashHACCPPendientes${sufijo}`);
+            const cont = document.getElementById(`listaHACCPPendientes${sufijo}`);
+            const badge = document.getElementById(`badgeHACCP${sufijo}`);
+            const histPanel = document.getElementById(`historialHACCP${sufijo}`);
+            const histCont = document.getElementById(`listaHistorialHACCP${sufijo}`);
+            if (!panel || !cont) return;
+
+            const hoy = new Date().toISOString().split('T')[0];
+            const color = tipo === 'carnes' ? '#dc2626' : '#16a34a';
+            const icono = tipo === 'carnes' ? '🥩' : '🥗';
+
+            // Marcar vencidos
+            lista.forEach(p => { if (p.estado === 'pendiente' && p.fechaISO < hoy) p.estado = 'vencido'; });
+
+            const activos = lista.filter(p => p.estado !== 'completado');
+            const completadosHoy = lista.filter(p => p.estado === 'completado' && p.fechaISO === hoy);
+
+            // Panel pendientes
+            if (activos.length === 0) {
+                panel.style.display = 'none';
+            } else {
+                panel.style.display = 'block';
+                if (badge) badge.textContent = activos.filter(p=>p.estado==='pendiente').length;
+                cont.innerHTML = activos.map(p => {
+                    const esVencido = p.estado === 'vencido';
+                    const colorBorde = esVencido ? '#ef4444' : color;
+                    const colorFondo = esVencido ? '#fef2f2' : (tipo==='carnes'?'#fff7f7':'#f0fdf4');
+                    const etiqueta = esVencido
+                        ? '<span style="background:#fee2e2;color:#991b1b;border-radius:20px;padding:.15rem .6rem;font-size:.72rem;font-weight:700;">⚠️ Vencido</span>'
+                        : `<span style="background:${colorFondo};color:${color};border:1px solid ${color}33;border-radius:20px;padding:.15rem .6rem;font-size:.72rem;font-weight:700;">⏳ Pendiente</span>`;
+                    return `
+                    <div style="background:${colorFondo};border-radius:12px;padding:1rem;border-left:4px solid ${colorBorde};">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem;">
+                            <div style="font-weight:700;font-size:.95rem;color:#333;">${icono} ${p.ingrediente}</div>
+                            ${etiqueta}
+                        </div>
+                        <div style="font-size:.8rem;color:#666;margin-bottom:.3rem;">📅 ${p.fecha} · 🕐 ${p.horaFin}</div>
+                        <div style="font-size:.8rem;color:#666;margin-bottom:.3rem;">👤 ${p.responsable} · ⏱️ ${p.duracion}</div>
+                        <div style="font-size:.8rem;color:#666;margin-bottom:.75rem;">⚖️ ${p.kgBruto} kg bruto</div>
+                        <button onclick="completarHACCPPreDesdePanel('${p.preId}','${tipo}')"
+                            style="width:100%;padding:.6rem;background:linear-gradient(135deg,${color},${color}cc);color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.88rem;">
+                            📋 Completar Registro HACCP
+                        </button>
+                    </div>`;
+                }).join('');
+            }
+
+            // Historial completados hoy
+            if (completadosHoy.length === 0) {
+                if (histPanel) histPanel.style.display = 'none';
+            } else {
+                if (histPanel) histPanel.style.display = 'block';
+                if (histCont) {
+                    histCont.innerHTML = completadosHoy.map(p => `
+                    <div style="border:2px solid ${color}33;border-left:4px solid ${color};border-radius:10px;padding:.85rem;margin-bottom:.6rem;background:white;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem;">
+                            <div>
+                                <strong style="color:#333;">${icono} ${p.ingrediente}</strong>
+                                <div style="font-size:.78rem;color:#666;margin-top:.2rem;">👤 ${p.completadoPor||'—'} · ${p.completadoEn||'—'}</div>
+                            </div>
+                            <button onclick="reimprimirHACCPPre('${p.id}','${tipo}')"
+                                style="background:${color};color:white;border:none;border-radius:7px;padding:.3rem .75rem;cursor:pointer;font-size:.8rem;font-weight:600;">
+                                🖨️ Reimprimir
+                            </button>
+                        </div>
+                    </div>`).join('');
+                }
+            }
+        }
+
+        function completarHACCPPreDesdePanel(preId, tipo) {
+            // Buscar el preelaborado y abrir el modal HACCP existente
+            const pre = preelaborados.find(p => p.id === preId);
+            if (!pre) {
+                alert('No se encontró el preelaborado. Es posible que haya sido eliminado.');
+                return;
+            }
+            // Marcar origen para saber que viene del panel
+            window._haccpPreDesde = { pendientePanel: true, tipo };
+            // Usar la función existente
+            if (tipo === 'carnes') abrirHACCPPreCarnes(pre);
+            else abrirHACCPPreVegetales(pre);
+        }
+
+        function reimprimirHACCPPre(id, tipo) {
+            const lista = tipo === 'carnes' ? haccpPendientesCarnes : haccpPendientesVegetales;
+            const p = lista.find(x => x.id === id);
+            if (!p) return;
+            const pre = preelaborados.find(x => x.id === p.preId);
+            if (pre && pre.haccp) {
+                if (tipo === 'carnes') imprimirHACCPPreCarnes(pre);
+                else imprimirHACCPPreVegetales(pre);
+            } else {
+                alert('Los datos del registro no están disponibles.');
+            }
+        }
+
+        // ============================================================
+        // PANEL ADMINISTRACIÓN — LIMPIEZA DE DATOS
+        // ============================================================
+        const ADMIN_USERS = ['jayala@gustofresco.cl'];
+        const ADMIN_PIN = '142536'; // PIN que puedes cambiar
+
+        function verificarAccesoAdmin(email) {
+            const btn = document.getElementById('btnAdmin');
+            if (btn) btn.style.display = ADMIN_USERS.includes(email) ? 'inline-block' : 'none';
+        }
+
+        function autenticarAdmin() {
+            const pin = document.getElementById('adminPIN')?.value;
+            const msg = document.getElementById('adminAuthMsg');
+            if (pin === ADMIN_PIN) {
+                document.getElementById('adminAuthPanel').style.display = 'none';
+                document.getElementById('adminPanel').style.display = 'block';
+                renderAdminColecciones();
+                agregarLogAdmin('🔓 Panel desbloqueado por administrador.');
+            } else {
+                if (msg) { msg.textContent = '❌ PIN incorrecto'; setTimeout(() => msg.textContent='', 2000); }
+                document.getElementById('adminPIN').value = '';
+            }
+        }
+
+        function renderAdminColecciones() {
+            const colecciones = [
+                {key:'historial', label:'📋 Historial de Producción'},
+                {key:'haccp-pendientes', label:'🍳 HACCP Pendientes Cocina'},
+                {key:'haccp-historial', label:'📑 Historial HACCP (todos)'},
+                {key:'haccp-pend-envasado', label:'📦 HACCP Pendientes Envasado'},
+                {key:'haccp-pend-abatimiento', label:'❄️ HACCP Pendientes Abatimiento'},
+                {key:'haccp-pend-carnes', label:'🥩 HACCP Pendientes Carnes'},
+                {key:'haccp-pend-vegetales', label:'🥗 HACCP Pendientes Vegetales'},
+                {key:'preelaborados', label:'🔪 Preelaborados'},
+                {key:'ops', label:'📋 Órdenes de Producción'},
+            ];
+            const grid = document.getElementById('adminColeccionGrid');
+            if (!grid) return;
+            grid.innerHTML = colecciones.map(c => `
+                <div style="border:1px solid #e2e8f0;border-radius:10px;padding:1rem;display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-weight:600;font-size:.9rem;color:#374151;">${c.label}</span>
+                    <button onclick="confirmarBorrarColeccion('${c.key}','${c.label}')"
+                        style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:.82rem;font-weight:700;white-space:nowrap;">
+                        🗑️ Borrar todo
+                    </button>
+                </div>`).join('');
+        }
+
+        function agregarLogAdmin(msg) {
+            const log = document.getElementById('adminLog');
+            if (!log) return;
+            const ts = new Date().toLocaleString('es-CL');
+            log.innerHTML = `[${ts}] ${msg}\n` + (log.innerHTML === 'Sin acciones registradas.' ? '' : log.innerHTML);
+        }
+
+        function confirmarBorrarColeccion(key, label) {
+            if (!confirm(`⚠️ ¿Borrar TODOS los registros de "${label}"?\n\nEsta acción no se puede deshacer.`)) return;
+            if (!confirm(`🔴 CONFIRMACIÓN FINAL\n¿Estás seguro de borrar TODO en "${label}"?`)) return;
+            borrarColeccionCompleta(key, label);
+        }
+
+        function borrarColeccionCompleta(key, label) {
+            // Borrar localStorage
+            const mapaLocal = {
+                'historial': null, // historialPorFecha es un objeto complejo
+                'haccp-pendientes': 'mes_haccp_pendientes',
+                'haccp-historial': 'mes_haccp_historial',
+                'haccp-pend-envasado': 'mes_haccp_pend_envasado',
+                'haccp-pend-abatimiento': 'mes_haccp_pend_abatimiento',
+                'haccp-pend-carnes': 'mes_haccp_pend_carnes',
+                'haccp-pend-vegetales': 'mes_haccp_pend_vegetales',
+                'preelaborados': 'mes_preelaborados',
+                'ops': 'mes_ops',
+            };
+            const lsKey = mapaLocal[key];
+            if (lsKey) localStorage.removeItem(lsKey);
+
+            // Resetear variables en memoria
+            if (key === 'historial') { historialPorFecha = {}; localStorage.removeItem('mes_historial'); }
+            if (key === 'haccp-pendientes') haccpPendientes = [];
+            if (key === 'haccp-historial') registrosHACCPHistorial = [];
+            if (key === 'haccp-pend-envasado') haccpPendientesEnvasado = [];
+            if (key === 'haccp-pend-abatimiento') haccpPendientesAbatimiento = [];
+            if (key === 'haccp-pend-carnes') haccpPendientesCarnes = [];
+            if (key === 'haccp-pend-vegetales') haccpPendientesVegetales = [];
+            if (key === 'preelaborados') preelaborados = [];
+            if (key === 'ops') ordenesProduccion = [];
+
+            // Borrar en Firebase
+            if (window.db && window.firestoreLoaded) {
+                try {
+                    const {doc, deleteDoc} = window.firestoreFunctions;
+                    deleteDoc(doc(window.db, 'mes-data', key)).catch(()=>{});
+                } catch(e){}
+            }
+
+            // Re-renderizar vistas afectadas
+            if (key === 'preelaborados') { renderPreelaborados('carnes'); renderPreelaborados('vegetales'); }
+            if (key === 'haccp-pendientes') renderHACCPPendientes();
+            if (key === 'haccp-pend-envasado') renderHACCPPendientesModulo('envasado');
+            if (key === 'haccp-pend-abatimiento') renderHACCPPendientesModulo('abatimiento');
+            if (key === 'haccp-pend-carnes') renderHACCPPendientesPre('carnes');
+            if (key === 'haccp-pend-vegetales') renderHACCPPendientesPre('vegetales');
+
+            agregarLogAdmin(`🗑️ Borrado completo: ${label}`);
+            mostrarNotificacion(`✅ "${label}" borrado correctamente`, 'success');
+        }
+
+        function confirmarBorrarPorFecha() {
+            const desde = document.getElementById('adminFechaDesde')?.value;
+            const hasta = document.getElementById('adminFechaHasta')?.value;
+            const coleccion = document.getElementById('adminColeccionFecha')?.value;
+            const labelEl = document.getElementById('adminColeccionFecha');
+            const label = labelEl?.options[labelEl.selectedIndex]?.text || coleccion;
+
+            if (!desde || !hasta) { alert('Selecciona un rango de fechas'); return; }
+            if (desde > hasta) { alert('La fecha de inicio debe ser anterior a la fecha final'); return; }
+            if (!confirm(`⚠️ ¿Borrar registros de "${label}"\nentre ${desde} y ${hasta}?\n\nEsta acción no se puede deshacer.`)) return;
+
+            borrarPorFecha(coleccion, label, desde, hasta);
+        }
+
+        function borrarPorFecha(key, label, desde, hasta) {
+            let borrados = 0;
+
+            if (key === 'historial') {
+                Object.keys(historialPorFecha).forEach(f => {
+                    if (f >= desde && f <= hasta) { delete historialPorFecha[f]; borrados++; }
+                });
+                guardarDatos();
+            } else if (key === 'haccp-pendientes') {
+                const antes = haccpPendientes.length;
+                haccpPendientes = haccpPendientes.filter(r => !(r.fechaISO >= desde && r.fechaISO <= hasta));
+                borrados = antes - haccpPendientes.length;
+                guardarHACCPPendientes();
+                renderHACCPPendientes();
+            } else if (key === 'haccp-historial') {
+                const antes = registrosHACCPHistorial.length;
+                registrosHACCPHistorial = registrosHACCPHistorial.filter(r => !(r.fechaISO >= desde && r.fechaISO <= hasta));
+                borrados = antes - registrosHACCPHistorial.length;
+                localStorage.setItem('mes_haccp_historial', JSON.stringify(registrosHACCPHistorial));
+            } else if (key === 'haccp-pend-envasado') {
+                const antes = haccpPendientesEnvasado.length;
+                haccpPendientesEnvasado = haccpPendientesEnvasado.filter(r => !(r.fechaISO >= desde && r.fechaISO <= hasta));
+                borrados = antes - haccpPendientesEnvasado.length;
+                guardarHACCPPendientesModulo('envasado');
+                renderHACCPPendientesModulo('envasado');
+            } else if (key === 'haccp-pend-abatimiento') {
+                const antes = haccpPendientesAbatimiento.length;
+                haccpPendientesAbatimiento = haccpPendientesAbatimiento.filter(r => !(r.fechaISO >= desde && r.fechaISO <= hasta));
+                borrados = antes - haccpPendientesAbatimiento.length;
+                guardarHACCPPendientesModulo('abatimiento');
+                renderHACCPPendientesModulo('abatimiento');
+            } else if (key === 'haccp-pend-carnes') {
+                const antes = haccpPendientesCarnes.length;
+                haccpPendientesCarnes = haccpPendientesCarnes.filter(r => !(r.fechaISO >= desde && r.fechaISO <= hasta));
+                borrados = antes - haccpPendientesCarnes.length;
+                guardarHACCPPendientesPre('carnes');
+                renderHACCPPendientesPre('carnes');
+            } else if (key === 'haccp-pend-vegetales') {
+                const antes = haccpPendientesVegetales.length;
+                haccpPendientesVegetales = haccpPendientesVegetales.filter(r => !(r.fechaISO >= desde && r.fechaISO <= hasta));
+                borrados = antes - haccpPendientesVegetales.length;
+                guardarHACCPPendientesPre('vegetales');
+                renderHACCPPendientesPre('vegetales');
+            } else if (key === 'preelaborados') {
+                const antes = preelaborados.length;
+                preelaborados = preelaborados.filter(p => {
+                    const f = p.fecha || p.fechaISO || '';
+                    return !(f >= desde && f <= hasta);
+                });
+                borrados = antes - preelaborados.length;
+                guardarPreelaborados();
+                renderPreelaborados('carnes');
+                renderPreelaborados('vegetales');
+            }
+
+            agregarLogAdmin(`🗑️ Borrado por fechas [${desde} → ${hasta}]: ${label} — ${borrados} registros eliminados`);
+            mostrarNotificacion(`✅ ${borrados} registros eliminados de "${label}"`, 'success');
         }
 
         window.onload = init;
