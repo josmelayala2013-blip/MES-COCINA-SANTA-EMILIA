@@ -2055,6 +2055,8 @@
 
             // Mostrar HACCP pendientes del día anterior
             setTimeout(() => renderHACCPPendientes(), 1000);
+            // Cargar historial HACCP desde Firebase
+            setTimeout(() => cargarHACCPHistorialFirebase(), 1500);
         }
 
         function inicializarDateSelector() {
@@ -3001,6 +3003,54 @@ function confirmarHoraSalida() {
 }
 
 // ============================================================
+// ============================================================
+// HISTORIAL HACCP — COCINA / ENVASADO / ABATIMIENTO
+// ============================================================
+let registrosHACCPHistorial = JSON.parse(localStorage.getItem('mes_haccp_historial') || '[]');
+
+function guardarEnHistorialHACCP(tipo, datos) {
+  const hoy = new Date().toISOString().split('T')[0];
+  const registro = {
+    id: Date.now().toString(),
+    tipo,        // 'cocina' | 'envasado' | 'abatimiento'
+    fechaISO: datos.fecha ? datos.fecha.split('/').reverse().join('-') : hoy,
+    fechaDisplay: datos.fecha || new Date().toLocaleDateString('es-CL'),
+    producto: datos.preparacion || datos.producto || '—',
+    op: datos.op || '—',
+    responsable: datos.firmaNombre || datos.responsable || '—',
+    firmadoEn: datos.firmaTimestamp || new Date().toLocaleString('es-CL'),
+    datos
+  };
+  registrosHACCPHistorial.push(registro);
+  localStorage.setItem('mes_haccp_historial', JSON.stringify(registrosHACCPHistorial));
+  // Sincronizar con Firebase
+  if (window.db && window.firestoreLoaded) {
+    try {
+      const { doc, setDoc } = window.firestoreFunctions;
+      setDoc(doc(window.db, 'mes-data', 'haccp-historial'), {
+        registros: registrosHACCPHistorial,
+        ts: new Date().toISOString()
+      });
+    } catch(e) {}
+  }
+}
+
+// Cargar historial HACCP desde Firebase al iniciar
+async function cargarHACCPHistorialFirebase(intentos = 0) {
+  if (!window.db || !window.firestoreLoaded) {
+    if (intentos < 10) { await new Promise(r => setTimeout(r, 500)); return cargarHACCPHistorialFirebase(intentos + 1); }
+    return;
+  }
+  try {
+    const { doc, getDoc } = window.firestoreFunctions;
+    const snap = await getDoc(doc(window.db, 'mes-data', 'haccp-historial'));
+    if (snap.exists() && snap.data().registros?.length > 0) {
+      registrosHACCPHistorial = snap.data().registros;
+      localStorage.setItem('mes_haccp_historial', JSON.stringify(registrosHACCPHistorial));
+    }
+  } catch(e) {}
+}
+
 // MÓDULO REGISTRO HACCP ABATIMIENTO (R-POE-03-GF-05)
 // ============================================================
 
@@ -3287,7 +3337,7 @@ function generarPDFHACCPAbatimiento() {
   };
 
   imprimirRegistroHACCPAbatimiento(d);
-
+  guardarEnHistorialHACCP('abatimiento', d);
   document.getElementById('abatFirmaEstado').innerHTML = '✅ <strong>Firmado</strong> — ' + d.firmaNombre + ' · ' + d.firmaTimestamp;
   document.getElementById('abatFirmaEstado').style.color = '#059669';
 }
@@ -3726,7 +3776,7 @@ function generarPDFHACCPEnvasado() {
   };
 
   imprimirRegistroHACCPEnvasado(d);
-
+  guardarEnHistorialHACCP('envasado', d);
   document.getElementById('envFirmaEstado').innerHTML = '✅ <strong>Firmado</strong> — ' + d.firmaNombre + ' · ' + d.firmaTimestamp;
   document.getElementById('envFirmaEstado').style.color = '#059669';
 }
@@ -4364,6 +4414,7 @@ function generarPDFHACCP() {
   };
 
   imprimirRegistroHACCP(datos);
+  guardarEnHistorialHACCP('cocina', datos);
 }
 
 function imprimirRegistroHACCP(d) {
@@ -5774,7 +5825,118 @@ function imprimirRegistroHACCP(d) {
                 </div>`;
             }
 
-            container.innerHTML = htmlProducciones + htmlHACCP;
+            container.innerHTML = htmlProducciones + htmlHACCP + htmlHACCPRegistros(fecha);
+        }
+
+        function htmlHACCPRegistros(fecha) {
+            // Convertir fecha del selector (YYYY-MM-DD) al formato guardado
+            const registrosDia = registrosHACCPHistorial.filter(r => r.fechaISO === fecha);
+            if (registrosDia.length === 0) return '';
+
+            const iconos = { cocina: '🍳', envasado: '📦', abatimiento: '❄️' };
+            const colores = { cocina: '#1e3a5f', envasado: '#5b21b6', abatimiento: '#0e7490' };
+            const titulos = { cocina: 'HACCP Cocina', envasado: 'HACCP Envasado', abatimiento: 'HACCP Abatimiento' };
+            const codigos = { cocina: 'R-POE-03-GF-03', envasado: 'R-POE-03-GF-04', abatimiento: 'R-POE-03-GF-05' };
+
+            return `
+            <div style="background:white;padding:2rem;border-radius:15px;box-shadow:0 5px 15px rgba(0,0,0,0.1);margin-top:1.5rem;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+                    <h3 style="color:#1e3a5f;margin:0;">📋 Registros HACCP Firmados (${registrosDia.length})</h3>
+                    <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+                        ${['cocina','envasado','abatimiento'].map(t => {
+                            const n = registrosDia.filter(r=>r.tipo===t).length;
+                            return n > 0 ? `<span style="background:${colores[t]}22;color:${colores[t]};border-radius:20px;padding:.2rem .75rem;font-size:.8rem;font-weight:700;">${iconos[t]} ${n} ${titulos[t]}</span>` : '';
+                        }).join('')}
+                    </div>
+                </div>
+                ${registrosDia.map(r => {
+                    const color = colores[r.tipo] || '#1e3a5f';
+                    const icono = iconos[r.tipo] || '📋';
+                    const titulo = titulos[r.tipo] || 'HACCP';
+                    const codigo = codigos[r.tipo] || '';
+                    const d = r.datos || {};
+                    return `
+                    <div style="border:2px solid ${color}33;border-left:4px solid ${color};border-radius:10px;padding:1rem;margin-bottom:.75rem;background:${color}08;">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:.5rem;">
+                            <div>
+                                <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem;">
+                                    <span style="background:${color};color:white;border-radius:20px;padding:.15rem .65rem;font-size:.75rem;font-weight:700;">${icono} ${titulo}</span>
+                                    <span style="font-size:.72rem;color:#94a3b8;">${codigo}</span>
+                                </div>
+                                <strong style="font-size:1rem;color:#333;">${r.producto}</strong>
+                                <div style="font-size:.82rem;color:#666;margin-top:.2rem;">OP: ${r.op} · 👤 ${r.responsable} · 🕐 ${r.firmadoEn}</div>
+                            </div>
+                            <button onclick="imprimirHACCPHistorial('${r.id}')"
+                                style="background:${color};color:white;border:none;border-radius:8px;padding:.35rem .8rem;cursor:pointer;font-size:.8rem;font-weight:600;white-space:nowrap;">
+                                🖨️ Reimprimir
+                            </button>
+                        </div>
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:.4rem;margin-top:.75rem;">
+                            ${r.tipo === 'cocina' ? `
+                                <div style="background:white;border-radius:6px;padding:.4rem;text-align:center;border:1px solid #e2e8f0;">
+                                    <div style="font-size:.68rem;color:#666;">Temperatura</div>
+                                    <div style="font-weight:700;color:${parseFloat(d.temp)>=75?'#16a34a':'#dc2626'};">${d.temp||'—'}°C</div>
+                                </div>
+                                <div style="background:white;border-radius:6px;padding:.4rem;text-align:center;border:1px solid #e2e8f0;">
+                                    <div style="font-size:.68rem;color:#666;">Cantidad</div>
+                                    <div style="font-weight:700;">${d.cantTotal||'—'} kg</div>
+                                </div>
+                                <div style="background:white;border-radius:6px;padding:.4rem;text-align:center;border:1px solid #e2e8f0;">
+                                    <div style="font-size:.68rem;color:#666;">Rendimiento</div>
+                                    <div style="font-weight:700;">${d.rendimiento||'—'}%</div>
+                                </div>
+                                <div style="background:white;border-radius:6px;padding:.4rem;text-align:center;border:1px solid #e2e8f0;">
+                                    <div style="font-size:.68rem;color:#666;">ACC</div>
+                                    <div style="font-weight:700;font-size:.8rem;">${d.acc||'No'}</div>
+                                </div>` : ''}
+                            ${r.tipo === 'envasado' ? `
+                                <div style="background:white;border-radius:6px;padding:.4rem;text-align:center;border:1px solid #e2e8f0;">
+                                    <div style="font-size:.68rem;color:#666;">Cantidad</div>
+                                    <div style="font-weight:700;">${d.cantidad||'—'} kg</div>
+                                </div>
+                                <div style="background:white;border-radius:6px;padding:.4rem;text-align:center;border:1px solid #e2e8f0;">
+                                    <div style="font-size:.68rem;color:#666;">Temp Inicio</div>
+                                    <div style="font-weight:700;">${d.tempInicio||'—'}°C</div>
+                                </div>
+                                <div style="background:white;border-radius:6px;padding:.4rem;text-align:center;border:1px solid #e2e8f0;">
+                                    <div style="font-size:.68rem;color:#666;">Temp Fin</div>
+                                    <div style="font-weight:700;">${d.tempFin||'—'}°C</div>
+                                </div>
+                                <div style="background:white;border-radius:6px;padding:.4rem;text-align:center;border:1px solid #e2e8f0;">
+                                    <div style="font-size:.68rem;color:#666;">Formato</div>
+                                    <div style="font-weight:700;font-size:.8rem;">${d.formato||'—'}</div>
+                                </div>` : ''}
+                            ${r.tipo === 'abatimiento' ? `
+                                <div style="background:white;border-radius:6px;padding:.4rem;text-align:center;border:1px solid #e2e8f0;">
+                                    <div style="font-size:.68rem;color:#666;">Tipo</div>
+                                    <div style="font-weight:700;font-size:.8rem;">${d.tipo==='congelacion'?'Congelación':'Refrigeración'}</div>
+                                </div>
+                                <div style="background:white;border-radius:6px;padding:.4rem;text-align:center;border:1px solid #e2e8f0;">
+                                    <div style="font-size:.68rem;color:#666;">Cantidad</div>
+                                    <div style="font-weight:700;">${d.cantidad||'—'} kg</div>
+                                </div>
+                                <div style="background:white;border-radius:6px;padding:.4rem;text-align:center;border:1px solid #e2e8f0;">
+                                    <div style="font-size:.68rem;color:#666;">Temp Salida</div>
+                                    <div style="font-weight:700;">${d.tempSalida||'—'}°C</div>
+                                </div>
+                                <div style="background:white;border-radius:6px;padding:.4rem;text-align:center;border:1px solid #e2e8f0;">
+                                    <div style="font-size:.68rem;color:#666;">Cumple Temp</div>
+                                    <div style="font-weight:700;color:${d.cumpleTemp==='C'?'#16a34a':'#dc2626'};">${d.cumpleTemp||'—'}</div>
+                                </div>` : ''}
+                        </div>
+                        ${d.observaciones ? `<div style="margin-top:.5rem;font-size:.8rem;color:#666;background:white;border-radius:6px;padding:.4rem .6rem;border:1px solid #e2e8f0;">📝 ${d.observaciones}</div>` : ''}
+                    </div>`;
+                }).join('')}
+            </div>`;
+        }
+
+        function imprimirHACCPHistorial(id) {
+            const r = registrosHACCPHistorial.find(x => x.id === id);
+            if (!r) return;
+            const d = r.datos;
+            if (r.tipo === 'cocina') imprimirRegistroHACCP(d);
+            else if (r.tipo === 'envasado') imprimirRegistroHACCPEnvasado(d);
+            else if (r.tipo === 'abatimiento') imprimirRegistroHACCPAbatimiento(d);
         }
 
         function filtrarHistorial() {
@@ -11920,11 +12082,21 @@ function mostrarPopupGantt(eq) {
                 if (!f) return;
                 const [y,m] = f.split('-');
                 if (parseInt(y) !== anio || parseInt(m)-1 !== mes) return;
-                if (!dataPorDia[f]) dataPorDia[f] = { completados:0, pendientes:0, vencidos:0, registros:[] };
+                if (!dataPorDia[f]) dataPorDia[f] = { completados:0, pendientes:0, vencidos:0, registros:[], firmados:0 };
                 if (p.estado === 'completado') dataPorDia[f].completados++;
                 else if (p.estado === 'vencido') dataPorDia[f].vencidos++;
                 else dataPorDia[f].pendientes++;
                 dataPorDia[f].registros.push(p);
+            });
+
+            // Agregar registros firmados de cocina/envasado/abatimiento
+            registrosHACCPHistorial.forEach(r => {
+                const f = r.fechaISO;
+                if (!f) return;
+                const [y,m] = f.split('-');
+                if (parseInt(y) !== anio || parseInt(m)-1 !== mes) return;
+                if (!dataPorDia[f]) dataPorDia[f] = { completados:0, pendientes:0, vencidos:0, registros:[], firmados:0 };
+                dataPorDia[f].firmados = (dataPorDia[f].firmados || 0) + 1;
             });
 
             // Calendario
@@ -11959,15 +12131,16 @@ function mostrarPopupGantt(eq) {
                     } else if (data.pendientes > 0) {
                         bgColor = '#fef3c7'; borderColor = '#f59e0b'; textColor = '#92400e';
                         badge = `<span style="background:#f59e0b;color:white;border-radius:10px;padding:.05rem .35rem;font-size:.65rem;font-weight:700;">⏳${data.pendientes}</span>`;
-                    } else if (data.completados > 0) {
+                    } else if (data.completados > 0 || data.firmados > 0) {
                         bgColor = '#d1fae5'; borderColor = '#10b981'; textColor = '#065f46';
-                        badge = `<span style="background:#10b981;color:white;border-radius:10px;padding:.05rem .35rem;font-size:.65rem;font-weight:700;">✓${data.completados}</span>`;
+                        badge = `<span style="background:#10b981;color:white;border-radius:10px;padding:.05rem .35rem;font-size:.65rem;font-weight:700;">✓${data.completados + (data.firmados||0)}</span>`;
                     }
                 } else if (tieneHist) {
                     bgColor = '#fef9ef'; borderColor = '#fcd34d'; textColor = '#78350f';
                     badge = `<span style="font-size:.65rem;color:#78350f;">sin HACCP</span>`;
                 }
 
+                const totalReg = data ? (data.completados + data.pendientes + data.vencidos + (data.firmados||0)) : 0;
                 calHtml += `
                 <div onclick="irAFechaHistorial('${fechaISO}')" style="
                     height:72px;background:${bgColor};border:2px solid ${borderColor};border-radius:10px;
@@ -11975,7 +12148,7 @@ function mostrarPopupGantt(eq) {
                     ${esHoy?'box-shadow:0 0 0 3px #667eea;':''}
                 " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
                     <div style="font-size:.85rem;font-weight:${esHoy?'800':'600'};color:${textColor};">${d}${esHoy?' •':''}</div>
-                    <div style="font-size:.7rem;color:${textColor};">${data?`${data.completados+data.pendientes+data.vencidos} reg.`:tieneHist?'prod.':''}</div>
+                    <div style="font-size:.7rem;color:${textColor};">${totalReg > 0 ? totalReg+' reg.' : tieneHist?'prod.':''}</div>
                     <div>${badge}</div>
                 </div>`;
             }
@@ -11994,7 +12167,15 @@ function mostrarPopupGantt(eq) {
             <div style="background:white;border-radius:15px;padding:1.5rem;box-shadow:0 4px 15px rgba(0,0,0,0.08);">
                 <h3 style="color:#1e3a5f;margin-bottom:1.25rem;">📊 Tabla Resumen del Mes</h3>`;
 
-            if (fechasConData.length === 0 && fechasConProd.length === 0) {
+            // Incluir también fechas con solo registros firmados (sin pendientes)
+            const todasLasFechas = [...new Set([
+                ...Object.keys(dataPorDia),
+                ...registrosHACCPHistorial
+                    .filter(r => { const [y,m] = (r.fechaISO||'').split('-'); return parseInt(y)===anio && parseInt(m)-1===mes; })
+                    .map(r => r.fechaISO)
+            ])].sort();
+
+            if (todasLasFechas.length === 0 && fechasConProd.length === 0) {
                 tablaHtml += `<div style="text-align:center;color:#94a3b8;padding:2rem;">Sin registros en este mes</div>`;
             } else {
                 tablaHtml += `
@@ -12003,29 +12184,45 @@ function mostrarPopupGantt(eq) {
                     <thead>
                         <tr style="background:#1e3a5f;color:white;">
                             <th style="padding:.6rem .75rem;text-align:left;">Fecha</th>
-                            <th style="padding:.6rem .75rem;text-align:center;">✅ Completados</th>
+                            <th style="padding:.6rem .75rem;text-align:center;">✅ HACCP Cocción</th>
+                            <th style="padding:.6rem .75rem;text-align:center;">📦 Envasado</th>
+                            <th style="padding:.6rem .75rem;text-align:center;">❄️ Abatimiento</th>
                             <th style="padding:.6rem .75rem;text-align:center;">⏳ Pendientes</th>
                             <th style="padding:.6rem .75rem;text-align:center;">⚠️ Vencidos</th>
-                            <th style="padding:.6rem .75rem;text-align:left;">Productos</th>
-                            <th style="padding:.6rem .75rem;text-align:left;">Completado por</th>
+                            <th style="padding:.6rem .75rem;text-align:left;">Responsables</th>
                             <th style="padding:.6rem .75rem;text-align:center;">Acción</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${fechasConData.map((f,i) => {
-                            const data = dataPorDia[f];
-                            const [y,m,d] = f.split('-');
-                            const fechaLabel = `${d}/${m}/${y}`;
+                        ${todasLasFechas.map((f,i) => {
+                            const data = dataPorDia[f] || { completados:0, pendientes:0, vencidos:0, registros:[], firmados:0 };
+                            const [fy,fm,fd] = f.split('-');
+                            const fechaLabel = `${fd}/${fm}/${fy}`;
                             const esVencido = data.vencidos > 0;
                             const esPendiente = data.pendientes > 0;
                             const rowColor = esVencido ? '#fff5f5' : esPendiente ? '#fffbeb' : i%2===0 ? 'white' : '#f8fafc';
-                            const productos = [...new Set(data.registros.map(r=>r.producto))].join(', ');
-                            const responsables = [...new Set(data.registros.filter(r=>r.completadoPor).map(r=>r.completadoPor))].join(', ') || '—';
+                            // Registros firmados del día por tipo
+                            const firmadosDia = registrosHACCPHistorial.filter(r => r.fechaISO === f);
+                            const nCocina = firmadosDia.filter(r=>r.tipo==='cocina').length;
+                            const nEnvasado = firmadosDia.filter(r=>r.tipo==='envasado').length;
+                            const nAbat = firmadosDia.filter(r=>r.tipo==='abatimiento').length;
+                            // Completados del pendiente (cocción)
+                            const totalCoccion = data.completados + nCocina;
+                            const responsables = [...new Set([
+                                ...data.registros.filter(r=>r.completadoPor).map(r=>r.completadoPor),
+                                ...firmadosDia.map(r=>r.responsable)
+                            ].filter(Boolean))].join(', ') || '—';
                             return `
                             <tr style="border-bottom:1px solid #f0f0f0;background:${rowColor};">
                                 <td style="padding:.55rem .75rem;font-weight:700;">${fechaLabel}</td>
                                 <td style="padding:.55rem .75rem;text-align:center;">
-                                    <span style="background:#d1fae5;color:#065f46;border-radius:20px;padding:.1rem .6rem;font-weight:700;">${data.completados}</span>
+                                    ${totalCoccion > 0 ? `<span style="background:#d1fae5;color:#065f46;border-radius:20px;padding:.1rem .6rem;font-weight:700;">${totalCoccion}</span>` : '<span style="color:#94a3b8;">—</span>'}
+                                </td>
+                                <td style="padding:.55rem .75rem;text-align:center;">
+                                    ${nEnvasado > 0 ? `<span style="background:#ede9fe;color:#5b21b6;border-radius:20px;padding:.1rem .6rem;font-weight:700;">${nEnvasado}</span>` : '<span style="color:#94a3b8;">—</span>'}
+                                </td>
+                                <td style="padding:.55rem .75rem;text-align:center;">
+                                    ${nAbat > 0 ? `<span style="background:#e0f2fe;color:#0e7490;border-radius:20px;padding:.1rem .6rem;font-weight:700;">${nAbat}</span>` : '<span style="color:#94a3b8;">—</span>'}
                                 </td>
                                 <td style="padding:.55rem .75rem;text-align:center;">
                                     ${data.pendientes > 0 ? `<span style="background:#fef3c7;color:#92400e;border-radius:20px;padding:.1rem .6rem;font-weight:700;">${data.pendientes}</span>` : '<span style="color:#94a3b8;">—</span>'}
@@ -12033,7 +12230,6 @@ function mostrarPopupGantt(eq) {
                                 <td style="padding:.55rem .75rem;text-align:center;">
                                     ${data.vencidos > 0 ? `<span style="background:#fee2e2;color:#991b1b;border-radius:20px;padding:.1rem .6rem;font-weight:700;">${data.vencidos}</span>` : '<span style="color:#94a3b8;">—</span>'}
                                 </td>
-                                <td style="padding:.55rem .75rem;font-size:.8rem;color:#555;">${productos}</td>
                                 <td style="padding:.55rem .75rem;font-size:.8rem;color:#555;">${responsables}</td>
                                 <td style="padding:.55rem .75rem;text-align:center;">
                                     <button onclick="irAFechaHistorial('${f}')"
@@ -12043,14 +12239,13 @@ function mostrarPopupGantt(eq) {
                                 </td>
                             </tr>`;
                         }).join('')}
-                        ${fechasConProd.map((f,i) => {
-                            const [y,m,d] = f.split('-');
+                        ${fechasConProd.filter(f => !todasLasFechas.includes(f)).map((f,i) => {
+                            const [fy,fm,fd] = f.split('-');
                             return `
                             <tr style="border-bottom:1px solid #f0f0f0;background:#fef9ef;">
-                                <td style="padding:.55rem .75rem;font-weight:700;">${d}/${m}/${y}</td>
-                                <td colspan="3" style="padding:.55rem .75rem;text-align:center;color:#78350f;font-size:.82rem;">Sin registros HACCP — hay producción</td>
+                                <td style="padding:.55rem .75rem;font-weight:700;">${fd}/${fm}/${fy}</td>
+                                <td colspan="5" style="padding:.55rem .75rem;text-align:center;color:#78350f;font-size:.82rem;">Sin registros HACCP — hay producción</td>
                                 <td style="padding:.55rem .75rem;font-size:.8rem;color:#555;">${(historialPorFecha[f]||[]).map(h=>h.producto).join(', ')}</td>
-                                <td style="padding:.55rem .75rem;">—</td>
                                 <td style="padding:.55rem .75rem;text-align:center;">
                                     <button onclick="irAFechaHistorial('${f}')"
                                         style="background:#667eea;color:white;border:none;border-radius:6px;padding:.3rem .7rem;cursor:pointer;font-size:.78rem;font-weight:600;">
@@ -12063,13 +12258,23 @@ function mostrarPopupGantt(eq) {
                     <tfoot>
                         <tr style="background:#f8fafc;font-weight:700;border-top:2px solid #e2e8f0;">
                             <td style="padding:.6rem .75rem;">TOTAL MES</td>
-                            <td style="padding:.6rem .75rem;text-align:center;color:#065f46;">${fechasConData.reduce((s,f)=>s+dataPorDia[f].completados,0)}</td>
-                            <td style="padding:.6rem .75rem;text-align:center;color:#92400e;">${fechasConData.reduce((s,f)=>s+dataPorDia[f].pendientes,0)}</td>
-                            <td style="padding:.6rem .75rem;text-align:center;color:#991b1b;">${fechasConData.reduce((s,f)=>s+dataPorDia[f].vencidos,0)}</td>
-                            <td colspan="3" style="padding:.6rem .75rem;color:#666;font-size:.82rem;">
-                                Cumplimiento: ${fechasConData.length > 0 ?
-                                    Math.round(fechasConData.reduce((s,f)=>s+dataPorDia[f].completados,0) /
-                                    Math.max(1, fechasConData.reduce((s,f)=>s+dataPorDia[f].completados+dataPorDia[f].pendientes+dataPorDia[f].vencidos,0)) * 100) : 0}%
+                            <td style="padding:.6rem .75rem;text-align:center;color:#065f46;">
+                                ${todasLasFechas.reduce((s,f) => s + (dataPorDia[f]?.completados||0) + registrosHACCPHistorial.filter(r=>r.fechaISO===f&&r.tipo==='cocina').length, 0)}
+                            </td>
+                            <td style="padding:.6rem .75rem;text-align:center;color:#5b21b6;">
+                                ${registrosHACCPHistorial.filter(r => { const [y,m] = (r.fechaISO||'').split('-'); return parseInt(y)===anio && parseInt(m)-1===mes && r.tipo==='envasado'; }).length}
+                            </td>
+                            <td style="padding:.6rem .75rem;text-align:center;color:#0e7490;">
+                                ${registrosHACCPHistorial.filter(r => { const [y,m] = (r.fechaISO||'').split('-'); return parseInt(y)===anio && parseInt(m)-1===mes && r.tipo==='abatimiento'; }).length}
+                            </td>
+                            <td style="padding:.6rem .75rem;text-align:center;color:#92400e;">${todasLasFechas.reduce((s,f)=>s+(dataPorDia[f]?.pendientes||0),0)}</td>
+                            <td style="padding:.6rem .75rem;text-align:center;color:#991b1b;">${todasLasFechas.reduce((s,f)=>s+(dataPorDia[f]?.vencidos||0),0)}</td>
+                            <td colspan="2" style="padding:.6rem .75rem;color:#666;font-size:.82rem;">
+                                📊 Cumplimiento cocción: ${(() => {
+                                    const comp = todasLasFechas.reduce((s,f)=>(dataPorDia[f]?.completados||0)+registrosHACCPHistorial.filter(r=>r.fechaISO===f&&r.tipo==='cocina').length+s,0);
+                                    const total = comp + todasLasFechas.reduce((s,f)=>s+(dataPorDia[f]?.pendientes||0)+(dataPorDia[f]?.vencidos||0),0);
+                                    return total > 0 ? Math.round(comp/total*100)+'%' : '—';
+                                })()}
                             </td>
                         </tr>
                     </tfoot>
