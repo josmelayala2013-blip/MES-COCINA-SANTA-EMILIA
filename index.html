@@ -689,6 +689,14 @@
               </div>
               <div id="dashListaPrepsFrias" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.75rem;"></div>
             </div>
+            <!-- Panel HACCP Pendientes -->
+            <div id="dashHACCPPendientes" style="display:none;margin:1rem 1.5rem;background:#fffbeb;border-radius:15px;padding:1.25rem;border-left:5px solid #f59e0b;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
+                <h3 style="color:#92400e;margin:0;font-size:1rem;">📋 Registros HACCP Pendientes de Completar</h3>
+                <span id="badgeHACCPPendientes" style="background:#f59e0b;color:white;border-radius:20px;padding:.2rem .75rem;font-size:.8rem;font-weight:700;">0</span>
+              </div>
+              <div id="listaHACCPPendientes" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.75rem;"></div>
+            </div>
         </div>
 
 
@@ -2011,6 +2019,9 @@
                     mostrarNotificacion('🔥 Multi-dispositivo activo', 'success');
                 }
             }, 2000);
+
+            // Mostrar HACCP pendientes del día anterior
+            setTimeout(() => renderHACCPPendientes(), 1000);
         }
 
         function inicializarDateSelector() {
@@ -5073,6 +5084,9 @@ function imprimirRegistroHACCP(d) {
                     inicioEnvasado: new Date().toISOString()
                 });
             }
+
+            // Crear HACCP pendiente para esta producción
+            crearHACCPPendiente(equipo);
 
             guardarDatos();
             renderEquipos();
@@ -11376,6 +11390,344 @@ function mostrarPopupGantt(eq) {
             // Insertar después del selector de producto en el modal
             const refEl = document.getElementById('kgProgramados');
             if (refEl) refEl.closest('div').parentNode.insertBefore(alerta, refEl.closest('div'));
+        }
+
+        // ============================================
+        // SISTEMA HACCP PENDIENTES
+        // ============================================
+
+        let haccpPendientes = JSON.parse(localStorage.getItem('mes_haccp_pendientes') || '[]');
+
+        function guardarHACCPPendientes() {
+            localStorage.setItem('mes_haccp_pendientes', JSON.stringify(haccpPendientes));
+            if (window.db && window.firestoreLoaded) {
+                try {
+                    const { doc, setDoc } = window.firestoreFunctions;
+                    setDoc(doc(window.db, 'mes-data', 'haccp-pendientes'), {
+                        pendientes: haccpPendientes,
+                        ts: new Date().toISOString()
+                    });
+                } catch(e) {}
+            }
+        }
+
+        function crearHACCPPendiente(equipo) {
+            const hoy = new Date().toLocaleDateString('es-CL');
+            const horaFin = new Date().toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'});
+            const pendiente = {
+                id: Date.now().toString(),
+                fecha: hoy,
+                fechaISO: new Date().toISOString().split('T')[0],
+                horaFinCoccion: horaFin,
+                equipoNombre: equipo.nombre,
+                producto: equipo.produccion.producto || '—',
+                numeroOP: equipo.produccion.numeroOP || '—',
+                operador: equipo.produccion.operador || '—',
+                kgProgramados: equipo.produccion.kgProgramados || 0,
+                kgReales: equipo.produccion.kgReales || 0,
+                tiempoCoccionFormateado: equipo.produccion.tiempoCoccionFormateado || '—',
+                estado: 'pendiente', // pendiente | completado | vencido
+                completadoPor: null,
+                completadoEn: null,
+                datosHACCP: null
+            };
+            haccpPendientes.push(pendiente);
+            guardarHACCPPendientes();
+            renderHACCPPendientes();
+        }
+
+        function renderHACCPPendientes() {
+            const panel = document.getElementById('dashHACCPPendientes');
+            const lista = document.getElementById('listaHACCPPendientes');
+            const badge = document.getElementById('badgeHACCPPendientes');
+            if (!panel || !lista) return;
+
+            const hoy = new Date().toISOString().split('T')[0];
+
+            // Marcar como vencidos los del día anterior sin completar
+            haccpPendientes.forEach(p => {
+                if (p.estado === 'pendiente' && p.fechaISO < hoy) {
+                    p.estado = 'vencido';
+                }
+            });
+
+            const activos = haccpPendientes.filter(p => p.estado !== 'completado');
+            const pendientesHoy = haccpPendientes.filter(p => p.estado === 'pendiente');
+
+            if (activos.length === 0) {
+                panel.style.display = 'none';
+                return;
+            }
+
+            panel.style.display = 'block';
+            if (badge) badge.textContent = pendientesHoy.length;
+
+            lista.innerHTML = activos.map(p => {
+                const esVencido = p.estado === 'vencido';
+                const colorBorde = esVencido ? '#ef4444' : '#f59e0b';
+                const colorFondo = esVencido ? '#fef2f2' : '#fffbeb';
+                const colorTexto = esVencido ? '#991b1b' : '#92400e';
+                const etiqueta = esVencido
+                    ? '<span style="background:#fee2e2;color:#991b1b;border-radius:20px;padding:.15rem .6rem;font-size:.72rem;font-weight:700;">⚠️ Vencido</span>'
+                    : '<span style="background:#fef3c7;color:#92400e;border-radius:20px;padding:.15rem .6rem;font-size:.72rem;font-weight:700;">⏳ Pendiente</span>';
+                return `
+                <div style="background:${colorFondo};border-radius:12px;padding:1rem;border-left:4px solid ${colorBorde};">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem;">
+                        <div style="font-weight:700;font-size:.95rem;color:#333;">${p.producto}</div>
+                        ${etiqueta}
+                    </div>
+                    <div style="font-size:.8rem;color:#666;margin-bottom:.3rem;">📅 ${p.fecha} · 🕐 ${p.horaFinCoccion}</div>
+                    <div style="font-size:.8rem;color:#666;margin-bottom:.3rem;">⚙️ ${p.equipoNombre} · 👤 ${p.operador}</div>
+                    <div style="font-size:.8rem;color:#666;margin-bottom:.75rem;">📋 OP: ${p.numeroOP} · ⚖️ ${p.kgReales} kg reales</div>
+                    <button onclick="abrirHACCPPendiente('${p.id}')"
+                        style="width:100%;padding:.6rem;background:linear-gradient(135deg,#1e3a5f,#2d5986);color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.88rem;">
+                        📋 Completar Registro HACCP
+                    </button>
+                </div>`;
+            }).join('');
+        }
+
+        function abrirHACCPPendiente(id) {
+            const p = haccpPendientes.find(x => x.id === id);
+            if (!p) return;
+            // Prellenar datos del equipo en el modal HACCP existente
+            window._haccpPendienteActual = id;
+
+            // Buscar el equipo actual para abrir el modal HACCP
+            // Usamos el modal HACCP de cocina ya existente
+            const equipoSimulado = {
+                id: 'pendiente',
+                nombre: p.equipoNombre,
+                produccion: {
+                    producto: p.producto,
+                    numeroOP: p.numeroOP,
+                    operador: p.operador,
+                    kgProgramados: p.kgProgramados,
+                    kgReales: p.kgReales,
+                    tiempoCoccionFormateado: p.tiempoCoccionFormateado,
+                    inicio: new Date(p.fechaISO).toISOString(),
+                    finCoccion: new Date(p.fechaISO).toISOString(),
+                    opVinculadaId: null
+                }
+            };
+
+            // Abrir modal HACCP de cocina con los datos del pendiente
+            if (typeof abrirModalHACCP === 'function') {
+                abrirModalHACCPDesdePendiente(p);
+            } else if (typeof abrirRegistroHACCP === 'function') {
+                abrirRegistroHACCP(equipoSimulado);
+            }
+        }
+
+        function abrirHACCPPendiente(id) {
+            const p = haccpPendientes.find(x => x.id === id);
+            if (!p) return;
+            window._haccpPendienteActual = id;
+
+            // Construir contenido del modal HACCP directamente
+            const contEl = document.getElementById('contenidoModalHACCP');
+            if (!contEl) { alert('Modal HACCP no disponible'); return; }
+
+            contEl.innerHTML = `
+              <div style="background:#fff7e6;border-radius:8px;padding:.75rem;margin-bottom:1rem;border-left:4px solid #f59e0b;font-size:.85rem;color:#92400e;">
+                <strong>📋 Registro HACCP desde pendiente</strong><br>
+                Producción finalizada el ${p.fecha} a las ${p.horaFinCoccion} — ${p.producto} en ${p.equipoNombre}
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.75rem;margin-bottom:1rem;">
+                <div><label style="font-size:.8rem;font-weight:600;color:#1e3a5f;display:block;margin-bottom:.3rem;">Fecha</label>
+                  <input type="date" id="hpFecha" value="${p.fechaISO}" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;font-size:.9rem;box-sizing:border-box;"></div>
+                <div><label style="font-size:.8rem;font-weight:600;color:#1e3a5f;display:block;margin-bottom:.3rem;">Equipo</label>
+                  <input type="text" id="hpEquipo" value="${p.equipoNombre}" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;font-size:.9rem;box-sizing:border-box;"></div>
+                <div><label style="font-size:.8rem;font-weight:600;color:#1e3a5f;display:block;margin-bottom:.3rem;">Producto</label>
+                  <input type="text" id="hpProducto" value="${p.producto}" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;font-size:.9rem;box-sizing:border-box;"></div>
+                <div><label style="font-size:.8rem;font-weight:600;color:#1e3a5f;display:block;margin-bottom:.3rem;">N° OP</label>
+                  <input type="text" id="hpOP" value="${p.numeroOP}" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;font-size:.9rem;box-sizing:border-box;"></div>
+                <div><label style="font-size:.8rem;font-weight:600;color:#1e3a5f;display:block;margin-bottom:.3rem;">Operador</label>
+                  <input type="text" id="hpOperador" value="${p.operador}" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;font-size:.9rem;box-sizing:border-box;"></div>
+                <div><label style="font-size:.8rem;font-weight:600;color:#1e3a5f;display:block;margin-bottom:.3rem;">Hora Inicio</label>
+                  <input type="time" id="hpHoraInicio" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;font-size:.9rem;box-sizing:border-box;"></div>
+                <div><label style="font-size:.8rem;font-weight:600;color:#1e3a5f;display:block;margin-bottom:.3rem;">Hora Fin Cocción</label>
+                  <input type="time" id="hpHoraFin" value="${p.horaFinCoccion}" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;font-size:.9rem;box-sizing:border-box;"></div>
+                <div><label style="font-size:.8rem;font-weight:600;color:#1e3a5f;display:block;margin-bottom:.3rem;">Tiempo Cocción</label>
+                  <input type="text" id="hpTiempo" value="${p.tiempoCoccionFormateado}" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;font-size:.9rem;box-sizing:border-box;"></div>
+                <div><label style="font-size:.8rem;font-weight:600;color:#1e3a5f;display:block;margin-bottom:.3rem;">Kg Programados</label>
+                  <input type="number" id="hpKgProg" value="${p.kgProgramados}" step="0.1" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;font-size:.9rem;box-sizing:border-box;"></div>
+                <div><label style="font-size:.8rem;font-weight:600;color:#1e3a5f;display:block;margin-bottom:.3rem;">Kg Reales</label>
+                  <input type="number" id="hpKgReales" value="${p.kgReales}" step="0.1" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;font-size:.9rem;box-sizing:border-box;"></div>
+                <div><label style="font-size:.8rem;font-weight:600;color:#1e3a5f;display:block;margin-bottom:.3rem;">Temperatura °C</label>
+                  <input type="number" id="hpTemp" step="0.1" placeholder="Ej: 82.5" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;font-size:.9rem;box-sizing:border-box;"></div>
+                <div><label style="font-size:.8rem;font-weight:600;color:#1e3a5f;display:block;margin-bottom:.3rem;">Lote Producto</label>
+                  <input type="text" id="hpLote" placeholder="Lote" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;font-size:.9rem;box-sizing:border-box;"></div>
+              </div>
+              <!-- Evaluación calidad -->
+              <div style="background:#f8f9ff;border-radius:10px;padding:1rem;margin-bottom:1rem;">
+                <div style="font-weight:700;color:#333;margin-bottom:.75rem;font-size:.9rem;">Evaluación Sensorial</div>
+                <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:.5rem;">
+                  ${['Color','Olor','Sabor','Textura','Aus.EE'].map(attr => `
+                  <div style="background:white;border-radius:8px;padding:.6rem;text-align:center;border:1px solid #e2e8f0;">
+                    <div style="font-size:.75rem;font-weight:600;color:#333;margin-bottom:.35rem;">${attr}</div>
+                    <div style="display:flex;gap:.3rem;justify-content:center;">
+                      <label style="cursor:pointer;"><input type="radio" name="hp${attr}" value="C" style="accent-color:#10b981;"> <span style="font-size:.8rem;">C</span></label>
+                      <label style="cursor:pointer;"><input type="radio" name="hp${attr}" value="NC" style="accent-color:#ef4444;"> <span style="font-size:.8rem;">NC</span></label>
+                    </div>
+                  </div>`).join('')}
+                </div>
+              </div>
+              <!-- ACC y observaciones -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+                <div><label style="font-size:.8rem;font-weight:600;color:#1e3a5f;display:block;margin-bottom:.3rem;">¿Requiere ACC?</label>
+                  <select id="hpReqACC" onchange="document.getElementById('hpDivACC').style.display=this.value==='si'?'block':'none'"
+                    style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;font-size:.9rem;box-sizing:border-box;">
+                    <option value="no">No</option><option value="si">Sí</option>
+                  </select></div>
+                <div id="hpDivACC" style="display:none;"><label style="font-size:.8rem;font-weight:600;color:#1e3a5f;display:block;margin-bottom:.3rem;">N° ACC</label>
+                  <select id="hpACC" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;font-size:.85rem;box-sizing:border-box;">
+                    <option value="">— Seleccionar —</option>
+                    <option value="ACC01">ACC01 — Temp. carnes/salsas &lt;75°C → continuar cocción</option>
+                    <option value="ACC02">ACC02 — Temp. carbohidratos &lt;65°C → continuar cocción</option>
+                    <option value="ACC03">ACC03 — Falla equipo → cambio de equipo</option>
+                    <option value="ACC04">ACC04 — Desviación organoléptica → avisar Calidad</option>
+                    <option value="ACC05">ACC05 — Elemento extraño → detener proceso</option>
+                  </select></div>
+              </div>
+              <div style="margin-bottom:1rem;"><label style="font-size:.8rem;font-weight:600;color:#1e3a5f;display:block;margin-bottom:.3rem;">Observaciones</label>
+                <textarea id="hpObs" rows="2" placeholder="Observaciones del proceso..." style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;font-size:.9rem;box-sizing:border-box;resize:vertical;"></textarea></div>
+              <div style="margin-bottom:1.25rem;"><label style="font-size:.8rem;font-weight:600;color:#1e3a5f;display:block;margin-bottom:.3rem;">Responsable del Registro</label>
+                <input type="text" id="hpResponsable" value="${p.operador}" placeholder="Nombre y firma" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;font-size:.9rem;box-sizing:border-box;"></div>
+              <div style="display:flex;gap:.75rem;justify-content:flex-end;">
+                <button onclick="cerrarModalHACCP()" style="padding:.75rem 1.5rem;border-radius:10px;border:1px solid #ddd;cursor:pointer;font-weight:600;color:#64748b;">Cancelar</button>
+                <button onclick="guardarHACCPDesdePendiente('${p.id}')"
+                  style="padding:.75rem 1.5rem;border-radius:10px;border:none;background:linear-gradient(135deg,#1e3a5f,#2d5986);color:white;cursor:pointer;font-weight:700;font-size:1rem;">
+                  💾 Guardar Registro HACCP
+                </button>
+              </div>`;
+
+            document.getElementById('modalHACCP').style.display = 'block';
+        }
+
+        function guardarHACCPDesdePendiente(pendienteId) {
+            const p = haccpPendientes.find(x => x.id === pendienteId);
+            if (!p) return;
+
+            const datos = {
+                fecha: document.getElementById('hpFecha')?.value,
+                equipo: document.getElementById('hpEquipo')?.value,
+                producto: document.getElementById('hpProducto')?.value,
+                numeroOP: document.getElementById('hpOP')?.value,
+                operador: document.getElementById('hpOperador')?.value,
+                horaInicio: document.getElementById('hpHoraInicio')?.value,
+                horaFin: document.getElementById('hpHoraFin')?.value,
+                tiempoCoccion: document.getElementById('hpTiempo')?.value,
+                kgProgramados: document.getElementById('hpKgProg')?.value,
+                kgReales: document.getElementById('hpKgReales')?.value,
+                temperatura: document.getElementById('hpTemp')?.value,
+                lote: document.getElementById('hpLote')?.value,
+                color: document.querySelector('input[name="hpColor"]:checked')?.value,
+                olor: document.querySelector('input[name="hpOlor"]:checked')?.value,
+                sabor: document.querySelector('input[name="hpSabor"]:checked')?.value,
+                textura: document.querySelector('input[name="hpTextura"]:checked')?.value,
+                ausEE: document.querySelector('input[name="hpAus.EE"]:checked')?.value,
+                reqACC: document.getElementById('hpReqACC')?.value,
+                acc: document.getElementById('hpACC')?.value,
+                observaciones: document.getElementById('hpObs')?.value,
+                responsable: document.getElementById('hpResponsable')?.value,
+            };
+
+            p.estado = 'completado';
+            p.completadoPor = datos.responsable || '—';
+            p.completadoEn = new Date().toLocaleString('es-CL');
+            p.datosHACCP = datos;
+
+            guardarHACCPPendientes();
+            cerrarModalHACCP();
+            renderHACCPPendientes();
+
+            // Ofrecer imprimir
+            if (confirm('¿Deseas imprimir el registro HACCP ahora?')) {
+                imprimirHACCPDesdePendiente(datos);
+            }
+        }
+
+        function imprimirHACCPDesdePendiente(d) {
+            const color = '#1e3a5f';
+            const [y,m,dd] = (d.fecha||'').split('-');
+            const fechaDisplay = d.fecha ? `${dd}/${m}/${y}` : '—';
+            const sim = v => v === 'C' ? '<span style="color:#16a34a;font-weight:bold;font-size:12pt;">✓</span>' : v === 'NC' ? '<span style="color:#dc2626;font-weight:bold;font-size:12pt;">✗</span>' : '—';
+
+            _imprimirContenido(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+<title>HACCP Cocción — ${d.producto}</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}body{font-family:Arial,sans-serif;font-size:9pt;color:#000;background:white;}
+  @page{size:A4 landscape;margin:10mm;}@media print{.no-print{display:none;}}
+  .header{display:flex;justify-content:space-between;align-items:center;border:2px solid ${color};margin-bottom:5px;}
+  .header-logo{padding:6px 10px;font-size:9pt;color:${color};font-weight:bold;}
+  .header-titulo{flex:1;text-align:center;padding:6px;border-left:1px solid ${color};border-right:1px solid ${color};}
+  .header-titulo h2{font-size:11pt;font-weight:bold;color:${color};}
+  .header-codigo{padding:6px 10px;font-size:8pt;text-align:right;line-height:1.6;}
+  .datos-gen{display:flex;border:1px solid ${color};margin-bottom:5px;flex-wrap:wrap;}
+  .dato-item{flex:1;min-width:100px;padding:4px 6px;border-right:1px solid ${color};}
+  .dato-item:last-child{border-right:none;}
+  .dato-label{font-size:7pt;font-weight:bold;color:${color};}
+  .dato-val{font-size:9.5pt;font-weight:bold;margin-top:2px;}
+  .seccion-titulo{background:${color};color:white;padding:4px 8px;font-size:8.5pt;font-weight:bold;margin-bottom:3px;}
+  table{width:100%;border-collapse:collapse;margin-bottom:6px;}
+  th{background:${color};color:white;padding:4px 6px;font-size:8pt;border:1px solid ${color};text-align:center;}
+  td{padding:5px 6px;border:1px solid #ccc;font-size:9pt;text-align:center;}
+  .acc-box{border:1px solid #f59e0b;background:#fffbeb;padding:5px;margin-bottom:5px;font-size:7.5pt;line-height:1.5;}
+  .firma-box{display:flex;gap:10px;margin-top:6px;}
+  .firma-item{flex:1;border:1px solid ${color};padding:6px;text-align:center;}
+  .firma-label{font-size:7.5pt;color:${color};font-weight:bold;margin-bottom:15px;}
+  .firma-linea{border-top:1px solid #000;padding-top:3px;font-size:8pt;}
+</style></head><body>
+<div class="header">
+  <div class="header-logo">🏭 MES Cocina</div>
+  <div class="header-titulo"><h2>📋 REGISTRO HACCP — CONTROL DE PROCESOS COCINA</h2></div>
+  <div class="header-codigo">R-POE-03-GF-03<br>Versión 3<br>F. Vigencia: 15-12-2025</div>
+</div>
+<div class="datos-gen">
+  <div class="dato-item"><div class="dato-label">Fecha</div><div class="dato-val">${fechaDisplay}</div></div>
+  <div class="dato-item"><div class="dato-label">Equipo</div><div class="dato-val">${d.equipo||'—'}</div></div>
+  <div class="dato-item"><div class="dato-label">Producto</div><div class="dato-val">${d.producto||'—'}</div></div>
+  <div class="dato-item"><div class="dato-label">N° OP</div><div class="dato-val">${d.numeroOP||'—'}</div></div>
+  <div class="dato-item"><div class="dato-label">Operador</div><div class="dato-val">${d.operador||'—'}</div></div>
+  <div class="dato-item"><div class="dato-label">Lote</div><div class="dato-val">${d.lote||'—'}</div></div>
+</div>
+<div class="seccion-titulo">Control de Proceso</div>
+<table><tr>
+  <th>Hora Inicio</th><th>Hora Fin</th><th>Tiempo Cocción</th><th>Kg Programados</th><th>Kg Reales</th><th>Temperatura °C</th><th>¿Requiere ACC?</th><th>N° ACC</th>
+</tr><tr>
+  <td>${d.horaInicio||'—'}</td><td>${d.horaFin||'—'}</td><td>${d.tiempoCoccion||'—'}</td>
+  <td>${d.kgProgramados||'—'}</td><td>${d.kgReales||'—'}</td>
+  <td style="font-weight:bold;font-size:12pt;color:${parseFloat(d.temperatura)>=75?'#16a34a':'#dc2626'};">${d.temperatura||'—'}°C</td>
+  <td>${d.reqACC==='si'?'<span style="color:#dc2626;font-weight:bold;">SÍ</span>':'<span style="color:#16a34a;">NO</span>'}</td>
+  <td>${d.acc||'—'}</td>
+</tr></table>
+<div class="seccion-titulo">Evaluación Sensorial</div>
+<table><tr><th>Color</th><th>Olor</th><th>Sabor</th><th>Textura</th><th>Aus. Elem. Extraños</th></tr>
+<tr><td>${sim(d.color)}</td><td>${sim(d.olor)}</td><td>${sim(d.sabor)}</td><td>${sim(d.textura)}</td><td>${sim(d.ausEE)}</td></tr></table>
+<div class="acc-box">
+  <strong>LC:</strong> Carnes/aves/salsas ≥75°C · Carbohidratos/embutidos ≥65°C &nbsp;|&nbsp;
+  <strong>Observaciones:</strong> ${d.observaciones||'—'}
+</div>
+<div class="firma-box">
+  <div class="firma-item"><div class="firma-label">Responsable del Registro</div>
+    <div style="font-size:11pt;font-weight:bold;margin-bottom:10px;">${d.responsable||'—'}</div>
+    <div class="firma-linea">Nombre y Firma</div></div>
+  <div class="firma-item"><div class="firma-label">Verificación Calidad</div>
+    <div class="firma-linea" style="margin-top:25px;">Nombre y Firma</div></div>
+  <div class="firma-item"><div class="firma-label">Registrado en sistema</div>
+    <div style="font-size:9pt;margin-top:8px;">${new Date().toLocaleString('es-CL')}</div></div>
+</div>
+</body></html>`);
+        }
+
+        function completarHACCPPendiente(id) {
+            const p = haccpPendientes.find(x => x.id === id);
+            if (!p) return;
+            p.estado = 'completado';
+            p.completadoEn = new Date().toLocaleString('es-CL');
+            guardarHACCPPendientes();
+            renderHACCPPendientes();
         }
 
         window.onload = init;
