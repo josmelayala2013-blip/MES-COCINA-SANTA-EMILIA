@@ -1267,6 +1267,18 @@
             <!-- Preview cálculo automático -->
             <div id="previewCalculoOP" style="display:none;background:#f0f4ff;border-radius:12px;padding:1.25rem;margin-bottom:1rem;border-left:4px solid #667eea;"></div>
 
+            <!-- Toggle vista semanal / mensual -->
+            <div style="display:flex;gap:.5rem;margin-bottom:1rem;">
+                <button id="btnVistaSemanalPlan" onclick="setVistaPlan('semanal')"
+                    style="padding:.45rem 1.1rem;border-radius:8px;border:2px solid #667eea;background:#667eea;color:white;font-weight:700;cursor:pointer;font-size:.85rem;">
+                    📅 Vista Semanal
+                </button>
+                <button id="btnVistaMensualPlan" onclick="setVistaPlan('mensual')"
+                    style="padding:.45rem 1.1rem;border-radius:8px;border:2px solid #667eea;background:white;color:#667eea;font-weight:700;cursor:pointer;font-size:.85rem;">
+                    🗓️ Vista Mensual
+                </button>
+            </div>
+
             <!-- Vista Semanal -->
             <div id="vistaSemanal" style="margin-bottom:1.5rem;">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
@@ -1278,6 +1290,29 @@
                 <button onclick="irSemanaHoy()" style="padding:.4rem 1rem;border-radius:8px;border:2px solid #667eea;background:white;color:#667eea;font-weight:700;cursor:pointer;font-size:.82rem;">Semana actual</button>
               </div>
               <div id="gridSemana" style="display:grid;grid-template-columns:repeat(7,1fr);gap:.5rem;"></div>
+            </div>
+
+            <!-- Vista Mensual -->
+            <div id="vistaMensualPlan" style="display:none;margin-bottom:1.5rem;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                <div style="display:flex;align-items:center;gap:.75rem;">
+                  <button onclick="navegarMesPlan(-1)" style="padding:.4rem .8rem;border-radius:8px;border:2px solid #c7d2fe;background:white;color:#667eea;font-weight:700;cursor:pointer;font-size:1rem;">‹</button>
+                  <span id="labelMesPlan" style="font-weight:700;color:#4f46e5;font-size:1rem;min-width:160px;text-align:center;"></span>
+                  <button onclick="navegarMesPlan(1)" style="padding:.4rem .8rem;border-radius:8px;border:2px solid #c7d2fe;background:white;color:#667eea;font-weight:700;cursor:pointer;font-size:1rem;">›</button>
+                </div>
+                <div style="display:flex;gap:.75rem;align-items:center;">
+                  <button onclick="irMesHoyPlan()" style="padding:.4rem 1rem;border-radius:8px;border:2px solid #667eea;background:white;color:#667eea;font-weight:700;cursor:pointer;font-size:.82rem;">Mes actual</button>
+                  <!-- Resumen del mes -->
+                  <div id="resumenMesPlan" style="background:#eef2ff;border-radius:8px;padding:.4rem 1rem;font-size:.82rem;color:#4f46e5;font-weight:600;"></div>
+                </div>
+              </div>
+              <!-- Calendario mensual -->
+              <div style="background:white;border-radius:12px;padding:1.25rem;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
+                <div id="headerDiasMesPlan" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:6px;"></div>
+                <div id="gridMesPlan" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;"></div>
+              </div>
+              <!-- Resumen semanal del mes -->
+              <div id="resumenSemanasMes" style="margin-top:1rem;"></div>
             </div>
 
             <!-- Botón Iniciar Jornada -->
@@ -9497,6 +9532,193 @@ function irSemanaHoy() {
 function navegarSemana(dir) {
   window._semanaOffset += dir;
   renderVistaSemanal();
+}
+
+// ---- VISTA MENSUAL PLANIFICADOR ----
+window._mesPlanOffset = 0;
+
+function setVistaPlan(vista) {
+  const btnSem = document.getElementById('btnVistaSemanalPlan');
+  const btnMes = document.getElementById('btnVistaMensualPlan');
+  const semPanel = document.getElementById('vistaSemanal');
+  const mesPanel = document.getElementById('vistaMensualPlan');
+
+  if (vista === 'mensual') {
+    btnSem.style.background = 'white'; btnSem.style.color = '#667eea';
+    btnMes.style.background = '#667eea'; btnMes.style.color = 'white';
+    semPanel.style.display = 'none';
+    mesPanel.style.display = 'block';
+    renderVistaMensualPlan();
+  } else {
+    btnSem.style.background = '#667eea'; btnSem.style.color = 'white';
+    btnMes.style.background = 'white'; btnMes.style.color = '#667eea';
+    semPanel.style.display = 'block';
+    mesPanel.style.display = 'none';
+    renderVistaSemanal();
+  }
+}
+
+function irMesHoyPlan() {
+  window._mesPlanOffset = 0;
+  renderVistaMensualPlan();
+}
+
+function navegarMesPlan(dir) {
+  window._mesPlanOffset = (window._mesPlanOffset || 0) + dir;
+  renderVistaMensualPlan();
+}
+
+function renderVistaMensualPlan() {
+  const grid = document.getElementById('gridMesPlan');
+  const header = document.getElementById('headerDiasMesPlan');
+  const labelEl = document.getElementById('labelMesPlan');
+  const resumenEl = document.getElementById('resumenMesPlan');
+  const resumenSemanasEl = document.getElementById('resumenSemanasMes');
+  if (!grid) return;
+
+  const hoy = new Date();
+  const mesMostrado = new Date(hoy.getFullYear(), hoy.getMonth() + (window._mesPlanOffset || 0), 1);
+  const anio = mesMostrado.getFullYear();
+  const mes = mesMostrado.getMonth();
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const diasSemana = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+
+  labelEl.textContent = `${meses[mes]} ${anio}`;
+
+  // Header días
+  header.innerHTML = diasSemana.map(d =>
+    `<div style="text-align:center;font-size:.72rem;font-weight:700;color:#94a3b8;padding:.3rem;">${d}</div>`
+  ).join('');
+
+  const primerDia = new Date(anio, mes, 1);
+  const diasEnMes = new Date(anio, mes + 1, 0).getDate();
+  // Ajustar para que lunes = 0
+  let offset = primerDia.getDay() - 1;
+  if (offset < 0) offset = 6;
+
+  const hoyStr = hoy.toISOString().split('T')[0];
+  const fechaSelStr = document.getElementById('fechaPlan')?.value || hoyStr;
+
+  let totalKgMes = 0, totalOPsMes = 0;
+  let diasConOPs = 0;
+
+  // Celdas vacías antes del día 1
+  let celdasHTML = Array(offset).fill(`<div style="height:70px;"></div>`).join('');
+
+  for (let d = 1; d <= diasEnMes; d++) {
+    const fechaStr = `${anio}-${String(mes+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const opsDelDia = ordenesProduccion.filter(op => op.fecha === fechaStr && op.estado !== 'completada');
+    const opsCompletadas = ordenesProduccion.filter(op => op.fecha === fechaStr && op.estado === 'completada');
+    const kgDia = opsDelDia.reduce((s, op) => s + (op.kgTotalesTerminados || 0), 0);
+    const kgComp = opsCompletadas.reduce((s, op) => s + (op.kgTotalesTerminados || 0), 0);
+    const totalOPs = opsDelDia.length + opsCompletadas.length;
+
+    totalKgMes += kgDia + kgComp;
+    totalOPsMes += totalOPs;
+    if (totalOPs > 0) diasConOPs++;
+
+    const esHoy = fechaStr === hoyStr;
+    const esSel = fechaStr === fechaSelStr;
+    const esPasado = fechaStr < hoyStr;
+    const esFinde = (() => { const dd = new Date(fechaStr+'T12:00:00'); return dd.getDay() === 0 || dd.getDay() === 6; })();
+
+    let bg = 'white', border = '#e2e8f0', textC = '#333', badgeBg = '#eef2ff', badgeC = '#4f46e5';
+    if (esSel) { bg = '#667eea'; border = '#667eea'; textC = 'white'; badgeBg = 'rgba(255,255,255,0.25)'; badgeC = 'white'; }
+    else if (esHoy) { bg = '#eef2ff'; border = '#a5b4fc'; textC = '#4f46e5'; }
+    else if (opsCompletadas.length > 0 && opsDelDia.length === 0) { bg = '#f0fdf4'; border = '#86efac'; }
+    else if (esFinde) { bg = '#fafafa'; textC = '#94a3b8'; }
+    else if (esPasado && totalOPs === 0) { textC = '#cbd5e1'; }
+
+    celdasHTML += `
+      <div onclick="seleccionarFechaSemana('${fechaStr}')" style="
+        height:70px;background:${bg};border:2px solid ${border};border-radius:8px;
+        padding:.35rem;cursor:pointer;transition:transform .1s;display:flex;flex-direction:column;justify-content:space-between;
+        ${esHoy && !esSel ? 'box-shadow:0 0 0 2px #667eea;' : ''}
+      " onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
+        <div style="font-size:.82rem;font-weight:${esHoy||esSel?'800':'600'};color:${textC};">${d}</div>
+        ${totalOPs > 0 ? `
+          <div style="background:${badgeBg};border-radius:5px;padding:.15rem .3rem;text-align:center;">
+            <div style="font-size:.72rem;font-weight:700;color:${badgeC};">${totalOPs} OP${totalOPs>1?'s':''}</div>
+            <div style="font-size:.62rem;color:${esSel?'rgba(255,255,255,0.8)':'#6b7280'};">${(kgDia+kgComp).toFixed(0)}kg</div>
+          </div>` :
+          `<div style="font-size:.62rem;color:${esFinde?'#e2e8f0':esPasado?'#e2e8f0':'#d1d5db'};text-align:center;">—</div>`
+        }
+      </div>`;
+  }
+  grid.innerHTML = celdasHTML;
+
+  // Resumen del mes
+  if (resumenEl) {
+    resumenEl.textContent = `📊 ${totalOPsMes} OPs · ${totalKgMes.toFixed(0)} kg · ${diasConOPs} días con producción`;
+  }
+
+  // Resumen por semanas
+  if (resumenSemanasEl) {
+    const semanas = [];
+    let semActual = { inicio: null, fin: null, ops: 0, kg: 0 };
+    let diaActual = new Date(anio, mes, 1);
+
+    // Retroceder hasta el lunes de la primera semana
+    let inicioGrid = new Date(anio, mes, 1);
+    let dow = inicioGrid.getDay();
+    let retroceso = dow === 0 ? 6 : dow - 1;
+    inicioGrid.setDate(inicioGrid.getDate() - retroceso);
+
+    // Iterar 6 semanas máximo
+    for (let s = 0; s < 6; s++) {
+      const lunStr = new Date(inicioGrid); lunStr.setDate(inicioGrid.getDate() + s * 7);
+      const domStr = new Date(lunStr); domStr.setDate(lunStr.getDate() + 6);
+      const lunISO = lunStr.toISOString().split('T')[0];
+      const domISO = domStr.toISOString().split('T')[0];
+
+      // Solo semanas que tengan al menos un día del mes
+      const tieneDelMes = Array.from({length:7}, (_,i) => {
+        const f = new Date(lunStr); f.setDate(lunStr.getDate() + i);
+        return f.getMonth() === mes;
+      }).some(Boolean);
+      if (!tieneDelMes) continue;
+
+      let opsS = 0, kgS = 0;
+      for (let i = 0; i < 7; i++) {
+        const f = new Date(lunStr); f.setDate(lunStr.getDate() + i);
+        const fISO = f.toISOString().split('T')[0];
+        const opsD = ordenesProduccion.filter(op => op.fecha === fISO);
+        opsS += opsD.length;
+        kgS += opsD.reduce((s, op) => s + (op.kgTotalesTerminados || 0), 0);
+      }
+      semanas.push({ lun: lunISO, dom: domISO, ops: opsS, kg: kgS });
+    }
+
+    resumenSemanasEl.innerHTML = `
+      <div style="background:white;border-radius:10px;padding:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+        <div style="font-weight:700;color:#4f46e5;margin-bottom:.75rem;font-size:.9rem;">📋 Resumen por semana — ${meses[mes]} ${anio}</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.5rem;">
+          ${semanas.map((s, i) => {
+            const [y1,m1,d1] = s.lun.split('-');
+            const [y2,m2,d2] = s.dom.split('-');
+            const tieneOPs = s.ops > 0;
+            return `
+            <div style="background:${tieneOPs?'#eef2ff':'#f8fafc'};border-radius:8px;padding:.65rem .85rem;border-left:4px solid ${tieneOPs?'#667eea':'#e2e8f0'};cursor:pointer;"
+              onclick="seleccionarSemanaEnPlan('${s.lun}')">
+              <div style="font-size:.78rem;font-weight:700;color:#4f46e5;">Semana ${i+1}</div>
+              <div style="font-size:.72rem;color:#666;">${d1}/${m1} → ${d2}/${m2}</div>
+              <div style="margin-top:.35rem;font-size:.85rem;font-weight:700;color:${tieneOPs?'#4f46e5':'#94a3b8'};">
+                ${tieneOPs ? `${s.ops} OP${s.ops>1?'s':''} · ${s.kg.toFixed(0)} kg` : 'Sin OPs'}
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+  }
+}
+
+function seleccionarSemanaEnPlan(lunesISO) {
+  // Calcular offset de semana desde hoy
+  const lunes = new Date(lunesISO + 'T12:00:00');
+  const hoyLunes = getLunesDeSemana(0);
+  const diffDias = Math.round((lunes - hoyLunes) / (1000 * 60 * 60 * 24));
+  window._semanaOffset = Math.round(diffDias / 7);
+  setVistaPlan('semanal');
 }
 
 function renderVistaSemanal() {
