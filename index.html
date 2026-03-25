@@ -3905,7 +3905,7 @@ function abrirRegistroHACCPEnvasado(index) {
         <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;">
           <div>
             <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">Operador</label>
-            <input type="text" id="envFirmaNombre" value="${proceso.manipulador || ''}"
+            <input type="text" id="envFirmaNombre" value="${proceso.operadoraCierre || proceso.manipulador || ''}"
               oninput="autoLlenarPIN('envFirmaNombre','envFirmaPIN','envasado')"
               style="padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;width:180px;">
           </div>
@@ -3930,7 +3930,22 @@ function abrirRegistroHACCPEnvasado(index) {
 
   document.getElementById('contenidoModalHACCPEnvasado').innerHTML = html;
   document.getElementById('modalHACCPEnvasado').style.display = 'block';
-  setTimeout(() => autoLlenarPIN('envFirmaNombre','envFirmaPIN','envasado'), 200);
+  // Autollenar PIN de la operadora que cerró el ciclo
+  setTimeout(() => {
+    const nombreOp = proceso.operadoraCierre || proceso.manipulador || '';
+    const pinEl = document.getElementById('envFirmaPIN');
+    const nombreEl = document.getElementById('envFirmaNombre');
+    if (nombreOp && pinEl && nombreEl) {
+      nombreEl.value = nombreOp;
+      const pin = getPINOperador(nombreOp, 'envasado');
+      if (pin) {
+        pinEl.value = pin;
+        pinEl.style.borderColor = '#10b981';
+        const estado = document.getElementById('envFirmaEstado');
+        if (estado) { estado.textContent = '✅ PIN cargado automáticamente'; estado.style.color = '#10b981'; }
+      }
+    }
+  }, 200);
 
   // Mostrar ACC si se selecciona NC
   setTimeout(() => {
@@ -5530,7 +5545,6 @@ function imprimirRegistroHACCP(d) {
                     <div style="font-size:.78rem;font-weight:700;color:#0e7490;margin-bottom:.65rem;">🌡️ Control de Temperatura</div>
                     ${(() => {
                         const esPrimera = tandas.length === 0;
-                        const esUltima = kgPendientes <= 0.5; // considera última si queda muy poco
                         if (esPrimera) return `
                         <div>
                             <label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.25rem;">T° Inicio Envasado (°C) <span style="color:#dc2626;">*solo primera tanda</span></label>
@@ -5538,14 +5552,13 @@ function imprimirRegistroHACCP(d) {
                                 style="width:200px;padding:.6rem;border-radius:8px;border:2px solid #a5f3fc;font-size:.95rem;font-weight:700;color:#0e7490;">
                             <div style="font-size:.72rem;color:#0369a1;margin-top:.3rem;">💡 Se registrará como T° inicio en el HACCP</div>
                         </div>`;
-                        if (esUltima) return `
+                        return `
                         <div>
-                            <label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.25rem;">T° Final Envasado (°C) <span style="color:#dc2626;">*última tanda</span></label>
+                            <label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.25rem;">T° Final Envasado (°C) <span style="color:#6b7280;font-weight:400;">(llenar solo si es la última tanda)</span></label>
                             <input type="number" id="tandaTempFin" step="0.1" placeholder="Ej: 65.0"
                                 style="width:200px;padding:.6rem;border-radius:8px;border:2px solid #a5f3fc;font-size:.95rem;font-weight:700;color:#0e7490;">
-                            <div style="font-size:.72rem;color:#0369a1;margin-top:.3rem;">💡 Se registrará como T° final en el HACCP</div>
+                            <div style="font-size:.72rem;color:#0369a1;margin-top:.3rem;">💡 Si completas los kg totales aquí se registrará como T° final en el HACCP</div>
                         </div>`;
-                        return `<div style="font-size:.8rem;color:#94a3b8;font-style:italic;">Las tandas intermedias no registran temperatura.</div>`;
                     })()}
                 </div>
                 <div style="display:flex;gap:.75rem;justify-content:flex-end;">
@@ -5645,11 +5658,27 @@ function imprimirRegistroHACCP(d) {
 
         function cerrarCicloEnvasado(index) {
             const proceso = procesosEnvasado[index];
+            const tandas = proceso.tandas || [];
+
+            // Verificar que la última tanda tenga temperatura final
+            if (!proceso.tempFinEnvasado) {
+                mostrarNotificacion('⚠️ Debes registrar la temperatura final en la última tanda antes de cerrar el ciclo', 'error');
+                // Abrir modal de la última tanda para que registre la temperatura
+                setTimeout(() => {
+                    procesoActual = index;
+                    abrirRegistrarTanda(index);
+                }, 500);
+                return;
+            }
+
             if (!confirm(`¿Cerrar el ciclo de envasado de "${proceso.producto}"?\nSe registrará el proceso como completado.`)) return;
 
-            const tandas = proceso.tandas || [];
             const kgTotal = tandas.reduce((s, t) => s + (t.kg || 0), 0);
             const leadTime = _calcularLeadTime(proceso.inicioEnvasado, tandas);
+
+            // Operadora de la última tanda para la firma
+            const ultimaTanda = tandas[tandas.length - 1];
+            proceso.operadoraCierre = ultimaTanda?.operadora || proceso.manipulador;
 
             proceso.finEnvasado = new Date().toISOString();
             proceso.tiempoEnvasado = Math.floor((new Date() - new Date(proceso.inicioEnvasado)) / 1000);
