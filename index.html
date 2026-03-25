@@ -664,7 +664,7 @@
                 </button>
                 <div class="nav-dropdown-menu" id="menuCalidad">
                     <button class="nav-dropdown-item" onclick="changeTabCalidad('pcc1');cerrarDropdownCalidad()">
-                        🧊 Almacenamiento (PCC1)
+                        🪣 Almacenamiento (PCC1)
                     </button>
                     <div style="border-top:1px solid #e2e8f0;margin:.25rem 0;"></div>
                     <div style="font-size:.7rem;color:#94a3b8;padding:.3rem 1rem .1rem;font-weight:600;text-transform:uppercase;">Procesos Cocción y Abatimiento</div>
@@ -675,7 +675,7 @@
                         ❄️ Verif. Temp. Almacenamiento - Túnel Abatimiento
                     </button>
                     <button class="nav-dropdown-item" onclick="changeTabCalidad('tempTransito');cerrarDropdownCalidad()">
-                        🧊 Verif. Temp. Almacenamiento - C. Tránsito
+                        🪣 Verif. Temp. Almacenamiento - C. Tránsito
                     </button>
                 </div>
             </div>
@@ -1022,26 +1022,122 @@
 
         <!-- TAB: ABATIMIENTO -->
         <div id="abatimiento" class="tab-content">
-            <div class="analytics-section">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
-                    <h2 style="color:#06b6d4;margin:0;">❄️ Abatimiento en Proceso</h2>
-                    <div id="badgeAbatimiento" style="background:#06b6d4;color:white;border-radius:20px;padding:.3rem .9rem;font-weight:700;font-size:.9rem;">0 activos</div>
+
+          <!-- HEADER -->
+          <div class="analytics-section" style="padding-bottom:.5rem;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:.75rem;">
+              <h2 style="color:#06b6d4;margin:0;">❄️ Abatimiento — Cook & Chill</h2>
+              <div style="display:flex;gap:.75rem;align-items:center;">
+                <div style="background:#e0f2fe;border-radius:8px;padding:.35rem .85rem;font-size:.8rem;color:#0e7490;font-weight:700;">⏱️ Máx. 120 min · Ideal 90 min</div>
+                <div id="badgeAbatimiento" style="background:#06b6d4;color:white;border-radius:20px;padding:.3rem .9rem;font-weight:700;font-size:.9rem;">0 activos</div>
+              </div>
+            </div>
+
+            <!-- TOGGLE VISTA -->
+            <div style="display:flex;gap:.5rem;margin-bottom:1.25rem;">
+              <button id="btnVistaEquipos" onclick="setVistaAbat('equipos')"
+                style="padding:.45rem 1.1rem;border-radius:8px;border:2px solid #06b6d4;background:#06b6d4;color:white;font-weight:700;cursor:pointer;font-size:.85rem;">
+                🗺️ Vista Equipos
+              </button>
+              <button id="btnVistaTandas" onclick="setVistaAbat('tandas')"
+                style="padding:.45rem 1.1rem;border-radius:8px;border:2px solid #06b6d4;background:white;color:#06b6d4;font-weight:700;cursor:pointer;font-size:.85rem;">
+                📋 Vista Tandas
+              </button>
+            </div>
+
+            <!-- TANDAS PENDIENTES DE ASIGNACIÓN -->
+            <div id="tandasPendientesAbat" style="margin-bottom:1.25rem;"></div>
+
+            <!-- VISTA EQUIPOS (2D) -->
+            <div id="vistaEquiposAbat">
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.25rem;">
+
+                <!-- CHILLER 1 -->
+                <div style="background:white;border-radius:14px;padding:1.25rem;box-shadow:0 2px 12px rgba(0,0,0,0.08);border-top:4px solid #0ea5e9;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
+                    <div>
+                      <div style="font-weight:800;color:#0369a1;font-size:.95rem;">🪣 Chiller 1</div>
+                      <div style="font-size:.72rem;color:#64748b;">Refrigeración ≤4°C · máx 40 bolsas</div>
+                    </div>
+                    <div id="badgeChiller1" style="background:#e0f2fe;color:#0369a1;border-radius:20px;padding:.2rem .6rem;font-size:.75rem;font-weight:700;">0/40</div>
+                  </div>
+                  <div id="gridChiller1" style="display:grid;grid-template-columns:repeat(8,1fr);gap:3px;margin-bottom:.75rem;"></div>
+                  <div id="detailChiller1" style="font-size:.75rem;color:#666;"></div>
                 </div>
-                <div id="contenidoAbatimiento"></div>
-            </div>
-            <!-- Panel HACCP Pendientes Abatimiento -->
-            <div id="dashHACCPPendientesAbatimiento" style="display:none;margin:0 1.5rem 1.5rem;background:#f0fdfe;border-radius:15px;padding:1.25rem;border-left:5px solid #06b6d4;">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
-                    <h3 style="color:#0e7490;margin:0;font-size:1rem;">📋 Registros HACCP Abatimiento Pendientes</h3>
-                    <span id="badgeHACCPAbatimiento" style="background:#06b6d4;color:white;border-radius:20px;padding:.2rem .75rem;font-size:.8rem;font-weight:700;">0</span>
+
+                <!-- CHILLER 2 -->
+                <div style="background:white;border-radius:14px;padding:1.25rem;box-shadow:0 2px 12px rgba(0,0,0,0.08);border-top:4px solid #0ea5e9;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
+                    <div>
+                      <div style="font-weight:800;color:#0369a1;font-size:.95rem;">🪣 Chiller 2</div>
+                      <div style="font-size:.72rem;color:#64748b;">Refrigeración ≤4°C · máx 40 bolsas</div>
+                    </div>
+                    <div id="badgeChiller2" style="background:#e0f2fe;color:#0369a1;border-radius:20px;padding:.2rem .6rem;font-size:.75rem;font-weight:700;">0/40</div>
+                  </div>
+                  <div id="gridChiller2" style="display:grid;grid-template-columns:repeat(8,1fr);gap:3px;margin-bottom:.75rem;"></div>
+                  <div id="detailChiller2" style="font-size:.75rem;color:#666;"></div>
                 </div>
-                <div id="listaHACCPPendientesAbatimiento" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.75rem;"></div>
+
+                <!-- TÚNEL -->
+                <div style="background:white;border-radius:14px;padding:1.25rem;box-shadow:0 2px 12px rgba(0,0,0,0.08);border-top:4px solid #0e7490;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
+                    <div>
+                      <div style="font-weight:800;color:#0e7490;font-size:.95rem;">❄️ Túnel de Congelación</div>
+                      <div style="font-size:.72rem;color:#64748b;">Congelación · capacidad libre</div>
+                    </div>
+                    <div id="badgeTunel" style="background:#e0f2fe;color:#0e7490;border-radius:20px;padding:.2rem .6rem;font-size:.75rem;font-weight:700;">0 bolsas</div>
+                  </div>
+                  <div id="gridTunel" style="display:grid;grid-template-columns:repeat(10,1fr);gap:3px;margin-bottom:.75rem;"></div>
+                  <div id="detailTunel" style="font-size:.75rem;color:#666;"></div>
+                </div>
+
+              </div>
             </div>
-            <!-- Historial HACCP Abatimiento del Día -->
-            <div id="historialHACCPAbatimiento" style="display:none;margin:0 1.5rem 1.5rem;background:#ecfeff;border-radius:15px;padding:1.25rem;border-left:5px solid #0891b2;">
-                <h3 style="color:#0e7490;margin:0 0 .75rem;">✅ Registros HACCP Completados Hoy — Abatimiento</h3>
-                <div id="listaHistorialHACCPAbatimiento"></div>
+
+            <!-- VISTA TANDAS -->
+            <div id="vistaTandasAbat" style="display:none;">
+              <div id="contenidoAbatimiento"></div>
             </div>
+
+          </div>
+
+          <!-- Panel HACCP Pendientes Abatimiento -->
+          <div id="dashHACCPPendientesAbatimiento" style="display:none;margin:0 1.5rem 1.5rem;background:#f0fdfe;border-radius:15px;padding:1.25rem;border-left:5px solid #06b6d4;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
+              <h3 style="color:#0e7490;margin:0;font-size:1rem;">📋 Registros HACCP Abatimiento Pendientes</h3>
+              <span id="badgeHACCPAbatimiento" style="background:#06b6d4;color:white;border-radius:20px;padding:.2rem .75rem;font-size:.8rem;font-weight:700;">0</span>
+            </div>
+            <div id="listaHACCPPendientesAbatimiento" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.75rem;"></div>
+          </div>
+
+          <!-- Historial HACCP Abatimiento del Día -->
+          <div id="historialHACCPAbatimiento" style="display:none;margin:0 1.5rem 1.5rem;background:#ecfeff;border-radius:15px;padding:1.25rem;border-left:5px solid #0891b2;">
+            <h3 style="color:#0e7490;margin:0 0 .75rem;">✅ Registros HACCP Completados Hoy — Abatimiento</h3>
+            <div id="listaHistorialHACCPAbatimiento"></div>
+          </div>
+
+          <!-- Modal: Asignar Tanda a Equipo -->
+          <div id="modalAsignarAbat" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;overflow-y:auto;">
+            <div style="background:white;max-width:600px;margin:2rem auto;border-radius:16px;overflow:hidden;">
+              <div style="background:linear-gradient(135deg,#0e7490,#06b6d4);padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
+                <div style="color:white;font-weight:800;font-size:1.05rem;">❄️ Asignar Tanda a Equipo</div>
+                <button onclick="cerrarModalAsignarAbat()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
+              </div>
+              <div style="padding:1.5rem;" id="contenidoModalAsignarAbat"></div>
+            </div>
+          </div>
+
+          <!-- Modal: Finalizar Asignación -->
+          <div id="modalFinalizarAbatItem" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;overflow-y:auto;">
+            <div style="background:white;max-width:500px;margin:2rem auto;border-radius:16px;overflow:hidden;">
+              <div style="background:linear-gradient(135deg,#059669,#10b981);padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
+                <div style="color:white;font-weight:800;font-size:1.05rem;">✅ Retirar del Equipo</div>
+                <button onclick="cerrarModalFinalizarAbatItem()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
+              </div>
+              <div style="padding:1.5rem;" id="contenidoModalFinalizarAbatItem"></div>
+            </div>
+          </div>
+
         </div>
 
         <!-- TAB: HISTORIAL MULTI-DÍA -->
@@ -1711,13 +1807,13 @@
   <div class="analytics-section">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
       <div>
-        <h2 style="color:#0e7490;margin:0;">🧊 Almacenamiento (PCC1)</h2>
+        <h2 style="color:#0e7490;margin:0;">🪣 Almacenamiento (PCC1)</h2>
         <p style="color:#64748b;font-size:.9rem;margin-top:.3rem;">Verificación y control de puntos críticos de almacenamiento</p>
       </div>
       <div style="background:#e0f2fe;color:#0e7490;border-radius:20px;padding:.3rem .9rem;font-weight:700;font-size:.9rem;">PCC1</div>
     </div>
     <div style="text-align:center;color:#94a3b8;padding:4rem;">
-      <div style="font-size:3rem;margin-bottom:1rem;">🧊</div>
+      <div style="font-size:3rem;margin-bottom:1rem;">🪣</div>
       <p style="font-size:1.1rem;font-weight:600;">Módulo en construcción</p>
       <p style="font-size:.9rem;margin-top:.5rem;">Sube los documentos HACCP de Almacenamiento para activar este módulo.</p>
     </div>
@@ -1768,7 +1864,7 @@
 <div id="tempTransito" class="tab-content">
   <div class="analytics-section">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
-      <h2 style="color:#7c3aed;margin:0;">🧊 Verificación de Temperatura — C. Tránsito</h2>
+      <h2 style="color:#7c3aed;margin:0;">🪣 Verificación de Temperatura — C. Tránsito</h2>
       <div style="display:flex;gap:.75rem;align-items:center;">
         <div style="background:#ede9fe;color:#7c3aed;border-radius:20px;padding:.3rem .9rem;font-weight:700;font-size:.85rem;">R-POE-02-GF-02 · Refrigeración</div>
         <button onclick="abrirRegistroTransito()" style="background:linear-gradient(135deg,#7c3aed,#8b5cf6);color:white;border:none;border-radius:10px;padding:.65rem 1.25rem;font-weight:700;cursor:pointer;font-size:.9rem;">➕ Nuevo Registro</button>
@@ -1818,7 +1914,7 @@
   <div style="background:white;max-width:900px;margin:1.5rem auto;border-radius:16px;overflow:hidden;">
     <div style="background:linear-gradient(135deg,#7c3aed,#8b5cf6);padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
       <div>
-        <div style="color:white;font-weight:800;font-size:1.1rem;">🧊 Verificación Temperatura — C. Tránsito</div>
+        <div style="color:white;font-weight:800;font-size:1.1rem;">🪣 Verificación Temperatura — C. Tránsito</div>
         <div style="color:rgba(255,255,255,.75);font-size:.8rem;margin-top:.2rem;">R-POE-02-GF-02 · Versión 02 · Refrigeración</div>
       </div>
       <button onclick="cerrarModalTransito()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
@@ -3279,7 +3375,7 @@ function abrirRegistroHACCPAbatimiento(index) {
       <div style="display:flex;gap:1rem;margin-bottom:1rem;">
         <button onclick="setTipoAbat('refrigeracion')" id="btnRefrig"
           style="flex:1;padding:.75rem;border-radius:10px;border:2px solid #06b6d4;background:#06b6d4;color:white;font-weight:800;cursor:pointer;font-size:.95rem;">
-          🧊 Refrigeración (&lt;4°C)
+          🪣 Refrigeración (&lt;4°C)
         </button>
         <button onclick="setTipoAbat('congelacion')" id="btnCongelac"
           style="flex:1;padding:.75rem;border-radius:10px;border:2px solid #06b6d4;background:white;color:#06b6d4;font-weight:800;cursor:pointer;font-size:.95rem;">
@@ -3472,7 +3568,7 @@ function setTipoAbat(tipo) {
   // Actualizar header del modal
   const titulo = document.getElementById('tituloModalHACCPAbat');
   const codigo = document.getElementById('codigoModalHACCPAbat');
-  if (titulo) titulo.textContent = esRefrig ? '❄️ Registro HACCP — Control de Proceso Abatimiento (Refrigeración)' : '🧊 Registro HACCP — Control de Proceso Congelación';
+  if (titulo) titulo.textContent = esRefrig ? '❄️ Registro HACCP — Control de Proceso Abatimiento (Refrigeración)' : '🪣 Registro HACCP — Control de Proceso Congelación';
   if (codigo) codigo.textContent = esRefrig ? 'R-POE-03-GF-05(A) · Versión 03 · Vigencia: 15-12-2025' : 'R-POE-03-GF-05(B) · Versión 03 · Vigencia: 15-12-2025';
 }
 
@@ -3607,7 +3703,7 @@ function imprimirRegistroHACCPAbatimiento(d) {
 <div class="header">
   <div class="header-logo">🏭 SANTA EMILIA</div>
   <div class="header-titulo">
-    <h2>${tituloDoc} <span class="badge-tipo">${esRefrig ? '❄️ REFRIGERACIÓN' : '🧊 CONGELACIÓN'}</span></h2>
+    <h2>${tituloDoc} <span class="badge-tipo">${esRefrig ? '❄️ REFRIGERACIÓN' : '🪣 CONGELACIÓN'}</span></h2>
   </div>
   <div class="header-codigo">${codigoDoc}<br>Versión: 03<br>F. Vigencia: 15-12-2025</div>
 </div>
@@ -5669,6 +5765,11 @@ function imprimirRegistroHACCP(d) {
                 tandaId: tanda.id
             };
             procesosAbatimiento.push(procesoAbat);
+
+            // Enviar al nuevo módulo de abatimiento con vista 2D
+            if (typeof recibirTandaEnAbatimiento === 'function') {
+                recibirTandaEnAbatimiento(tanda);
+            }
 
             guardarDatos();
             closeModal('tanda');
@@ -14156,6 +14257,495 @@ function mostrarPopupGantt(eq) {
             overlay.style.display = 'flex';
         }
 
+        // ============================================================
+        // MÓDULO ABATIMIENTO — COOK & CHILL
+        // ============================================================
+
+        // Estado de los equipos de abatimiento
+        const EQUIPOS_ABAT = {
+            chiller1: { nombre: 'Chiller 1', tipo: 'refrigeracion', capacidad: 40, color: '#0369a1', icono: '🪣' },
+            chiller2: { nombre: 'Chiller 2', tipo: 'refrigeracion', capacidad: 40, color: '#0369a1', icono: '🪣' },
+            tunel:    { nombre: 'Túnel',     tipo: 'congelacion',   capacidad: null, color: '#0e7490', icono: '❄️' }
+        };
+
+        // Asignaciones activas: { id, tandaId, equipoId, producto, nBolsas, formato, operador, inicioISO, tempEntrada, estado }
+        let asignacionesAbat = JSON.parse(localStorage.getItem('mes_abat_asignaciones') || '[]');
+
+        // Tandas pendientes de asignación (llegan de envasado)
+        let tandasPendientesAbatQueue = JSON.parse(localStorage.getItem('mes_abat_queue') || '[]');
+
+        function guardarAbat() {
+            localStorage.setItem('mes_abat_asignaciones', JSON.stringify(asignacionesAbat));
+            localStorage.setItem('mes_abat_queue', JSON.stringify(tandasPendientesAbatQueue));
+            if (window.db && window.firestoreLoaded) {
+                try {
+                    const {doc,setDoc} = window.firestoreFunctions;
+                    setDoc(doc(window.db,'mes-data','abat-asignaciones'), {asignaciones: asignacionesAbat, queue: tandasPendientesAbatQueue, ts: new Date().toISOString()});
+                } catch(e) {}
+            }
+        }
+
+        // Recibir tanda desde envasado
+        function recibirTandaEnAbatimiento(tanda) {
+            // Evitar duplicados
+            if (tandasPendientesAbatQueue.find(t => t.id === tanda.id)) return;
+            tandasPendientesAbatQueue.push({
+                id: tanda.id || Date.now().toString(),
+                tandaId: tanda.id,
+                producto: tanda.producto || '—',
+                numeroOP: tanda.numeroOP || '—',
+                nBolsas: tanda.nBolsas || 0,
+                formato: tanda.formato || '3kg',
+                kg: tanda.kg || 0,
+                operadorEnvasado: tanda.operadora || tanda.manipulador || '—',
+                horaEnvasado: tanda.horaFin || '—',
+                recibidaEn: new Date().toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'}),
+                recibidaISO: new Date().toISOString()
+            });
+            guardarAbat();
+            renderAbatimiento();
+            mostrarNotificacion(`📦→❄️ Tanda recibida: ${tanda.producto} · ${tanda.nBolsas} bolsas`, 'success');
+        }
+
+        function setVistaAbat(vista) {
+            const btnEq = document.getElementById('btnVistaEquipos');
+            const btnTa = document.getElementById('btnVistaTandas');
+            const vistaEq = document.getElementById('vistaEquiposAbat');
+            const vistaTa = document.getElementById('vistaTandasAbat');
+            if (vista === 'equipos') {
+                btnEq.style.background = '#06b6d4'; btnEq.style.color = 'white';
+                btnTa.style.background = 'white'; btnTa.style.color = '#06b6d4';
+                vistaEq.style.display = 'block'; vistaTa.style.display = 'none';
+            } else {
+                btnTa.style.background = '#06b6d4'; btnTa.style.color = 'white';
+                btnEq.style.background = 'white'; btnEq.style.color = '#06b6d4';
+                vistaTa.style.display = 'block'; vistaEq.style.display = 'none';
+            }
+        }
+
+        function renderAbatimiento() {
+            renderTandasPendientesAbat();
+            renderVistaEquipos();
+            renderVistaTandas();
+            actualizarBadgeAbatimiento();
+        }
+
+        function actualizarBadgeAbatimiento() {
+            const total = asignacionesAbat.filter(a => a.estado === 'activo').length;
+            const badge = document.getElementById('badgeAbatimiento');
+            if (badge) badge.textContent = total + ' activo' + (total !== 1 ? 's' : '');
+        }
+
+        function renderTandasPendientesAbat() {
+            const cont = document.getElementById('tandasPendientesAbat');
+            if (!cont) return;
+            const pendientes = tandasPendientesAbatQueue.filter(t => !t.asignada);
+            if (pendientes.length === 0) { cont.innerHTML = ''; return; }
+
+            cont.innerHTML = `
+            <div style="background:#fffbeb;border-radius:12px;padding:1rem;border-left:5px solid #f59e0b;margin-bottom:.5rem;">
+                <div style="font-weight:700;color:#92400e;margin-bottom:.75rem;font-size:.9rem;">
+                    📦 ${pendientes.length} tanda(s) pendiente(s) de asignación
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:.75rem;">
+                    ${pendientes.map(t => `
+                    <div style="background:white;border-radius:10px;padding:.85rem;border:2px solid #fde68a;">
+                        <div style="font-weight:700;color:#333;margin-bottom:.3rem;">📦 ${t.producto}</div>
+                        <div style="font-size:.78rem;color:#666;margin-bottom:.3rem;">
+                            OP: ${t.numeroOP} · ${t.nBolsas} bolsas ${t.formato} · ${t.kg} kg
+                        </div>
+                        <div style="font-size:.75rem;color:#94a3b8;margin-bottom:.6rem;">
+                            Envasado: ${t.operadorEnvasado} · ${t.horaEnvasado}
+                        </div>
+                        <button onclick="abrirAsignarTanda('${t.id}')"
+                            style="width:100%;padding:.55rem;background:linear-gradient(135deg,#0e7490,#06b6d4);color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.88rem;">
+                            ❄️ Asignar a equipo de abatimiento
+                        </button>
+                    </div>`).join('')}
+                </div>
+            </div>`;
+        }
+
+        function renderVistaEquipos() {
+            Object.keys(EQUIPOS_ABAT).forEach(eqId => {
+                const eq = EQUIPOS_ABAT[eqId];
+                const asignaciones = asignacionesAbat.filter(a => a.equipoId === eqId && a.estado === 'activo');
+                const totalBolsas = asignaciones.reduce((s, a) => s + (a.nBolsas || 0), 0);
+                const capacidad = eq.capacidad;
+                const eqIdCap = eqId.charAt(0).toUpperCase() + eqId.slice(1);
+
+                // Badge
+                const badge = document.getElementById(`badge${eqIdCap}`);
+                if (badge) badge.textContent = capacidad ? `${totalBolsas}/${capacidad}` : `${totalBolsas} bolsas`;
+
+                // Grid 2D
+                const grid = document.getElementById(`grid${eqIdCap}`);
+                if (!grid) return;
+
+                const cols = eqId === 'tunel' ? 10 : 8;
+                const filas = eqId === 'tunel' ? Math.max(4, Math.ceil(totalBolsas / cols) + 1) : 5;
+                const totalCeldas = cols * filas;
+
+                // Construir mapa de bolsas con colores según tiempo
+                let bolsasOcupadas = [];
+                asignaciones.forEach(a => {
+                    const minutos = Math.floor((new Date() - new Date(a.inicioISO)) / 60000);
+                    let color, title;
+                    if (minutos <= 90) { color = '#10b981'; }
+                    else if (minutos <= 120) { color = '#f59e0b'; }
+                    else { color = '#ef4444'; }
+                    for (let i = 0; i < a.nBolsas; i++) {
+                        bolsasOcupadas.push({ color, title: `${a.producto} · ${minutos} min`, asigId: a.id });
+                    }
+                });
+
+                grid.innerHTML = '';
+                grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+                for (let i = 0; i < totalCeldas; i++) {
+                    const celda = document.createElement('div');
+                    if (i < bolsasOcupadas.length) {
+                        celda.style.cssText = `height:14px;border-radius:3px;background:${bolsasOcupadas[i].color};cursor:pointer;transition:transform .1s;`;
+                        celda.title = bolsasOcupadas[i].title;
+                        celda.onmouseover = () => celda.style.transform = 'scale(1.3)';
+                        celda.onmouseout = () => celda.style.transform = 'scale(1)';
+                    } else if (!capacidad || i < capacidad) {
+                        celda.style.cssText = 'height:14px;border-radius:3px;background:#e2e8f0;';
+                    } else {
+                        celda.style.cssText = 'height:14px;';
+                    }
+                    grid.appendChild(celda);
+                }
+
+                // Detalle
+                const detail = document.getElementById(`detail${eqIdCap}`);
+                if (detail) {
+                    if (asignaciones.length === 0) {
+                        detail.innerHTML = '<span style="color:#94a3b8;">Sin producto activo</span>';
+                    } else {
+                        detail.innerHTML = asignaciones.map(a => {
+                            const min = Math.floor((new Date() - new Date(a.inicioISO)) / 60000);
+                            const pct = Math.min(100, Math.round(min / 120 * 100));
+                            const col = min <= 90 ? '#10b981' : min <= 120 ? '#f59e0b' : '#ef4444';
+                            const alerta = min > 120 ? '🔴 FUERA DE NORMA' : min > 90 ? '🟡 Advertencia' : '🟢 Normal';
+                            return `
+                            <div style="border:1px solid #e2e8f0;border-radius:8px;padding:.5rem .65rem;margin-bottom:.35rem;background:#f8fafc;">
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.25rem;">
+                                    <span style="font-weight:700;font-size:.78rem;color:#333;">${a.producto}</span>
+                                    <span style="font-size:.7rem;font-weight:700;color:${col};">${alerta} · ${min} min</span>
+                                </div>
+                                <div style="height:5px;background:#e2e8f0;border-radius:3px;overflow:hidden;margin-bottom:.3rem;">
+                                    <div style="height:100%;width:${pct}%;background:${col};border-radius:3px;transition:width .3s;"></div>
+                                </div>
+                                <div style="display:flex;justify-content:space-between;align-items:center;">
+                                    <span style="font-size:.7rem;color:#666;">${a.nBolsas} bolsas ${a.formato}</span>
+                                    <button onclick="abrirFinalizarAbatItem('${a.id}')"
+                                        style="background:#d1fae5;color:#065f46;border:none;border-radius:6px;padding:.2rem .55rem;cursor:pointer;font-size:.7rem;font-weight:700;">
+                                        ✅ Retirar
+                                    </button>
+                                </div>
+                            </div>`;
+                        }).join('');
+                    }
+                }
+            });
+        }
+
+        function renderVistaTandas() {
+            const cont = document.getElementById('contenidoAbatimiento');
+            if (!cont) return;
+            const activas = asignacionesAbat.filter(a => a.estado === 'activo');
+            if (activas.length === 0) {
+                cont.innerHTML = '<div style="text-align:center;color:#999;padding:3rem;"><div style="font-size:3rem;">❄️</div><p style="margin-top:1rem;">No hay asignaciones activas</p></div>';
+                return;
+            }
+            cont.innerHTML = activas.map(a => {
+                const min = Math.floor((new Date() - new Date(a.inicioISO)) / 60000);
+                const col = min <= 90 ? '#10b981' : min <= 120 ? '#f59e0b' : '#ef4444';
+                const eq = EQUIPOS_ABAT[a.equipoId];
+                const pct = Math.min(100, Math.round(min / 120 * 100));
+                return `
+                <div class="parallel-process-card" style="border-left:4px solid ${col};margin-bottom:1rem;">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem;">
+                        <div>
+                            <strong style="font-size:1rem;color:#06b6d4;">${eq?.icono} ${a.producto}</strong>
+                            <div style="display:flex;gap:.5rem;margin-top:.3rem;flex-wrap:wrap;">
+                                <span class="op-badge" style="background:#06b6d4;">OP: ${a.numeroOP}</span>
+                                <span style="background:#e0f2fe;color:#0369a1;border-radius:12px;padding:.1rem .5rem;font-size:.72rem;font-weight:700;">${eq?.nombre}</span>
+                            </div>
+                        </div>
+                        <span class="timer" style="color:${col};" id="timer-abat-${a.id}">${Math.floor(min/60).toString().padStart(2,'0')}:${(min%60).toString().padStart(2,'0')}</span>
+                    </div>
+                    <div style="margin-bottom:.6rem;">
+                        <div style="display:flex;justify-content:space-between;font-size:.78rem;font-weight:600;margin-bottom:.25rem;">
+                            <span style="color:#666;">Tiempo de abatimiento</span>
+                            <span style="color:${col};">${min} min / 120 min máx</span>
+                        </div>
+                        <div style="height:8px;background:#e2e8f0;border-radius:20px;overflow:hidden;">
+                            <div style="height:100%;width:${pct}%;background:${col};border-radius:20px;transition:width .3s;"></div>
+                        </div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem;font-size:.85rem;margin-bottom:.75rem;">
+                        <div><strong>Bolsas:</strong> ${a.nBolsas} × ${a.formato}</div>
+                        <div><strong>Kg:</strong> ${a.kg} kg</div>
+                        <div><strong>T° entrada:</strong> ${a.tempEntrada ? a.tempEntrada+'°C' : '—'}</div>
+                        <div><strong>Operador:</strong> ${a.operador}</div>
+                    </div>
+                    <div style="display:flex;gap:.5rem;">
+                        <button onclick="abrirFinalizarAbatItem('${a.id}')"
+                            style="flex:1;background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;border-radius:8px;padding:.6rem;font-weight:700;cursor:pointer;">
+                            ✅ Retirar del equipo
+                        </button>
+                        <button onclick="abrirRegistroHACCPAbatimiento(${asignacionesAbat.indexOf(a)})"
+                            style="background:#ecfeff;border:2px solid #06b6d4;color:#0e7490;border-radius:8px;padding:.5rem .75rem;cursor:pointer;font-weight:700;font-size:.82rem;">
+                            📋 HACCP
+                        </button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function abrirAsignarTanda(tandaId) {
+            const tanda = tandasPendientesAbatQueue.find(t => t.id === tandaId);
+            if (!tanda) return;
+            window._tandaAbatActual = tandaId;
+
+            // Calcular disponibilidad de chillers
+            const bolsasC1 = asignacionesAbat.filter(a => a.equipoId === 'chiller1' && a.estado === 'activo').reduce((s,a) => s+a.nBolsas, 0);
+            const bolsasC2 = asignacionesAbat.filter(a => a.equipoId === 'chiller2' && a.estado === 'activo').reduce((s,a) => s+a.nBolsas, 0);
+            const dispC1 = 40 - bolsasC1;
+            const dispC2 = 40 - bolsasC2;
+
+            const opsList = (personal.abatimiento || []).map(item => typeof item === 'string' ? item : item.nombre);
+
+            document.getElementById('contenidoModalAsignarAbat').innerHTML = `
+                <div style="background:#f0fdfe;border-radius:10px;padding:.85rem;margin-bottom:1.25rem;border-left:4px solid #06b6d4;font-size:.85rem;color:#0e7490;">
+                    <strong>📦 ${tanda.producto}</strong> · OP ${tanda.numeroOP}<br>
+                    ${tanda.nBolsas} bolsas ${tanda.formato} · ${tanda.kg} kg · Envasado: ${tanda.horaEnvasado}
+                </div>
+                <div style="margin-bottom:1rem;">
+                    <label style="font-size:.82rem;font-weight:700;color:#0e7490;display:block;margin-bottom:.4rem;">👤 Operador de Abatimiento</label>
+                    <select id="abatOperador" style="width:100%;padding:.65rem;border-radius:8px;border:2px solid #a5f3fc;font-size:.9rem;box-sizing:border-box;">
+                        <option value="">— Seleccionar —</option>
+                        ${opsList.map(n => `<option value="${n}">${n}</option>`).join('')}
+                    </select>
+                </div>
+                <div style="margin-bottom:1rem;">
+                    <label style="font-size:.82rem;font-weight:700;color:#0e7490;display:block;margin-bottom:.4rem;">🌡️ Temperatura de entrada (°C)</label>
+                    <input type="number" id="abatTempEntrada" step="0.1" placeholder="Ej: 65.0"
+                        style="width:100%;padding:.65rem;border-radius:8px;border:2px solid #a5f3fc;font-size:1rem;font-weight:700;box-sizing:border-box;color:#0e7490;">
+                </div>
+                <div style="margin-bottom:1.25rem;">
+                    <label style="font-size:.82rem;font-weight:700;color:#0e7490;display:block;margin-bottom:.5rem;">❄️ Distribución entre equipos</label>
+                    <div style="display:grid;gap:.75rem;">
+                        <div style="border:2px solid #a5f3fc;border-radius:10px;padding:.85rem;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem;">
+                                <span style="font-weight:700;color:#0369a1;">🪣 Chiller 1</span>
+                                <span style="font-size:.75rem;color:#64748b;">Disponible: ${dispC1}/40 bolsas</span>
+                            </div>
+                            <input type="number" id="abatC1" min="0" max="${dispC1}" value="0" placeholder="N° bolsas"
+                                style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #a5f3fc;font-size:.95rem;box-sizing:border-box;">
+                        </div>
+                        <div style="border:2px solid #a5f3fc;border-radius:10px;padding:.85rem;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem;">
+                                <span style="font-weight:700;color:#0369a1;">🪣 Chiller 2</span>
+                                <span style="font-size:.75rem;color:#64748b;">Disponible: ${dispC2}/40 bolsas</span>
+                            </div>
+                            <input type="number" id="abatC2" min="0" max="${dispC2}" value="0" placeholder="N° bolsas"
+                                style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #a5f3fc;font-size:.95rem;box-sizing:border-box;">
+                        </div>
+                        <div style="border:2px solid #a5f3fc;border-radius:10px;padding:.85rem;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem;">
+                                <span style="font-weight:700;color:#0e7490;">❄️ Túnel de Congelación</span>
+                                <span style="font-size:.75rem;color:#64748b;">Capacidad libre</span>
+                            </div>
+                            <input type="number" id="abatTunel" min="0" value="0" placeholder="N° bolsas"
+                                style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #a5f3fc;font-size:.95rem;box-sizing:border-box;">
+                        </div>
+                    </div>
+                    <div style="margin-top:.5rem;background:#faf5ff;border-radius:8px;padding:.5rem .75rem;font-size:.78rem;color:#5b21b6;">
+                        Total a asignar: <strong id="abatTotalBolsas">0</strong> / ${tanda.nBolsas} bolsas disponibles
+                    </div>
+                </div>
+                <div style="display:flex;gap:.75rem;justify-content:flex-end;">
+                    <button onclick="cerrarModalAsignarAbat()" style="padding:.7rem 1.5rem;border-radius:10px;border:1px solid #ddd;cursor:pointer;font-weight:600;color:#64748b;">Cancelar</button>
+                    <button onclick="confirmarAsignacionAbat('${tandaId}')"
+                        style="padding:.7rem 1.5rem;border-radius:10px;border:none;background:linear-gradient(135deg,#0e7490,#06b6d4);color:white;cursor:pointer;font-weight:700;font-size:.95rem;">
+                        ❄️ Iniciar Abatimiento
+                    </button>
+                </div>`;
+
+            // Actualizar contador en tiempo real
+            setTimeout(() => {
+                ['abatC1','abatC2','abatTunel'].forEach(id => {
+                    document.getElementById(id)?.addEventListener('input', () => {
+                        const total = (parseInt(document.getElementById('abatC1')?.value)||0) +
+                                      (parseInt(document.getElementById('abatC2')?.value)||0) +
+                                      (parseInt(document.getElementById('abatTunel')?.value)||0);
+                        const el = document.getElementById('abatTotalBolsas');
+                        if (el) { el.textContent = total; el.style.color = total > tanda.nBolsas ? '#dc2626' : '#5b21b6'; }
+                    });
+                });
+            }, 100);
+
+            document.getElementById('modalAsignarAbat').style.display = 'block';
+        }
+
+        function cerrarModalAsignarAbat() {
+            document.getElementById('modalAsignarAbat').style.display = 'none';
+        }
+
+        function confirmarAsignacionAbat(tandaId) {
+            const tanda = tandasPendientesAbatQueue.find(t => t.id === tandaId);
+            if (!tanda) return;
+
+            const operador = document.getElementById('abatOperador')?.value;
+            const tempEntrada = parseFloat(document.getElementById('abatTempEntrada')?.value) || null;
+            const c1 = parseInt(document.getElementById('abatC1')?.value) || 0;
+            const c2 = parseInt(document.getElementById('abatC2')?.value) || 0;
+            const tunel = parseInt(document.getElementById('abatTunel')?.value) || 0;
+            const total = c1 + c2 + tunel;
+
+            if (!operador) { alert('Selecciona un operador'); return; }
+            if (total === 0) { alert('Asigna al menos una bolsa a un equipo'); return; }
+            if (total > tanda.nBolsas) { alert(`Solo hay ${tanda.nBolsas} bolsas disponibles`); return; }
+
+            const ahora = new Date().toISOString();
+            const distribuciones = [
+                { equipoId: 'chiller1', nBolsas: c1 },
+                { equipoId: 'chiller2', nBolsas: c2 },
+                { equipoId: 'tunel', nBolsas: tunel }
+            ].filter(d => d.nBolsas > 0);
+
+            distribuciones.forEach(d => {
+                asignacionesAbat.push({
+                    id: Date.now().toString() + Math.random().toString(36).slice(2,5),
+                    tandaId,
+                    equipoId: d.equipoId,
+                    producto: tanda.producto,
+                    numeroOP: tanda.numeroOP,
+                    nBolsas: d.nBolsas,
+                    formato: tanda.formato,
+                    kg: Math.round(tanda.kg * d.nBolsas / tanda.nBolsas * 10) / 10,
+                    operador,
+                    tempEntrada,
+                    inicioISO: ahora,
+                    estado: 'activo',
+                    tempSalida: null,
+                    finISO: null
+                });
+            });
+
+            // Marcar tanda como asignada
+            const t = tandasPendientesAbatQueue.find(t => t.id === tandaId);
+            if (t) t.asignada = true;
+
+            guardarAbat();
+            cerrarModalAsignarAbat();
+            renderAbatimiento();
+            mostrarNotificacion(`✅ ${total} bolsas asignadas a abatimiento — ${tanda.producto}`, 'success');
+        }
+
+        function abrirFinalizarAbatItem(asigId) {
+            const asig = asignacionesAbat.find(a => a.id === asigId);
+            if (!asig) return;
+            const min = Math.floor((new Date() - new Date(asig.inicioISO)) / 60000);
+            const eq = EQUIPOS_ABAT[asig.equipoId];
+
+            document.getElementById('contenidoModalFinalizarAbatItem').innerHTML = `
+                <div style="background:#f0fdf4;border-radius:10px;padding:.85rem;margin-bottom:1.25rem;border-left:4px solid #10b981;font-size:.85rem;color:#065f46;">
+                    <strong>${eq?.icono} ${eq?.nombre}</strong> — ${asig.producto}<br>
+                    ${asig.nBolsas} bolsas ${asig.formato} · Tiempo: <strong>${min} minutos</strong>
+                    ${min > 120 ? '<br><span style="color:#dc2626;font-weight:700;">⚠️ Superó el límite de 120 min</span>' :
+                      min > 90  ? '<br><span style="color:#f59e0b;font-weight:700;">⚠️ Superó el ideal de 90 min</span>' : ''}
+                </div>
+                <div style="margin-bottom:1rem;">
+                    <label style="font-size:.82rem;font-weight:700;color:#065f46;display:block;margin-bottom:.4rem;">🌡️ Temperatura de salida (°C)</label>
+                    <input type="number" id="abatTempSalida" step="0.1" placeholder="Ej: 3.5°C"
+                        style="width:100%;padding:.65rem;border-radius:8px;border:2px solid #86efac;font-size:1.1rem;font-weight:700;box-sizing:border-box;color:#065f46;">
+                    <div style="font-size:.72rem;color:#64748b;margin-top:.25rem;">
+                        LC: Refrigeración ≤4°C · Congelación ≤-5°C
+                    </div>
+                </div>
+                <div style="margin-bottom:1.25rem;">
+                    <label style="font-size:.82rem;font-weight:700;color:#065f46;display:block;margin-bottom:.4rem;">📝 Observaciones</label>
+                    <input type="text" id="abatObsSalida" placeholder="Sin observaciones"
+                        style="width:100%;padding:.65rem;border-radius:8px;border:2px solid #86efac;font-size:.9rem;box-sizing:border-box;">
+                </div>
+                <div style="display:flex;gap:.75rem;justify-content:flex-end;">
+                    <button onclick="cerrarModalFinalizarAbatItem()" style="padding:.7rem 1.5rem;border-radius:10px;border:1px solid #ddd;cursor:pointer;font-weight:600;color:#64748b;">Cancelar</button>
+                    <button onclick="confirmarRetiroAbat('${asigId}')"
+                        style="padding:.7rem 1.5rem;border-radius:10px;border:none;background:linear-gradient(135deg,#10b981,#059669);color:white;cursor:pointer;font-weight:700;font-size:.95rem;">
+                        ✅ Confirmar retiro
+                    </button>
+                </div>`;
+
+            document.getElementById('modalFinalizarAbatItem').style.display = 'block';
+        }
+
+        function cerrarModalFinalizarAbatItem() {
+            document.getElementById('modalFinalizarAbatItem').style.display = 'none';
+        }
+
+        function confirmarRetiroAbat(asigId) {
+            const asig = asignacionesAbat.find(a => a.id === asigId);
+            if (!asig) return;
+
+            const tempSalida = parseFloat(document.getElementById('abatTempSalida')?.value);
+            const obs = document.getElementById('abatObsSalida')?.value;
+
+            if (!tempSalida && tempSalida !== 0) { alert('Ingresa la temperatura de salida'); return; }
+
+            const min = Math.floor((new Date() - new Date(asig.inicioISO)) / 60000);
+            asig.tempSalida = tempSalida;
+            asig.observaciones = obs;
+            asig.finISO = new Date().toISOString();
+            asig.tiempoMinutos = min;
+            asig.estado = 'completado';
+
+            // Verificar límite crítico
+            const eq = EQUIPOS_ABAT[asig.equipoId];
+            const lc = eq?.tipo === 'congelacion' ? -5 : 4;
+            asig.cumpleLimite = tempSalida <= lc;
+
+            // Crear pendiente HACCP
+            crearHACCPPendienteAbatItemModulo(asig);
+
+            guardarAbat();
+            cerrarModalFinalizarAbatItem();
+            renderAbatimiento();
+
+            const estado = asig.cumpleLimite ? '✅ Temperatura OK' : '⚠️ Temperatura fuera de LC';
+            mostrarNotificacion(`${estado} — ${asig.producto} retirado de ${eq?.nombre}`, asig.cumpleLimite ? 'success' : 'warning');
+        }
+
+        function crearHACCPPendienteAbatItemModulo(asig) {
+            // Reutiliza el sistema de pendientes HACCP de abatimiento existente
+            const proceso = {
+                producto: asig.producto,
+                numeroOP: asig.numeroOP,
+                equipoNombre: EQUIPOS_ABAT[asig.equipoId]?.nombre || asig.equipoId,
+                manipulador: asig.operador,
+                operadoraCierre: asig.operador,
+                kgReales: asig.kg,
+                tempInicioAbatimiento: asig.tempEntrada,
+                tempFinAbatimiento: asig.tempSalida,
+                tiempoAbatimientoFormateado: `${asig.tiempoMinutos} min`,
+                inicioAbatimiento: asig.inicioISO,
+                finAbatimiento: asig.finISO,
+                cumpleLimite: asig.cumpleLimite
+            };
+            crearHACCPPendienteModulo('abatimiento', proceso);
+        }
+
+        // Actualizar timers cada minuto
+        setInterval(() => {
+            if (document.getElementById('abatimiento')?.classList.contains('active') ||
+                document.querySelector('#abatimiento')?.style.display !== 'none') {
+                renderVistaEquipos();
+                renderVistaTandas();
+            }
+        }, 60000);
+
         window.onload = init;
 
 // ============================================================
@@ -14727,7 +15317,7 @@ function renderRegistrosTransito() {
   const registros = registrosTransito.filter(r => r.fecha === fecha);
   if (registros.length === 0) {
     cont.innerHTML = `<div style="background:#f8fafc;border-radius:10px;padding:2rem;text-align:center;color:#94a3b8;">
-      <div style="font-size:2rem;margin-bottom:.5rem;">🧊</div>
+      <div style="font-size:2rem;margin-bottom:.5rem;">🪣</div>
       <div style="font-weight:600;">Sin registros para esta fecha</div>
     </div>`;
     return;
@@ -14737,7 +15327,7 @@ function renderRegistrosTransito() {
 
 function abrirRegistroTransito() {
   const fecha = document.getElementById('fechaFiltroTransito')?.value || new Date().toISOString().split('T')[0];
-  _abrirModalAlmacenamiento('transito', fecha, 'Refrigeración — C. Tránsito', '#7c3aed', '🧊');
+  _abrirModalAlmacenamiento('transito', fecha, 'Refrigeración — C. Tránsito', '#7c3aed', '🪣');
 }
 function cerrarModalTransito() { document.getElementById('modalTransito').style.display = 'none'; }
 
@@ -15154,7 +15744,7 @@ function imprimirRegistroAlmacenamiento(id, tipo) {
 <button class="print-btn no-print" onclick="window.print()">🖨️ Imprimir</button>
 <div class="header">
   <div class="header-logo">🏭 MES Cocina</div>
-  <div class="header-titulo"><h2>${tipo==='tunel'?'❄️':'🧊'} ${titulo}</h2></div>
+  <div class="header-titulo"><h2>${tipo==='tunel'?'❄️':'🪣'} ${titulo}</h2></div>
   <div class="header-codigo">R-POE-02-GF-02<br>Versión: 02<br>F. Vigencia: 17-03-2025</div>
 </div>
 <div class="instrucciones">
