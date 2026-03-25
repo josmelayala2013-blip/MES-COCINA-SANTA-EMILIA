@@ -5565,6 +5565,7 @@ function imprimirRegistroHACCP(d) {
                         <div>
                             <label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.25rem;">T° Inicio Envasado (°C) <span style="color:#dc2626;">*solo primera tanda</span></label>
                             <input type="number" id="tandaTempInicio" step="0.1" placeholder="Ej: 78.5"
+                                onfocus="mostrarAdvertenciaTempEnvasadoInicio()"
                                 style="width:200px;padding:.6rem;border-radius:8px;border:2px solid #a5f3fc;font-size:.95rem;font-weight:700;color:#0e7490;">
                             <div style="font-size:.72rem;color:#0369a1;margin-top:.3rem;">💡 Se registrará como T° inicio en el HACCP</div>
                         </div>`;
@@ -5586,6 +5587,8 @@ function imprimirRegistroHACCP(d) {
 
             // Calcular bolsas inicialmente
             setTimeout(calcularBolsas, 50);
+            // Resetear advertencia para que aparezca en primera tanda de cada proceso
+            if (tandas.length === 0) window._advertenciaTempMostrada = false;
             openModal('tanda');
         }
 
@@ -13382,7 +13385,7 @@ function mostrarPopupGantt(eq) {
               </div>
               <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:.75rem;margin-bottom:1rem;">
                 <div><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.2rem;">Lote</label>
-                  <input type="text" id="epLote" placeholder="Lote producto" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+                  <input type="text" id="epLote" value="${getDiaJuliano()}" style="width:100%;padding:.55rem;border-radius:8px;border:2px solid #10b981;font-size:.88rem;box-sizing:border-box;background:#f0fdf4;font-weight:700;"></div>
                 <div><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.2rem;">Fecha</label>
                   <input type="date" id="epFecha" value="${p.fechaISO}" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
                 <div><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.2rem;">Responsable</label>
@@ -14108,6 +14111,42 @@ function mostrarPopupGantt(eq) {
 
             // Auto-cerrar en 5 segundos
             setTimeout(() => { if (overlay) overlay.style.display = 'none'; }, 5000);
+        }
+
+        function mostrarAdvertenciaTempEnvasadoInicio() {
+            // Mostrar solo una vez por proceso (si ya se mostró no volver a molestar)
+            if (window._advertenciaTempMostrada) return;
+            window._advertenciaTempMostrada = true;
+
+            let overlay = document.getElementById('_advertenciaTempOverlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = '_advertenciaTempOverlay';
+                overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.55);z-index:99999;display:flex;align-items:center;justify-content:center;';
+                document.body.appendChild(overlay);
+            }
+
+            overlay.innerHTML = `
+                <div style="background:white;border-radius:20px;padding:2rem 2.25rem;max-width:460px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);border-top:6px solid #f59e0b;">
+                    <div style="text-align:center;margin-bottom:1.25rem;">
+                        <div style="font-size:3rem;margin-bottom:.5rem;">⚠️</div>
+                        <h3 style="color:#92400e;margin:0;font-size:1.15rem;font-weight:800;">Advertencia de Temperatura — Envasado</h3>
+                    </div>
+                    <div style="background:#fffbeb;border-radius:12px;padding:1.1rem;border-left:5px solid #f59e0b;margin-bottom:1.5rem;">
+                        <p style="color:#78350f;font-size:.92rem;line-height:1.65;margin:0;">
+                            Al finalizar el envasado, la temperatura de los productos debe ser
+                            <strong>superior a los 65°C</strong>.<br><br>
+                            De identificarse productos con temperatura inferior luego de
+                            <strong>60 minutos</strong>, se deben considerar las
+                            <strong>acciones correctivas</strong> correspondientes.
+                        </p>
+                    </div>
+                    <button onclick="document.getElementById('_advertenciaTempOverlay').style.display='none';document.getElementById('tandaTempInicio')?.focus();"
+                        style="width:100%;padding:.8rem;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:10px;font-weight:700;font-size:1rem;cursor:pointer;">
+                        ✅ Entendido, continuar
+                    </button>
+                </div>`;
+            overlay.style.display = 'flex';
         }
 
         window.onload = init;
