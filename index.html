@@ -2022,7 +2022,7 @@
     </div>
 
     <!-- MODAL: REGISTRAR TANDA ENVASADO -->
-    <div id="modalModalTanda" class="modal">
+    <div id="modalTanda" class="modal">
         <div class="modal-content" style="max-width:600px;">
             <div class="modal-header" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);">
                 <h2 style="color:white;">📦 Registrar Tanda → ❄️ Abatimiento</h2>
@@ -5528,32 +5528,25 @@ function imprimirRegistroHACCP(d) {
                 </div>
                 <div style="background:#f0fdfe;border-radius:10px;padding:.85rem;margin-bottom:1rem;border:1px solid #a5f3fc;">
                     <div style="font-size:.78rem;font-weight:700;color:#0e7490;margin-bottom:.65rem;">🌡️ Control de Temperatura</div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
-                        ${tandas.length === 0 ? `
+                    ${(() => {
+                        const esPrimera = tandas.length === 0;
+                        const esUltima = kgPendientes <= 0.5; // considera última si queda muy poco
+                        if (esPrimera) return `
                         <div>
-                            <label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.25rem;">T° Inicio Envasado (°C) <span style="color:#dc2626;">*primera tanda</span></label>
+                            <label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.25rem;">T° Inicio Envasado (°C) <span style="color:#dc2626;">*solo primera tanda</span></label>
                             <input type="number" id="tandaTempInicio" step="0.1" placeholder="Ej: 78.5"
-                                style="width:100%;padding:.6rem;border-radius:8px;border:2px solid #a5f3fc;font-size:.95rem;font-weight:700;box-sizing:border-box;color:#0e7490;">
-                        </div>
-                        <div style="display:flex;align-items:flex-end;">
-                            <div style="background:#e0f2fe;border-radius:8px;padding:.5rem .75rem;font-size:.78rem;color:#0369a1;width:100%;">
-                                💡 Esta temperatura se registrará como T° de inicio en el HACCP de envasado
-                            </div>
-                        </div>` : `
-                        <div style="display:flex;align-items:center;gap:.5rem;background:#e0f2fe;border-radius:8px;padding:.5rem .75rem;grid-column:span 2;">
-                            <span style="font-size:.78rem;color:#0369a1;">🌡️ T° inicio registrada en tanda 1: <strong>${process.env?.tempInicioEnvasado || proceso.tempInicioEnvasado || '—'}°C</strong></span>
-                        </div>`}
+                                style="width:200px;padding:.6rem;border-radius:8px;border:2px solid #a5f3fc;font-size:.95rem;font-weight:700;color:#0e7490;">
+                            <div style="font-size:.72rem;color:#0369a1;margin-top:.3rem;">💡 Se registrará como T° inicio en el HACCP</div>
+                        </div>`;
+                        if (esUltima) return `
                         <div>
-                            <label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.25rem;">T° Final de esta tanda (°C)</label>
+                            <label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.25rem;">T° Final Envasado (°C) <span style="color:#dc2626;">*última tanda</span></label>
                             <input type="number" id="tandaTempFin" step="0.1" placeholder="Ej: 65.0"
-                                style="width:100%;padding:.6rem;border-radius:8px;border:2px solid #a5f3fc;font-size:.95rem;font-weight:700;box-sizing:border-box;color:#0e7490;">
-                        </div>
-                        <div style="display:flex;align-items:flex-end;">
-                            <div style="background:#e0f2fe;border-radius:8px;padding:.5rem .75rem;font-size:.78rem;color:#0369a1;width:100%;">
-                                💡 La T° final de la última tanda se usará como T° cierre en el HACCP
-                            </div>
-                        </div>
-                    </div>
+                                style="width:200px;padding:.6rem;border-radius:8px;border:2px solid #a5f3fc;font-size:.95rem;font-weight:700;color:#0e7490;">
+                            <div style="font-size:.72rem;color:#0369a1;margin-top:.3rem;">💡 Se registrará como T° final en el HACCP</div>
+                        </div>`;
+                        return `<div style="font-size:.8rem;color:#94a3b8;font-style:italic;">Las tandas intermedias no registran temperatura.</div>`;
+                    })()}
                 </div>
                 <div style="display:flex;gap:.75rem;justify-content:flex-end;">
                     <button onclick="closeModal('modalTanda')" style="padding:.7rem 1.5rem;border-radius:10px;border:1px solid #ddd;cursor:pointer;font-weight:600;color:#64748b;">Cancelar</button>
@@ -5587,21 +5580,23 @@ function imprimirRegistroHACCP(d) {
             const horaFin = document.getElementById('tandaHoraFin')?.value;
             const operadora = document.getElementById('tandaOperadora')?.value;
             const obs = document.getElementById('tandaObs')?.value;
-            const tempInicio = document.getElementById('tandaTempInicio')?.value;
-            const tempFin = document.getElementById('tandaTempFin')?.value;
 
             if (!kg || kg <= 0) { alert('Ingresa los kg de la tanda'); return; }
             if (!operadora) { alert('Selecciona la operadora'); return; }
 
             const esPrimeraTanda = !proceso.tandas || proceso.tandas.length === 0;
+            const kgYaEnvasados = (proceso.tandas || []).reduce((s,t) => s+(t.kg||0), 0);
+            const esUltimaTanda = (kgYaEnvasados + kg) >= (proceso.kgReales || 0) - 0.5;
 
-            // Guardar temperatura de inicio solo en la primera tanda
+            // T° inicio solo en primera tanda
+            const tempInicio = document.getElementById('tandaTempInicio')?.value;
             if (esPrimeraTanda && tempInicio) {
                 proceso.tempInicioEnvasado = parseFloat(tempInicio);
                 proceso.horaInicioEnvasado = horaInicio;
             }
-            // Temperatura final siempre se actualiza con la última tanda
-            if (tempFin) {
+            // T° final solo en última tanda
+            const tempFin = document.getElementById('tandaTempFin')?.value;
+            if (esUltimaTanda && tempFin) {
                 proceso.tempFinEnvasado = parseFloat(tempFin);
                 proceso.horaFinEnvasado = horaFin;
             }
