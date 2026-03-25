@@ -3836,11 +3836,11 @@ function abrirRegistroHACCPEnvasado(index) {
             <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">Formato de Envasado</label>
             <select id="envFormato" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid ${formatoUltimo?'#10b981':'#ddd'};font-size:.88rem;background:${formatoUltimo?'#f0fdf4':'white'};">
               <option value="">Selecciona...</option>
-              <option value="200gr">200 gr</option>
-              <option value="500gr">500 gr</option>
-              <option value="1kg" ${formatoUltimo==='1kg'?'selected':''}>1 kg</option>
-              <option value="2kg" ${formatoUltimo==='2kg'?'selected':''}>2 kg</option>
-              <option value="3kg" ${formatoUltimo==='3kg'?'selected':''}>3 kg</option>
+              <option value="250gr" ${formatoUltimo==='250gr'?'selected':''}>250 gr</option>
+              <option value="500gr" ${formatoUltimo==='500gr'?'selected':''}>500 gr</option>
+              <option value="1kg"   ${formatoUltimo==='1kg'?'selected':''}>1 kg</option>
+              <option value="2kg"   ${formatoUltimo==='2kg'?'selected':''}>2 kg</option>
+              <option value="3kg"   ${formatoUltimo==='3kg'?'selected':''}>3 kg</option>
             </select>
           </div>
           <div>
@@ -13401,7 +13401,14 @@ function mostrarPopupGantt(eq) {
                 <div><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.2rem;">Merma (kg)</label>
                   <input type="number" id="epMerma" value="0" step="0.1" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
                 <div><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.2rem;">Formato</label>
-                  <input type="text" id="epFormato" placeholder="Ej: Pote 250g" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+                  <select id="epFormato" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;">
+                    <option value="">Selecciona...</option>
+                    <option value="250gr">250 gr</option>
+                    <option value="500gr">500 gr</option>
+                    <option value="1kg">1 kg</option>
+                    <option value="2kg">2 kg</option>
+                    <option value="3kg">3 kg</option>
+                  </select></div>
                 <div><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.2rem;">Lote Empaque</label>
                   <input type="text" id="epLoteEmpaque" placeholder="Lote envase" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
                 <div><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.2rem;">Hora Inicio</label>
