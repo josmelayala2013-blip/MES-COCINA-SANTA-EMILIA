@@ -3798,7 +3798,7 @@ function abrirRegistroHACCPEnvasado(index) {
         </div>
         <div>
           <label style="font-size:.72rem;font-weight:700;color:#6d28d9;display:block;margin-bottom:.2rem;">③ RESPONSABLE DEL ENVASADO</label>
-          <input type="text" id="envResponsable" value="${proceso.manipulador || ''}" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+          <input type="text" id="envResponsable" value="${proceso.operadoraCierre || proceso.manipulador || ''}" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
         </div>
       </div>
 
