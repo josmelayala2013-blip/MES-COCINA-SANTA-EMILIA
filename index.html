@@ -1989,9 +1989,7 @@
             <div class="form-group" id="manipuladorGroup">
                 <label>Manipulador para Envasado:</label>
                 <select id="manipuladorSelect">
-                    <option value="Manipulador 1">Manipulador 1</option>
-                    <option value="Manipulador 2">Manipulador 2</option>
-                    <option value="Manipulador Volante">Manipulador Volante</option>
+                    <option value="">— Selecciona operadora de envasado —</option>
                 </select>
             </div>
             <button class="btn btn-success btn-full" onclick="finalizarCoccion()">
@@ -4936,6 +4934,13 @@ function imprimirRegistroHACCP(d) {
                     cargarSelectorOPsModal();
                     const sel = document.getElementById('operadorSelect');
                     if (sel) sel.innerHTML = '<option value="">Selecciona operador...</option>' + getOpcionesPersonal('cocina');
+                }
+                if (modalName === 'finalizarCoccion') {
+                    const sel = document.getElementById('manipuladorSelect');
+                    if (sel) {
+                        sel.innerHTML = '<option value="">— Selecciona operadora de envasado —</option>' +
+                            getOpcionesPersonal('envasado');
+                    }
                 }
                 if (modalName === 'finalizarEnvasado') {
                     const sel = document.getElementById('operadorEnvasado');
