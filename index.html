@@ -3771,9 +3771,17 @@ function abrirRegistroHACCPEnvasado(index) {
 
   const fechaHoy = new Date().toLocaleDateString('es-CL');
   const loteJuliano = getDiaJuliano();
-  const horaInicio = proceso.inicioEnvasado
-    ? new Date(proceso.inicioEnvasado).toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'})
-    : '';
+
+  // Datos prellenados desde tandas
+  const tandas = proceso.tandas || [];
+  const ultimaTanda = tandas[tandas.length - 1];
+  const horaInicio = proceso.horaInicioEnvasado ||
+    (proceso.inicioEnvasado ? new Date(proceso.inicioEnvasado).toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'}) : '');
+  const horaFin = proceso.horaFinEnvasado || (ultimaTanda?.horaFin || '');
+  const tempInicio = proceso.tempInicioEnvasado || '';
+  const tempFin = proceso.tempFinEnvasado || '';
+  const kgTotal = tandas.reduce((s, t) => s + (t.kg || 0), 0) || proceso.kgReales || '';
+  const formatoUltimo = ultimaTanda?.formato || '';
 
   const html = `
     <div id="haaccpEnvasadoForm">
@@ -3807,8 +3815,8 @@ function abrirRegistroHACCPEnvasado(index) {
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:.75rem;">
           <div>
             <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">Cantidad de Producto (kg)</label>
-            <input type="number" id="envCantidad" placeholder="Ej: 115" min="0" step="0.1"
-              style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+            <input type="number" id="envCantidad" value="${kgTotal}" placeholder="Ej: 115" min="0" step="0.1"
+              style="width:100%;padding:.45rem;border-radius:6px;border:1px solid ${kgTotal?'#10b981':'#ddd'};font-size:.88rem;background:${kgTotal?'#f0fdf4':'white'};font-weight:${kgTotal?'700':'400'};">
           </div>
           <div>
             <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">Cantidad de Merma (kg)</label>
@@ -3817,12 +3825,13 @@ function abrirRegistroHACCPEnvasado(index) {
           </div>
           <div>
             <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">Formato de Envasado</label>
-            <select id="envFormato" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+            <select id="envFormato" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid ${formatoUltimo?'#10b981':'#ddd'};font-size:.88rem;background:${formatoUltimo?'#f0fdf4':'white'};">
               <option value="">Selecciona...</option>
               <option value="200gr">200 gr</option>
               <option value="500gr">500 gr</option>
-              <option value="1kg">1 kg</option>
-              <option value="3kg">3 kg</option>
+              <option value="1kg" ${formatoUltimo==='1kg'?'selected':''}>1 kg</option>
+              <option value="2kg" ${formatoUltimo==='2kg'?'selected':''}>2 kg</option>
+              <option value="3kg" ${formatoUltimo==='3kg'?'selected':''}>3 kg</option>
             </select>
           </div>
           <div>
@@ -3835,28 +3844,31 @@ function abrirRegistroHACCPEnvasado(index) {
 
       <!-- Control de temperaturas (6) -->
       <div style="background:#fafafa;border-radius:10px;padding:1rem;border:1px solid #e2e8f0;margin-bottom:1rem;">
-        <div style="font-size:.78rem;font-weight:700;color:#5b21b6;margin-bottom:.75rem;">⑥ CONTROL DE TEMPERATURAS DE ENVASADO</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
+          <div style="font-size:.78rem;font-weight:700;color:#5b21b6;">⑥ CONTROL DE TEMPERATURAS DE ENVASADO</div>
+          ${(tempInicio || horaFin) ? `<div style="background:#d1fae5;color:#065f46;border-radius:6px;padding:.2rem .6rem;font-size:.72rem;font-weight:700;">✅ Datos cargados automáticamente desde tandas</div>` : ''}
+        </div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:.75rem;align-items:end;">
           <div>
             <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">Hora Inicio Envasado</label>
             <input type="time" id="envHoraInicio" value="${horaInicio}"
-              style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+              style="width:100%;padding:.45rem;border-radius:6px;border:1px solid ${horaInicio?'#10b981':'#ddd'};font-size:.88rem;background:${horaInicio?'#f0fdf4':'white'};">
           </div>
           <div>
             <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">T° Inicio (°C)</label>
-            <input type="number" id="envTempInicio" placeholder="Ej: 78" min="0" max="200"
-              style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+            <input type="number" id="envTempInicio" value="${tempInicio}" placeholder="Ej: 78" min="0" max="200"
+              style="width:100%;padding:.45rem;border-radius:6px;border:1px solid ${tempInicio?'#10b981':'#ddd'};font-size:.88rem;background:${tempInicio?'#f0fdf4':'white'};font-weight:${tempInicio?'700':'400'};">
           </div>
           <div>
             <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">Hora Final Envasado</label>
-            <input type="time" id="envHoraFin"
-              style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+            <input type="time" id="envHoraFin" value="${horaFin}"
+              style="width:100%;padding:.45rem;border-radius:6px;border:1px solid ${horaFin?'#10b981':'#ddd'};font-size:.88rem;background:${horaFin?'#f0fdf4':'white'};">
           </div>
           <div>
             <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">T° Final (°C)</label>
-            <input type="number" id="envTempFin" placeholder="Ej: 68" min="0" max="200"
+            <input type="number" id="envTempFin" value="${tempFin}" placeholder="Ej: 68" min="0" max="200"
               onfocus="mostrarAdvertenciaTempEnvasado()"
-              style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+              style="width:100%;padding:.45rem;border-radius:6px;border:1px solid ${tempFin?'#10b981':'#ddd'};font-size:.88rem;background:${tempFin?'#f0fdf4':'white'};font-weight:${tempFin?'700':'400'};">
           </div>
           <div>
             <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">¿Cumple T° esperada?</label>
@@ -5514,8 +5526,34 @@ function imprimirRegistroHACCP(d) {
                     <input type="text" id="tandaObs" placeholder="Ej: temperatura correcta, sin observaciones..."
                         style="width:100%;padding:.65rem;border-radius:8px;border:2px solid #ddd6fe;font-size:.9rem;box-sizing:border-box;">
                 </div>
-                <div style="background:#ecfdf5;border-radius:8px;padding:.75rem;margin-bottom:1.25rem;font-size:.82rem;color:#065f46;">
-                    💡 Al registrar esta tanda se creará <strong>automáticamente</strong> un proceso de abatimiento para estos kg.
+                <div style="background:#f0fdfe;border-radius:10px;padding:.85rem;margin-bottom:1rem;border:1px solid #a5f3fc;">
+                    <div style="font-size:.78rem;font-weight:700;color:#0e7490;margin-bottom:.65rem;">🌡️ Control de Temperatura</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
+                        ${tandas.length === 0 ? `
+                        <div>
+                            <label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.25rem;">T° Inicio Envasado (°C) <span style="color:#dc2626;">*primera tanda</span></label>
+                            <input type="number" id="tandaTempInicio" step="0.1" placeholder="Ej: 78.5"
+                                style="width:100%;padding:.6rem;border-radius:8px;border:2px solid #a5f3fc;font-size:.95rem;font-weight:700;box-sizing:border-box;color:#0e7490;">
+                        </div>
+                        <div style="display:flex;align-items:flex-end;">
+                            <div style="background:#e0f2fe;border-radius:8px;padding:.5rem .75rem;font-size:.78rem;color:#0369a1;width:100%;">
+                                💡 Esta temperatura se registrará como T° de inicio en el HACCP de envasado
+                            </div>
+                        </div>` : `
+                        <div style="display:flex;align-items:center;gap:.5rem;background:#e0f2fe;border-radius:8px;padding:.5rem .75rem;grid-column:span 2;">
+                            <span style="font-size:.78rem;color:#0369a1;">🌡️ T° inicio registrada en tanda 1: <strong>${process.env?.tempInicioEnvasado || proceso.tempInicioEnvasado || '—'}°C</strong></span>
+                        </div>`}
+                        <div>
+                            <label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.25rem;">T° Final de esta tanda (°C)</label>
+                            <input type="number" id="tandaTempFin" step="0.1" placeholder="Ej: 65.0"
+                                style="width:100%;padding:.6rem;border-radius:8px;border:2px solid #a5f3fc;font-size:.95rem;font-weight:700;box-sizing:border-box;color:#0e7490;">
+                        </div>
+                        <div style="display:flex;align-items:flex-end;">
+                            <div style="background:#e0f2fe;border-radius:8px;padding:.5rem .75rem;font-size:.78rem;color:#0369a1;width:100%;">
+                                💡 La T° final de la última tanda se usará como T° cierre en el HACCP
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div style="display:flex;gap:.75rem;justify-content:flex-end;">
                     <button onclick="closeModal('modalTanda')" style="padding:.7rem 1.5rem;border-radius:10px;border:1px solid #ddd;cursor:pointer;font-weight:600;color:#64748b;">Cancelar</button>
@@ -5549,17 +5587,31 @@ function imprimirRegistroHACCP(d) {
             const horaFin = document.getElementById('tandaHoraFin')?.value;
             const operadora = document.getElementById('tandaOperadora')?.value;
             const obs = document.getElementById('tandaObs')?.value;
+            const tempInicio = document.getElementById('tandaTempInicio')?.value;
+            const tempFin = document.getElementById('tandaTempFin')?.value;
 
             if (!kg || kg <= 0) { alert('Ingresa los kg de la tanda'); return; }
             if (!operadora) { alert('Selecciona la operadora'); return; }
 
-            // Calcular tak time de la tanda
+            const esPrimeraTanda = !proceso.tandas || proceso.tandas.length === 0;
+
+            // Guardar temperatura de inicio solo en la primera tanda
+            if (esPrimeraTanda && tempInicio) {
+                proceso.tempInicioEnvasado = parseFloat(tempInicio);
+                proceso.horaInicioEnvasado = horaInicio;
+            }
+            // Temperatura final siempre se actualiza con la última tanda
+            if (tempFin) {
+                proceso.tempFinEnvasado = parseFloat(tempFin);
+                proceso.horaFinEnvasado = horaFin;
+            }
+
+            // Calcular tak time
             const [h1,m1] = horaInicio.split(':').map(Number);
             const [h2,m2] = horaFin.split(':').map(Number);
             const minutos = (h2*60+m2) - (h1*60+m1);
             const takTime = minutos > 0 ? `${minutos} min` : '—';
 
-            // Crear objeto tanda
             const ahora = new Date();
             const tanda = {
                 id: Date.now().toString(),
@@ -5567,6 +5619,8 @@ function imprimirRegistroHACCP(d) {
                 kg, nBolsas, formato, horaInicio, horaFin,
                 horaFinISO: ahora.toISOString(),
                 takTime, operadora, obs,
+                tempInicio: esPrimeraTanda ? tempInicio : null,
+                tempFin: tempFin || null,
                 creadaEn: ahora.toLocaleString('es-CL')
             };
 
