@@ -5635,6 +5635,9 @@ function imprimirRegistroHACCP(d) {
             if (!proceso.tandas) proceso.tandas = [];
             proceso.tandas.push(tanda);
 
+            // Actualizar operadoraCierre con la operadora de esta tanda (siempre la más reciente)
+            proceso.operadoraCierre = operadora;
+
             // Enviar tanda a abatimiento inmediatamente
             const procesoAbat = {
                 ...proceso,
@@ -13226,10 +13229,18 @@ function mostrarPopupGantt(eq) {
                 equipoNombre: proceso.equipoNombre || '—',
                 producto: proceso.producto || '—',
                 numeroOP: proceso.numeroOP || '—',
-                operador: proceso.operador || proceso.manipulador || '—',
+                operador: modulo === 'envasado'
+                    ? (proceso.operadoraCierre || proceso.operador || proceso.manipulador || '—')
+                    : (proceso.operador || proceso.manipulador || '—'),
+                operadoraCierre: proceso.operadoraCierre || null,
                 kgProgramados: proceso.kgProgramados || 0,
                 kgReales: proceso.kgReales || proceso.kgAbatimiento || 0,
                 tiempoFormateado: modulo === 'envasado' ? (proceso.tiempoEnvasadoFormateado || '—') : (proceso.tiempoAbatimientoFormateado || '—'),
+                // Guardar datos de temperaturas y horas para prellenar el HACCP
+                tempInicioEnvasado: proceso.tempInicioEnvasado || null,
+                tempFinEnvasado: proceso.tempFinEnvasado || null,
+                horaInicioEnvasado: proceso.horaInicioEnvasado || null,
+                horaFinEnvasado: proceso.horaFinEnvasado || null,
                 estado: 'pendiente',
                 completadoPor: null,
                 completadoEn: null,
@@ -13359,7 +13370,7 @@ function mostrarPopupGantt(eq) {
                 <div><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.2rem;">Fecha</label>
                   <input type="date" id="epFecha" value="${p.fechaISO}" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
                 <div><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.2rem;">Responsable</label>
-                  <input type="text" id="epResponsable" value="${p.operador}" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+                  <input type="text" id="epResponsable" value="${p.operadoraCierre || p.operador}" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
                 <div><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.2rem;">Preparación</label>
                   <input type="text" id="epPreparacion" value="${p.producto}" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
                 <div><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.2rem;">OP</label>
@@ -13409,9 +13420,11 @@ function mostrarPopupGantt(eq) {
                 <div style="font-weight:700;color:#5b21b6;margin-bottom:.6rem;font-size:.88rem;">🔐 Firma Digital</div>
                 <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;">
                   <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">Nombre</label>
-                    <input type="text" id="epFirmaNombre" value="${p.operador}" style="padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;width:180px;"></div>
+                    <input type="text" id="epFirmaNombre" value="${p.operadoraCierre || p.operador}"
+                      oninput="autoLlenarPIN('epFirmaNombre','epFirmaPIN','envasado')"
+                      style="padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;width:180px;"></div>
                   <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">PIN (4 dígitos)</label>
-                    <input type="password" id="epFirmaPIN" maxlength="4" placeholder="••••" style="padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;width:100px;text-align:center;letter-spacing:.2rem;"></div>
+                    <input type="password" id="epFirmaPIN" maxlength="4" placeholder="••••" style="padding:.45rem;border-radius:6px;border:1px solid ${getPINOperador(p.operadoraCierre||p.operador,'envasado')?'#10b981':'#ddd'};font-size:.88rem;width:100px;text-align:center;letter-spacing:.2rem;"></div>
                 </div>
               </div>
               <div style="display:flex;gap:.75rem;justify-content:flex-end;">
@@ -13423,6 +13436,16 @@ function mostrarPopupGantt(eq) {
               </div>`;
 
             document.getElementById('modalHACCPEnvasado').style.display = 'block';
+            // Autollenar PIN de la operadora de envasado
+            setTimeout(() => {
+                const nombreOp = p.operadoraCierre || p.operador || '';
+                const pin = getPINOperador(nombreOp, 'envasado');
+                const pinEl = document.getElementById('epFirmaPIN');
+                if (pin && pinEl) {
+                    pinEl.value = pin;
+                    pinEl.style.borderColor = '#10b981';
+                }
+            }, 150);
         }
 
         let _epCumpleVal = '';
