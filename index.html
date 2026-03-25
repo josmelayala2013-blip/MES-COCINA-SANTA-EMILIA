@@ -76,6 +76,7 @@
                 setTimeout(() => {
                   if (typeof verificarAccesoCalidad === 'function') verificarAccesoCalidad(user.email);
                   if (typeof verificarAccesoAdmin === 'function') verificarAccesoAdmin(user.email);
+                  if (typeof aplicarPermisosRol === 'function') aplicarPermisosRol(user.email);
                 }, 500);
             } else {
                 loginScreen.style.display = 'flex';
@@ -626,11 +627,11 @@
         </div>
 
         <div class="nav-tabs">
-            <button class="nav-tab active" onclick="changeTab('dashboard')">📊 Dashboard</button>
-            <button class="nav-tab" onclick="changeTab('gantt')">📅 Gantt</button>
-            <button class="nav-tab" onclick="changeTab('ejecutivo')">👔 Vista Ejecutivo</button>
+            <button class="nav-tab active" data-modulo="dashboard" onclick="changeTab('dashboard')">📊 Dashboard</button>
+            <button class="nav-tab" data-modulo="gantt" onclick="changeTab('gantt')">📅 Gantt</button>
+            <button class="nav-tab" data-modulo="ejecutivo" onclick="changeTab('ejecutivo')">👔 Vista Ejecutivo</button>
             <!-- Acondicionamiento con submenú -->
-            <div class="nav-dropdown" id="dropdownAcondicionamiento">
+            <div class="nav-dropdown" id="dropdownAcondicionamiento" data-modulo="acondicionamiento">
                 <button class="nav-tab" onclick="toggleDropdownAcond(event)" id="btnAcondicionamiento"
                     style="display:flex;align-items:center;gap:.4rem;">
                     🔪 Acondicionamiento <span style="font-size:.7rem;">▼</span>
@@ -645,16 +646,16 @@
                 </div>
             </div>
 
-            <button class="nav-tab" onclick="changeTab('envasado')">📦 Envasado</button>
-            <button class="nav-tab" onclick="changeTab('abatimiento')">❄️ Abatimiento</button>
-            <button class="nav-tab" onclick="changeTab('planificador')">📅 Planificador</button>
-            <button class="nav-tab" onclick="changeTab('asistente')">🧠 Asistente IA</button>
-            <button class="nav-tab" onclick="changeTab('historial')">🗂️ Historial</button>
-            <button class="nav-tab" onclick="changeTab('analytics')">📈 Analytics</button>
-            <button class="nav-tab" onclick="changeTab('productos')">🍽️ Productos</button>
-            <button class="nav-tab" onclick="changeTab('recetas')">📋 Recetas</button>
-            <button class="nav-tab" onclick="changeTab('personal')">👥 Personal</button>
-            <button class="nav-tab" id="btnAdmin" style="display:none;background:linear-gradient(135deg,#374151,#4b5563);color:white;" onclick="changeTab('administracion')">⚙️ Admin</button>
+            <button class="nav-tab" data-modulo="envasado" onclick="changeTab('envasado')">📦 Envasado</button>
+            <button class="nav-tab" data-modulo="abatimiento" onclick="changeTab('abatimiento')">❄️ Abatimiento</button>
+            <button class="nav-tab" data-modulo="planificador" onclick="changeTab('planificador')">📅 Planificador</button>
+            <button class="nav-tab" data-modulo="asistente" onclick="changeTab('asistente')">🧠 Asistente IA</button>
+            <button class="nav-tab" data-modulo="historial" onclick="changeTab('historial')">🗂️ Historial</button>
+            <button class="nav-tab" data-modulo="analytics" onclick="changeTab('analytics')">📈 Analytics</button>
+            <button class="nav-tab" data-modulo="productos" onclick="changeTab('productos')">🍽️ Productos</button>
+            <button class="nav-tab" data-modulo="recetas" onclick="changeTab('recetas')">📋 Recetas</button>
+            <button class="nav-tab" data-modulo="personal" onclick="changeTab('personal')">👥 Personal</button>
+            <button class="nav-tab" id="btnAdmin" data-modulo="administracion" style="display:none;background:linear-gradient(135deg,#374151,#4b5563);color:white;" onclick="changeTab('administracion')">⚙️ Admin</button>
             <!-- BOTÓN CALIDAD — acceso restringido a calidad y jefe de planta -->
             <div class="nav-dropdown" id="dropdownCalidad" style="display:none;">
                 <button class="nav-tab" onclick="toggleDropdownCalidad(event)" id="btnCalidad"
@@ -13385,6 +13386,106 @@ function mostrarPopupGantt(eq) {
 
             agregarLogAdmin(`🗑️ Borrado por fechas [${desde} → ${hasta}]: ${label} — ${borrados} registros eliminados`);
             mostrarNotificacion(`✅ ${borrados} registros eliminados de "${label}"`, 'success');
+        }
+
+        // ============================================================
+        // SISTEMA DE PERMISOS POR ROL
+        // ============================================================
+        const ROLES = {
+            // Gerencia y Jefatura — acceso total
+            'rbauza@gustofresco.cl':   'gerencia',
+            'fmunoz@gustofresco.cl':   'gerencia',
+            'jayala@gustofresco.cl':   'gerencia',
+            // Calidad
+            'calidad@gustofresco.cl':  'calidad',
+            // Cocina
+            'cocina@mes-cocina.com':      'cocina',
+            'preelaborado@mes-cocina.com':'cocina',
+            // Envasado
+            'envasado@mes-cocina.com':    'envasado',
+            // Abatimiento
+            'abatimiento@mes-cocina.com': 'abatimiento',
+        };
+
+        const PERMISOS = {
+            gerencia:    ['dashboard','gantt','ejecutivo','acondicionamiento','envasado','abatimiento','planificador','asistente','historial','analytics','productos','recetas','personal','calidad','administracion'],
+            calidad:     ['dashboard','historial','asistente','calidad'],
+            cocina:      ['dashboard','gantt','acondicionamiento','envasado','abatimiento','planificador','recetas','asistente','historial'],
+            envasado:    ['dashboard','envasado','asistente','historial'],
+            abatimiento: ['dashboard','abatimiento','asistente','historial'],
+        };
+
+        function getRol(email) {
+            return ROLES[email] || 'gerencia'; // por defecto acceso total
+        }
+
+        function tienePermiso(email, modulo) {
+            const rol = getRol(email);
+            return (PERMISOS[rol] || []).includes(modulo);
+        }
+
+        function aplicarPermisosRol(email) {
+            const rol = getRol(email);
+            const permitidos = PERMISOS[rol] || [];
+
+            // Ocultar/mostrar botones del menú según permisos
+            document.querySelectorAll('.nav-tab[data-modulo], .nav-dropdown[data-modulo]').forEach(el => {
+                const modulo = el.getAttribute('data-modulo');
+                if (!modulo) return;
+                el.style.display = permitidos.includes(modulo) ? '' : 'none';
+            });
+
+            // Guardar email actual para verificaciones posteriores
+            window._emailActual = email;
+        }
+
+        // Interceptar changeTab para bloquear módulos no permitidos
+        const _changeTabOriginal = window.changeTab;
+        window.changeTab = function(tab) {
+            const email = window._emailActual;
+            if (email && !tienePermiso(email, tab)) {
+                mostrarMensajeAccesoDenegado(tab);
+                return;
+            }
+            if (typeof _changeTabOriginal === 'function') _changeTabOriginal(tab);
+        };
+
+        function mostrarMensajeAccesoDenegado(tab) {
+            // Crear o reusar el overlay de acceso denegado
+            let overlay = document.getElementById('_accesoOverlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = '_accesoOverlay';
+                overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:center;justify-content:center;';
+                overlay.onclick = () => overlay.style.display = 'none';
+                document.body.appendChild(overlay);
+            }
+
+            const nombres = {
+                gantt:'Gantt', ejecutivo:'Vista Ejecutivo', acondicionamiento:'Acondicionamiento',
+                envasado:'Envasado', abatimiento:'Abatimiento', planificador:'Planificador',
+                asistente:'Asistente IA', historial:'Historial', analytics:'Analytics',
+                productos:'Productos', recetas:'Recetas', personal:'Personal',
+                calidad:'Calidad', administracion:'Administración'
+            };
+
+            overlay.innerHTML = `
+                <div style="background:white;border-radius:20px;padding:2.5rem;max-width:420px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+                    <div style="font-size:3.5rem;margin-bottom:1rem;">🔒</div>
+                    <h2 style="color:#374151;margin-bottom:.75rem;font-size:1.3rem;">Acceso Restringido</h2>
+                    <p style="color:#64748b;font-size:.95rem;line-height:1.6;margin-bottom:1.5rem;">
+                        No tienes autorización para acceder al módulo <strong style="color:#1e3a5f;">${nombres[tab] || tab}</strong>.<br>
+                        Si crees que esto es un error, contacta a tu supervisor.
+                    </p>
+                    <button onclick="document.getElementById('_accesoOverlay').style.display='none'"
+                        style="background:linear-gradient(135deg,#1e3a5f,#2d5986);color:white;border:none;border-radius:10px;padding:.75rem 2rem;font-weight:700;font-size:1rem;cursor:pointer;">
+                        Entendido
+                    </button>
+                </div>`;
+            overlay.style.display = 'flex';
+
+            // Auto-cerrar en 5 segundos
+            setTimeout(() => { if (overlay) overlay.style.display = 'none'; }, 5000);
         }
 
         window.onload = init;
