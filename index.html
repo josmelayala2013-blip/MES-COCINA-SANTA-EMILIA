@@ -3772,12 +3772,23 @@ function abrirRegistroHACCPEnvasado(index) {
 
   // Datos prellenados desde tandas
   const tandas = proceso.tandas || [];
+  const primeraTanda = tandas[0];
   const ultimaTanda = tandas[tandas.length - 1];
-  const horaInicio = proceso.horaInicioEnvasado ||
+
+  // Hora inicio → de la primera tanda, si no del inicio del proceso de envasado
+  const horaInicio = primeraTanda?.horaInicio ||
+    proceso.horaInicioEnvasado ||
     (proceso.inicioEnvasado ? new Date(proceso.inicioEnvasado).toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'}) : '');
-  const horaFin = proceso.horaFinEnvasado || (ultimaTanda?.horaFin || '');
-  const tempInicio = proceso.tempInicioEnvasado || '';
-  const tempFin = proceso.tempFinEnvasado || '';
+
+  // Hora fin → de la última tanda
+  const horaFin = ultimaTanda?.horaFin || proceso.horaFinEnvasado || '';
+
+  // Temperatura inicio → de la primera tanda
+  const tempInicio = primeraTanda?.tempInicio || proceso.tempInicioEnvasado || '';
+
+  // Temperatura final → de la última tanda
+  const tempFin = ultimaTanda?.tempFin || proceso.tempFinEnvasado || '';
+
   const kgTotal = tandas.reduce((s, t) => s + (t.kg || 0), 0) || proceso.kgReales || '';
   const formatoUltimo = ultimaTanda?.formato || '';
 
@@ -13391,13 +13402,17 @@ function mostrarPopupGantt(eq) {
                 <div><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.2rem;">Lote Empaque</label>
                   <input type="text" id="epLoteEmpaque" placeholder="Lote envase" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
                 <div><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.2rem;">Hora Inicio</label>
-                  <input type="time" id="epHoraInicio" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+                  <input type="time" id="epHoraInicio" value="${p.horaInicioEnvasado || ''}"
+                    style="width:100%;padding:.55rem;border-radius:8px;border:2px solid ${p.horaInicioEnvasado?'#10b981':'#ddd'};font-size:.88rem;box-sizing:border-box;background:${p.horaInicioEnvasado?'#f0fdf4':'white'};"></div>
                 <div><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.2rem;">Temp Inicio °C</label>
-                  <input type="number" id="epTempInicio" step="0.1" placeholder="°C" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+                  <input type="number" id="epTempInicio" step="0.1" value="${p.tempInicioEnvasado || ''}" placeholder="°C"
+                    style="width:100%;padding:.55rem;border-radius:8px;border:2px solid ${p.tempInicioEnvasado?'#10b981':'#ddd'};font-size:.88rem;font-weight:${p.tempInicioEnvasado?'700':'400'};box-sizing:border-box;background:${p.tempInicioEnvasado?'#f0fdf4':'white'};"></div>
                 <div><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.2rem;">Hora Fin</label>
-                  <input type="time" id="epHoraFin" value="${p.horaFin}" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+                  <input type="time" id="epHoraFin" value="${p.horaFinEnvasado || p.horaFin || ''}"
+                    style="width:100%;padding:.55rem;border-radius:8px;border:2px solid ${(p.horaFinEnvasado||p.horaFin)?'#10b981':'#ddd'};font-size:.88rem;box-sizing:border-box;background:${(p.horaFinEnvasado||p.horaFin)?'#f0fdf4':'white'};"></div>
                 <div><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.2rem;">Temp Fin °C</label>
-                  <input type="number" id="epTempFin" step="0.1" placeholder="°C" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+                  <input type="number" id="epTempFin" step="0.1" value="${p.tempFinEnvasado || ''}" placeholder="°C"
+                    style="width:100%;padding:.55rem;border-radius:8px;border:2px solid ${p.tempFinEnvasado?'#10b981':'#ddd'};font-size:.88rem;font-weight:${p.tempFinEnvasado?'700':'400'};box-sizing:border-box;background:${p.tempFinEnvasado?'#f0fdf4':'white'};"></div>
               </div>
               <!-- Cumple temperatura -->
               <div style="background:#f5f3ff;border-radius:10px;padding:.85rem;margin-bottom:1rem;">
