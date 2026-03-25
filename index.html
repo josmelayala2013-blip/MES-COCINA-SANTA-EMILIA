@@ -2021,31 +2021,14 @@
         </div>
     </div>
 
-    <!-- MODAL: FINALIZAR ENVASADO -->
-    <div id="modalFinalizarEnvasado" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>📦 Finalizar Envasado</h2>
-                <button class="close-btn" onclick="closeModal('finalizarEnvasado')">&times;</button>
+    <!-- MODAL: REGISTRAR TANDA ENVASADO -->
+    <div id="modalModalTanda" class="modal">
+        <div class="modal-content" style="max-width:600px;">
+            <div class="modal-header" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);">
+                <h2 style="color:white;">📦 Registrar Tanda → ❄️ Abatimiento</h2>
+                <button class="close-btn" onclick="closeModal('modalTanda')" style="color:white;">&times;</button>
             </div>
-            <div id="envasadoInfo"></div>
-            <div class="form-group">
-                <label>Operario Envasado:</label>
-                <select id="operadorEnvasado" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;">
-                    <option value="">Selecciona operario...</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Kg Enviados a Abatimiento:</label>
-                <input type="number" id="kgAbatimiento" placeholder="Ej: 115" min="0" step="0.1" required>
-            </div>
-            <div class="form-group">
-                <label>Observaciones Envasado:</label>
-                <textarea id="observacionesEnvasado" rows="3"></textarea>
-            </div>
-            <button class="btn btn-primary btn-full" onclick="finalizarEnvasado()">
-                ❄️ FINALIZAR ENVASADO E INICIAR ABATIMIENTO
-            </button>
+            <div style="padding:1.5rem;" id="contenidoModalTanda"></div>
         </div>
     </div>
 
@@ -5464,60 +5447,181 @@ function imprimirRegistroHACCP(d) {
         // FINALIZAR ENVASADO
         // ============================================
         
-        function abrirFinalizarEnvasado(index) {
+        // ============================================
+        // ENVASADO POR TANDAS
+        // ============================================
+
+        function abrirRegistrarTanda(index) {
             const proceso = procesosEnvasado[index];
             procesoActual = index;
+            const tandas = proceso.tandas || [];
+            const kgEnvasados = tandas.reduce((s, t) => s + (t.kg || 0), 0);
+            const kgPendientes = Math.max(0, (proceso.kgReales || 0) - kgEnvasados);
+            const horaActual = new Date().toTimeString().slice(0,5);
 
-            const tiempoEnvasado = calcularTiempo(proceso.inicioEnvasado);
-            
-            document.getElementById('envasadoInfo').innerHTML = `
-                <div class="alert alert-info">
+            // Obtener operadoras disponibles
+            const opsList = (personal.envasado || []).map(item =>
+                typeof item === 'string' ? item : item.nombre
+            );
+
+            document.getElementById('contenidoModalTanda').innerHTML = `
+                <div style="background:#f5f3ff;border-radius:10px;padding:.85rem;margin-bottom:1.25rem;font-size:.85rem;color:#5b21b6;">
+                    <strong>📦 ${proceso.producto}</strong> · OP ${proceso.numeroOP}<br>
+                    Total cocción: <strong>${proceso.kgReales} kg</strong> ·
+                    Ya envasado: <strong>${kgEnvasados.toFixed(1)} kg</strong> ·
+                    Pendiente: <strong style="color:#dc2626;">${kgPendientes.toFixed(1)} kg</strong>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
                     <div>
-                        <strong>OP:</strong> ${proceso.numeroOP}<br>
-                        <strong>Producto:</strong> ${proceso.producto}<br>
-                        <strong>Kg de Cocción:</strong> ${proceso.kgReales} kg<br>
-                        <strong>Manipulador:</strong> ${proceso.manipulador}<br>
-                        <strong>Tiempo de Envasado:</strong> ${tiempoEnvasado}
+                        <label style="font-size:.82rem;font-weight:700;color:#5b21b6;display:block;margin-bottom:.3rem;">👤 Operadora</label>
+                        <select id="tandaOperadora" style="width:100%;padding:.65rem;border-radius:8px;border:2px solid #ddd6fe;font-size:.9rem;box-sizing:border-box;">
+                            <option value="">— Seleccionar —</option>
+                            ${opsList.map(n => `<option value="${n}" ${n===proceso.manipulador?'selected':''}>${n}</option>`).join('')}
+                            <option value="${proceso.manipulador}" ${!opsList.includes(proceso.manipulador)?'selected':''}>${proceso.manipulador}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:.82rem;font-weight:700;color:#5b21b6;display:block;margin-bottom:.3rem;">📦 Formato de envase</label>
+                        <select id="tandaFormato" onchange="calcularBolsas()" style="width:100%;padding:.65rem;border-radius:8px;border:2px solid #ddd6fe;font-size:.9rem;box-sizing:border-box;">
+                            <option value="1kg">Bolsa 1 kg</option>
+                            <option value="2kg">Bolsa 2 kg</option>
+                            <option value="3kg" selected>Bolsa 3 kg</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:.82rem;font-weight:700;color:#5b21b6;display:block;margin-bottom:.3rem;">⚖️ Kg de esta tanda</label>
+                        <input type="number" id="tandaKg" value="${Math.min(kgPendientes, 30)}" step="0.1" min="0.1" oninput="calcularBolsas()"
+                            style="width:100%;padding:.65rem;border-radius:8px;border:2px solid #ddd6fe;font-size:1rem;font-weight:700;box-sizing:border-box;color:#5b21b6;">
+                    </div>
+                    <div>
+                        <label style="font-size:.82rem;font-weight:700;color:#5b21b6;display:block;margin-bottom:.3rem;">🧮 N° Bolsas (calculado)</label>
+                        <input type="number" id="tandaNBolsas" step="1" min="1"
+                            style="width:100%;padding:.65rem;border-radius:8px;border:2px solid #ddd6fe;font-size:1rem;font-weight:700;box-sizing:border-box;background:#f5f3ff;">
+                    </div>
+                    <div>
+                        <label style="font-size:.82rem;font-weight:700;color:#5b21b6;display:block;margin-bottom:.3rem;">🕐 Hora inicio tanda</label>
+                        <input type="time" id="tandaHoraInicio" value="${horaActual}"
+                            style="width:100%;padding:.65rem;border-radius:8px;border:2px solid #ddd6fe;font-size:.9rem;box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size:.82rem;font-weight:700;color:#5b21b6;display:block;margin-bottom:.3rem;">🕐 Hora fin tanda</label>
+                        <input type="time" id="tandaHoraFin" value="${horaActual}"
+                            style="width:100%;padding:.65rem;border-radius:8px;border:2px solid #ddd6fe;font-size:.9rem;box-sizing:border-box;">
                     </div>
                 </div>
-            `;
+                <div style="margin-bottom:1rem;">
+                    <label style="font-size:.82rem;font-weight:700;color:#5b21b6;display:block;margin-bottom:.3rem;">📝 Observaciones (opcional)</label>
+                    <input type="text" id="tandaObs" placeholder="Ej: temperatura correcta, sin observaciones..."
+                        style="width:100%;padding:.65rem;border-radius:8px;border:2px solid #ddd6fe;font-size:.9rem;box-sizing:border-box;">
+                </div>
+                <div style="background:#ecfdf5;border-radius:8px;padding:.75rem;margin-bottom:1.25rem;font-size:.82rem;color:#065f46;">
+                    💡 Al registrar esta tanda se creará <strong>automáticamente</strong> un proceso de abatimiento para estos kg.
+                </div>
+                <div style="display:flex;gap:.75rem;justify-content:flex-end;">
+                    <button onclick="closeModal('modalTanda')" style="padding:.7rem 1.5rem;border-radius:10px;border:1px solid #ddd;cursor:pointer;font-weight:600;color:#64748b;">Cancelar</button>
+                    <button onclick="guardarTanda()" style="padding:.7rem 1.5rem;border-radius:10px;border:none;background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:white;cursor:pointer;font-weight:700;font-size:.95rem;">
+                        📦 Registrar Tanda → ❄️ Abatimiento
+                    </button>
+                </div>`;
 
-            openModal('finalizarEnvasado');
+            // Calcular bolsas inicialmente
+            setTimeout(calcularBolsas, 50);
+            openModal('modalTanda');
         }
 
-        function finalizarEnvasado() {
-            const kgAbatimiento = parseFloat(document.getElementById('kgAbatimiento').value);
-            const observaciones = document.getElementById('observacionesEnvasado').value;
+        function calcularBolsas() {
+            const kg = parseFloat(document.getElementById('tandaKg')?.value) || 0;
+            const fmt = document.getElementById('tandaFormato')?.value || '3kg';
+            const kgPorBolsa = parseFloat(fmt) || 3;
+            const bolsas = kg > 0 ? Math.ceil(kg / kgPorBolsa) : 0;
+            const el = document.getElementById('tandaNBolsas');
+            if (el) el.value = bolsas;
+        }
 
-            if (!kgAbatimiento) {
-                alert('Ingresa los kg enviados a abatimiento');
-                return;
-            }
-
+        function guardarTanda() {
             const proceso = procesosEnvasado[procesoActual];
-            const tiempoEnvasado = Math.floor((new Date() - new Date(proceso.inicioEnvasado)) / 1000);
-            
-            proceso.kgAbatimiento = kgAbatimiento;
-            proceso.observacionesEnvasado = observaciones;
-            proceso.finEnvasado = new Date().toISOString();
-            proceso.tiempoEnvasado = tiempoEnvasado;
-            proceso.tiempoEnvasadoFormateado = formatTime(tiempoEnvasado);
-            proceso.inicioAbatimiento = new Date().toISOString();
+            if (!proceso) return;
 
-            procesosAbatimiento.push(proceso);
-            procesosEnvasado.splice(procesoActual, 1);
+            const kg = parseFloat(document.getElementById('tandaKg')?.value);
+            const nBolsas = parseInt(document.getElementById('tandaNBolsas')?.value);
+            const formato = document.getElementById('tandaFormato')?.value;
+            const horaInicio = document.getElementById('tandaHoraInicio')?.value;
+            const horaFin = document.getElementById('tandaHoraFin')?.value;
+            const operadora = document.getElementById('tandaOperadora')?.value;
+            const obs = document.getElementById('tandaObs')?.value;
+
+            if (!kg || kg <= 0) { alert('Ingresa los kg de la tanda'); return; }
+            if (!operadora) { alert('Selecciona la operadora'); return; }
+
+            // Calcular tak time de la tanda
+            const [h1,m1] = horaInicio.split(':').map(Number);
+            const [h2,m2] = horaFin.split(':').map(Number);
+            const minutos = (h2*60+m2) - (h1*60+m1);
+            const takTime = minutos > 0 ? `${minutos} min` : '—';
+
+            // Crear objeto tanda
+            const ahora = new Date();
+            const tanda = {
+                id: Date.now().toString(),
+                nTanda: (proceso.tandas || []).length + 1,
+                kg, nBolsas, formato, horaInicio, horaFin,
+                horaFinISO: ahora.toISOString(),
+                takTime, operadora, obs,
+                creadaEn: ahora.toLocaleString('es-CL')
+            };
+
+            if (!proceso.tandas) proceso.tandas = [];
+            proceso.tandas.push(tanda);
+
+            // Enviar tanda a abatimiento inmediatamente
+            const procesoAbat = {
+                ...proceso,
+                kgAbatimiento: kg,
+                nBolsas, formato,
+                nTanda: tanda.nTanda,
+                manipulador: operadora,
+                inicioAbatimiento: ahora.toISOString(),
+                esTanda: true,
+                tandaId: tanda.id
+            };
+            procesosAbatimiento.push(procesoAbat);
+
+            guardarDatos();
+            closeModal('modalTanda');
+            renderProcesosActivos();
+            updateStats();
+
+            mostrarNotificacion(`✅ Tanda ${tanda.nTanda}: ${kg} kg → Abatimiento`, 'success');
+        }
+
+        function cerrarCicloEnvasado(index) {
+            const proceso = procesosEnvasado[index];
+            if (!confirm(`¿Cerrar el ciclo de envasado de "${proceso.producto}"?\nSe registrará el proceso como completado.`)) return;
+
+            const tandas = proceso.tandas || [];
+            const kgTotal = tandas.reduce((s, t) => s + (t.kg || 0), 0);
+            const leadTime = _calcularLeadTime(proceso.inicioEnvasado, tandas);
+
+            proceso.finEnvasado = new Date().toISOString();
+            proceso.tiempoEnvasado = Math.floor((new Date() - new Date(proceso.inicioEnvasado)) / 1000);
+            proceso.tiempoEnvasadoFormateado = leadTime;
+            proceso.kgAbatimiento = kgTotal;
 
             // Crear pendiente HACCP envasado
             crearHACCPPendienteModulo('envasado', proceso);
 
+            // Remover de envasado activo
+            procesosEnvasado.splice(index, 1);
+
             guardarDatos();
             renderProcesosActivos();
             updateStats();
-            closeModal('finalizarEnvasado');
-
-            document.getElementById('kgAbatimiento').value = '';
-            document.getElementById('observacionesEnvasado').value = '';
+            mostrarNotificacion(`✅ Ciclo de envasado cerrado — ${proceso.producto} · Lead time: ${leadTime}`, 'success');
         }
+
+        // Mantener compatibilidad con código existente
+        function abrirFinalizarEnvasado(index) { abrirRegistrarTanda(index); }
+        function finalizarEnvasado() { guardarTanda(); }
 
         // ============================================
         // FINALIZAR ABATIMIENTO
@@ -5775,29 +5879,86 @@ function imprimirRegistroHACCP(d) {
             }
 
             cont.innerHTML = procesosEnvasado.map((proceso, index) => {
-                const tiempoEnvasado = Math.floor((new Date() - new Date(proceso.inicioEnvasado)) / 1000);
+                const tiempoTotal = Math.floor((new Date() - new Date(proceso.inicioEnvasado)) / 1000);
+                const tandas = proceso.tandas || [];
+                const kgEnvasados = tandas.reduce((s, t) => s + (t.kg || 0), 0);
+                const kgTotal = proceso.kgReales || 0;
+                const pct = kgTotal > 0 ? Math.min(100, Math.round(kgEnvasados / kgTotal * 100)) : 0;
+                const cicloCompleto = kgEnvasados >= kgTotal && kgTotal > 0;
+                const colorPct = pct >= 100 ? '#10b981' : pct >= 60 ? '#f59e0b' : '#8b5cf6';
+
                 return `
-                    <div class="parallel-process-card" style="border-left:4px solid #8b5cf6;margin-bottom:1rem;">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-                            <div>
-                                <strong style="font-size:1.1rem;color:#8b5cf6;">📦 ${proceso.producto}</strong>
-                                <div class="op-badge" style="background:#8b5cf6;margin-top:.4rem;">OP: ${proceso.numeroOP}</div>
+                <div class="parallel-process-card" style="border-left:4px solid #8b5cf6;margin-bottom:1.25rem;">
+                    <!-- Header -->
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem;">
+                        <div>
+                            <strong style="font-size:1.1rem;color:#8b5cf6;">📦 ${proceso.producto}</strong>
+                            <div style="display:flex;gap:.5rem;margin-top:.3rem;flex-wrap:wrap;">
+                                <div class="op-badge" style="background:#8b5cf6;">OP: ${proceso.numeroOP}</div>
+                                <div style="background:#f5f3ff;color:#6d28d9;border-radius:12px;padding:.15rem .6rem;font-size:.75rem;font-weight:700;">
+                                    ${proceso.manipulador}
+                                </div>
                             </div>
-                            <span class="timer" id="timer-envasado-${index}">${formatTime(tiempoEnvasado)}</span>
                         </div>
-                        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem;font-size:.9rem;margin-bottom:1rem;">
-                            <div><strong>Manipulador:</strong> ${proceso.manipulador}</div>
-                            <div><strong>Kg Cocción:</strong> ${proceso.kgReales} kg</div>
-                            <div><strong>Inicio:</strong> ${new Date(proceso.inicioEnvasado).toLocaleTimeString('es-CL')}</div>
-                            <div><strong>Equipo origen:</strong> ${proceso.equipoNombre}</div>
+                        <span class="timer" id="timer-envasado-${index}">${formatTime(tiempoTotal)}</span>
+                    </div>
+
+                    <!-- Barra de progreso -->
+                    <div style="margin-bottom:.85rem;">
+                        <div style="display:flex;justify-content:space-between;font-size:.8rem;font-weight:600;margin-bottom:.3rem;">
+                            <span style="color:#666;">Progreso de envasado</span>
+                            <span style="color:${colorPct};">${kgEnvasados.toFixed(1)} / ${kgTotal} kg (${pct}%)</span>
                         </div>
-                        <div style="display:flex;gap:.5rem;margin-top:.5rem;">
-                            <button class="btn btn-primary" style="flex:1;" onclick="abrirFinalizarEnvasado(${index})">📦 FINALIZAR ENVASADO</button>
-                            <button style="background:#f5f3ff;border:2px solid #8b5cf6;color:#6d28d9;border-radius:8px;padding:.5rem .75rem;cursor:pointer;font-weight:700;font-size:.82rem;white-space:nowrap;" onclick="abrirRegistroHACCPEnvasado(${index})">📋 HACCP</button>
+                        <div style="background:#f3f4f6;border-radius:20px;height:10px;overflow:hidden;">
+                            <div style="height:100%;width:${pct}%;background:${colorPct};border-radius:20px;transition:width .4s ease;"></div>
                         </div>
                     </div>
-                `;
+
+                    <!-- Tandas registradas -->
+                    ${tandas.length > 0 ? `
+                    <div style="background:#faf5ff;border-radius:10px;padding:.75rem;margin-bottom:.75rem;">
+                        <div style="font-size:.78rem;font-weight:700;color:#6d28d9;margin-bottom:.5rem;">📋 Tandas registradas (${tandas.length})</div>
+                        <div style="display:grid;gap:.3rem;">
+                            ${tandas.map((t, ti) => `
+                            <div style="display:grid;grid-template-columns:auto 1fr auto auto auto;gap:.5rem;align-items:center;background:white;border-radius:7px;padding:.4rem .65rem;font-size:.8rem;">
+                                <span style="background:#8b5cf6;color:white;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;">${ti+1}</span>
+                                <span style="font-weight:600;color:#333;">${t.kg} kg · ${t.nBolsas} bolsas ${t.formato}</span>
+                                <span style="color:#666;">${t.horaInicio}</span>
+                                <span style="color:#666;">→ ${t.horaFin}</span>
+                                <span style="background:#ede9fe;color:#6d28d9;border-radius:6px;padding:.1rem .4rem;font-weight:700;">${t.takTime}</span>
+                            </div>`).join('')}
+                        </div>
+                        <div style="margin-top:.5rem;font-size:.78rem;color:#6d28d9;font-weight:600;text-align:right;">
+                            Lead time total: <strong>${_calcularLeadTime(proceso.inicioEnvasado, tandas)}</strong>
+                        </div>
+                    </div>` : ''}
+
+                    <!-- Botones -->
+                    <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+                        ${!cicloCompleto ? `
+                        <button style="flex:2;background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:white;border:none;border-radius:8px;padding:.65rem 1rem;cursor:pointer;font-weight:700;font-size:.9rem;"
+                            onclick="abrirRegistrarTanda(${index})">
+                            📦 Registrar Tanda → Abatimiento
+                        </button>` : ''}
+                        ${cicloCompleto ? `
+                        <button style="flex:2;background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;border-radius:8px;padding:.65rem 1rem;cursor:pointer;font-weight:700;font-size:.9rem;"
+                            onclick="cerrarCicloEnvasado(${index})">
+                            ✅ Cerrar Ciclo de Envasado
+                        </button>` : ''}
+                        <button style="background:#f5f3ff;border:2px solid #8b5cf6;color:#6d28d9;border-radius:8px;padding:.5rem .75rem;cursor:pointer;font-weight:700;font-size:.82rem;white-space:nowrap;"
+                            onclick="abrirRegistroHACCPEnvasado(${index})">📋 HACCP</button>
+                    </div>
+                </div>`;
             }).join('');
+        }
+
+        function _calcularLeadTime(inicioEnvasado, tandas) {
+            if (!tandas || tandas.length === 0) return '—';
+            // Lead time = desde inicio envasado hasta fin de última tanda
+            const ultimaTanda = tandas[tandas.length - 1];
+            if (!ultimaTanda.horaFinISO) return '—';
+            const seg = Math.floor((new Date(ultimaTanda.horaFinISO) - new Date(inicioEnvasado)) / 1000);
+            return formatTime(seg);
         }
 
         function renderAbatimiento() {
