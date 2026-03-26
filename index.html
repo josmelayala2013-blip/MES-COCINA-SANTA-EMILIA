@@ -7296,6 +7296,8 @@ function imprimirRegistroHACCP(d) {
                 const { doc, setDoc } = window.firestoreFunctions;
                 
                 // Guardar en un solo documento para simplificar
+                // NOTA: recetas se guardan en su propio doc 'mes-data/recetas'
+                // NO se incluyen aquí para evitar que estado-actual sobreescriba recetas editadas
                 await setDoc(doc(window.db, 'mes-data', 'estado-actual'), {
                     equipos,
                     productos,
@@ -7303,7 +7305,6 @@ function imprimirRegistroHACCP(d) {
                     procesosAbatimiento,
                     historialPorFecha,
                     planDiario,
-                    recetas: typeof recetas !== 'undefined' ? recetas : [],
                     ultimaActualizacion: new Date().toISOString(),
                     dispositivo: navigator.userAgent.substring(0, 50)
                 });
@@ -7337,11 +7338,8 @@ function imprimirRegistroHACCP(d) {
                     procesosAbatimiento = data.procesosAbatimiento || [];
                     historialPorFecha = data.historialPorFecha || {};
                     planDiario = data.planDiario || {};
-                    if (data.recetas && typeof recetas !== 'undefined') {
-                        recetas = data.recetas;
-                        localStorage.setItem('mes_recetas', JSON.stringify(recetas));
-                        if (typeof renderListaRecetas === 'function') renderListaRecetas();
-                    }
+                    // Recetas NO se cargan desde estado-actual, tienen su propio doc 'mes-data/recetas'
+                    // Esto evita que una versión vieja sobreescriba tiempos manuales de componentes
                     
                     console.log('✅ Datos cargados desde Firebase');
                     mostrarNotificacion('✅ Datos sincronizados desde la nube', 'success');
@@ -8596,7 +8594,7 @@ function abrirModalRecetaSandwich(id = null) {
       ...c,
       gramajePorUnidad: c.gramajePorUnidad !== undefined ? c.gramajePorUnidad : (c.gramajePorcion || 0),
       unidadComponente: c.unidadComponente || 'gr',
-      tiempoCoccionMin: c.tiempoCoccionMin || 30,
+      tiempoCoccionMin: (c.tiempoCoccionMin != null && c.tiempoCoccionMin > 0) ? c.tiempoCoccionMin : null,
       preparacionFria: c.preparacionFria || false
     }));
   } else {
@@ -8615,7 +8613,7 @@ function cerrarModalSandwich() {
 }
 
 function agregarComponenteSandwich() {
-  componentesSandwichTemp.push({ nombre: '', gramajePorUnidad: 0, unidadComponente: 'gr', tiempoCoccionMin: 30, preparacionFria: false, ingredientes: [] });
+  componentesSandwichTemp.push({ nombre: '', gramajePorUnidad: 0, unidadComponente: 'gr', tiempoCoccionMin: null, preparacionFria: false, ingredientes: [] });
   renderComponentesSandwich();
 }
 
@@ -8780,7 +8778,7 @@ function abrirModalRecetaAveMayo(id = null) {
       ...c,
       gramajePorUnidad: c.gramajePorUnidad !== undefined ? c.gramajePorUnidad : (c.gramajePorcion || 0),
       unidadComponente: c.unidadComponente || 'gr',
-      tiempoCoccionMin: c.tiempoCoccionMin || 30,
+      tiempoCoccionMin: (c.tiempoCoccionMin != null && c.tiempoCoccionMin > 0) ? c.tiempoCoccionMin : null,
       preparacionFria: c.preparacionFria || false
     }));
   } else {
@@ -8799,7 +8797,7 @@ function cerrarModalAveMayo() {
 }
 
 function agregarComponenteAveMayo() {
-  componentesAveMayoTemp.push({ nombre: '', gramajePorUnidad: 0, unidadComponente: 'gr', tiempoCoccionMin: 30, preparacionFria: false, ingredientes: [] });
+  componentesAveMayoTemp.push({ nombre: '', gramajePorUnidad: 0, unidadComponente: 'gr', tiempoCoccionMin: null, preparacionFria: false, ingredientes: [] });
   renderComponentesAveMayo();
 }
 
