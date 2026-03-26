@@ -9739,6 +9739,15 @@ function planificarJornadaEnGantt(opIds, fechaStr) {
     } else {
       equipoLibreEn[eq.id] = HORA_INICIO;
     }
+    // Considerar también bloques ya planificados para este día
+    if (eq.planificaciones) {
+      const planHoy = eq.planificaciones.filter(p => p.fechaStr === fechaStr && p.estado === 'programado');
+      planHoy.forEach(p => {
+        if (p.finMin > (equipoLibreEn[eq.id] || HORA_INICIO)) {
+          equipoLibreEn[eq.id] = p.finMin;
+        }
+      });
+    }
   });
 
   // Limpiar planificaciones previas (solo las programadas, no las activas)
@@ -12184,213 +12193,116 @@ function mostrarPopupGantt(eq) {
         function renderGanttBloques() {
             const body = document.getElementById('ganttBody');
             if (!body) return;
-            // DEBUG TEMPORAL
-            const activos = equipos.filter(e => e.produccion && e.produccion.inicio);
-            console.log('Equipos activos:', activos.length);
-            activos.forEach(e => console.log('  →', e.nombre, '| componente:', e.produccion.componente, '| tiempoCoccionMin:', e.produccion.tiempoCoccionMin, '| inicio:', e.produccion.inicio));
 
             // Limpiar bloques anteriores
             body.querySelectorAll('.gantt-bloque').forEach(b => b.remove());
 
             const HORA_INICIO = 8;
-            const FILA_H = 40; // px por hora
+            const FILA_H = 40;
             const theadH = body.closest('table').querySelector('thead').offsetHeight || 40;
+            const contenedor = body.closest('div');
+            contenedor.style.position = 'relative';
+            const horaColW = 70;
+            const colW = (contenedor.offsetWidth - horaColW) / equipos.length;
 
-            equipos.forEach((eq, colIndex) => {
-                if (!eq.produccion || !eq.produccion.inicio) return;
-
-                const inicio = new Date(eq.produccion.inicio);
-                let hInicio = inicio.getHours() + inicio.getMinutes() / 60;
-                // Horas nocturnas 0-1 AM se mapean a 24-25 para posicionar en el grid
-                if (hInicio < 2) hInicio += 24;
-                if (hInicio < HORA_INICIO || hInicio > 26) return;
-                const esEspera = eq.produccion.enEspera || eq.estado === 'en_espera';
-
-                // Obtener tiempo de cocción: usar promedio aprendido si existe, si no el manual
-                let durMin = eq.produccion.tiempoCoccionMin || 60; // solo cocción
-
-                const hFin = hInicio + durMin / 60;
-                const ahora = new Date();
-                let hAhora = ahora.getHours() + ahora.getMinutes() / 60;
-                if (hAhora < 2) hAhora += 24; // consistente con hInicio nocturno
-                const minRestantes = Math.round((hFin - hAhora) * 60);
-
-                // Posición y altura en px
-                const top = theadH + (hInicio - HORA_INICIO) * FILA_H;
-                const altura = Math.max((durMin / 60) * FILA_H, 24);
-
-                // Color según estado y tiempo restante
-                let bgColor, borderColor;
-                if (esEspera) {
-                    bgColor = '#ede9fe'; borderColor = '#7c3aed'; // violeta en espera
-                } else if (minRestantes <= 0) {
-                    bgColor = '#f1f5f9'; borderColor = '#94a3b8';
-                } else if (minRestantes <= 5) {
-                    bgColor = '#fef2f2'; borderColor = '#ef4444';
-                } else if (minRestantes <= 20) {
-                    bgColor = '#fffbeb'; borderColor = '#f59e0b';
-                } else {
-                    bgColor = '#f0fdf4'; borderColor = '#22c55e';
-                }
-
-                // Texto tiempo restante
-                let restanteTexto = '';
-                if (minRestantes <= 0) {
-                    restanteTexto = '⚫ Tiempo excedido';
-                } else {
-                    const h = Math.floor(minRestantes / 60);
-                    const m = minRestantes % 60;
-                    restanteTexto = h > 0 ? h + 'h ' + m + 'm restantes' : m + ' min restantes';
-                }
-
-                // Calcular columna (colIndex + 1 porque col 0 es la hora)
-                // Necesitamos insertar como overlay sobre la celda correcta
-                const contenedor = body.closest('div');
-                contenedor.style.position = 'relative';
-
-                // Ancho de la columna de horas
-                const horaColW = 70;
-                // Ancho de cada columna de equipo
-                const colW = (contenedor.offsetWidth - horaColW) / equipos.length;
-                const left = horaColW + colIndex * colW + 4;
-                const width = colW - 8;
-
-                const bloque = document.createElement('div');
-                bloque.className = 'gantt-bloque';
-                bloque.style.cssText = [
-                    'position:absolute',
-                    'top:' + top + 'px',
-                    'left:' + left + 'px',
-                    'width:' + width + 'px',
-                    'height:' + altura + 'px',
-                    'background:' + bgColor,
-                    'border-left:4px solid ' + borderColor,
-                    'border-radius:0 6px 6px 0',
-                    'padding:.25rem .4rem',
-                    'overflow:hidden',
-                    'z-index:5',
-                    'box-shadow:0 2px 6px rgba(0,0,0,0.1)'
-                ].join(';');
-
-                // Calcular texto cuenta regresiva
-                const hh = Math.floor(Math.max(minRestantes,0) / 60);
-                const mm2 = Math.max(minRestantes,0) % 60;
-                const cuentaStr = minRestantes <= 0 ? '⏱ Tiempo excedido'
-                    : hh > 0 ? '⏱ ' + hh + 'h ' + String(mm2).padStart(2,'0') + 'm'
-                    : '⏱ ' + mm2 + ' min';
-
-                // Badge encima del bloque
-                const badge = document.createElement('div');
-                badge.id = 'ganttBadge_' + eq.id;
-                badge.style.cssText = [
-                    'position:absolute',
-                    'top:' + (top - 22) + 'px',
-                    'left:' + left + 'px',
-                    'width:' + width + 'px',
-                    'background:' + borderColor,
-                    'color:white',
-                    'font-size:.68rem',
-                    'font-weight:800',
-                    'padding:.15rem .4rem',
-                    'border-radius:4px 4px 0 0',
-                    'text-align:center',
-                    'white-space:nowrap',
-                    'overflow:hidden',
-                    'z-index:6'
-                ].join(';');
-                badge.className = 'gantt-bloque';
-                badge.textContent = esEspera ? ('⏳ Inicia a las ' + String(inicio.getHours()).padStart(2,'0') + ':' + String(inicio.getMinutes()).padStart(2,'0')) : cuentaStr;
-                if (esEspera) badge.style.background = '#7c3aed';
-                contenedor.appendChild(badge);
-
-                // Contenido dentro del bloque
-                bloque.id = 'ganttBloque_' + eq.id;
-                bloque.style.cursor = 'pointer';
-                const textoBloque = eq.produccion.componente || eq.produccion.producto || '';
-                bloque.innerHTML = [
-                    '<div style="font-size:.78rem;font-weight:700;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (esEspera ? '⏳ ' : '') + textoBloque + '</div>',
-                    altura > 38 ? '<div id="ganttInner_' + eq.id + '" style="font-size:.72rem;color:' + borderColor + ';font-weight:700;margin-top:.15rem;">' + cuentaStr + '</div>' : ''
-                ].join('');
-                bloque.onclick = () => mostrarPopupGantt(eq);
-
-                contenedor.appendChild(bloque);
-            });
-
-            // ---- BLOQUES PROGRAMADOS (planificados para hoy) ----
             const fechaHoy = getHoy();
-            equipos.forEach((eq, colIndex) => {
-                if (!eq.planificaciones) return;
-                const planHoy = eq.planificaciones.filter(p => p.fechaStr === fechaHoy && p.estado === 'programado');
-                if (planHoy.length === 0) return;
 
-                const contenedor = body.closest('div');
-                const horaColW = 70;
-                const colW = (contenedor.offsetWidth - horaColW) / equipos.length;
+            equipos.forEach((eq, colIndex) => {
                 const left = horaColW + colIndex * colW + 4;
                 const width = colW - 8;
-                const theadH2 = body.closest('table').querySelector('thead').offsetHeight || 40;
 
-                planHoy.forEach((plan, pi) => {
-                    const hInicio = plan.inicioMin / 60;
-                    const durMin = plan.duracion;
-                    const top = theadH2 + (hInicio - 8) * 40;
-                    const altura = Math.max((durMin / 60) * 40, 28);
+                // ── 1. BLOQUE ACTIVO (producción en curso) ──
+                if (eq.produccion && eq.produccion.inicio) {
+                    const inicio = new Date(eq.produccion.inicio);
+                    let hInicio = inicio.getHours() + inicio.getMinutes() / 60;
+                    if (hInicio < 2) hInicio += 24;
+                    if (hInicio < HORA_INICIO || hInicio > 26) {} else {
+                        const esEspera = eq.produccion.enEspera || eq.estado === 'en_espera';
+                        let durMin = eq.produccion.tiempoCoccionMin || 60;
+                        const hFin = hInicio + durMin / 60;
+                        const ahora = new Date();
+                        let hAhora = ahora.getHours() + ahora.getMinutes() / 60;
+                        if (hAhora < 2) hAhora += 24;
+                        const minRestantes = Math.round((hFin - hAhora) * 60);
+                        const top = theadH + (hInicio - HORA_INICIO) * FILA_H;
+                        const altura = Math.max((durMin / 60) * FILA_H, 24);
 
-                    // Badge programado
-                    const hStr = String(Math.floor(plan.inicioMin/60)).padStart(2,'0') + ':' + String(plan.inicioMin%60).padStart(2,'0');
-                    const badge = document.createElement('div');
-                    badge.className = 'gantt-bloque';
-                    badge.style.cssText = [
-                        'position:absolute',
-                        'top:' + (top - 20) + 'px',
-                        'left:' + left + 'px',
-                        'width:' + width + 'px',
-                        'background:#94a3b8',
-                        'color:white',
-                        'font-size:.65rem',
-                        'font-weight:800',
-                        'padding:.15rem .4rem',
-                        'border-radius:4px 4px 0 0',
-                        'text-align:center',
-                        'white-space:nowrap',
-                        'overflow:hidden',
-                        'z-index:4'
-                    ].join(';');
-                    badge.textContent = '🕐 ' + hStr;
-                    contenedor.appendChild(badge);
+                        let bgColor, borderColor;
+                        if (esEspera) { bgColor = '#ede9fe'; borderColor = '#7c3aed'; }
+                        else if (minRestantes <= 0) { bgColor = '#f1f5f9'; borderColor = '#94a3b8'; }
+                        else if (minRestantes <= 5) { bgColor = '#fef2f2'; borderColor = '#ef4444'; }
+                        else if (minRestantes <= 20) { bgColor = '#fffbeb'; borderColor = '#f59e0b'; }
+                        else { bgColor = '#f0fdf4'; borderColor = '#22c55e'; }
 
-                    // Bloque programado (gris rayado)
-                    const bloqueProg = document.createElement('div');
-                    bloqueProg.className = 'gantt-bloque';
-                    bloqueProg.style.cssText = [
-                        'position:absolute',
-                        'top:' + top + 'px',
-                        'left:' + left + 'px',
-                        'width:' + width + 'px',
-                        'height:' + altura + 'px',
-                        'background:repeating-linear-gradient(45deg,#f1f5f9,#f1f5f9 5px,#e2e8f0 5px,#e2e8f0 10px)',
-                        'border-left:4px solid #94a3b8',
-                        'border-radius:0 6px 6px 0',
-                        'padding:.25rem .4rem',
-                        'overflow:hidden',
-                        'z-index:4',
-                        'cursor:pointer',
-                        'opacity:.85'
-                    ].join(';');
-                    bloqueProg.title = 'Click para editar esta planificación';
-                    bloqueProg.innerHTML = [
-                        '<div style="font-size:.75rem;font-weight:700;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📋 ' + plan.componente + '</div>',
-                        altura > 36 ? '<div style="font-size:.68rem;color:#64748b;">OP ' + plan.numeroOP + ' · ' + plan.kgProgramados + ' kg</div>' : '',
-                        altura > 52 ? '<div style="font-size:.68rem;color:#94a3b8;">' + durMin + ' min est.</div>' : ''
-                    ].join('');
+                        const hh = Math.floor(Math.max(minRestantes,0) / 60);
+                        const mm2 = Math.max(minRestantes,0) % 60;
+                        const cuentaStr = minRestantes <= 0 ? '⏱ Tiempo excedido'
+                            : hh > 0 ? '⏱ ' + hh + 'h ' + String(mm2).padStart(2,'0') + 'm'
+                            : '⏱ ' + mm2 + ' min';
 
-                    // Click para editar
-                    bloqueProg.onclick = () => abrirEditorBloqueProgramado(eq.id, plan, pi);
-                    contenedor.appendChild(bloqueProg);
-                });
+                        // Badge
+                        const badge = document.createElement('div');
+                        badge.id = 'ganttBadge_' + eq.id;
+                        badge.className = 'gantt-bloque';
+                        badge.style.cssText = `position:absolute;top:${top-22}px;left:${left}px;width:${width}px;background:${borderColor};color:white;font-size:.68rem;font-weight:800;padding:.15rem .4rem;border-radius:4px 4px 0 0;text-align:center;white-space:nowrap;overflow:hidden;z-index:6;`;
+                        badge.textContent = esEspera
+                            ? ('⏳ Inicia a las ' + String(inicio.getHours()).padStart(2,'0') + ':' + String(inicio.getMinutes()).padStart(2,'0'))
+                            : cuentaStr;
+                        if (esEspera) badge.style.background = '#7c3aed';
+                        contenedor.appendChild(badge);
+
+                        // Bloque
+                        const bloque = document.createElement('div');
+                        bloque.id = 'ganttBloque_' + eq.id;
+                        bloque.className = 'gantt-bloque';
+                        bloque.style.cursor = 'pointer';
+                        bloque.style.cssText += `position:absolute;top:${top}px;left:${left}px;width:${width}px;height:${altura}px;background:${bgColor};border-left:4px solid ${borderColor};border-radius:0 6px 6px 0;padding:.25rem .4rem;overflow:hidden;z-index:5;box-shadow:0 2px 6px rgba(0,0,0,0.1);cursor:pointer;`;
+                        const textoBloque = eq.produccion.componente || eq.produccion.producto || '';
+                        bloque.innerHTML = `
+                            <div style="font-size:.72rem;font-weight:800;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${textoBloque}</div>
+                            <div style="font-size:.65rem;color:#64748b;margin-top:.1rem;">OP ${eq.produccion.numeroOP||''}</div>
+                            <div style="font-size:.65rem;color:${borderColor};font-weight:700;">${esEspera ? '⏳ En espera' : cuentaStr}</div>`;
+                        bloque.onclick = () => abrirDetalleBloque(eq.id);
+                        contenedor.appendChild(bloque);
+                    }
+                }
+
+                // ── 2. BLOQUES PLANIFICADOS FUTUROS (en espera) ──
+                if (eq.planificaciones) {
+                    const planHoy = eq.planificaciones
+                        .filter(p => p.fechaStr === fechaHoy && p.estado === 'programado')
+                        .sort((a, b) => a.inicioMin - b.inicioMin);
+
+                    planHoy.forEach((plan, pi) => {
+                        const hInicioPlan = plan.inicioMin / 60;
+                        const durMinPlan = plan.duracion || 60;
+                        const hFinPlan = hInicioPlan + durMinPlan / 60;
+                        if (hInicioPlan < HORA_INICIO || hInicioPlan > 26) return;
+
+                        const top = theadH + (hInicioPlan - HORA_INICIO) * FILA_H;
+                        const altura = Math.max((durMinPlan / 60) * FILA_H, 24);
+                        const hInicioStr = String(Math.floor(plan.inicioMin/60)).padStart(2,'0') + ':' + String(plan.inicioMin%60).padStart(2,'0');
+
+                        // Badge "en espera"
+                        const badge2 = document.createElement('div');
+                        badge2.className = 'gantt-bloque';
+                        badge2.style.cssText = `position:absolute;top:${top-22}px;left:${left}px;width:${width}px;background:#94a3b8;color:white;font-size:.65rem;font-weight:700;padding:.15rem .4rem;border-radius:4px 4px 0 0;text-align:center;white-space:nowrap;overflow:hidden;z-index:4;`;
+                        badge2.textContent = `⏳ ${hInicioStr}`;
+                        contenedor.appendChild(badge2);
+
+                        // Bloque gris "en espera"
+                        const bloque2 = document.createElement('div');
+                        bloque2.className = 'gantt-bloque';
+                        bloque2.style.cssText = `position:absolute;top:${top}px;left:${left}px;width:${width}px;height:${altura}px;background:#f1f5f9;border-left:4px solid #94a3b8;border-radius:0 6px 6px 0;padding:.25rem .4rem;overflow:hidden;z-index:4;box-shadow:0 1px 4px rgba(0,0,0,0.07);opacity:.85;`;
+                        bloque2.innerHTML = `
+                            <div style="font-size:.72rem;font-weight:800;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${plan.componente}</div>
+                            <div style="font-size:.65rem;color:#94a3b8;margin-top:.1rem;">OP ${plan.numeroOP}</div>
+                            <div style="font-size:.65rem;color:#94a3b8;font-weight:700;">⏳ En espera · ${durMinPlan} min</div>`;
+                        contenedor.appendChild(bloque2);
+                    });
+                }
             });
         }
-
 
 
         // GANTT - Cronómetro en tiempo real (segundos)
