@@ -8396,7 +8396,7 @@ function cerrarModalReceta() {
 }
 
 function agregarComponente() {
-  componentesTemp.push({ nombre: '', gramajePorcion: 0, tiempoCoccionMin: 30, ingredientes: [] });
+  componentesTemp.push({ nombre: '', gramajePorcion: 0, tiempoCoccionMin: null, ingredientes: [] });
   renderComponentesModal();
 }
 
@@ -8427,7 +8427,7 @@ function renderComponentesModal() {
         <input value="${comp.nombre}" oninput="componentesTemp[${ci}].nombre=this.value" placeholder="Nombre del componente (Ej: Salsa, Arroz, Proteína)" style="flex:1;padding:.5rem;border-radius:8px;border:1px solid #ddd;">
         <input type="number" value="${comp.gramajePorcion||''}" oninput="componentesTemp[${ci}].gramajePorcion=parseFloat(this.value)||0" placeholder="gr/unidad" style="width:90px;padding:.5rem;border-radius:8px;border:1px solid #ddd;" title="Gramaje por unidad">
         <div style="display:flex;flex-direction:column;align-items:center;gap:.1rem;">
-          <input type="number" value="${comp.tiempoCoccionMin||''}" oninput="componentesTemp[${ci}].tiempoCoccionMin=parseInt(this.value)||0" placeholder="30" min="1" max="480"
+          <input type="number" value="${comp.tiempoCoccionMin||''}" oninput="componentesTemp[${ci}].tiempoCoccionMin=this.value===''?null:(parseInt(this.value)||null)" placeholder="30" min="1" max="480"
             style="width:65px;padding:.5rem;border-radius:8px;border:1px solid #a5b4fc;background:#eef2ff;text-align:center;font-weight:700;color:#4f46e5;" title="Tiempo cocción estimado (min)">
           <span style="font-size:.6rem;color:#94a3b8;white-space:nowrap;">⏱ min</span>
         </div>
@@ -8664,7 +8664,7 @@ function renderComponentesSandwich() {
         </select>
         ${!comp.preparacionFria ? `
         <div style="display:flex;flex-direction:column;align-items:center;gap:.1rem;">
-          <input type="number" value="${comp.tiempoCoccionMin||''}" oninput="componentesSandwichTemp[${ci}].tiempoCoccionMin=parseInt(this.value)||0" placeholder="30" min="1" max="480"
+          <input type="number" value="${comp.tiempoCoccionMin||''}" oninput="componentesSandwichTemp[${ci}].tiempoCoccionMin=this.value===''?null:(parseInt(this.value)||null)" placeholder="30" min="1" max="480"
             style="width:60px;padding:.45rem;border-radius:7px;border:1px solid #a5b4fc;background:#eef2ff;text-align:center;font-weight:700;color:#4f46e5;" title="Tiempo cocción estimado (min)">
           <span style="font-size:.6rem;color:#94a3b8;white-space:nowrap;">⏱ min</span>
         </div>` : ''}
@@ -8847,7 +8847,7 @@ function renderComponentesAveMayo() {
         </select>
         ${!comp.preparacionFria ? `
         <div style="display:flex;flex-direction:column;align-items:center;gap:.1rem;">
-          <input type="number" value="${comp.tiempoCoccionMin||''}" oninput="componentesAveMayoTemp[${ci}].tiempoCoccionMin=parseInt(this.value)||0" placeholder="30" min="1" max="480"
+          <input type="number" value="${comp.tiempoCoccionMin||''}" oninput="componentesAveMayoTemp[${ci}].tiempoCoccionMin=this.value===''?null:(parseInt(this.value)||null)" placeholder="30" min="1" max="480"
             style="width:60px;padding:.45rem;border-radius:7px;border:1px solid #a5b4fc;background:#eef2ff;text-align:center;font-weight:700;color:#4f46e5;">
           <span style="font-size:.6rem;color:#94a3b8;white-space:nowrap;">⏱ min</span>
         </div>` : ''}
