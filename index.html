@@ -5319,7 +5319,7 @@ function imprimirRegistroHACCP(d) {
                 fase: 'coccion',
                 opVinculadaId: op.id,
                 componente: comp.nombre,
-                tiempoCoccionMin: _prodRef1 ? ((_prodRef1.vsm && _prodRef1.vsm.promCoccion && _prodRef1.vsm.totalProducciones >= 3) ? _prodRef1.vsm.promCoccion : (_prodRef1.tiempoCoccionMin || 60)) : 60
+                tiempoCoccionMin: _prodRef1 ? ((_prodRef1.tiempoCoccionMin && _prodRef1.tiempoCoccionMin > 0) ? _prodRef1.tiempoCoccionMin : ((_prodRef1.vsm && _prodRef1.vsm.promCoccion && _prodRef1.vsm.totalProducciones >= 3) ? _prodRef1.vsm.promCoccion : 60)) : 60
             };
 
             // Marcar OP en producción
@@ -5373,7 +5373,7 @@ function imprimirRegistroHACCP(d) {
                     fase: 'coccion',
                     opVinculadaId: op.id,
                     componente: comp.nombre,
-                    tiempoCoccionMin: _prodRef2 ? ((_prodRef2.vsm && _prodRef2.vsm.promCoccion && _prodRef2.vsm.totalProducciones >= 3) ? _prodRef2.vsm.promCoccion : (_prodRef2.tiempoCoccionMin || 60)) : 60
+                    tiempoCoccionMin: _prodRef2 ? ((_prodRef2.tiempoCoccionMin && _prodRef2.tiempoCoccionMin > 0) ? _prodRef2.tiempoCoccionMin : ((_prodRef2.vsm && _prodRef2.vsm.promCoccion && _prodRef2.vsm.totalProducciones >= 3) ? _prodRef2.vsm.promCoccion : 60)) : 60
                 };
                 iniciados++;
             });
@@ -5457,7 +5457,7 @@ function imprimirRegistroHACCP(d) {
 
             const equipo = equipos.find(e => e.id === equipoSeleccionado);
             const _prodRef3 = productos.find(p => p.nombre === producto || producto.toLowerCase().includes(p.nombre.toLowerCase()));
-            const _tiempoCoccion3 = _prodRef3 ? ((_prodRef3.vsm && _prodRef3.vsm.promCoccion && _prodRef3.vsm.totalProducciones >= 3) ? _prodRef3.vsm.promCoccion : (_prodRef3.tiempoCoccionMin || 60)) : 60;
+            const _tiempoCoccion3 = _prodRef3 ? ((_prodRef3.tiempoCoccionMin && _prodRef3.tiempoCoccionMin > 0) ? _prodRef3.tiempoCoccionMin : ((_prodRef3.vsm && _prodRef3.vsm.promCoccion && _prodRef3.vsm.totalProducciones >= 3) ? _prodRef3.vsm.promCoccion : 60)) : 60;
             const _esDiferido = !!window._inicioDiferido;
             const _inicioReal = window._inicioDiferido || new Date().toISOString();
 
@@ -9748,13 +9748,13 @@ function cerrarPrepsFrias() {
 
 // Obtiene el tiempo real de cocción de un componente (VSM > manual > default)
 function getTiempoComponente(comp) {
-  // 1. Buscar en VSM por nombre de componente
+  // 1. Tiempo manual definido en la receta → SIEMPRE tiene prioridad
+  if (comp.tiempoCoccionMin && comp.tiempoCoccionMin > 0) return comp.tiempoCoccionMin;
+  // 2. VSM aprendido → solo si NO hay tiempo manual en la receta
   const prod = productos.find(p => p.nombre.toLowerCase() === (comp.nombre||'').toLowerCase());
   if (prod && prod.vsm && prod.vsm.promCoccion && prod.vsm.totalProducciones >= 3) {
     return Math.round(prod.vsm.promCoccion);
   }
-  // 2. Tiempo manual de la receta
-  if (comp.tiempoCoccionMin && comp.tiempoCoccionMin > 0) return comp.tiempoCoccionMin;
   // 3. Default
   return 30;
 }
