@@ -3359,52 +3359,81 @@ async function cargarHACCPHistorialFirebase(intentos = 0) {
 // MÓDULO REGISTRO HACCP ABATIMIENTO (R-POE-03-GF-05)
 // ============================================================
 
-window._haaccpAbatIdx = null;
+window._haaccpAbatAsigId = null;
 
+// Función auxiliar para abrir HACCP por ID de asignación (nuevo módulo)
+function abrirHACCPAbatPorId(asigId) {
+  const asig = asignacionesAbat.find(a => a.id === asigId);
+  if (!asig) { mostrarNotificacion('Asignación no encontrada', 'warning'); return; }
+  window._haaccpAbatAsigId = asigId;
+  _abrirHACCPAbatConDatos(asig);
+}
+
+// Mantener compatibilidad con llamadas por índice de procesosAbatimiento (vista antigua)
 function abrirRegistroHACCPAbatimiento(index) {
   window._haaccpAbatIdx = index;
   const proceso = procesosAbatimiento[index];
   if (!proceso) return;
 
-  // Buscar datos enriquecidos desde el nuevo módulo de asignaciones
+  // ─── Buscar la asignación en asignacionesAbat usando el ID de la tanda ───
+  // La asignación puede estar activa o completada
   const asig = asignacionesAbat?.find(a =>
-    a.producto === proceso.producto &&
-    a.numeroOP === proceso.numeroOP &&
-    a.estado === 'completado'
+    (a.tandaId === proceso.tandaId || a.tandaId === proceso.id ||
+     (a.producto === proceso.producto && a.numeroOP === proceso.numeroOP)) &&
+    (a.estado === 'completado' || a.estado === 'activo')
   );
 
-  const fechaHoy = new Date().toLocaleDateString('es-CL');
-  const fechaHoyISO = new Date().toISOString().split('T')[0];
-  const loteJuliano = getDiaJuliano();
+  // También buscar la tanda original en la queue para obtener producto y OP correctos
+  const tandaOrig = tandasPendientesAbatQueue?.find(t =>
+    t.id === proceso.tandaId || t.tandaId === proceso.tandaId
+  );
 
-  // Hora ingreso desde la asignación o del proceso
-  const horaIngreso = asig?.inicioISO
-    ? new Date(asig.inicioISO).toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'})
-    : (proceso.inicioAbatimiento
-        ? new Date(proceso.inicioAbatimiento).toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'})
-        : '');
+  // ─── Datos del producto y OP ──────────────────────────────────────────────
+  // Prioridad: asignación → tanda original → proceso (que puede traer datos de envasado)
+  const productoNombre = asig?.producto || tandaOrig?.producto || proceso.producto || '—';
+  const numeroOP       = asig?.numeroOP  || tandaOrig?.numeroOP  || proceso.numeroOP  || '—';
 
-  // Hora salida desde la asignación completada
-  const horaSalida = asig?.finISO
-    ? new Date(asig.finISO).toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'})
+  // ─── Formato ──────────────────────────────────────────────────────────────
+  const formatoRaw = asig?.formato || tandaOrig?.formato || proceso.formato || '';
+  const formatoMap = { '250gr':'250gr', '500gr':'500gr', '1kg':'1kg', '2kg':'2kg', '3kg':'3kg' };
+  const formatoSel = formatoMap[formatoRaw] || '';
+
+  // ─── Hora de ingreso (momento en que la tanda fue recibida en abatimiento) ─
+  const horaIngresoISO = asig?.inicioISO || proceso.inicioAbatimiento || tandaOrig?.recibidaISO || null;
+  const horaIngreso = horaIngresoISO
+    ? new Date(horaIngresoISO).toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'})
     : '';
 
-  // Temperatura entrada desde asignación
+  // ─── Fecha de hoy (fecha del abatimiento) ────────────────────────────────
+  const fechaHoy    = new Date().toLocaleDateString('es-CL');
+  const fechaHoyISO = new Date().toISOString().split('T')[0];
+
+  // ─── Lote Juliano ─────────────────────────────────────────────────────────
+  const loteJuliano = getDiaJuliano();
+
+  // ─── Datos de salida (cuando el operador retiró del equipo) ──────────────
+  const horaSalidaISO = asig?.finISO || null;
+  const horaSalida = horaSalidaISO
+    ? new Date(horaSalidaISO).toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'})
+    : '';
+  const fechaSalidaDisplay = horaSalidaISO
+    ? new Date(horaSalidaISO).toLocaleDateString('es-CL')
+    : '';
+  const fechaSalidaISO = horaSalidaISO
+    ? new Date(horaSalidaISO).toISOString().split('T')[0]
+    : fechaHoyISO;
+
+  // ─── Temperaturas ─────────────────────────────────────────────────────────
   const tempEntrada = asig?.tempEntrada ?? proceso.tempInicioAbatimiento ?? '';
+  const tempSalida  = asig?.tempSalida  ?? '';
 
-  // Temperatura salida desde asignación
-  const tempSalida = asig?.tempSalida ?? '';
-
-  // Operador: el de la asignación
+  // ─── Operador ─────────────────────────────────────────────────────────────
   const operadorAbat = asig?.operador || proceso.manipulador || '';
 
-  // OP desde la tanda
-  const numeroOP = asig?.numeroOP || proceso.numeroOP || '';
+  // ─── Cantidad ─────────────────────────────────────────────────────────────
+  const cantidadKg = asig?.kg || proceso.kgAbatimiento || '';
 
-  // Formato desde la asignación
-  const formatoAbat = asig?.formato || proceso.formato || '';
-  const formatoMap = { '250gr':'Bolsa 250 gr', '500gr':'Bolsa 500 gr', '1kg':'Bolsa 1 kg', '2kg':'Bolsa 2 kg', '3kg':'Bolsa 3 kg' };
-  const formatoLabel = formatoMap[formatoAbat] || formatoAbat;
+  const tieneDatos = !!(tempEntrada || horaSalida || horaIngreso);
 
   const html = `
     <div id="haaccpAbatForm">
@@ -3421,7 +3450,7 @@ function abrirRegistroHACCPAbatimiento(index) {
         </button>
       </div>
 
-      ${(tempEntrada || horaSalida) ? `
+      ${tieneDatos ? `
       <div style="background:#d1fae5;border-radius:8px;padding:.6rem .85rem;margin-bottom:1rem;font-size:.8rem;color:#065f46;font-weight:700;">
         ✅ Datos cargados automáticamente desde el proceso de abatimiento
       </div>` : ''}
@@ -3431,7 +3460,7 @@ function abrirRegistroHACCPAbatimiento(index) {
         <div>
           <label style="font-size:.72rem;font-weight:700;color:#0e7490;display:block;margin-bottom:.2rem;">① FECHA DE INGRESO</label>
           <input type="text" id="abatFechaIngreso" value="${fechaHoy}"
-            style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+            style="width:100%;padding:.45rem;border-radius:6px;border:2px solid #10b981;font-size:.88rem;background:#f0fdf4;font-weight:600;">
         </div>
         <div>
           <label style="font-size:.72rem;font-weight:700;color:#0e7490;display:block;margin-bottom:.2rem;">② RESPONSABLE DEL ÁREA</label>
@@ -3440,11 +3469,18 @@ function abrirRegistroHACCPAbatimiento(index) {
         </div>
       </div>
 
-      <!-- Producto y preparación -->
-      <div style="padding:.6rem .75rem;background:#cffafe;border-radius:8px;margin-bottom:1rem;border-left:4px solid #06b6d4;">
-        <span style="font-size:.72rem;font-weight:700;color:#0e7490;">⑤ PRODUCTO:</span>
-        <span style="font-size:.9rem;font-weight:800;color:#1e293b;margin-left:.5rem;">${proceso.producto}</span>
-        <span style="margin-left:1rem;font-size:.78rem;color:#64748b;">OP: <strong>${numeroOP}</strong></span>
+      <!-- Producto y OP — ahora como campos editables con valores cargados -->
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:.75rem;margin-bottom:1rem;padding:.75rem;background:#cffafe;border-radius:10px;border:1px solid #a5f3fc;">
+        <div>
+          <label style="font-size:.72rem;font-weight:700;color:#0e7490;display:block;margin-bottom:.2rem;">⑤ PRODUCTO / PREPARACIÓN</label>
+          <input type="text" id="abatProducto" value="${productoNombre}"
+            style="width:100%;padding:.45rem;border-radius:6px;border:2px solid #10b981;font-size:.95rem;font-weight:800;color:#1e293b;background:#f0fdf4;">
+        </div>
+        <div>
+          <label style="font-size:.72rem;font-weight:700;color:#0e7490;display:block;margin-bottom:.2rem;">N° ORDEN DE PRODUCCIÓN</label>
+          <input type="text" id="abatOP" value="${numeroOP}"
+            style="width:100%;padding:.45rem;border-radius:6px;border:2px solid #10b981;font-size:.9rem;font-weight:700;color:#0e7490;background:#f0fdf4;">
+        </div>
       </div>
 
       <!-- Fila ingreso -->
@@ -3452,63 +3488,63 @@ function abrirRegistroHACCPAbatimiento(index) {
         <div style="font-size:.78rem;font-weight:700;color:#0e7490;margin-bottom:.75rem;">DATOS DE INGRESO AL ABATIDOR</div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:.75rem;">
           <div>
-            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">③ TIPO (Formato)</label>
+            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">③ FORMATO DE BOLSA</label>
             <select id="abatTipoFormato"
-              style="width:100%;padding:.45rem;border-radius:6px;border:1px solid ${formatoLabel?'#10b981':'#ddd'};font-size:.85rem;background:${formatoLabel?'#f0fdf4':'white'};">
-              <option value="">Selecciona...</option>
-              <option value="Bolsa 250gr" ${formatoLabel==='Bolsa 250 gr'?'selected':''}>Bolsa 250 gr</option>
-              <option value="Bolsa 500gr" ${formatoLabel==='Bolsa 500 gr'?'selected':''}>Bolsa 500 gr</option>
-              <option value="Bolsa 1kg"   ${formatoLabel==='Bolsa 1 kg'?'selected':''}>Bolsa 1 kg</option>
-              <option value="Bolsa 2kg"   ${formatoLabel==='Bolsa 2 kg'?'selected':''}>Bolsa 2 kg</option>
-              <option value="Bolsa 3kg"   ${formatoLabel==='Bolsa 3 kg'?'selected':''}>Bolsa 3 kg</option>
+              style="width:100%;padding:.45rem;border-radius:6px;border:2px solid ${formatoSel?'#10b981':'#a5f3fc'};font-size:.88rem;background:${formatoSel?'#f0fdf4':'white'};font-weight:${formatoSel?'700':'400'};">
+              <option value="">— Selecciona —</option>
+              <option value="250gr" ${formatoSel==='250gr'?'selected':''}>Bolsa 250 gr</option>
+              <option value="500gr" ${formatoSel==='500gr'?'selected':''}>Bolsa 500 gr</option>
+              <option value="1kg"   ${formatoSel==='1kg'?'selected':''}>Bolsa 1 kg</option>
+              <option value="2kg"   ${formatoSel==='2kg'?'selected':''}>Bolsa 2 kg</option>
+              <option value="3kg"   ${formatoSel==='3kg'?'selected':''}>Bolsa 3 kg</option>
             </select>
           </div>
           <div>
             <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">④ HORA DE INGRESO</label>
             <input type="time" id="abatHoraIngreso" value="${horaIngreso}"
-              style="width:100%;padding:.45rem;border-radius:6px;border:1px solid ${horaIngreso?'#10b981':'#ddd'};font-size:.88rem;background:${horaIngreso?'#f0fdf4':'white'};">
+              style="width:100%;padding:.45rem;border-radius:6px;border:2px solid ${horaIngreso?'#10b981':'#a5f3fc'};font-size:.88rem;background:${horaIngreso?'#f0fdf4':'white'};font-weight:${horaIngreso?'700':'400'};">
           </div>
           <div>
             <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">⑥ LOTE ASIGNADO (Juliano)</label>
             <input type="text" id="abatLote" value="${loteJuliano}" maxlength="20"
-              style="width:100%;padding:.45rem;border-radius:6px;border:2px solid #10b981;font-size:.88rem;background:#f0fdf4;font-weight:700;">
+              style="width:100%;padding:.45rem;border-radius:6px;border:2px solid #10b981;font-size:.88rem;background:#f0fdf4;font-weight:700;color:#0e7490;">
           </div>
           <div>
             <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">⑦ CANTIDAD INGRESADA (kg)</label>
-            <input type="number" id="abatCantidad" value="${asig?.kg || proceso.kgAbatimiento || ''}" min="0" step="0.1"
-              style="width:100%;padding:.45rem;border-radius:6px;border:1px solid ${(asig?.kg||proceso.kgAbatimiento)?'#10b981':'#ddd'};font-size:.88rem;background:${(asig?.kg||proceso.kgAbatimiento)?'#f0fdf4':'white'};">
+            <input type="number" id="abatCantidad" value="${cantidadKg}" min="0" step="0.1"
+              style="width:100%;padding:.45rem;border-radius:6px;border:1px solid ${cantidadKg?'#10b981':'#ddd'};font-size:.88rem;background:${cantidadKg?'#f0fdf4':'white'};">
           </div>
         </div>
         <!-- Temperatura de entrada -->
         <div style="margin-top:.75rem;">
           <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">🌡️ TEMPERATURA DE ENTRADA (°C)</label>
           <input type="number" id="abatTempEntrada" value="${tempEntrada}" step="0.1" placeholder="Ej: 65.0"
-            style="width:180px;padding:.45rem;border-radius:6px;border:1px solid ${tempEntrada?'#10b981':'#ddd'};font-size:.95rem;font-weight:700;background:${tempEntrada?'#f0fdf4':'white'};color:#0e7490;">
+            style="width:180px;padding:.45rem;border-radius:6px;border:2px solid ${tempEntrada?'#10b981':'#a5f3fc'};font-size:.95rem;font-weight:700;background:${tempEntrada?'#f0fdf4':'white'};color:#0e7490;">
         </div>
       </div>
 
-      <!-- Fila salida -->
+      <!-- Fila salida — prellenada automáticamente desde el retiro del equipo -->
       <div style="background:#fafafa;border-radius:10px;padding:1rem;border:1px solid #e2e8f0;margin-bottom:1rem;">
-        <div style="font-size:.78rem;font-weight:700;color:#0e7490;margin-bottom:.75rem;">DATOS DE SALIDA DEL ABATIDOR</div>
+        <div style="font-size:.78rem;font-weight:700;color:#0e7490;margin-bottom:.75rem;">
+          DATOS DE SALIDA DEL ABATIDOR
+          ${horaSalida ? '<span style="background:#d1fae5;color:#065f46;border-radius:6px;padding:.1rem .5rem;font-size:.7rem;margin-left:.5rem;font-weight:700;">✅ Cargado automáticamente</span>' : ''}
+        </div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:.75rem;align-items:end;">
           <div style="grid-column:span 2;">
-            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">FECHA Y HORA DE SALIDA</label>
-            <button type="button" onclick="abrirRelojSalida()"
-              style="width:100%;padding:.6rem;border-radius:6px;border:2px solid #06b6d4;background:#ecfeff;color:#0e7490;font-weight:700;cursor:pointer;font-size:.85rem;display:flex;align-items:center;justify-content:center;gap:.5rem;">
-              🕐 <span id="btnRelojSalidaLabel">${horaSalida ? 'Salida registrada' : 'Registrar hora de salida'}</span>
-            </button>
-            <div style="display:flex;gap:.5rem;margin-top:.4rem;">
-              <input type="text" id="abatFechaSalidaTexto" value="${horaSalida ? fechaHoy : ''}" placeholder="Fecha" readonly
-                style="flex:1;padding:.35rem;border-radius:6px;border:1px solid ${horaSalida?'#10b981':'#e2e8f0'};background:${horaSalida?'#f0fdf4':'#f1f5f9'};font-size:.82rem;text-align:center;color:#0e7490;font-weight:600;">
-              <input type="text" id="abatHoraSalida" value="${horaSalida}" placeholder="Hora" readonly
-                style="flex:1;padding:.35rem;border-radius:6px;border:1px solid ${horaSalida?'#10b981':'#e2e8f0'};background:${horaSalida?'#f0fdf4':'#f1f5f9'};font-size:.82rem;text-align:center;color:#0e7490;font-weight:700;">
-            </div>
-            <input type="hidden" id="abatFechaSalida" value="${horaSalida ? fechaHoyISO : ''}">
+            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">FECHA DE SALIDA</label>
+            <input type="text" id="abatFechaSalidaTexto" value="${fechaSalidaDisplay || fechaHoy}"
+              style="width:100%;padding:.45rem;border-radius:6px;border:2px solid ${horaSalida?'#10b981':'#a5f3fc'};font-size:.88rem;background:${horaSalida?'#f0fdf4':'#f8fafc'};font-weight:600;color:#0e7490;">
+            <input type="hidden" id="abatFechaSalida" value="${fechaSalidaISO}">
+            <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;margin-top:.5rem;">HORA DE SALIDA</label>
+            <input type="time" id="abatHoraSalida" value="${horaSalida}"
+              style="width:100%;padding:.45rem;border-radius:6px;border:2px solid ${horaSalida?'#10b981':'#a5f3fc'};font-size:.88rem;background:${horaSalida?'#f0fdf4':'#f8fafc'};font-weight:${horaSalida?'700':'400'};">
+            ${!horaSalida ? '<div style="font-size:.7rem;color:#94a3b8;margin-top:.2rem;">Se llenará al retirar del equipo</div>' : ''}
           </div>
           <div>
             <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">T° SALIDA (°C)</label>
             <input type="number" id="abatTempSalida" value="${tempSalida}" placeholder="Ej: 3" step="0.1"
-              style="width:100%;padding:.45rem;border-radius:6px;border:1px solid ${tempSalida?'#10b981':'#ddd'};font-size:.95rem;font-weight:${tempSalida?'700':'400'};background:${tempSalida?'#f0fdf4':'white'};">
+              style="width:100%;padding:.45rem;border-radius:6px;border:2px solid ${tempSalida?'#10b981':'#a5f3fc'};font-size:.95rem;font-weight:${tempSalida?'700':'400'};background:${tempSalida?'#f0fdf4':'#f8fafc'};">
+            ${!tempSalida ? '<div style="font-size:.7rem;color:#94a3b8;margin-top:.2rem;">Del retiro del equipo</div>' : ''}
           </div>
           <div>
             <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">⑧ ¿CUMPLE T°?</label>
@@ -3533,7 +3569,7 @@ function abrirRegistroHACCPAbatimiento(index) {
               <label style="font-size:.72rem;font-weight:700;color:#92400e;display:block;margin-bottom:.3rem;">⑨ ACCIÓN CORRECTIVA (ACC)</label>
               <select id="abatACC" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #fde68a;font-size:.82rem;">
                 <option value="">Selecciona acción...</option>
-                <option value="ACC-01">ACC-01 — Refrigeración >5°C → 60 min adicionales en cámara</option>
+                <option value="ACC-01">ACC-01 — Refrigeración >4°C → 60 min adicionales en cámara</option>
                 <option value="ACC-02">ACC-02 — Congelación >-5°C → 120 min adicionales en cámara</option>
               </select>
             </div>
@@ -3597,23 +3633,22 @@ function abrirRegistroHACCPAbatimiento(index) {
     }
   }, 200);
 
-  // Tipo de proceso lo selecciona el operador — sin preselección
+  // Tipo de proceso — sin preselección, lo elige el operador
   window._tipoAbat = null;
   if (asig?.cumpleLimite === false) {
-    setTimeout(() => { document.getElementById('accAbatWrap').style.display = 'block'; }, 300);
+    setTimeout(() => { const w = document.getElementById('accAbatWrap'); if(w) w.style.display = 'block'; }, 300);
   }
 
   // Mostrar ACC si NC
   setTimeout(() => {
     document.querySelectorAll('.btnCNCAbat[data-id="abatCumple"]').forEach(btn => {
       btn.addEventListener('click', () => {
-        document.getElementById('accAbatWrap').style.display =
-          btn.getAttribute('data-val') === 'NC' ? 'block' : 'none';
+        const w = document.getElementById('accAbatWrap');
+        if(w) w.style.display = btn.getAttribute('data-val') === 'NC' ? 'block' : 'none';
       });
     });
   }, 100);
 }
-
 function cerrarModalHACCPAbatimiento() {
   document.getElementById('modalHACCPAbatimiento').style.display = 'none';
 }
@@ -3683,8 +3718,9 @@ function generarPDFHACCPAbatimiento() {
     responsable: document.getElementById('abatResponsable')?.value || '',
     tipoFormato: document.getElementById('abatTipoFormato')?.value || '',
     horaIngreso: document.getElementById('abatHoraIngreso')?.value || '',
-    producto: proceso.producto || '',
-    op: proceso.numeroOP || '',
+    // Tomar producto y OP desde los campos del formulario (prellenados automáticamente desde envasado)
+    producto: document.getElementById('abatProducto')?.value || proceso.producto || '',
+    op: document.getElementById('abatOP')?.value || proceso.numeroOP || '',
     lote: document.getElementById('abatLote')?.value || '',
     cantidad: document.getElementById('abatCantidad')?.value || '',
     fechaSalida: document.getElementById('abatFechaSalidaTexto')?.value || fechaSalidaStr,
@@ -14539,7 +14575,7 @@ function mostrarPopupGantt(eq) {
                             style="flex:1;background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;border-radius:8px;padding:.6rem;font-weight:700;cursor:pointer;">
                             ✅ Retirar del equipo
                         </button>
-                        <button onclick="abrirRegistroHACCPAbatimiento(${asignacionesAbat.indexOf(a)})"
+                        <button onclick="abrirHACCPAbatPorId('${a.id}')"
                             style="background:#ecfeff;border:2px solid #06b6d4;color:#0e7490;border-radius:8px;padding:.5rem .75rem;cursor:pointer;font-weight:700;font-size:.82rem;">
                             📋 HACCP
                         </button>
