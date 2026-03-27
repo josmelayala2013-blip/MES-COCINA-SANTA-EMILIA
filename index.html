@@ -5922,8 +5922,13 @@ function imprimirRegistroHACCP(d) {
             procesosAbatimiento.push(procesoAbat);
 
             // Enviar al nuevo módulo de abatimiento con vista 2D
+            // Enriquecer la tanda con producto y OP del proceso de envasado
             if (typeof recibirTandaEnAbatimiento === 'function') {
-                recibirTandaEnAbatimiento(tanda);
+                recibirTandaEnAbatimiento({
+                    ...tanda,
+                    producto: proceso.producto || proceso.componente || '—',
+                    numeroOP: proceso.numeroOP || '—'
+                });
             }
 
             guardarDatos();
