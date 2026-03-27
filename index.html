@@ -4447,13 +4447,7 @@ function abrirRegistroHACCP(equipoId) {
   const op = ordenesProduccion.find(o => o.id === eq.produccion.opVinculadaId);
   const nombreBuscar = (eq.produccion.componente || '').toLowerCase().trim();
 
-  // PRIORIDAD 1: componente de la OP (tiene cantidadTotal ya calculada)
-  let comp = op?.componentes?.find(c =>
-    (c.nombre || '').toLowerCase().trim() === nombreBuscar ||
-    nombreBuscar.includes((c.nombre || '').toLowerCase().trim())
-  );
-
-  // PRIORIDAD 2: buscar en receta (para obtener ingredientes con cantidadBruta si no hay en OP)
+  // ── Buscar la receta primero (por recetaId, sku, o nombre) ──────────────
   let receta = recetas.find(r => r.id === op?.recetaId);
   if (!receta && op?.sku) receta = recetas.find(r => r.sku === op.sku);
   if (!receta && op?.nombre) receta = recetas.find(r =>
@@ -4461,22 +4455,66 @@ function abrirRegistroHACCP(equipoId) {
     r.nombre.toLowerCase().includes(op.nombre.toLowerCase())
   );
 
+  // ── Buscar el componente por nombre ────────────────────────────────────
+  // PRIORIDAD 1: en la OP (cantidades ya calculadas para este lote)
+  let comp = op?.componentes?.find(c =>
+    (c.nombre || '').toLowerCase().trim() === nombreBuscar ||
+    nombreBuscar.includes((c.nombre || '').toLowerCase().trim()) ||
+    (c.nombre || '').toLowerCase().trim().includes(nombreBuscar)
+  );
+
+  // PRIORIDAD 2: en la receta vinculada
   if (!comp || !comp.ingredientes?.length) {
-    comp = receta?.componentes?.find(c => c.nombre?.toLowerCase().trim() === nombreBuscar);
+    const cReceta = receta?.componentes?.find(c =>
+      (c.nombre || '').toLowerCase().trim() === nombreBuscar ||
+      nombreBuscar.includes((c.nombre || '').toLowerCase().trim()) ||
+      (c.nombre || '').toLowerCase().trim().includes(nombreBuscar)
+    );
+    if (cReceta) {
+      // Tomar ingredientes de la receta pero cantidades de la OP si existen
+      const compOP = op?.componentes?.find(c =>
+        (c.nombre || '').toLowerCase().trim() === (cReceta.nombre || '').toLowerCase().trim()
+      );
+      comp = compOP?.ingredientes?.length ? compOP : cReceta;
+    }
   }
+
+  // PRIORIDAD 3: buscar en TODAS las recetas (fallback para recetas sin vinculación)
   if (!comp || !comp.ingredientes?.length) {
     for (const r of recetas) {
       const c = r.componentes?.find(c =>
-        c.nombre?.toLowerCase().trim() === nombreBuscar ||
-        nombreBuscar.includes(c.nombre?.toLowerCase().trim())
+        (c.nombre || '').toLowerCase().trim() === nombreBuscar ||
+        nombreBuscar.includes((c.nombre || '').toLowerCase().trim()) ||
+        (c.nombre || '').toLowerCase().trim().includes(nombreBuscar)
       );
       if (c?.ingredientes?.length) { comp = c; receta = r; break; }
     }
   }
 
-  console.log('HACCP Debug — componente:', nombreBuscar,
-    '| receta:', receta?.nombre,
-    '| comp:', comp?.nombre,
+  // ── Caso especial: sándwich/avemayo con búsqueda por palabra clave ──────
+  // Si el componente es nombre de un sándwich completo (no un sub-componente),
+  // buscar el componente con más ingredientes cuyo nombre coincida parcialmente
+  if (!comp?.ingredientes?.length && receta?.tipo === 'sandwich' || receta?.tipo === 'avemayo') {
+    const candidatos = (receta?.componentes || []).filter(c => c.ingredientes?.length > 0);
+    if (candidatos.length === 1) {
+      comp = candidatos[0]; // Si solo hay un componente con ingredientes, usarlo
+    } else if (candidatos.length > 1) {
+      // Buscar el que más coincida con el nombre
+      comp = candidatos.reduce((mejor, c) => {
+        const score = (c.nombre || '').toLowerCase().split(' ').filter(w =>
+          nombreBuscar.includes(w) && w.length > 3
+        ).length;
+        const scoreMejor = (mejor?.nombre || '').toLowerCase().split(' ').filter(w =>
+          nombreBuscar.includes(w) && w.length > 3
+        ).length;
+        return score > scoreMejor ? c : mejor;
+      }, candidatos[0]);
+    }
+  }
+
+  console.log('HACCP Debug — componente buscado:', nombreBuscar,
+    '| receta:', receta?.nombre, '| tipo:', receta?.tipo,
+    '| comp encontrado:', comp?.nombre,
     '| ingredientes:', comp?.ingredientes?.length || 0);
 
   const ingredientes = comp?.ingredientes || [];
@@ -4568,7 +4606,12 @@ function abrirRegistroHACCP(equipoId) {
             </tr>
           </thead>
           <tbody id="haaccpIngredientes">
-            ${ingrConCant.map((ing, i) => `
+            ${ingrConCant.length === 0 ? `
+              <tr><td colspan="9" style="padding:1rem;text-align:center;color:#f59e0b;font-weight:700;background:#fffbeb;border:1px solid #fde68a;">
+                ⚠️ No se encontraron ingredientes para este componente.<br>
+                <span style="font-size:.78rem;font-weight:400;color:#92400e;">Verifica que la receta tenga ingredientes cargados y vuelve a crear la OP.</span>
+              </td></tr>
+            ` : ingrConCant.map((ing, i) => `
               <tr style="background:${i%2===0?'white':'#f8fafc'};">
                 <td style="padding:.4rem;border:1px solid #e2e8f0;font-weight:600;">${ing.nombre}</td>
                 <td style="padding:.4rem;border:1px solid #e2e8f0;text-align:center;">${ing.cantReal} ${ing.unidad}</td>
@@ -4595,6 +4638,7 @@ function abrirRegistroHACCP(equipoId) {
                 </td>
               </tr>
             `).join('')}
+            `}
           </tbody>
         </table>
       </div>
@@ -4702,8 +4746,27 @@ function abrirRegistroHACCP(equipoId) {
 
   document.getElementById('contenidoModalHACCP').innerHTML = html;
   document.getElementById('modalHACCP').style.display = 'block';
-  // Autollenar PIN si el operador tiene uno registrado
-  setTimeout(() => autoLlenarPIN('hFirmaNombre','hFirmaPIN','cocina'), 100);
+
+  // Autollenar PIN con el operador ya cargado
+  setTimeout(() => {
+    // 1. Intentar autollenar por nombre de operador
+    autoLlenarPIN('hFirmaNombre', 'hFirmaPIN', 'cocina');
+    // 2. Si no encontró PIN, intentar buscar en todas las áreas
+    const pinEl = document.getElementById('hFirmaPIN');
+    const nomEl = document.getElementById('hFirmaNombre');
+    if (pinEl && nomEl && !pinEl.value && nomEl.value) {
+      const pin = getPINOperador(nomEl.value, 'cocina');
+      if (pin) {
+        pinEl.value = pin;
+        pinEl.style.borderColor = '#10b981';
+        const est = document.getElementById('firmaEstado');
+        if (est) { est.textContent = '✅ PIN cargado automáticamente'; est.style.color = '#10b981'; }
+      }
+    } else if (pinEl?.value) {
+      const est = document.getElementById('firmaEstado');
+      if (est) { est.textContent = '✅ PIN cargado automáticamente'; est.style.color = '#10b981'; }
+    }
+  }, 150);
 }
 
 function cerrarModalHACCP() {
