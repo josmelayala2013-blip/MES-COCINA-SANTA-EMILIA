@@ -13457,11 +13457,18 @@ function mostrarPopupGantt(eq) {
                 kgProgramados: proceso.kgProgramados || 0,
                 kgReales: proceso.kgReales || proceso.kgAbatimiento || 0,
                 tiempoFormateado: modulo === 'envasado' ? (proceso.tiempoEnvasadoFormateado || '—') : (proceso.tiempoAbatimientoFormateado || '—'),
-                // Guardar datos de temperaturas y horas para prellenar el HACCP
+                // Datos envasado
                 tempInicioEnvasado: proceso.tempInicioEnvasado || null,
                 tempFinEnvasado: proceso.tempFinEnvasado || null,
                 horaInicioEnvasado: proceso.horaInicioEnvasado || null,
                 horaFinEnvasado: proceso.horaFinEnvasado || null,
+                // Datos abatimiento — para autollenar HACCP
+                formato: proceso.formato || '',
+                horaIngresoISO: proceso.horaIngresoISO || proceso.inicioAbatimiento || null,
+                horaSalidaISO: proceso.horaSalidaISO || proceso.finAbatimiento || null,
+                tempEntrada: proceso.tempInicioAbatimiento || null,
+                tempSalida: proceso.tempSalida || proceso.tempFinAbatimiento || null,
+                cumpleLimite: proceso.cumpleLimite ?? null,
                 estado: 'pendiente',
                 completadoPor: null,
                 completadoEn: null,
@@ -13740,51 +13747,143 @@ function mostrarPopupGantt(eq) {
             const contEl = document.getElementById('contenidoModalHACCPAbatimiento');
             if (!contEl) { alert('Modal HACCP Abatimiento no disponible'); return; }
 
+            // ── Calcular todos los valores a prellenar ──────────────────────
+            const fechaHoy    = new Date().toLocaleDateString('es-CL');
+            const fechaHoyISO = new Date().toISOString().split('T')[0];
+            const loteJuliano = getDiaJuliano();
+
+            // Hora de ingreso — cuando entró la primera tanda al abatidor
+            const horaIngresoISO = p.horaIngresoISO || null;
+            const horaIngreso = horaIngresoISO
+                ? new Date(horaIngresoISO).toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'})
+                : '';
+
+            // Hora y fecha de salida — cuando el operador retiró del equipo
+            const horaSalidaISO = p.horaSalidaISO || null;
+            const horaSalida = horaSalidaISO
+                ? new Date(horaSalidaISO).toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'})
+                : '';
+            const fechaSalidaDisplay = horaSalidaISO
+                ? new Date(horaSalidaISO).toLocaleDateString('es-CL')
+                : fechaHoy;
+            const fechaSalidaISO = horaSalidaISO
+                ? new Date(horaSalidaISO).toISOString().split('T')[0]
+                : fechaHoyISO;
+
+            // Temperatura de salida
+            const tempSalida = p.tempSalida != null ? p.tempSalida : '';
+            const tempEntrada = p.tempEntrada != null ? p.tempEntrada : '';
+
+            // Formato — mapear al valor del select
+            const formatoMap = { '250gr':'250gr', '500gr':'500gr', '1kg':'1kg', '2kg':'2kg', '3kg':'3kg' };
+            const formatoSel = formatoMap[p.formato] || '';
+
+            // Cumple límite
+            const cumpleVal = p.cumpleLimite === true ? 'C' : p.cumpleLimite === false ? 'NC' : '';
+
             contEl.innerHTML = `
               <div style="background:#f0fdfe;border-radius:8px;padding:.75rem;margin-bottom:1rem;border-left:4px solid #0e7490;font-size:.85rem;color:#0e7490;">
                 <strong>📋 Registro HACCP desde pendiente</strong><br>
                 Abatimiento finalizado el ${p.fecha} a las ${p.horaFin} — ${p.producto}
+                ${(horaIngreso || horaSalida || tempSalida !== '') ? '<span style="background:#d1fae5;color:#065f46;border-radius:6px;padding:.1rem .5rem;font-size:.75rem;margin-left:.5rem;font-weight:700;">✅ Datos cargados automáticamente</span>' : ''}
               </div>
-              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:.75rem;margin-bottom:1rem;">
-                <div><label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.2rem;">Fecha Ingreso</label>
-                  <input type="date" id="apFechaIngreso" value="${p.fechaISO}" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
-                <div><label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.2rem;">Responsable</label>
-                  <input type="text" id="apResponsable" value="${p.operador}" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
-                <div><label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.2rem;">Tipo Proceso</label>
+
+              <!-- Fila 1: Fecha, Responsable, Tipo Proceso -->
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;margin-bottom:.75rem;">
+                <div><label style="font-size:.78rem;font-weight:700;color:#0e7490;display:block;margin-bottom:.2rem;">① FECHA INGRESO</label>
+                  <input type="text" id="apFechaIngreso" value="${fechaHoy}"
+                    style="width:100%;padding:.55rem;border-radius:8px;border:2px solid #10b981;font-size:.88rem;box-sizing:border-box;background:#f0fdf4;font-weight:600;"></div>
+                <div><label style="font-size:.78rem;font-weight:700;color:#0e7490;display:block;margin-bottom:.2rem;">② RESPONSABLE</label>
+                  <input type="text" id="apResponsable" value="${p.operador}"
+                    style="width:100%;padding:.55rem;border-radius:8px;border:1px solid ${p.operador?'#10b981':'#ddd'};font-size:.88rem;box-sizing:border-box;background:${p.operador?'#f0fdf4':'white'};"></div>
+                <div><label style="font-size:.78rem;font-weight:700;color:#0e7490;display:block;margin-bottom:.2rem;">TIPO PROCESO</label>
                   <select id="apTipo" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;">
-                    <option value="refrigeracion">Refrigeración</option>
-                    <option value="congelacion">Congelación</option>
+                    <option value="refrigeracion">🪣 Refrigeración (&lt;4°C)</option>
+                    <option value="congelacion">❄️ Congelación (&lt;-5°C)</option>
                   </select></div>
-                <div><label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.2rem;">Tipo Formato</label>
-                  <input type="text" id="apTipoFormato" placeholder="Ej: Pote, Bolsa" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
-                <div><label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.2rem;">Hora Ingreso</label>
-                  <input type="time" id="apHoraIngreso" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
-                <div><label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.2rem;">Producto</label>
-                  <input type="text" id="apProducto" value="${p.producto}" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
-                <div><label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.2rem;">OP</label>
-                  <input type="text" id="apOP" value="${p.numeroOP}" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
-                <div><label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.2rem;">Lote</label>
-                  <input type="text" id="apLote" placeholder="Lote" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
-                <div><label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.2rem;">Cantidad (kg)</label>
-                  <input type="number" id="apCantidad" value="${p.kgReales}" step="0.1" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
-                <div><label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.2rem;">Fecha Salida</label>
-                  <input type="date" id="apFechaSalida" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
-                <div><label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.2rem;">Hora Salida</label>
-                  <input type="time" id="apHoraSalida" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
-                <div><label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.2rem;">Temp Salida °C</label>
-                  <input type="number" id="apTempSalida" step="0.1" placeholder="°C" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
               </div>
-              <!-- Cumple temperatura -->
-              <div style="background:#f0fdfe;border-radius:10px;padding:.85rem;margin-bottom:1rem;">
-                <div style="font-weight:700;color:#0e7490;margin-bottom:.6rem;font-size:.88rem;">¿Cumple temperatura de salida?</div>
-                <div style="display:flex;gap:.5rem;">
-                  <button onclick="setCumpleAbatimiento('C',this)" style="padding:.4rem 1rem;border-radius:8px;border:2px solid #10b981;background:white;color:#10b981;font-weight:700;cursor:pointer;">✓ Cumple</button>
-                  <button onclick="setCumpleAbatimiento('NC',this)" style="padding:.4rem 1rem;border-radius:8px;border:2px solid #ef4444;background:white;color:#ef4444;font-weight:700;cursor:pointer;">✗ No Cumple</button>
+
+              <!-- Fila 2: Producto y OP -->
+              <div style="display:grid;grid-template-columns:2fr 1fr;gap:.75rem;margin-bottom:.75rem;padding:.75rem;background:#cffafe;border-radius:10px;border:1px solid #a5f3fc;">
+                <div><label style="font-size:.78rem;font-weight:700;color:#0e7490;display:block;margin-bottom:.2rem;">⑤ PRODUCTO / PREPARACIÓN</label>
+                  <input type="text" id="apProducto" value="${p.producto}"
+                    style="width:100%;padding:.55rem;border-radius:8px;border:2px solid #10b981;font-size:.95rem;font-weight:800;color:#1e293b;box-sizing:border-box;background:#f0fdf4;"></div>
+                <div><label style="font-size:.78rem;font-weight:700;color:#0e7490;display:block;margin-bottom:.2rem;">N° ORDEN PRODUCCIÓN</label>
+                  <input type="text" id="apOP" value="${p.numeroOP}"
+                    style="width:100%;padding:.55rem;border-radius:8px;border:2px solid #10b981;font-size:.9rem;font-weight:700;color:#0e7490;box-sizing:border-box;background:#f0fdf4;"></div>
+              </div>
+
+              <!-- Fila 3: Datos de ingreso -->
+              <div style="background:#fafafa;border-radius:10px;padding:1rem;border:1px solid #e2e8f0;margin-bottom:.75rem;">
+                <div style="font-size:.78rem;font-weight:700;color:#0e7490;margin-bottom:.75rem;">DATOS DE INGRESO AL ABATIDOR</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:.75rem;">
+                  <div><label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">③ FORMATO DE BOLSA</label>
+                    <select id="apTipoFormato"
+                      style="width:100%;padding:.5rem;border-radius:7px;border:2px solid ${formatoSel?'#10b981':'#a5f3fc'};font-size:.88rem;background:${formatoSel?'#f0fdf4':'white'};font-weight:${formatoSel?'700':'400'};box-sizing:border-box;">
+                      <option value="">— Selecciona —</option>
+                      <option value="250gr" ${formatoSel==='250gr'?'selected':''}>Bolsa 250 gr</option>
+                      <option value="500gr" ${formatoSel==='500gr'?'selected':''}>Bolsa 500 gr</option>
+                      <option value="1kg"   ${formatoSel==='1kg'?'selected':''}>Bolsa 1 kg</option>
+                      <option value="2kg"   ${formatoSel==='2kg'?'selected':''}>Bolsa 2 kg</option>
+                      <option value="3kg"   ${formatoSel==='3kg'?'selected':''}>Bolsa 3 kg</option>
+                    </select></div>
+                  <div><label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">④ HORA DE INGRESO</label>
+                    <input type="time" id="apHoraIngreso" value="${horaIngreso}"
+                      style="width:100%;padding:.5rem;border-radius:7px;border:2px solid ${horaIngreso?'#10b981':'#a5f3fc'};font-size:.88rem;background:${horaIngreso?'#f0fdf4':'white'};font-weight:${horaIngreso?'700':'400'};box-sizing:border-box;"></div>
+                  <div><label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">⑥ LOTE (JULIANO)</label>
+                    <input type="text" id="apLote" value="${loteJuliano}" maxlength="20"
+                      style="width:100%;padding:.5rem;border-radius:7px;border:2px solid #10b981;font-size:.88rem;background:#f0fdf4;font-weight:700;color:#0e7490;box-sizing:border-box;"></div>
+                  <div><label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">⑦ CANTIDAD (kg)</label>
+                    <input type="number" id="apCantidad" value="${p.kgReales}" step="0.1"
+                      style="width:100%;padding:.5rem;border-radius:7px;border:1px solid ${p.kgReales?'#10b981':'#ddd'};font-size:.88rem;background:${p.kgReales?'#f0fdf4':'white'};box-sizing:border-box;"></div>
                 </div>
-                <input type="hidden" id="apCumpleTemp" value="">
+                <div style="margin-top:.75rem;">
+                  <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">🌡️ TEMPERATURA DE ENTRADA (°C)</label>
+                  <input type="number" id="apTempEntrada" value="${tempEntrada}" step="0.1" placeholder="Ej: 65.0"
+                    style="width:180px;padding:.5rem;border-radius:7px;border:2px solid ${tempEntrada!==''?'#10b981':'#a5f3fc'};font-size:.95rem;font-weight:700;background:${tempEntrada!==''?'#f0fdf4':'white'};color:#0e7490;">
+                </div>
               </div>
+
+              <!-- Fila 4: Datos de salida — autollenados desde el retiro -->
+              <div style="background:#fafafa;border-radius:10px;padding:1rem;border:1px solid #e2e8f0;margin-bottom:.75rem;">
+                <div style="font-size:.78rem;font-weight:700;color:#0e7490;margin-bottom:.75rem;">
+                  DATOS DE SALIDA DEL ABATIDOR
+                  ${horaSalida ? '<span style="background:#d1fae5;color:#065f46;border-radius:6px;padding:.1rem .5rem;font-size:.7rem;margin-left:.5rem;font-weight:700;">✅ Cargado automáticamente</span>' : ''}
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:.75rem;align-items:end;">
+                  <div>
+                    <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">FECHA DE SALIDA</label>
+                    <input type="text" id="apFechaSalidaTexto" value="${fechaSalidaDisplay}"
+                      style="width:100%;padding:.5rem;border-radius:7px;border:2px solid ${horaSalida?'#10b981':'#a5f3fc'};font-size:.88rem;background:${horaSalida?'#f0fdf4':'#f8fafc'};font-weight:600;color:#0e7490;box-sizing:border-box;">
+                    <input type="hidden" id="apFechaSalida" value="${fechaSalidaISO}">
+                  </div>
+                  <div>
+                    <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">HORA DE SALIDA</label>
+                    <input type="time" id="apHoraSalida" value="${horaSalida}"
+                      style="width:100%;padding:.5rem;border-radius:7px;border:2px solid ${horaSalida?'#10b981':'#a5f3fc'};font-size:.88rem;background:${horaSalida?'#f0fdf4':'#f8fafc'};font-weight:${horaSalida?'700':'400'};box-sizing:border-box;">
+                    ${!horaSalida ? '<div style="font-size:.7rem;color:#94a3b8;margin-top:.2rem;">Del retiro del equipo</div>' : ''}
+                  </div>
+                  <div>
+                    <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">T° SALIDA (°C)</label>
+                    <input type="number" id="apTempSalida" value="${tempSalida}" step="0.1" placeholder="Ej: 3"
+                      style="width:100%;padding:.5rem;border-radius:7px;border:2px solid ${tempSalida!==''?'#10b981':'#a5f3fc'};font-size:.95rem;font-weight:${tempSalida!==''?'700':'400'};background:${tempSalida!==''?'#f0fdf4':'#f8fafc'};box-sizing:border-box;">
+                    ${tempSalida==='' ? '<div style="font-size:.7rem;color:#94a3b8;margin-top:.2rem;">Del retiro del equipo</div>' : ''}
+                  </div>
+                  <div>
+                    <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">⑧ ¿CUMPLE T°?</label>
+                    <div style="display:flex;gap:.4rem;margin-top:.1rem;">
+                      <button onclick="setCumpleAbatimiento('C',this)" id="btnCumpleC"
+                        style="flex:1;padding:.45rem;border-radius:6px;border:2px solid #10b981;background:${cumpleVal==='C'?'#10b981':'white'};color:${cumpleVal==='C'?'white':'#10b981'};cursor:pointer;font-weight:800;">C</button>
+                      <button onclick="setCumpleAbatimiento('NC',this)" id="btnCumpleNC"
+                        style="flex:1;padding:.45rem;border-radius:6px;border:2px solid #ef4444;background:${cumpleVal==='NC'?'#ef4444':'white'};color:${cumpleVal==='NC'?'white':'#ef4444'};cursor:pointer;font-weight:800;">NC</button>
+                    </div>
+                    <input type="hidden" id="apCumpleTemp" value="${cumpleVal}">
+                  </div>
+                </div>
+              </div>
+
               <!-- ACC -->
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:.75rem;">
                 <div><label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.3rem;">ACC (si aplica)</label>
                   <select id="apACC" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.85rem;box-sizing:border-box;">
                     <option value="">No aplica</option>
@@ -13795,29 +13894,46 @@ function mostrarPopupGantt(eq) {
                 <div><label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.3rem;">Temp Verificación ACC °C</label>
                   <input type="number" id="apTempACC" step="0.1" placeholder="°C" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
               </div>
-              <div style="margin-bottom:1rem;"><label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.3rem;">Responsable Salida</label>
-                <input type="text" id="apRespSalida" value="${p.operador}" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+              <div style="margin-bottom:.75rem;"><label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.3rem;">Responsable Salida</label>
+                <input type="text" id="apRespSalida" value="${p.operador}" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid ${p.operador?'#10b981':'#ddd'};font-size:.88rem;box-sizing:border-box;background:${p.operador?'#f0fdf4':'white'};"></div>
               <div style="margin-bottom:1.25rem;"><label style="font-size:.78rem;font-weight:600;color:#0e7490;display:block;margin-bottom:.3rem;">Observaciones</label>
-                <textarea id="apObs" rows="2" placeholder="Observaciones..." style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;resize:vertical;"></textarea></div>
-              <!-- Firma -->
-              <div style="background:#f0fdfe;border-radius:10px;padding:.85rem;margin-bottom:1.25rem;">
-                <div style="font-weight:700;color:#0e7490;margin-bottom:.6rem;font-size:.88rem;">🔐 Firma Digital</div>
+                <textarea id="apObs" rows="2" placeholder="Observaciones del proceso de abatimiento..."
+                  style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;resize:vertical;"></textarea></div>
+
+              <!-- Firma Digital -->
+              <div style="background:#f0fdfe;border-radius:10px;padding:.85rem;margin-bottom:1.25rem;border:2px solid #a5f3fc;">
+                <div style="font-weight:700;color:#0e7490;margin-bottom:.6rem;font-size:.88rem;">🔐 Firma Digital del Operador</div>
                 <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;">
                   <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">Nombre</label>
-                    <input type="text" id="apFirmaNombre" value="${p.operador}" style="padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;width:180px;"></div>
+                    <input type="text" id="apFirmaNombre" value="${p.operador}"
+                      oninput="autoLlenarPIN('apFirmaNombre','apFirmaPIN','abatimiento')"
+                      style="padding:.45rem;border-radius:6px;border:1px solid ${p.operador?'#10b981':'#ddd'};font-size:.88rem;width:180px;background:${p.operador?'#f0fdf4':'white'};"></div>
                   <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">PIN (4 dígitos)</label>
-                    <input type="password" id="apFirmaPIN" maxlength="4" placeholder="••••" style="padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;width:100px;text-align:center;letter-spacing:.2rem;"></div>
+                    <input type="password" id="apFirmaPIN" maxlength="4" placeholder="••••"
+                      style="padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;width:100px;text-align:center;letter-spacing:.2rem;"></div>
+                  <div id="apFirmaEstado" style="font-size:.82rem;color:#94a3b8;padding-top:1.2rem;">Ingresa PIN para firmar</div>
                 </div>
               </div>
+
               <div style="display:flex;gap:.75rem;justify-content:flex-end;">
                 <button onclick="cerrarModalHACCPAbatimiento()" style="padding:.75rem 1.5rem;border-radius:10px;border:1px solid #ddd;cursor:pointer;font-weight:600;color:#64748b;">Cancelar</button>
                 <button onclick="guardarHACCPAbatimientoPendiente('${p.id}')"
                   style="padding:.75rem 1.5rem;border-radius:10px;border:none;background:linear-gradient(135deg,#0e7490,#0891b2);color:white;cursor:pointer;font-weight:700;font-size:1rem;">
-                  💾 Guardar HACCP Abatimiento
+                  📄 Generar PDF e Imprimir
                 </button>
               </div>`;
 
             document.getElementById('modalHACCPAbatimiento').style.display = 'block';
+
+            // Autollenar PIN
+            setTimeout(() => {
+                autoLlenarPIN('apFirmaNombre', 'apFirmaPIN', 'abatimiento');
+                const pinEl = document.getElementById('apFirmaPIN');
+                if (pinEl?.value) {
+                    const est = document.getElementById('apFirmaEstado');
+                    if (est) { est.textContent = '✅ PIN cargado automáticamente'; est.style.color = '#10b981'; }
+                }
+            }, 150);
         }
 
         let _apCumpleVal = '';
@@ -13849,7 +13965,8 @@ function mostrarPopupGantt(eq) {
                 op: document.getElementById('apOP')?.value,
                 lote: document.getElementById('apLote')?.value,
                 cantidad: document.getElementById('apCantidad')?.value,
-                fechaSalida: document.getElementById('apFechaSalida')?.value,
+                tempEntrada: document.getElementById('apTempEntrada')?.value,
+                fechaSalida: document.getElementById('apFechaSalidaTexto')?.value || document.getElementById('apFechaSalida')?.value,
                 horaSalida: document.getElementById('apHoraSalida')?.value,
                 tempSalida: document.getElementById('apTempSalida')?.value,
                 cumpleTemp: document.getElementById('apCumpleTemp')?.value,
@@ -14820,7 +14937,6 @@ function mostrarPopupGantt(eq) {
         }
 
         function crearHACCPPendienteAbatItemModulo(asig) {
-            // Reutiliza el sistema de pendientes HACCP de abatimiento existente
             const proceso = {
                 producto: asig.producto,
                 numeroOP: asig.numeroOP,
@@ -14833,7 +14949,12 @@ function mostrarPopupGantt(eq) {
                 tiempoAbatimientoFormateado: `${asig.tiempoMinutos} min`,
                 inicioAbatimiento: asig.inicioISO,
                 finAbatimiento: asig.finISO,
-                cumpleLimite: asig.cumpleLimite
+                cumpleLimite: asig.cumpleLimite,
+                // Campos adicionales para autollenar HACCP
+                formato: asig.formato || '',
+                horaIngresoISO: asig.inicioISO,
+                horaSalidaISO: asig.finISO,
+                tempSalida: asig.tempSalida
             };
             crearHACCPPendienteModulo('abatimiento', proceso);
         }
