@@ -5926,7 +5926,8 @@ function imprimirRegistroHACCP(d) {
             if (typeof recibirTandaEnAbatimiento === 'function') {
                 recibirTandaEnAbatimiento({
                     ...tanda,
-                    producto: proceso.producto || proceso.componente || '—',
+                    // Usar componente (ej: "PANINI POLLO PESTO"), no producto que trae "NOMBRE — OP X"
+                    producto: proceso.componente || proceso.producto || '—',
                     numeroOP: proceso.numeroOP || '—'
                 });
             }
@@ -13454,6 +13455,7 @@ function mostrarPopupGantt(eq) {
                 modulo,
                 equipoNombre: proceso.equipoNombre || '—',
                 producto: proceso.producto || '—',
+                componente: proceso.componente || proceso.producto || '—',
                 numeroOP: proceso.numeroOP || '—',
                 operador: modulo === 'envasado'
                     ? (proceso.operadoraCierre || proceso.operador || proceso.manipulador || '—')
@@ -13605,7 +13607,7 @@ function mostrarPopupGantt(eq) {
                 <div><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.2rem;">Responsable</label>
                   <input type="text" id="epResponsable" value="${p.operadoraCierre || p.operador}" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
                 <div><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.2rem;">Preparación</label>
-                  <input type="text" id="epPreparacion" value="${p.producto}" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
+                  <input type="text" id="epPreparacion" value="${p.componente || p.producto}" style="width:100%;padding:.55rem;border-radius:8px;border:2px solid #10b981;font-size:.88rem;box-sizing:border-box;background:#f0fdf4;font-weight:700;"></div>
                 <div><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.2rem;">OP</label>
                   <input type="text" id="epOP" value="${p.numeroOP}" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #ddd;font-size:.88rem;box-sizing:border-box;"></div>
                 <div><label style="font-size:.78rem;font-weight:600;color:#5b21b6;display:block;margin-bottom:.2rem;">Equipo Origen</label>
@@ -14659,8 +14661,12 @@ function mostrarPopupGantt(eq) {
                                 <div style="height:5px;background:#e2e8f0;border-radius:3px;overflow:hidden;margin-bottom:.3rem;">
                                     <div style="height:100%;width:${pct}%;background:${col};border-radius:3px;transition:width .3s;"></div>
                                 </div>
+                                <div style="font-size:.7rem;color:#0e7490;font-weight:600;margin-bottom:.3rem;">
+                                    🕐 Ingreso: ${a.inicioISO ? new Date(a.inicioISO).toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'}) : '--:--'}
+                                    · ${a.nBolsas} bolsas ${a.formato} · OP ${a.numeroOP}
+                                </div>
                                 <div style="display:flex;justify-content:space-between;align-items:center;">
-                                    <span style="font-size:.7rem;color:#666;">${a.nBolsas} bolsas ${a.formato}</span>
+                                    <span style="font-size:.7rem;color:#666;">${a.operador || ''}</span>
                                     <button onclick="abrirFinalizarAbatItem('${a.id}')"
                                         style="background:#d1fae5;color:#065f46;border:none;border-radius:6px;padding:.2rem .55rem;cursor:pointer;font-size:.7rem;font-weight:700;">
                                         ✅ Retirar
@@ -14712,6 +14718,8 @@ function mostrarPopupGantt(eq) {
                         <div><strong>Kg:</strong> ${a.kg} kg</div>
                         <div><strong>T° entrada:</strong> ${a.tempEntrada ? a.tempEntrada+'°C' : '—'}</div>
                         <div><strong>Operador:</strong> ${a.operador}</div>
+                        <div style="color:#0e7490;font-weight:700;">🕐 Ingreso: ${a.inicioISO ? new Date(a.inicioISO).toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'}) : '--:--'}</div>
+                        <div style="color:#94a3b8;font-size:.78rem;">Salida: al retirar</div>
                     </div>
                     <div style="display:flex;gap:.5rem;">
                         <button onclick="abrirFinalizarAbatItem('${a.id}')"
@@ -14874,10 +14882,15 @@ function mostrarPopupGantt(eq) {
             const min = Math.floor((new Date() - new Date(asig.inicioISO)) / 60000);
             const eq = EQUIPOS_ABAT[asig.equipoId];
 
+            const horaIngresoLabel = asig.inicioISO ? new Date(asig.inicioISO).toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'}) : '--:--';
+            const horaSalidaLabel = new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'});
             document.getElementById('contenidoModalFinalizarAbatItem').innerHTML = `
                 <div style="background:#f0fdf4;border-radius:10px;padding:.85rem;margin-bottom:1.25rem;border-left:4px solid #10b981;font-size:.85rem;color:#065f46;">
                     <strong>${eq?.icono} ${eq?.nombre}</strong> — ${asig.producto}<br>
-                    ${asig.nBolsas} bolsas ${asig.formato} · Tiempo: <strong>${min} minutos</strong>
+                    ${asig.nBolsas} bolsas ${asig.formato} · Tiempo: <strong>${min} minutos</strong><br>
+                    <span style="font-size:.78rem;color:#0e7490;font-weight:700;">
+                        🕐 Ingreso: ${horaIngresoLabel} &nbsp;|&nbsp; 🕑 Salida (ahora): ${horaSalidaLabel}
+                    </span>
                     ${min > 120 ? '<br><span style="color:#dc2626;font-weight:700;">⚠️ Superó el límite de 120 min</span>' :
                       min > 90  ? '<br><span style="color:#f59e0b;font-weight:700;">⚠️ Superó el ideal de 90 min</span>' : ''}
                 </div>
