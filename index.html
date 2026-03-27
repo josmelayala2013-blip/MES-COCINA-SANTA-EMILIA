@@ -11182,10 +11182,11 @@ function abrirModalPreelaborado(tipo, opId) {
     ings.forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; selIng.appendChild(o); });
   }
 
-  // Cargar operadores
+  // Cargar operadores — combinar cocina + preelaborado
   const selOp = document.getElementById('preOperador');
-  const listaPersonal = personal.preelaborado || personal.cocina || [];
-  selOp.innerHTML = '<option value="">— Selecciona operador —</option>' + listaPersonal.map(n => `<option value="${n}">${n}</option>`).join('');
+  const _getNombre1 = item => typeof item === 'string' ? item : item.nombre;
+  const listaPersonal1 = [...(personal.preelaborado||[]), ...(personal.cocina||[])].filter((item,idx,arr)=>{ const n=_getNombre1(item); return n && arr.findIndex(x=>_getNombre1(x)===n)===idx; });
+  selOp.innerHTML = '<option value="">— Selecciona operador —</option>' + listaPersonal1.map(item=>{ const n=_getNombre1(item); return `<option value="${n}">${n}</option>`; }).join('');
 
   // Cargar OPs vinculables
   const selOP = document.getElementById('preOpVinculada');
@@ -11242,11 +11243,11 @@ function abrirModalLote(tipo, op, ings) {
   // Guardar contexto
   window._preLoteCtx = { tipo, opId: op.id, opNumero: op.numeroOp, ings };
 
-  // Operadores
+  // Operadores — combinar cocina + preelaborado
   const selOp = document.getElementById('preLoteOperador');
-  const listaPersonal = personal.preelaborado || personal.cocina || [];
-  selOp.innerHTML = '<option value="">— Selecciona operador —</option>' +
-    listaPersonal.map(n => `<option value="${n}">${n}</option>`).join('');
+  const _getNombre2 = item => typeof item === 'string' ? item : item.nombre;
+  const listaPersonal2 = [...(personal.preelaborado||[]), ...(personal.cocina||[])].filter((item,idx,arr)=>{ const n=_getNombre2(item); return n && arr.findIndex(x=>_getNombre2(x)===n)===idx; });
+  selOp.innerHTML = '<option value="">— Selecciona operador —</option>' + listaPersonal2.map(item=>{ const n=_getNombre2(item); return `<option value="${n}">${n}</option>`; }).join('');
 
   // Ingredientes
   const fechaInput = getFechaPreInput(tipo);
