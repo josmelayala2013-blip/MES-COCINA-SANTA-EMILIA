@@ -7431,7 +7431,20 @@ function imprimirRegistroHACCP(d) {
                 
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    equipos = data.equipos || equipos;
+                    // Merge inteligente: preservar equipos del código base, 
+                    // solo actualizar estado/produccion desde Firebase
+                    // Esto evita perder equipos nuevos (ej: Marmita 1/2) cuando Firebase tiene versión vieja
+                    if (data.equipos && data.equipos.length > 0) {
+                        const equiposBase = equipos; // lista maestra del código
+                        equipos = equiposBase.map(eqBase => {
+                            const eqFirebase = data.equipos.find(e => e.id === eqBase.id);
+                            if (eqFirebase) {
+                                // Actualizar estado operativo desde Firebase, preservar datos base
+                                return { ...eqBase, estado: eqFirebase.estado, produccion: eqFirebase.produccion, planificaciones: eqFirebase.planificaciones };
+                            }
+                            return eqBase; // equipo nuevo no está en Firebase, mantener como disponible
+                        });
+                    }
                     recalcularTiemposCoccion();
                     limpiarEsperasVencidas();
                     productos = data.productos || productos;
@@ -7600,7 +7613,20 @@ function limpiarComponentesFriosDeEquipos() {
                         
                         if (esOtroDispositivo) {
                             console.log('🔄 Actualizando desde otro dispositivo...');
-                            equipos = data.equipos || equipos;
+                            // Merge inteligente: preservar equipos del código base, 
+                    // solo actualizar estado/produccion desde Firebase
+                    // Esto evita perder equipos nuevos (ej: Marmita 1/2) cuando Firebase tiene versión vieja
+                    if (data.equipos && data.equipos.length > 0) {
+                        const equiposBase = equipos; // lista maestra del código
+                        equipos = equiposBase.map(eqBase => {
+                            const eqFirebase = data.equipos.find(e => e.id === eqBase.id);
+                            if (eqFirebase) {
+                                // Actualizar estado operativo desde Firebase, preservar datos base
+                                return { ...eqBase, estado: eqFirebase.estado, produccion: eqFirebase.produccion, planificaciones: eqFirebase.planificaciones };
+                            }
+                            return eqBase; // equipo nuevo no está en Firebase, mantener como disponible
+                        });
+                    }
                     recalcularTiemposCoccion();
                     limpiarEsperasVencidas();
                             productos = data.productos || productos;
