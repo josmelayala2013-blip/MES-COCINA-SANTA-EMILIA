@@ -3401,7 +3401,7 @@ function abrirRegistroHACCPAbatimiento(index) {
   // ─── Hora de ingreso (momento en que la tanda fue recibida en abatimiento) ─
   const horaIngresoISO = asig?.inicioISO || proceso.inicioAbatimiento || tandaOrig?.recibidaISO || null;
   const horaIngreso = horaIngresoISO
-    ? new Date(horaIngresoISO).toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'})
+    ? (d => `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`)(new Date(horaIngresoISO))
     : '';
 
   // ─── Fecha de hoy (fecha del abatimiento) ────────────────────────────────
@@ -3414,7 +3414,7 @@ function abrirRegistroHACCPAbatimiento(index) {
   // ─── Datos de salida (cuando el operador retiró del equipo) ──────────────
   const horaSalidaISO = asig?.finISO || null;
   const horaSalida = horaSalidaISO
-    ? new Date(horaSalidaISO).toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'})
+    ? (d => `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`)(new Date(horaSalidaISO))
     : '';
   const fechaSalidaDisplay = horaSalidaISO
     ? new Date(horaSalidaISO).toLocaleDateString('es-CL')
@@ -13762,13 +13762,13 @@ function mostrarPopupGantt(eq) {
             // Hora de ingreso — cuando entró la primera tanda al abatidor
             const horaIngresoISO = p.horaIngresoISO || null;
             const horaIngreso = horaIngresoISO
-                ? new Date(horaIngresoISO).toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'})
+                ? (d => `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`)(new Date(horaIngresoISO))
                 : '';
 
             // Hora y fecha de salida — cuando el operador retiró del equipo
             const horaSalidaISO = p.horaSalidaISO || null;
             const horaSalida = horaSalidaISO
-                ? new Date(horaSalidaISO).toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'})
+                ? (d => `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`)(new Date(horaSalidaISO))
                 : '';
             const fechaSalidaDisplay = horaSalidaISO
                 ? new Date(horaSalidaISO).toLocaleDateString('es-CL')
