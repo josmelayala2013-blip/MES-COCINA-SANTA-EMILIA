@@ -8774,7 +8774,9 @@ function guardarRecetaSandwich() {
   const componentes = componentesSandwichTemp.map(c => ({
     nombre: c.nombre,
     gramajePorcion: c.gramajePorUnidad,
+    gramajePorUnidad: c.gramajePorUnidad,
     unidadComponente: c.unidadComponente || 'gr',
+    tiempoCoccionMin: (c.tiempoCoccionMin != null && c.tiempoCoccionMin > 0) ? c.tiempoCoccionMin : null,
     preparacionFria: c.preparacionFria || false,
     ingredientes: c.ingredientes || []
   }));
@@ -8955,7 +8957,9 @@ function guardarRecetaAveMayo() {
   const componentes = componentesAveMayoTemp.map(c => ({
     nombre: c.nombre,
     gramajePorcion: c.gramajePorUnidad,
+    gramajePorUnidad: c.gramajePorUnidad,
     unidadComponente: c.unidadComponente || 'gr',
+    tiempoCoccionMin: (c.tiempoCoccionMin != null && c.tiempoCoccionMin > 0) ? c.tiempoCoccionMin : null,
     preparacionFria: c.preparacionFria || false,
     ingredientes: c.ingredientes || []
   }));
