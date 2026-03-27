@@ -11536,6 +11536,44 @@ function abrirHACCPPreelaborado(preId) {
   else abrirHACCPPreVegetales(pre);
 }
 
+function autoLlenarPINCarne() {
+  const sel = document.getElementById('hpcResponsable');
+  const pinEl = document.getElementById('hpcFirmaPIN');
+  const estado = document.getElementById('hpcFirmaEstado');
+  if (!sel || !pinEl) return;
+  const nombre = sel.value;
+  if (!nombre) { pinEl.value = ''; return; }
+  const pin = getPINOperador(nombre, 'preelaborado') || getPINOperador(nombre, 'cocina');
+  if (pin) {
+    pinEl.value = pin;
+    pinEl.style.borderColor = '#10b981';
+    if (estado) { estado.textContent = '✅ PIN cargado'; estado.style.color = '#10b981'; }
+  } else {
+    pinEl.value = '';
+    pinEl.style.borderColor = '#e2e8f0';
+    if (estado) { estado.textContent = 'Ingresa PIN'; estado.style.color = '#94a3b8'; }
+  }
+}
+
+function autoLlenarPINVegetal() {
+  const sel = document.getElementById('hpvResponsable');
+  const pinEl = document.getElementById('hpvFirmaPIN');
+  const estado = document.getElementById('hpvFirmaEstado');
+  if (!sel || !pinEl) return;
+  const nombre = sel.value;
+  if (!nombre) { pinEl.value = ''; return; }
+  const pin = getPINOperador(nombre, 'preelaborado') || getPINOperador(nombre, 'cocina');
+  if (pin) {
+    pinEl.value = pin;
+    pinEl.style.borderColor = '#10b981';
+    if (estado) { estado.textContent = '✅ PIN cargado'; estado.style.color = '#10b981'; }
+  } else {
+    pinEl.value = '';
+    pinEl.style.borderColor = '#e2e8f0';
+    if (estado) { estado.textContent = 'Ingresa PIN'; estado.style.color = '#94a3b8'; }
+  }
+}
+
 function abrirHACCPPreCarnes(pre) {
   const fecha = pre.fecha || new Date().toISOString().split('T')[0];
   const [y,m,d] = fecha.split('-');
@@ -11641,10 +11679,25 @@ function abrirHACCPPreCarnes(pre) {
       </div>
     </div>
 
-    <!-- RESPONSABLE -->
-    <div style="margin-bottom:1.25rem;">
-      <label style="font-size:.8rem;font-weight:600;color:#333;display:block;margin-bottom:.3rem;">👤 Responsable de la Elaboración (9)</label>
-      <input type="text" id="hpcResponsable" value="${pre.operador || ''}" placeholder="Nombre y firma" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
+    <!-- RESPONSABLE + FIRMA -->
+    <div style="background:#f8fafc;border-radius:10px;padding:1rem;margin-bottom:1.25rem;border:2px solid #e2e8f0;">
+      <div style="font-size:.85rem;font-weight:700;color:#dc2626;margin-bottom:.75rem;">👤 Responsable de la Elaboración (9) — Firma Digital</div>
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:.75rem;align-items:end;">
+        <div>
+          <label style="font-size:.78rem;font-weight:600;color:#333;display:block;margin-bottom:.3rem;">Nombre Responsable</label>
+          <select id="hpcResponsable" onchange="autoLlenarPINCarne()"
+            style="width:100%;padding:.6rem;border-radius:8px;border:1px solid ${pre.operador?'#10b981':'#e2e8f0'};font-size:.9rem;box-sizing:border-box;background:${pre.operador?'#f0fdf4':'white'};">
+            <option value="">— Selecciona operador —</option>
+            ${[...(personal.cocina||[]), ...(personal.preelaborado||[])].map(item=>{const n=typeof item==='string'?item:item.nombre;return `<option value="${n}" ${n===(pre.operador||'')?'selected':''}>${n}</option>`;}).join('')}
+          </select>
+        </div>
+        <div>
+          <label style="font-size:.78rem;font-weight:600;color:#333;display:block;margin-bottom:.3rem;">PIN (4 dígitos)</label>
+          <input type="password" id="hpcFirmaPIN" maxlength="4" placeholder="••••"
+            style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;text-align:center;letter-spacing:.2rem;">
+        </div>
+        <div id="hpcFirmaEstado" style="font-size:.8rem;color:#94a3b8;padding-bottom:.6rem;">Sin firmar</div>
+      </div>
     </div>
 
     <!-- TEMPERATURA SALA -->
@@ -11683,6 +11736,10 @@ function abrirHACCPPreCarnes(pre) {
 
   document.getElementById('contenidoHACCPPreCarnes').innerHTML = html;
   document.getElementById('modalHACCPPreCarnes').style.display = 'block';
+  // Autollenar PIN si hay operador
+  setTimeout(() => {
+    if (pre.operador) autoLlenarPINCarne();
+  }, 150);
 }
 
 function cerrarHACCPPreCarnes() {
@@ -11690,6 +11747,12 @@ function cerrarHACCPPreCarnes() {
 }
 
 function guardarHACCPPreCarnes(preId) {
+  const pin = document.getElementById('hpcFirmaPIN')?.value;
+  if (!pin || pin.length < 4) {
+    alert('Ingresa el PIN de 4 dígitos para firmar el registro');
+    document.getElementById('hpcFirmaPIN')?.focus();
+    return;
+  }
   const pre = preelaborados.find(p => p.id === preId);
   if (!pre) return;
   pre.haccp = {
@@ -11714,6 +11777,8 @@ function guardarHACCPPreCarnes(preId) {
     tempSala: document.getElementById('hpcTempSala')?.value,
     horaTempSala: document.getElementById('hpcHoraTempSala')?.value,
     verificador: document.getElementById('hpcVerificador')?.value,
+    firmaNombre: document.getElementById('hpcResponsable')?.value,
+    firmaTimestamp: new Date().toLocaleString('es-CL'),
     registradoEn: new Date().toLocaleString('es-CL')
   };
   guardarPreelaborados();
@@ -11956,10 +12021,25 @@ function abrirHACCPPreVegetales(pre) {
       </div>
     </div>
 
-    <!-- RESPONSABLE -->
-    <div style="margin-bottom:1.25rem;">
-      <label style="font-size:.8rem;font-weight:600;color:#333;display:block;margin-bottom:.3rem;">👤 Responsable Elaboración (9)</label>
-      <input type="text" id="hpvResponsable" value="${pre.operador || ''}" placeholder="Nombre y firma" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
+    <!-- RESPONSABLE + FIRMA -->
+    <div style="background:#f8fafc;border-radius:10px;padding:1rem;margin-bottom:1.25rem;border:2px solid #e2e8f0;">
+      <div style="font-size:.85rem;font-weight:700;color:#16a34a;margin-bottom:.75rem;">👤 Responsable de la Elaboración (9) — Firma Digital</div>
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:.75rem;align-items:end;">
+        <div>
+          <label style="font-size:.78rem;font-weight:600;color:#333;display:block;margin-bottom:.3rem;">Nombre Responsable</label>
+          <select id="hpvResponsable" onchange="autoLlenarPINVegetal()"
+            style="width:100%;padding:.6rem;border-radius:8px;border:1px solid ${pre.operador?'#10b981':'#e2e8f0'};font-size:.9rem;box-sizing:border-box;background:${pre.operador?'#f0fdf4':'white'};">
+            <option value="">— Selecciona operador —</option>
+            ${[...(personal.cocina||[]), ...(personal.preelaborado||[])].map(item=>{const n=typeof item==='string'?item:item.nombre;return `<option value="${n}" ${n===(pre.operador||'')?'selected':''}>${n}</option>`;}).join('')}
+          </select>
+        </div>
+        <div>
+          <label style="font-size:.78rem;font-weight:600;color:#333;display:block;margin-bottom:.3rem;">PIN (4 dígitos)</label>
+          <input type="password" id="hpvFirmaPIN" maxlength="4" placeholder="••••"
+            style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;text-align:center;letter-spacing:.2rem;">
+        </div>
+        <div id="hpvFirmaEstado" style="font-size:.8rem;color:#94a3b8;padding-bottom:.6rem;">Sin firmar</div>
+      </div>
     </div>
 
     <div style="background:#f0fdf4;border-radius:8px;padding:.75rem;margin-bottom:1.25rem;font-size:.78rem;color:#64748b;">
@@ -11976,6 +12056,10 @@ function abrirHACCPPreVegetales(pre) {
 
   document.getElementById('contenidoHACCPPreVegetales').innerHTML = html;
   document.getElementById('modalHACCPPreVegetales').style.display = 'block';
+  // Autollenar PIN si hay operador
+  setTimeout(() => {
+    if (pre.operador) autoLlenarPINVegetal();
+  }, 150);
 }
 
 function cerrarHACCPPreVegetales() {
@@ -11983,6 +12067,12 @@ function cerrarHACCPPreVegetales() {
 }
 
 function guardarHACCPPreVegetales(preId) {
+  const pin = document.getElementById('hpvFirmaPIN')?.value;
+  if (!pin || pin.length < 4) {
+    alert('Ingresa el PIN de 4 dígitos para firmar el registro');
+    document.getElementById('hpvFirmaPIN')?.focus();
+    return;
+  }
   const pre = preelaborados.find(p => p.id === preId);
   if (!pre) return;
   pre.haccp = {
@@ -12002,6 +12092,8 @@ function guardarHACCPPreVegetales(preId) {
     textura: document.querySelector('input[name="hpvTextura"]:checked')?.value,
     accionCorrectiva: document.getElementById('hpvAC')?.value,
     responsable: document.getElementById('hpvResponsable')?.value,
+    firmaNombre: document.getElementById('hpvResponsable')?.value,
+    firmaTimestamp: new Date().toLocaleString('es-CL'),
     registradoEn: new Date().toLocaleString('es-CL')
   };
   guardarPreelaborados();
