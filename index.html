@@ -9504,7 +9504,9 @@ function calcularRecetaParaPlatos(r, platos) {
         return { nombre: ing.nombre, cantidadTotal, unidad: ing.unidad };
       }
     });
-    return { nombre: comp.nombre, gramajePorcion: comp.gramajePorcion, kgTerminados, ingredientes };
+    return { nombre: comp.nombre, gramajePorcion: comp.gramajePorcion, kgTerminados, ingredientes,
+             tiempoCoccionMin: comp.tiempoCoccionMin || null,
+             preparacionFria: comp.preparacionFria || false };
   });
 
   return { kgTotalesTerminados, componentes };
@@ -9935,7 +9937,11 @@ function planificarJornadaEnGantt(opIds, fechaStr) {
         return;
       }
       const tipoEquipo = mapearTipoEquipoTexto(comp.equipoSugerido || sugerirEquipoPorComponente(comp.nombre, comp.kgTerminados || 0));
-      const duracion = getTiempoComponente(comp);
+      // Si el componente de la OP no tiene tiempoCoccionMin, buscarlo en la receta original
+      const compEnriquecido = (!comp.tiempoCoccionMin && recetaOp)
+        ? { ...comp, tiempoCoccionMin: compReceta?.tiempoCoccionMin || null }
+        : comp;
+      const duracion = getTiempoComponente(compEnriquecido);
       tareas.push({
         op, comp, tipoEquipo, duracion,
         kg: comp.kgTerminados || 0
