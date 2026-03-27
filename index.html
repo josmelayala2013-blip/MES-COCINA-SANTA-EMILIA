@@ -8386,10 +8386,13 @@ async function sincronizarRecetasFirebase(intentos = 0) {
   }
   try {
     const { doc, setDoc } = window.firestoreFunctions;
+    const ts = new Date().toISOString();
     await setDoc(doc(window.db, 'mes-data', 'recetas'), { 
       recetas, 
-      ultimaActualizacion: new Date().toISOString() 
+      ultimaActualizacion: ts 
     });
+    // Actualizar timestamp local para que cargarRecetasFirebase sepa que ya tenemos esta versión
+    localStorage.setItem('mes_recetas_ts', ts);
     console.log('✅ Recetas sincronizadas con Firebase:', recetas.length);
   } catch(e) { 
     console.error('❌ Error Firebase recetas:', e); 
@@ -8461,8 +8464,11 @@ function renderComponentesModal() {
         <input value="${comp.nombre}" oninput="componentesTemp[${ci}].nombre=this.value" placeholder="Nombre del componente (Ej: Salsa, Arroz, Proteína)" style="flex:1;padding:.5rem;border-radius:8px;border:1px solid #ddd;">
         <input type="number" value="${comp.gramajePorcion||''}" oninput="componentesTemp[${ci}].gramajePorcion=parseFloat(this.value)||0" placeholder="gr/unidad" style="width:90px;padding:.5rem;border-radius:8px;border:1px solid #ddd;" title="Gramaje por unidad">
         <div style="display:flex;flex-direction:column;align-items:center;gap:.1rem;">
-          <input type="number" value="${comp.tiempoCoccionMin||''}" oninput="componentesTemp[${ci}].tiempoCoccionMin=this.value===''?null:(parseInt(this.value)||null)" placeholder="30" min="1" max="480"
-            style="width:65px;padding:.5rem;border-radius:8px;border:1px solid #a5b4fc;background:#eef2ff;text-align:center;font-weight:700;color:#4f46e5;" title="Tiempo cocción estimado (min)">
+          <input type="number" value="${comp.tiempoCoccionMin != null && comp.tiempoCoccionMin > 0 ? comp.tiempoCoccionMin : ''}" 
+            oninput="componentesTemp[${ci}].tiempoCoccionMin=this.value===''?null:(parseInt(this.value)>0?parseInt(this.value):null)"
+            onchange="componentesTemp[${ci}].tiempoCoccionMin=this.value===''?null:(parseInt(this.value)>0?parseInt(this.value):null)"
+            placeholder="ej: 90" min="1" max="480"
+            style="width:65px;padding:.5rem;border-radius:8px;border:2px solid #a5b4fc;background:#eef2ff;text-align:center;font-weight:700;color:#4f46e5;" title="Tiempo cocción estimado (min)">
           <span style="font-size:.6rem;color:#94a3b8;white-space:nowrap;">⏱ min</span>
         </div>
         <button onclick="eliminarComponente(${ci})" style="background:#ff6b6b;color:white;border:none;border-radius:8px;padding:.4rem .7rem;cursor:pointer;">🗑️</button>
@@ -8698,7 +8704,10 @@ function renderComponentesSandwich() {
         </select>
         ${!comp.preparacionFria ? `
         <div style="display:flex;flex-direction:column;align-items:center;gap:.1rem;">
-          <input type="number" value="${comp.tiempoCoccionMin||''}" oninput="componentesSandwichTemp[${ci}].tiempoCoccionMin=this.value===''?null:(parseInt(this.value)||null)" placeholder="30" min="1" max="480"
+          <input type="number" value="${comp.tiempoCoccionMin != null && comp.tiempoCoccionMin > 0 ? comp.tiempoCoccionMin : ''}"
+            oninput="componentesSandwichTemp[${ci}].tiempoCoccionMin=this.value===''?null:(parseInt(this.value)>0?parseInt(this.value):null)"
+            onchange="componentesSandwichTemp[${ci}].tiempoCoccionMin=this.value===''?null:(parseInt(this.value)>0?parseInt(this.value):null)"
+            placeholder="ej: 90" min="1" max="480"
             style="width:60px;padding:.45rem;border-radius:7px;border:1px solid #a5b4fc;background:#eef2ff;text-align:center;font-weight:700;color:#4f46e5;" title="Tiempo cocción estimado (min)">
           <span style="font-size:.6rem;color:#94a3b8;white-space:nowrap;">⏱ min</span>
         </div>` : ''}
@@ -8881,7 +8890,10 @@ function renderComponentesAveMayo() {
         </select>
         ${!comp.preparacionFria ? `
         <div style="display:flex;flex-direction:column;align-items:center;gap:.1rem;">
-          <input type="number" value="${comp.tiempoCoccionMin||''}" oninput="componentesAveMayoTemp[${ci}].tiempoCoccionMin=this.value===''?null:(parseInt(this.value)||null)" placeholder="30" min="1" max="480"
+          <input type="number" value="${comp.tiempoCoccionMin != null && comp.tiempoCoccionMin > 0 ? comp.tiempoCoccionMin : ''}"
+            oninput="componentesAveMayoTemp[${ci}].tiempoCoccionMin=this.value===''?null:(parseInt(this.value)>0?parseInt(this.value):null)"
+            onchange="componentesAveMayoTemp[${ci}].tiempoCoccionMin=this.value===''?null:(parseInt(this.value)>0?parseInt(this.value):null)"
+            placeholder="ej: 90" min="1" max="480"
             style="width:60px;padding:.45rem;border-radius:7px;border:1px solid #a5b4fc;background:#eef2ff;text-align:center;font-weight:700;color:#4f46e5;">
           <span style="font-size:.6rem;color:#94a3b8;white-space:nowrap;">⏱ min</span>
         </div>` : ''}
@@ -12107,10 +12119,19 @@ async function cargarRecetasFirebase(intentos = 0) {
     const { doc, getDoc } = window.firestoreFunctions;
     const docSnap = await getDoc(doc(window.db, 'mes-data', 'recetas'));
     if (docSnap.exists() && docSnap.data().recetas && docSnap.data().recetas.length > 0) {
-      recetas = docSnap.data().recetas;
-      localStorage.setItem('mes_recetas', JSON.stringify(recetas));
-      console.log('✅ Recetas cargadas desde Firebase:', recetas.length);
-      // Actualizar selector de OPs si está visible
+      const dataFirebase = docSnap.data();
+      const tsFirebase = dataFirebase.ultimaActualizacion || '';
+      // Solo sobreescribir si Firebase es MAS RECIENTE que lo que tenemos en localStorage
+      // Esto evita que Firebase borre los tiempos manuales recién editados
+      const tsLocal = localStorage.getItem('mes_recetas_ts') || '';
+      if (!tsLocal || tsFirebase > tsLocal) {
+        recetas = dataFirebase.recetas;
+        localStorage.setItem('mes_recetas', JSON.stringify(recetas));
+        localStorage.setItem('mes_recetas_ts', tsFirebase);
+        console.log('✅ Recetas cargadas desde Firebase:', recetas.length);
+      } else {
+        console.log('ℹ️ Recetas locales más recientes — Firebase ignorado para no sobreescribir tiempos editados');
+      }
       cargarSelectorOPsSimple();
     }
   } catch(e) { 
