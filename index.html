@@ -4539,7 +4539,9 @@ function abrirRegistroHACCP(equipoId) {
     return { ...ing, cantReal, unidadMostrar };
   });
 
-  const horaInicio = eq.produccion.inicio ? new Date(eq.produccion.inicio).toLocaleTimeString('es-CL', {hour:'2-digit',minute:'2-digit'}) : '';
+  const _toHHMM = iso => iso ? (d => `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`)(new Date(iso)) : '';
+  const horaInicio  = _toHHMM(eq.produccion.inicio);
+  const horaTermino = _toHHMM(eq.produccion.finCoccion);
   const fechaHoy = new Date().toLocaleDateString('es-CL');
   const loteJuliano = getDiaJuliano();
   const operador = eq.produccion.operador || '';
@@ -4566,7 +4568,11 @@ function abrirRegistroHACCP(equipoId) {
         </div>
         <div>
           <label style="font-size:.72rem;font-weight:700;color:#64748b;display:block;margin-bottom:.2rem;">③ NOMBRE RESPONSABLE</label>
-          <input type="text" id="hResponsable" value="${operador}" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+          <select id="hResponsable"
+            style="width:100%;padding:.45rem;border-radius:6px;border:1px solid ${operador?'#10b981':'#ddd'};font-size:.88rem;background:${operador?'#f0fdf4':'white'};">
+            <option value="">— Selecciona —</option>
+            ${(personal.cocina||[]).map(item=>{const n=typeof item==='string'?item:item.nombre;return `<option value="${n}" ${n===operador?'selected':''}>${n}</option>`;}).join('')}
+          </select>
         </div>
         <div>
           <label style="font-size:.72rem;font-weight:700;color:#64748b;display:block;margin-bottom:.2rem;">④ N° ORDEN PRODUCCIÓN</label>
@@ -4643,11 +4649,13 @@ function abrirRegistroHACCP(equipoId) {
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:.75rem;margin-bottom:1rem;">
         <div>
           <label style="font-size:.72rem;font-weight:700;color:#64748b;display:block;margin-bottom:.2rem;">⑫ HORA INICIO</label>
-          <input type="time" id="hHoraInicio" value="${horaInicio}" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+          <input type="time" id="hHoraInicio" value="${horaInicio}"
+            style="width:100%;padding:.45rem;border-radius:6px;border:2px solid ${horaInicio?'#10b981':'#ddd'};font-size:.88rem;background:${horaInicio?'#f0fdf4':'white'};font-weight:${horaInicio?'700':'400'};">
         </div>
         <div>
           <label style="font-size:.72rem;font-weight:700;color:#64748b;display:block;margin-bottom:.2rem;">⑫ HORA TÉRMINO</label>
-          <input type="time" id="hHoraTermino" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;">
+          <input type="time" id="hHoraTermino" value="${horaTermino}"
+            style="width:100%;padding:.45rem;border-radius:6px;border:2px solid ${horaTermino?'#10b981':'#ddd'};font-size:.88rem;background:${horaTermino?'#f0fdf4':'white'};font-weight:${horaTermino?'700':'400'};">
         </div>
         <div>
           <label style="font-size:.72rem;font-weight:700;color:#64748b;display:block;margin-bottom:.2rem;">⑬ EQUIPO</label>
@@ -4720,7 +4728,11 @@ function abrirRegistroHACCP(equipoId) {
         <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;">
           <div>
             <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">Operador</label>
-            <input type="text" id="hFirmaNombre" value="${operador}" oninput="autoLlenarPIN('hFirmaNombre','hFirmaPIN','cocina')" style="padding:.45rem;border-radius:6px;border:1px solid #ddd;font-size:.88rem;width:180px;">
+            <select id="hFirmaNombre" onchange="autoLlenarPIN('hFirmaNombre','hFirmaPIN','cocina')"
+              style="padding:.45rem;border-radius:6px;border:1px solid ${operador?'#10b981':'#ddd'};font-size:.88rem;width:200px;background:${operador?'#f0fdf4':'white'};">
+              <option value="">— Selecciona operador —</option>
+              ${(personal.cocina||[]).map(item=>{const n=typeof item==='string'?item:item.nombre;return `<option value="${n}" ${n===operador?'selected':''}>${n}</option>`;}).join('')}
+            </select>
           </div>
           <div>
             <label style="font-size:.72rem;color:#64748b;display:block;margin-bottom:.2rem;">PIN (4 dígitos)</label>
@@ -12951,7 +12963,10 @@ function mostrarPopupGantt(eq) {
                 kgProgramados: equipo.produccion.kgProgramados || 0,
                 kgReales: equipo.produccion.kgReales || 0,
                 horaInicio: equipo.produccion.inicio
-                    ? new Date(equipo.produccion.inicio).toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'})
+                    ? (d => `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`)(new Date(equipo.produccion.inicio))
+                    : '',
+                horaTermino: equipo.produccion.finCoccion
+                    ? (d => `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`)(new Date(equipo.produccion.finCoccion))
                     : '',
                 tiempoCoccionFormateado: equipo.produccion.tiempoCoccionFormateado || '—',
                 estado: 'pendiente',
@@ -13022,6 +13037,13 @@ function mostrarPopupGantt(eq) {
 
             // Reconstruir un equipo virtual con los datos del pendiente
             // para poder reutilizar abrirRegistroHACCP que ya tiene toda la lógica
+            // Convertir horaInicio/horaTermino HH:MM a ISO para que abrirRegistroHACCP los procese
+            const _hhmm2iso = hhmm => {
+                if (!hhmm) return null;
+                const [h, m] = hhmm.split(':').map(Number);
+                const d = new Date(); d.setHours(h, m, 0, 0);
+                return d.toISOString();
+            };
             const equipoVirtual = {
                 id: p.equipoId || 'pendiente_' + id,
                 nombre: p.equipoNombre || '—',
@@ -13034,7 +13056,8 @@ function mostrarPopupGantt(eq) {
                     operador: p.operador || '—',
                     kgProgramados: p.kgProgramados || 0,
                     kgReales: p.kgReales || 0,
-                    inicio: p.horaInicio ? null : null,
+                    inicio: _hhmm2iso(p.horaInicio),
+                    finCoccion: _hhmm2iso(p.horaTermino),
                     tiempoCoccionFormateado: p.tiempoCoccionFormateado || '—'
                 }
             };
