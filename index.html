@@ -4521,6 +4521,13 @@ function renderEtiquetas() {
   let totalEtiquetas = 0;
   let filas = [];
 
+  // Recuperar ajustes individuales previos (formato ajustado por fila)
+  const ajustesAnteriores = {};
+  (window._etiquetasFilas || []).forEach(f => {
+    const key = `${f.op}__${f.componente}`;
+    ajustesAnteriores[key] = f.formatoKg;
+  });
+
   ops.forEach(op => {
     // Buscar receta vinculada para fallback de kgTerminados
     const recetaOp = recetas.find(r => r.id === op.recetaId);
@@ -4531,7 +4538,6 @@ function renderEtiquetas() {
       if (comp.preparacionFria) return;
 
       // Obtener kg del componente — priorizar kgTerminados de la OP
-      // Si no existe, calcular desde receta (platos × gramajePorcion)
       let kgComp = comp.kgTerminados || 0;
       if (kgComp <= 0 && recetaOp && platos > 0) {
         const compReceta = recetaOp.componentes?.find(c =>
@@ -4543,8 +4549,11 @@ function renderEtiquetas() {
       }
       if (kgComp <= 0) return;
 
-      // Calcular etiquetas: kg ÷ formato (redondeando hacia arriba)
-      const etiquetasCalculadas = Math.ceil(kgComp / formatoKg);
+      // Usar formato ajustado individualmente si existe, si no el formato por defecto
+      const key = `${op.numeroOp}__${comp.nombre}`;
+      const formatoFila = ajustesAnteriores[key] || formatoKg;
+
+      const etiquetasCalculadas = Math.ceil(kgComp / formatoFila);
       totalEtiquetas += etiquetasCalculadas;
 
       filas.push({
@@ -4552,7 +4561,7 @@ function renderEtiquetas() {
         receta: op.nombre,
         componente: comp.nombre,
         kgPlanificados: kgComp,
-        formatoKg,
+        formatoKg: formatoFila,
         etiquetas: etiquetasCalculadas,
       });
     });
@@ -4661,14 +4670,14 @@ function renderEtiquetas() {
 }
 
 function recalcularFila(idx, nuevoFormato, componente, kgPlanificados) {
-  // Actualizar formato del componente específico y recalcular
   const nuevoKg = parseFloat(nuevoFormato);
   const nuevasEtiquetas = Math.ceil(kgPlanificados / nuevoKg);
+  // Actualizar en el array de filas (para impresión y total)
   if (window._etiquetasFilas && window._etiquetasFilas[idx]) {
     window._etiquetasFilas[idx].formatoKg = nuevoKg;
     window._etiquetasFilas[idx].etiquetas = nuevasEtiquetas;
   }
-  // Recalcular total y re-renderizar
+  // Re-renderizar respetando todos los ajustes individuales
   renderEtiquetas();
 }
 
