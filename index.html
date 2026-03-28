@@ -10398,25 +10398,55 @@ function finalizarTimerFrioCon(idKey, componente, op, opNombre, kg) {
   clearInterval(estado.interval);
 
   const fin = new Date();
-  const tiempoSeg = Math.floor((fin - estado.inicio) / 1000);
+  const inicio = estado.inicio;
+  const tiempoSeg = Math.floor((fin - inicio) / 1000);
   const tiempoMin = Math.floor(tiempoSeg / 60);
+  const hh = String(Math.floor(tiempoSeg/3600)).padStart(2,'0');
+  const mm = String(Math.floor((tiempoSeg%3600)/60)).padStart(2,'0');
+  const ss = String(tiempoSeg%60).padStart(2,'0');
+  const tiempoFormateado = `${hh}:${mm}:${ss}`;
 
-  // Guardar en historial HACCP
-  const datosHACCP = {
-    tipo: 'preparacionFriaConTimer',
-    componente,
-    op,
-    opNombre,
-    kg,
-    inicio: estado.inicio.toLocaleString('es-CL'),
-    fin: fin.toLocaleString('es-CL'),
-    tiempoMin,
+  // Buscar la OP vinculada para obtener opVinculadaId e ingredientes
+  const opObj = ordenesProduccion.find(o => o.numeroOp === op || o.numeroOp === String(op));
+  const opVinculadaId = opObj?.id || null;
+
+  // ── Crear pendiente HACCP en el panel de cocina ──────────────────────────
+  // Reutiliza el mismo sistema que las producciones calientes
+  const horaInicioStr = (d => `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`)(inicio);
+  const horaFinStr    = (d => `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`)(fin);
+
+  const pendiente = {
+    id: Date.now().toString(),
     fecha: new Date().toLocaleDateString('es-CL'),
-    fechaISO: new Date().toISOString().split('T')[0]
+    fechaISO: new Date().toISOString().split('T')[0],
+    horaFinCoccion: horaFinStr,
+    equipoId: null,
+    equipoNombre: '❄️ Preparación Fría',
+    producto: `${opNombre} — OP ${op}`,
+    componente: componente,
+    numeroOP: String(op),
+    opVinculadaId: opVinculadaId,   // ← clave para encontrar ingredientes
+    operador: '—',
+    kgProgramados: kg,
+    kgReales: kg,
+    horaInicio: horaInicioStr,
+    horaTermino: horaFinStr,
+    tiempoCoccionFormateado: tiempoFormateado,
+    esPrepFria: true,               // identificador para el HACCP
+    estado: 'pendiente',
+    completadoPor: null,
+    completadoEn: null,
+    datosHACCP: null
   };
-  guardarEnHistorialHACCP('cocina', datosHACCP);
 
-  // Limpiar
+  // Agregar al array de pendientes y persistir
+  if (typeof haccpPendientes !== 'undefined') {
+    haccpPendientes.push(pendiente);
+    if (typeof guardarHACCPPendientes === 'function') guardarHACCPPendientes();
+    if (typeof renderHACCPPendientes === 'function') renderHACCPPendientes();
+  }
+
+  // Limpiar estado del timer
   delete window._timersFrioCon[idKey];
   const card = document.getElementById('card_' + idKey);
   if (card) {
@@ -10424,8 +10454,8 @@ function finalizarTimerFrioCon(idKey, componente, op, opNombre, kg) {
     card.style.background = '#f0fdf4';
     card.innerHTML = `
       <div style="font-weight:700;color:#065f46;">✅ ${componente} — Completado</div>
-      <div style="font-size:.8rem;color:#6b7280;margin-top:.25rem;">OP ${op} · ${kg} kg · Duración: ${tiempoMin} min</div>
-      <div style="font-size:.72rem;color:#10b981;margin-top:.2rem;font-weight:600;">Registro HACCP guardado ✓</div>
+      <div style="font-size:.8rem;color:#6b7280;margin-top:.25rem;">OP ${op} · ${kg} kg · ${tiempoMin} min</div>
+      <div style="font-size:.72rem;color:#10b981;margin-top:.2rem;font-weight:600;">📋 Registro HACCP pendiente en Dashboard ✓</div>
     `;
   }
   mostrarNotificacion(`✅ ${componente} finalizado — ${tiempoMin} min · HACCP guardado`, 'success');
