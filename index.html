@@ -701,6 +701,15 @@
               </div>
               <div id="listaHACCPPendientes" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.75rem;"></div>
             </div>
+
+            <!-- Panel HACCP Completados del día -->
+            <div id="dashHACCPCompletados" style="display:none;margin:1rem 1.5rem;background:#f0fdf4;border-radius:15px;padding:1.25rem;border-left:5px solid #10b981;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
+                <h3 style="color:#065f46;margin:0;font-size:1rem;">✅ Registros HACCP Completados Hoy</h3>
+                <span id="badgeHACCPCompletados" style="background:#10b981;color:white;border-radius:20px;padding:.2rem .75rem;font-size:.8rem;font-weight:700;">0</span>
+              </div>
+              <div id="listaHACCPCompletados" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.75rem;"></div>
+            </div>
         </div>
 
 
@@ -2497,6 +2506,7 @@
             if (window._prepsFriasJornada && window._prepsFriasJornada.length > 0) {
               mostrarPrepsFriasEnDashboard(window._prepsFriasJornada);
             }
+            renderHACCPCompletados();
 
             equipos.forEach(equipo => {
                 const card = document.createElement('div');
@@ -5390,6 +5400,8 @@ function generarPDFHACCP() {
         } else {
           mostrarNotificacion('✅ Registro HACCP completado', 'success');
         }
+        // Actualizar panel de completados
+        if (typeof renderHACCPCompletados === 'function') renderHACCPCompletados();
       }
     } catch(e) { console.error('Error actualizando pendiente HACCP:', e); }
     window._haccpPendienteActual = null;
@@ -7835,7 +7847,7 @@ function imprimirRegistroHACCP(d) {
             document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
             document.getElementById(tabName).classList.add('active');
             event.target.classList.add('active');
-            if (tabName === 'dashboard') { renderEquipos(); updateStats(); }
+            if (tabName === 'dashboard') { renderEquipos(); updateStats(); renderHACCPCompletados(); }
             else if (tabName === 'historial') cargarHistorialFecha();
             else if (tabName === 'acondCarnes') { /* pestaña lista */ }
             else if (tabName === 'acondVegetales') { /* pestaña lista */ }
@@ -13822,6 +13834,40 @@ function mostrarPopupGantt(eq) {
             haccpPendientes.push(pendiente);
             guardarHACCPPendientes();
             renderHACCPPendientes();
+        }
+
+        function renderHACCPCompletados() {
+            const panel = document.getElementById('dashHACCPCompletados');
+            const lista = document.getElementById('listaHACCPCompletados');
+            const badge = document.getElementById('badgeHACCPCompletados');
+            if (!panel || !lista) return;
+
+            const hoy = new Date().toISOString().split('T')[0];
+            const completadosHoy = haccpPendientes.filter(p =>
+                p.estado === 'completado' && p.fechaISO === hoy
+            );
+
+            if (completadosHoy.length === 0) {
+                panel.style.display = 'none';
+                return;
+            }
+
+            if (badge) badge.textContent = completadosHoy.length;
+            panel.style.display = 'block';
+
+            lista.innerHTML = completadosHoy.map(p => `
+                <div style="background:white;border-radius:12px;padding:1rem;border-left:4px solid ${p.esPrepFria?'#0891b2':'#10b981'};">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem;">
+                        <div style="font-weight:700;font-size:.95rem;color:#065f46;">
+                            ${p.esPrepFria?'⏱❄️ ':'🔥 '}${p.componente||p.producto}
+                        </div>
+                        <span style="background:#d1fae5;color:#065f46;border-radius:20px;padding:.15rem .6rem;font-size:.72rem;font-weight:700;">✅ Completado</span>
+                    </div>
+                    <div style="font-size:.8rem;color:#666;margin-bottom:.2rem;">📅 ${p.fecha} · ⚙️ ${p.equipoNombre}</div>
+                    <div style="font-size:.8rem;color:#666;margin-bottom:.2rem;">📋 OP: ${p.numeroOP} · ⚖️ ${p.kgReales||p.kgProgramados} kg</div>
+                    <div style="font-size:.8rem;color:#059669;font-weight:600;">👤 ${p.completadoPor||'—'} · ${p.completadoEn||''}</div>
+                </div>
+            `).join('');
         }
 
         function renderHACCPPendientes() {
