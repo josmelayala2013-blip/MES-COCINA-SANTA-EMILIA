@@ -5308,35 +5308,67 @@ function generarPDFHACCP() {
   guardarEnHistorialHACCP('cocina', datos);
 
   // Si viene desde un pendiente HACCP → marcarlo como completado
+  // Usar localStorage directamente ya que haccpPendientes es variable local de otro scope
   const pendienteId = window._haccpPendienteActual;
-  if (pendienteId && typeof haccpPendientes !== 'undefined') {
-    const p = haccpPendientes.find(x => x.id === pendienteId);
-    if (p) {
-      p.estado = 'completado';
-      p.completadoPor = datos.firmaNombre || '—';
-      p.completadoEn = new Date().toLocaleString('es-CL');
-      p.datosHACCP = datos;
-      guardarHACCPPendientes();
-      renderHACCPPendientes();
+  if (pendienteId) {
+    try {
+      // Leer pendientes desde localStorage
+      const _pends = JSON.parse(localStorage.getItem('mes_haccp_pendientes') || '[]');
+      const _pIdx = _pends.findIndex(x => x.id === pendienteId);
+      if (_pIdx !== -1) {
+        const _p = _pends[_pIdx];
+        const eraFria = _p.esPrepFria || false;
+        const compFria = _p.componente || '';
+        const opFria = String(_p.numeroOP || '');
 
-      // Si era prep fría → eliminar del panel de preps frías
-      if (p.esPrepFria) {
-        if (window._prepsFriasJornada) {
-          window._prepsFriasJornada = window._prepsFriasJornada.filter(pf =>
-            !(pf.componente === p.componente && String(pf.numeroOP) === String(p.numeroOP))
-          );
-          localStorage.setItem('mes_prepsFriasJornada', JSON.stringify(window._prepsFriasJornada));
+        _p.estado = 'completado';
+        _p.completadoPor = datos.firmaNombre || '—';
+        _p.completadoEn = new Date().toLocaleString('es-CL');
+        _p.datosHACCP = { preparacion: _p.componente, ...datos };
+
+        // Guardar en localStorage
+        localStorage.setItem('mes_haccp_pendientes', JSON.stringify(_pends));
+
+        // Re-renderizar el panel de pendientes leyendo desde localStorage
+        const _panel = document.getElementById('dashHACCPPendientes');
+        const _lista = document.getElementById('listaHACCPPendientes');
+        const _badge = document.getElementById('badgeHACCPPendientes');
+        if (_lista) {
+          const _activos = _pends.filter(p => p.estado !== 'completado');
+          if (_badge) _badge.textContent = _activos.filter(p => p.estado === 'pendiente').length;
+          if (_activos.length === 0) {
+            if (_panel) _panel.style.display = 'none';
+          }
+          // Forzar re-render llamando la función si está disponible
+          if (typeof renderHACCPPendientes === 'function') renderHACCPPendientes();
         }
-        if (window._prepsFriasJornada && window._prepsFriasJornada.length > 0) {
-          mostrarPrepsFriasEnDashboard(window._prepsFriasJornada);
+
+        // Si era prep fría → eliminar del panel ❄️
+        if (eraFria) {
+          if (window._prepsFriasJornada) {
+            window._prepsFriasJornada = window._prepsFriasJornada.filter(pf =>
+              !(pf.componente === compFria && String(pf.numeroOP) === opFria)
+            );
+            localStorage.setItem('mes_prepsFriasJornada', JSON.stringify(window._prepsFriasJornada));
+          }
+          if (window._prepsFriasJornada && window._prepsFriasJornada.length > 0) {
+            if (typeof mostrarPrepsFriasEnDashboard === 'function') {
+              mostrarPrepsFriasEnDashboard(window._prepsFriasJornada);
+            }
+          } else {
+            const panelFrio = document.getElementById('dashPrepsFrias');
+            if (panelFrio) panelFrio.style.display = 'none';
+          }
+          mostrarNotificacion('✅ HACCP preparación fría completado — eliminado del panel ❄️', 'success');
         } else {
-          const panel = document.getElementById('dashPrepsFrias');
-          if (panel) panel.style.display = 'none';
+          mostrarNotificacion('✅ Registro HACCP completado', 'success');
         }
-        mostrarNotificacion('✅ HACCP preparación fría completado y eliminado del panel', 'success');
       }
-      window._haccpPendienteActual = null;
+    } catch(e) {
+      console.error('Error actualizando pendiente HACCP:', e);
     }
+    window._haccpPendienteActual = null;
+    window._haccpContextoPendiente = null;
   }
 
   document.getElementById('firmaEstado').innerHTML =
