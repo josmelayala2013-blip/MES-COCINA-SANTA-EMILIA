@@ -7961,50 +7961,80 @@ function limpiarComponentesFriosDeEquipos() {
             
             try {
                 const { doc, onSnapshot } = window.firestoreFunctions;
+
+                // ── LISTENER 1: estado-actual (dashboard, equipos, envasado, abatimiento) ──
                 const docRef = doc(window.db, 'mes-data', 'estado-actual');
-                
-                onSnapshot(docRef, (doc) => {
-                    if (doc.exists()) {
-                        const data = doc.data();
-                        // Solo actualizar si viene de otro dispositivo
-                        const esOtroDispositivo = data.dispositivo !== navigator.userAgent.substring(0, 50);
-                        
-                        if (esOtroDispositivo) {
-                            console.log('🔄 Actualizando desde otro dispositivo...');
-                            // Merge inteligente: preservar equipos del código base, 
-                    // solo actualizar estado/produccion desde Firebase
-                    // Esto evita perder equipos nuevos (ej: Marmita 1/2) cuando Firebase tiene versión vieja
+                onSnapshot(docRef, (snap) => {
+                    if (!snap.exists()) return;
+                    const data = snap.data();
+                    const esOtroDispositivo = data.dispositivo !== navigator.userAgent.substring(0, 50);
+                    if (!esOtroDispositivo) return;
+
+                    console.log('🔄 estado-actual actualizado desde otro dispositivo...');
                     if (data.equipos && data.equipos.length > 0) {
-                        const equiposBase = equipos; // lista maestra del código
+                        const equiposBase = equipos;
                         equipos = equiposBase.map(eqBase => {
                             const eqFirebase = data.equipos.find(e => e.id === eqBase.id);
                             if (eqFirebase) {
-                                // Actualizar estado operativo desde Firebase, preservar datos base
                                 return { ...eqBase, estado: eqFirebase.estado, produccion: eqFirebase.produccion, planificaciones: eqFirebase.planificaciones };
                             }
-                            return eqBase; // equipo nuevo no está en Firebase, mantener como disponible
+                            return eqBase;
                         });
                     }
                     recalcularTiemposCoccion();
                     limpiarEsperasVencidas();
-                            productos = data.productos || productos;
-                            procesosEnvasado = data.procesosEnvasado || [];
-                            procesosAbatimiento = data.procesosAbatimiento || [];
-                            historialPorFecha = data.historialPorFecha || {};
-                            planDiario = data.planDiario || {};
-                            
-                            // Refrescar UI
-                            renderEquipos();
-                            renderProductosList();
-                            renderProcesosActivos();
-                            updateStats();
-                            
-                            mostrarNotificacion('🔄 Actualizado desde otro dispositivo', 'info');
-                        }
+                    productos = data.productos || productos;
+                    procesosEnvasado = data.procesosEnvasado || [];
+                    procesosAbatimiento = data.procesosAbatimiento || [];
+                    historialPorFecha = data.historialPorFecha || {};
+                    planDiario = data.planDiario || {};
+
+                    // Refrescar UI módulos afectados
+                    renderEquipos();
+                    renderProductosList();
+                    renderProcesosActivos();
+                    updateStats();
+                    // Refrescar Gantt si está visible
+                    if (document.getElementById('gantt')?.classList.contains('active')) {
+                        renderGanttBloques();
                     }
+                    mostrarNotificacion('🔄 Dashboard actualizado en tiempo real', 'info');
                 });
-                
-                console.log('👀 Escuchando cambios en tiempo real...');
+
+                // ── LISTENER 2: ordenes-produccion (Planificador, Gantt, Etiquetas) ──
+                const opsRef = doc(window.db, 'mes-data', 'ordenes-produccion');
+                onSnapshot(opsRef, (snap) => {
+                    if (!snap.exists()) return;
+                    const data = snap.data();
+                    if (!data.ops || !Array.isArray(data.ops)) return;
+
+                    // Comparar timestamps para evitar actualizar con datos propios
+                    const tsRemoto = data.ultimaActualizacion || '';
+                    const tsLocal = window._ultimaActualizacionOPs || '';
+                    if (tsRemoto && tsLocal && tsRemoto <= tsLocal) return;
+
+                    console.log('🔄 OPs actualizadas desde otro dispositivo...');
+                    ordenesProduccion = data.ops;
+                    localStorage.setItem('mes_ops', JSON.stringify(ordenesProduccion));
+                    window._ultimaActualizacionOPs = tsRemoto;
+
+                    // Refrescar UI según módulo activo
+                    if (typeof renderListaOPs === 'function') renderListaOPs();
+                    if (typeof cargarSelectorOPsSimple === 'function') cargarSelectorOPsSimple();
+                    if (document.getElementById('gantt')?.classList.contains('active')) {
+                        renderGanttBloques();
+                    }
+                    if (document.getElementById('planificador')?.classList.contains('active')) {
+                        renderListaOPs();
+                        renderVistaSemanal();
+                    }
+                    if (document.getElementById('etiquetas')?.classList.contains('active')) {
+                        renderEtiquetas();
+                    }
+                    mostrarNotificacion('🔄 Planificación actualizada en tiempo real', 'info');
+                });
+
+                console.log('👀 Escuchando cambios en tiempo real (dashboard + OPs)...');
             } catch (error) {
                 console.error('Error configurando listener:', error);
             }
@@ -9734,7 +9764,9 @@ function guardarOPs() {
   if (window.db && window.firestoreLoaded) {
     try {
       const { doc, setDoc } = window.firestoreFunctions;
-      setDoc(doc(window.db, 'mes-data', 'ordenes-produccion'), { ops: ordenesProduccion, ultimaActualizacion: new Date().toISOString() });
+      const ts = new Date().toISOString();
+      window._ultimaActualizacionOPs = ts; // marcar timestamp local para no procesar propio cambio
+      setDoc(doc(window.db, 'mes-data', 'ordenes-produccion'), { ops: ordenesProduccion, ultimaActualizacion: ts });
     } catch(e) {}
   }
 }
