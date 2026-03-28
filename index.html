@@ -13887,18 +13887,14 @@ function mostrarPopupGantt(eq) {
                 esPrepFria: p.esPrepFria || false
             };
 
-            // Si hay equipoId real con produccion activa, usarlo directamente
-            const equipoReal = equipos.find(e => e.id === p.equipoId);
-            if (equipoReal && equipoReal.produccion) {
-                abrirRegistroHACCP(p.equipoId);
-            } else {
-                // Inyectar equipo virtual temporalmente
-                const yaEsta = equipos.find(e => e.id === eqVirtualId);
-                if (!yaEsta) equipos.push(equipoVirtual);
-                abrirRegistroHACCP(eqVirtualId);
-                // NO limpiar inmediatamente — dejar hasta que se genere el PDF
-                window._equipoVirtualPendienteId = eqVirtualId;
-            }
+            // Siempre usar equipo virtual para pendientes
+            // (el equipo real puede haber sido liberado ya)
+            // Eliminar cualquier equipo virtual anterior con este ID
+            equipos = equipos.filter(e => e.id !== eqVirtualId);
+            // Inyectar equipo virtual fresco
+            equipos.push(equipoVirtual);
+            window._equipoVirtualPendienteId = eqVirtualId;
+            abrirRegistroHACCP(eqVirtualId);
         }
 
         function guardarHACCPDesdePendiente(pendienteId) {
