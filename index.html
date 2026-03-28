@@ -13874,6 +13874,31 @@ function mostrarPopupGantt(eq) {
                 mostrarNotificacion('✅ HACCP de preparación fría completado y registrado', 'success');
             }
 
+            // Capturar ingredientes desde la OP vinculada para el PDF
+            let ingredientesParaPDF = [];
+            if (p.opVinculadaId) {
+                const opVinc = ordenesProduccion.find(o => o.id === p.opVinculadaId);
+                if (opVinc) {
+                    const compOP = (opVinc.componentes||[]).find(c =>
+                        (c.nombre||'').toLowerCase().trim() === (p.componente||'').toLowerCase().trim()
+                    );
+                    if (compOP?.ingredientes?.length) {
+                        ingredientesParaPDF = compOP.ingredientes;
+                    } else {
+                        // Fallback: buscar en receta
+                        const recetaVinc = recetas.find(r => r.id === opVinc.recetaId);
+                        const compReceta = (recetaVinc?.componentes||[]).find(c =>
+                            (c.nombre||'').toLowerCase().trim() === (p.componente||'').toLowerCase().trim()
+                        );
+                        if (compReceta?.ingredientes?.length) {
+                            ingredientesParaPDF = compReceta.ingredientes;
+                        }
+                    }
+                }
+            }
+            datos._ingredientes = ingredientesParaPDF;
+            datos._componente = p.componente || datos.producto;
+
             // Ofrecer imprimir
             if (confirm('¿Deseas imprimir el registro HACCP ahora?')) {
                 imprimirHACCPDesdePendiente(datos);
@@ -13924,6 +13949,18 @@ function mostrarPopupGantt(eq) {
   <div class="dato-item"><div class="dato-label">Operador</div><div class="dato-val">${d.operador||'—'}</div></div>
   <div class="dato-item"><div class="dato-label">Lote</div><div class="dato-val">${d.lote||'—'}</div></div>
 </div>
+${d._ingredientes && d._ingredientes.length > 0 ? `
+<div class="seccion-titulo">Ingredientes / Materias Primas — ${d._componente||d.producto||''}</div>
+<table><tr>
+  <th style="text-align:left;">Ingrediente</th><th>Cantidad</th><th>Unidad</th><th>Tipo</th>
+</tr>
+${d._ingredientes.map(ing => `<tr>
+  <td style="text-align:left;">${ing.nombre||'—'}</td>
+  <td>${ing.cantidadTotal||ing.cantidadBruta||'—'}</td>
+  <td>${ing.unidad||'—'}</td>
+  <td>${ing.tipoPreelaborado||'—'}</td>
+</tr>`).join('')}
+</table>` : ''}
 <div class="seccion-titulo">Control de Proceso</div>
 <table><tr>
   <th>Hora Inicio</th><th>Hora Fin</th><th>Tiempo Cocción</th><th>Kg Programados</th><th>Kg Reales</th><th>Temperatura °C</th><th>¿Requiere ACC?</th><th>N° ACC</th>
