@@ -5285,6 +5285,42 @@ function generarPDFHACCP() {
 
   imprimirRegistroHACCP(datos);
   guardarEnHistorialHACCP('cocina', datos);
+
+  // Si viene desde un pendiente HACCP → marcarlo como completado
+  const pendienteId = window._haccpPendienteActual;
+  if (pendienteId && typeof haccpPendientes !== 'undefined') {
+    const p = haccpPendientes.find(x => x.id === pendienteId);
+    if (p) {
+      p.estado = 'completado';
+      p.completadoPor = datos.firmaNombre || '—';
+      p.completadoEn = new Date().toLocaleString('es-CL');
+      p.datosHACCP = datos;
+      guardarHACCPPendientes();
+      renderHACCPPendientes();
+
+      // Si era prep fría → eliminar del panel de preps frías
+      if (p.esPrepFria) {
+        if (window._prepsFriasJornada) {
+          window._prepsFriasJornada = window._prepsFriasJornada.filter(pf =>
+            !(pf.componente === p.componente && String(pf.numeroOP) === String(p.numeroOP))
+          );
+          localStorage.setItem('mes_prepsFriasJornada', JSON.stringify(window._prepsFriasJornada));
+        }
+        if (window._prepsFriasJornada && window._prepsFriasJornada.length > 0) {
+          mostrarPrepsFriasEnDashboard(window._prepsFriasJornada);
+        } else {
+          const panel = document.getElementById('dashPrepsFrias');
+          if (panel) panel.style.display = 'none';
+        }
+        mostrarNotificacion('✅ HACCP preparación fría completado y eliminado del panel', 'success');
+      }
+      window._haccpPendienteActual = null;
+    }
+  }
+
+  document.getElementById('firmaEstado').innerHTML =
+    '✅ <strong>Firmado</strong> — ' + datos.firmaNombre + ' · ' + datos.firmaTimestamp;
+  document.getElementById('firmaEstado').style.color = '#059669';
 }
 
 function imprimirRegistroHACCP(d) {
