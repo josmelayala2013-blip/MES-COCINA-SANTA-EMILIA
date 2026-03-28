@@ -9220,9 +9220,28 @@ function renderComponentesSandwich() {
           ❄️ Preparación Fría
         </label>
         <label style="display:flex;align-items:center;gap:.3rem;cursor:pointer;font-size:.78rem;font-weight:700;padding:.25rem .6rem;border-radius:6px;border:1px solid ${comp.preparacionFria&&comp.tiempoCoccionMin>0?'#67e8f9':'#e2e8f0'};background:${comp.preparacionFria&&comp.tiempoCoccionMin>0?'#cffafe':'#f8fafc'};color:${comp.preparacionFria&&comp.tiempoCoccionMin>0?'#0891b2':'#94a3b8'};" title="Preparación fría con timer y HACCP">
-          <input type="checkbox" ${comp.preparacionFria&&comp.tiempoCoccionMin>0?'checked':''} onchange="if(this.checked){componentesSandwichTemp[${ci}].preparacionFria=true;componentesSandwichTemp[${ci}].esInsumo=false;}else{componentesSandwichTemp[${ci}].tiempoCoccionMin=null;}renderComponentesSandwich()" style="accent-color:#0891b2;">
+          <input type="checkbox" ${comp.preparacionFria&&comp.tiempoCoccionMin>0?'checked':''}
+            onchange="
+              componentesSandwichTemp[${ci}].preparacionFria=true;
+              componentesSandwichTemp[${ci}].esInsumo=false;
+              if(this.checked){
+                componentesSandwichTemp[${ci}].tiempoCoccionMin=componentesSandwichTemp[${ci}].tiempoCoccionMin||30;
+              } else {
+                componentesSandwichTemp[${ci}].tiempoCoccionMin=null;
+                componentesSandwichTemp[${ci}].preparacionFria=false;
+              }
+              renderComponentesSandwich();"
+            style="accent-color:#0891b2;">
           ⏱ Frío + Timer
         </label>
+        ${comp.preparacionFria&&comp.tiempoCoccionMin>0 ? `
+        <div style="display:flex;align-items:center;gap:.3rem;background:#cffafe;border-radius:6px;padding:.25rem .6rem;border:1px solid #67e8f9;">
+          <span style="font-size:.75rem;color:#0891b2;font-weight:600;">⏱ min:</span>
+          <input type="number" value="${comp.tiempoCoccionMin||''}" min="1" max="480"
+            oninput="componentesSandwichTemp[${ci}].tiempoCoccionMin=parseInt(this.value)||null"
+            onchange="componentesSandwichTemp[${ci}].tiempoCoccionMin=parseInt(this.value)||null"
+            style="width:55px;padding:.2rem .3rem;border-radius:5px;border:1px solid #67e8f9;font-size:.85rem;font-weight:700;color:#0891b2;text-align:center;">
+        </div>` : ''}
         <label style="display:flex;align-items:center;gap:.3rem;cursor:pointer;font-size:.78rem;font-weight:700;padding:.25rem .6rem;border-radius:6px;border:1px solid ${comp.esInsumo?'#9ca3af':'#e2e8f0'};background:${comp.esInsumo?'#e5e7eb':'#f8fafc'};color:${comp.esInsumo?'#374151':'#94a3b8'};" title="Insumo comprado — no se produce">
           <input type="checkbox" ${comp.esInsumo?'checked':''} onchange="componentesSandwichTemp[${ci}].esInsumo=this.checked;if(this.checked){componentesSandwichTemp[${ci}].preparacionFria=false;}renderComponentesSandwich()" style="accent-color:#6b7280;">
           📦 Insumo (no se produce)
@@ -10294,25 +10313,117 @@ function changeTabAcond(tab) {
 }
 
 // ---- PREPARACIONES EN FRÍO - DASHBOARD ----
+// Estado de los timers de preps frías con timer
+window._timersFrioCon = window._timersFrioCon || {};
+
 function mostrarPrepsFriasEnDashboard(preps) {
   const panel = document.getElementById('dashPrepsFrias');
   const lista = document.getElementById('dashListaPrepsFrias');
   if (!panel || !lista || preps.length === 0) return;
 
-  lista.innerHTML = preps.map(p => `
-    <div style="background:white;border-radius:10px;padding:.85rem;border-left:3px solid ${p.conTimer?'#0891b2':'#10b981'};">
-      <div style="font-weight:700;color:${p.conTimer?'#0e7490':'#065f46'};margin-bottom:.25rem;">
-        ${p.conTimer ? '⏱❄️' : '❄️'} ${p.componente}
-        ${p.conTimer ? '<span style="background:#cffafe;color:#0891b2;border-radius:4px;padding:.1rem .4rem;font-size:.7rem;margin-left:.4rem;font-weight:700;">CON TIMER</span>' : ''}
-      </div>
-      <div style="font-size:.8rem;color:#6b7280;">OP ${p.numeroOP} · ${p.opNombre}</div>
-      <div style="font-size:.85rem;color:#059669;font-weight:600;margin-top:.25rem;">${p.kgProgramados} kg</div>
-      <div style="font-size:.72rem;color:#94a3b8;margin-top:.2rem;">
-        ${p.conTimer ? '⏱ Preparación fría con seguimiento de tiempo — ' + (p.tiempoCoccionMin||0) + ' min estimados' : 'Sin cocción — Preparar en frío'}
-      </div>
-    </div>
-  `).join('');
+  lista.innerHTML = preps.map((p, i) => {
+    const idKey = `frioTimer_${i}_${p.componente.replace(/\s/g,'_')}`;
+    if (p.conTimer) {
+      return `
+      <div style="background:white;border-radius:10px;padding:.85rem;border-left:3px solid #0891b2;" id="card_${idKey}">
+        <div style="font-weight:700;color:#0e7490;margin-bottom:.3rem;">
+          ⏱❄️ ${p.componente}
+          <span style="background:#cffafe;color:#0891b2;border-radius:4px;padding:.1rem .4rem;font-size:.7rem;margin-left:.4rem;font-weight:700;">CON TIMER</span>
+        </div>
+        <div style="font-size:.8rem;color:#6b7280;margin-bottom:.3rem;">OP ${p.numeroOP} · ${p.opNombre} · ${p.kgProgramados} kg</div>
+        <div style="font-size:.72rem;color:#64748b;margin-bottom:.5rem;">⏱ ${p.tiempoCoccionMin||0} min estimados</div>
+        <div id="timer_${idKey}" style="font-size:1.4rem;font-weight:800;color:#0891b2;text-align:center;margin-bottom:.5rem;display:none;">00:00:00</div>
+        <div style="display:flex;gap:.5rem;">
+          <button id="btnIniciar_${idKey}" onclick="iniciarTimerFrioCon('${idKey}',${p.tiempoCoccionMin||0},'${p.componente}','${p.numeroOP}')"
+            style="flex:1;padding:.45rem;background:linear-gradient(135deg,#0891b2,#06b6d4);color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.82rem;">
+            ▶ Iniciar
+          </button>
+          <button id="btnFinalizar_${idKey}" onclick="finalizarTimerFrioCon('${idKey}','${p.componente}','${p.numeroOP}','${p.opNombre}',${p.kgProgramados})"
+            style="flex:1;padding:.45rem;background:linear-gradient(135deg,#059669,#10b981);color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.82rem;display:none;">
+            ✅ Finalizar
+          </button>
+        </div>
+      </div>`;
+    } else {
+      return `
+      <div style="background:white;border-radius:10px;padding:.85rem;border-left:3px solid #10b981;">
+        <div style="font-weight:700;color:#065f46;margin-bottom:.25rem;">❄️ ${p.componente}</div>
+        <div style="font-size:.8rem;color:#6b7280;">OP ${p.numeroOP} · ${p.opNombre}</div>
+        <div style="font-size:.85rem;color:#059669;font-weight:600;margin-top:.25rem;">${p.kgProgramados} kg</div>
+        <div style="font-size:.72rem;color:#94a3b8;margin-top:.2rem;">Sin cocción — Preparar en frío</div>
+      </div>`;
+    }
+  }).join('');
   panel.style.display = 'block';
+}
+
+function iniciarTimerFrioCon(idKey, durMinutos, componente, op) {
+  if (window._timersFrioCon[idKey]) return; // ya iniciado
+  const inicio = new Date();
+  window._timersFrioCon[idKey] = { inicio, durMinutos };
+
+  // Mostrar timer, ocultar iniciar, mostrar finalizar
+  const timerEl = document.getElementById('timer_' + idKey);
+  const btnIni = document.getElementById('btnIniciar_' + idKey);
+  const btnFin = document.getElementById('btnFinalizar_' + idKey);
+  if (timerEl) timerEl.style.display = 'block';
+  if (btnIni) btnIni.style.display = 'none';
+  if (btnFin) btnFin.style.display = 'block';
+
+  // Cronómetro
+  const interval = setInterval(() => {
+    const el = document.getElementById('timer_' + idKey);
+    if (!el) { clearInterval(interval); return; }
+    const seg = Math.floor((new Date() - inicio) / 1000);
+    const hh = String(Math.floor(seg/3600)).padStart(2,'0');
+    const mm = String(Math.floor((seg%3600)/60)).padStart(2,'0');
+    const ss = String(seg%60).padStart(2,'0');
+    el.textContent = `${hh}:${mm}:${ss}`;
+    // Color según avance
+    const pct = seg / (durMinutos * 60);
+    el.style.color = pct >= 1 ? '#ef4444' : pct >= 0.8 ? '#f59e0b' : '#0891b2';
+  }, 1000);
+  window._timersFrioCon[idKey].interval = interval;
+  mostrarNotificacion(`⏱ Iniciado: ${componente} · OP ${op}`, 'info');
+}
+
+function finalizarTimerFrioCon(idKey, componente, op, opNombre, kg) {
+  const estado = window._timersFrioCon[idKey];
+  if (!estado) return;
+  clearInterval(estado.interval);
+
+  const fin = new Date();
+  const tiempoSeg = Math.floor((fin - estado.inicio) / 1000);
+  const tiempoMin = Math.floor(tiempoSeg / 60);
+
+  // Guardar en historial HACCP
+  const datosHACCP = {
+    tipo: 'preparacionFriaConTimer',
+    componente,
+    op,
+    opNombre,
+    kg,
+    inicio: estado.inicio.toLocaleString('es-CL'),
+    fin: fin.toLocaleString('es-CL'),
+    tiempoMin,
+    fecha: new Date().toLocaleDateString('es-CL'),
+    fechaISO: new Date().toISOString().split('T')[0]
+  };
+  guardarEnHistorialHACCP('cocina', datosHACCP);
+
+  // Limpiar
+  delete window._timersFrioCon[idKey];
+  const card = document.getElementById('card_' + idKey);
+  if (card) {
+    card.style.borderColor = '#10b981';
+    card.style.background = '#f0fdf4';
+    card.innerHTML = `
+      <div style="font-weight:700;color:#065f46;">✅ ${componente} — Completado</div>
+      <div style="font-size:.8rem;color:#6b7280;margin-top:.25rem;">OP ${op} · ${kg} kg · Duración: ${tiempoMin} min</div>
+      <div style="font-size:.72rem;color:#10b981;margin-top:.2rem;font-weight:600;">Registro HACCP guardado ✓</div>
+    `;
+  }
+  mostrarNotificacion(`✅ ${componente} finalizado — ${tiempoMin} min · HACCP guardado`, 'success');
 }
 
 function cerrarPrepsFrias() {
