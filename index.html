@@ -7883,7 +7883,21 @@ function esComponenteFrio(nombreComponente) {
     const comp = (r.componentes||[]).find(c => 
       (c.nombre||'').toLowerCase().trim() === nombre
     );
-    if (comp && comp.preparacionFria === true) return true;
+    if (!comp) continue;
+    if (comp.esInsumo === true) return false; // insumos no son fríos ni calientes
+    if (comp.preparacionFria === true) return true;
+  }
+  return false;
+}
+
+function esComponenteInsumo(nombreComponente) {
+  if (!nombreComponente) return false;
+  const nombre = nombreComponente.toLowerCase().trim();
+  for (const r of recetas) {
+    const comp = (r.componentes||[]).find(c =>
+      (c.nombre||'').toLowerCase().trim() === nombre
+    );
+    if (comp && comp.esInsumo === true) return true;
   }
   return false;
 }
@@ -9125,7 +9139,8 @@ function abrirModalRecetaSandwich(id = null) {
       gramajePorUnidad: c.gramajePorUnidad !== undefined ? c.gramajePorUnidad : (c.gramajePorcion || 0),
       unidadComponente: c.unidadComponente || 'gr',
       tiempoCoccionMin: (c.tiempoCoccionMin != null && c.tiempoCoccionMin > 0) ? c.tiempoCoccionMin : null,
-      preparacionFria: c.preparacionFria || false
+      preparacionFria: c.preparacionFria || false,
+      esInsumo: c.esInsumo || false
     }));
   } else {
     document.getElementById('swSku').value = '';
@@ -9175,9 +9190,17 @@ function renderComponentesSandwich() {
         <input value="${comp.nombre}" oninput="componentesSandwichTemp[${ci}].nombre=this.value"
           placeholder="Nombre componente (ej: Pollo a la plancha)"
           style="flex:1;padding:.45rem;border-radius:7px;border:1px solid #ddd;font-size:.9rem;">
-        <label style="display:flex;align-items:center;gap:.3rem;cursor:pointer;white-space:nowrap;font-size:.78rem;font-weight:700;color:${comp.preparacionFria?'#059669':'#94a3b8'};background:${comp.preparacionFria?'#d1fae5':'#f1f5f9'};padding:.3rem .5rem;border-radius:6px;border:1px solid ${comp.preparacionFria?'#6ee7b7':'#e2e8f0'};">
-          <input type="checkbox" ${comp.preparacionFria?'checked':''} onchange="componentesSandwichTemp[${ci}].preparacionFria=this.checked;renderComponentesSandwich()" style="accent-color:#10b981;width:14px;height:14px;">
+        <label style="display:flex;align-items:center;gap:.3rem;cursor:pointer;white-space:nowrap;font-size:.78rem;font-weight:700;color:${comp.esInsumo?'#6b7280':comp.preparacionFria?'#059669':'#94a3b8'};background:${comp.esInsumo?'#f3f4f6':comp.preparacionFria?'#d1fae5':'#f1f5f9'};padding:.3rem .5rem;border-radius:6px;border:1px solid ${comp.esInsumo?'#d1d5db':comp.preparacionFria?'#6ee7b7':'#e2e8f0'};">
+          <input type="checkbox" ${comp.preparacionFria&&!comp.esInsumo?'checked':''} onchange="componentesSandwichTemp[${ci}].preparacionFria=this.checked;if(this.checked)componentesSandwichTemp[${ci}].esInsumo=false;renderComponentesSandwich()" style="accent-color:#10b981;width:14px;height:14px;">
           ❄️ Frío
+        </label>
+        <label style="display:flex;align-items:center;gap:.3rem;cursor:pointer;white-space:nowrap;font-size:.78rem;font-weight:700;color:${comp.preparacionFria&&comp.tiempoCoccionMin>0?'#0891b2':'#94a3b8'};background:${comp.preparacionFria&&comp.tiempoCoccionMin>0?'#cffafe':'#f1f5f9'};padding:.3rem .5rem;border-radius:6px;border:1px solid ${comp.preparacionFria&&comp.tiempoCoccionMin>0?'#67e8f9':'#e2e8f0'};" title="Preparación fría pero con timer y registro HACCP">
+          <input type="checkbox" ${comp.preparacionFria&&comp.tiempoCoccionMin>0?'checked':''} onchange="if(this.checked){componentesSandwichTemp[${ci}].preparacionFria=true;componentesSandwichTemp[${ci}].esInsumo=false;}else{componentesSandwichTemp[${ci}].tiempoCoccionMin=null;}renderComponentesSandwich()" style="accent-color:#0891b2;width:14px;height:14px;">
+          ⏱ Frío+Timer
+        </label>
+        <label style="display:flex;align-items:center;gap:.3rem;cursor:pointer;white-space:nowrap;font-size:.78rem;font-weight:700;color:${comp.esInsumo?'#374151':'#94a3b8'};background:${comp.esInsumo?'#e5e7eb':'#f1f5f9'};padding:.3rem .5rem;border-radius:6px;border:1px solid ${comp.esInsumo?'#9ca3af':'#e2e8f0'};" title="Insumo comprado — no se produce en cocina">
+          <input type="checkbox" ${comp.esInsumo?'checked':''} onchange="componentesSandwichTemp[${ci}].esInsumo=this.checked;if(this.checked){componentesSandwichTemp[${ci}].preparacionFria=false;}renderComponentesSandwich()" style="accent-color:#6b7280;width:14px;height:14px;">
+          📦 Insumo
         </label>
         <input type="number" value="${comp.gramajePorUnidad||''}" oninput="componentesSandwichTemp[${ci}].gramajePorUnidad=parseFloat(this.value)||0"
           placeholder="Cantidad" title="Cantidad por unidad de sándwich"
@@ -9266,6 +9289,7 @@ function guardarRecetaSandwich() {
     unidadComponente: c.unidadComponente || 'gr',
     tiempoCoccionMin: (c.tiempoCoccionMin != null && c.tiempoCoccionMin > 0) ? c.tiempoCoccionMin : null,
     preparacionFria: c.preparacionFria || false,
+    esInsumo: c.esInsumo || false,
     ingredientes: c.ingredientes || []
   }));
 
@@ -9905,7 +9929,8 @@ function calcularRecetaParaPlatos(r, platos) {
     });
     return { nombre: comp.nombre, gramajePorcion: comp.gramajePorcion, kgTerminados, ingredientes,
              tiempoCoccionMin: comp.tiempoCoccionMin || null,
-             preparacionFria: comp.preparacionFria || false };
+             preparacionFria: comp.preparacionFria || false,
+             esInsumo: comp.esInsumo || false };
   });
 
   return { kgTotalesTerminados, componentes };
@@ -10271,11 +10296,16 @@ function mostrarPrepsFriasEnDashboard(preps) {
   if (!panel || !lista || preps.length === 0) return;
 
   lista.innerHTML = preps.map(p => `
-    <div style="background:white;border-radius:10px;padding:.85rem;border-left:3px solid #10b981;">
-      <div style="font-weight:700;color:#065f46;margin-bottom:.25rem;">❄️ ${p.componente}</div>
+    <div style="background:white;border-radius:10px;padding:.85rem;border-left:3px solid ${p.conTimer?'#0891b2':'#10b981'};">
+      <div style="font-weight:700;color:${p.conTimer?'#0e7490':'#065f46'};margin-bottom:.25rem;">
+        ${p.conTimer ? '⏱❄️' : '❄️'} ${p.componente}
+        ${p.conTimer ? '<span style="background:#cffafe;color:#0891b2;border-radius:4px;padding:.1rem .4rem;font-size:.7rem;margin-left:.4rem;font-weight:700;">CON TIMER</span>' : ''}
+      </div>
       <div style="font-size:.8rem;color:#6b7280;">OP ${p.numeroOP} · ${p.opNombre}</div>
       <div style="font-size:.85rem;color:#059669;font-weight:600;margin-top:.25rem;">${p.kgProgramados} kg</div>
-      <div style="font-size:.72rem;color:#94a3b8;margin-top:.2rem;">Sin cocción — Preparar en frío</div>
+      <div style="font-size:.72rem;color:#94a3b8;margin-top:.2rem;">
+        ${p.conTimer ? '⏱ Preparación fría con seguimiento de tiempo — ' + (p.tiempoCoccionMin||0) + ' min estimados' : 'Sin cocción — Preparar en frío'}
+      </div>
     </div>
   `).join('');
   panel.style.display = 'block';
@@ -10328,11 +10358,23 @@ function planificarJornadaEnGantt(opIds, fechaStr) {
       const compReceta = recetaOp?.componentes?.find(c => 
         c.nombre?.toLowerCase().trim() === comp.nombre?.toLowerCase().trim()
       );
+      // Excluir insumos (pan, queso, cecina) — no se producen en cocina
+      const esInsumo = comp.esInsumo === true || compReceta?.esInsumo === true;
+      if (esInsumo) return;
+
       const esFrio = comp.preparacionFria === true || compReceta?.preparacionFria === true;
-      console.log(`Componente: ${comp.nombre} | esFrio: ${esFrio} | comp.prepFria: ${comp.preparacionFria} | receta.prepFria: ${compReceta?.preparacionFria}`);
-      if (esFrio) {
+      // Frío con timer = preparacionFria=true Y tiene tiempoCoccionMin — va al dashboard con timer
+      const esFrioConTimer = esFrio && (comp.tiempoCoccionMin > 0 || compReceta?.tiempoCoccionMin > 0);
+      if (esFrio && !esFrioConTimer) {
+        // Preparación fría sin timer — solo info en dashboard
         if (!op._prepsFrias) op._prepsFrias = [];
         op._prepsFrias.push(comp);
+        return;
+      }
+      if (esFrioConTimer) {
+        // Frío con timer — va al dashboard de preps frías CON seguimiento
+        if (!op._prepsFrias) op._prepsFrias = [];
+        op._prepsFrias.push({ ...comp, conTimer: true });
         return;
       }
       const tipoEquipo = mapearTipoEquipoTexto(comp.equipoSugerido || sugerirEquipoPorComponente(comp.nombre, comp.kgTerminados || 0));
@@ -10468,14 +10510,19 @@ function confirmarInicioJornada() {
       const compReceta = recetaOpFria?.componentes?.find(c => 
         c.nombre?.toLowerCase().trim() === comp.nombre?.toLowerCase().trim()
       );
-      const esFrio = comp.preparacionFria === true || compReceta?.preparacionFria === true;
-      if (esFrio) {
+      const esInsumoConf = comp.esInsumo === true || compReceta?.esInsumo === true;
+      if (esInsumoConf) return; // no mostrar insumos como preps frías
+      const esFrioConf = comp.preparacionFria === true || compReceta?.preparacionFria === true;
+      if (esFrioConf) {
+        const tieneTimer = (comp.tiempoCoccionMin > 0 || compReceta?.tiempoCoccionMin > 0);
         window._prepsFriasJornada.push({
           componente: comp.nombre,
           numeroOP: op.numeroOp,
           opNombre: op.nombre,
           kgProgramados: comp.kgTerminados || 0,
-          unidad: comp.unidadComponente || 'gr'
+          unidad: comp.unidadComponente || 'gr',
+          conTimer: tieneTimer,
+          tiempoCoccionMin: comp.tiempoCoccionMin || compReceta?.tiempoCoccionMin || 0
         });
       }
     });
