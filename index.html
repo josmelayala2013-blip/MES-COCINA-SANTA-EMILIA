@@ -5308,33 +5308,69 @@ function generarPDFHACCP() {
   guardarEnHistorialHACCP('cocina', datos);
 
   // Si viene desde un pendiente HACCP → marcarlo como completado
+  // Operamos directo con localStorage para evitar problemas de scope
   const pendienteId = window._haccpPendienteActual;
   if (pendienteId) {
     try {
-      // Obtener array via referencia global
-      const _pends = window._getHaccpPendientes
-        ? window._getHaccpPendientes()
-        : JSON.parse(localStorage.getItem('mes_haccp_pendientes') || '[]');
+      const _pends = JSON.parse(localStorage.getItem('mes_haccp_pendientes') || '[]');
+      const _idx = _pends.findIndex(x => x.id === pendienteId);
+      if (_idx !== -1) {
+        const eraFria = _pends[_idx].esPrepFria || false;
+        const compFria = _pends[_idx].componente || '';
+        const opFria = String(_pends[_idx].numeroOP || '');
 
-      const _p = _pends.find(x => x.id === pendienteId);
-      if (_p) {
-        const eraFria = _p.esPrepFria || false;
-        const compFria = _p.componente || '';
-        const opFria = String(_p.numeroOP || '');
+        _pends[_idx].estado = 'completado';
+        _pends[_idx].completadoPor = datos.firmaNombre || '—';
+        _pends[_idx].completadoEn = new Date().toLocaleString('es-CL');
+        _pends[_idx].datosHACCP = datos;
 
-        _p.estado = 'completado';
-        _p.completadoPor = datos.firmaNombre || '—';
-        _p.completadoEn = new Date().toLocaleString('es-CL');
-        _p.datosHACCP = { preparacion: _p.componente, ...datos };
+        // Guardar en localStorage
+        localStorage.setItem('mes_haccp_pendientes', JSON.stringify(_pends));
 
-        // Actualizar el array original via referencia global
-        if (window._setHaccpPendientes) window._setHaccpPendientes(_pends);
+        // Sincronizar con Firebase si disponible
+        if (window.db && window.firestoreLoaded) {
+          try {
+            const { doc, setDoc } = window.firestoreFunctions;
+            setDoc(doc(window.db, 'mes-data', 'haccp-pendientes'), {
+              pendientes: _pends, ts: new Date().toISOString()
+            });
+          } catch(e) {}
+        }
 
-        // Guardar y re-renderizar
-        if (window._guardarHACCPPendientes) window._guardarHACCPPendientes();
-        else localStorage.setItem('mes_haccp_pendientes', JSON.stringify(_pends));
-
-        if (window._renderHACCPPendientes) window._renderHACCPPendientes();
+        // Re-renderizar panel de pendientes manualmente
+        const _activos = _pends.filter(p => p.estado !== 'completado');
+        const _badge = document.getElementById('badgeHACCPPendientes');
+        const _panel = document.getElementById('dashHACCPPendientes');
+        const _lista = document.getElementById('listaHACCPPendientes');
+        if (_badge) _badge.textContent = _activos.filter(p => p.estado === 'pendiente').length;
+        if (_activos.length === 0) {
+          if (_panel) _panel.style.display = 'none';
+        } else if (_lista) {
+          // Re-renderizar la lista sin los completados
+          _lista.innerHTML = _activos.map(p => {
+            const colorBorde = p.esPrepFria ? '#0891b2' : (p.estado === 'vencido' ? '#ef4444' : '#f59e0b');
+            const colorFondo = p.esPrepFria ? '#f0f9ff' : (p.estado === 'vencido' ? '#fef2f2' : '#fffbeb');
+            const etiqueta = p.esPrepFria
+              ? '<span style="background:#cffafe;color:#0891b2;border-radius:20px;padding:.15rem .6rem;font-size:.72rem;font-weight:700;">❄️ Prep. Fría</span>'
+              : p.estado === 'vencido'
+                ? '<span style="background:#fee2e2;color:#991b1b;border-radius:20px;padding:.15rem .6rem;font-size:.72rem;font-weight:700;">⚠️ Vencido</span>'
+                : '<span style="background:#fef3c7;color:#92400e;border-radius:20px;padding:.15rem .6rem;font-size:.72rem;font-weight:700;">⏳ Pendiente</span>';
+            return `<div style="background:${colorFondo};border-radius:12px;padding:1rem;border-left:4px solid ${colorBorde};">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem;">
+                <div style="font-weight:700;font-size:.95rem;color:#333;">${p.esPrepFria?'⏱❄️ ':''}${p.componente||p.producto}</div>
+                ${etiqueta}
+              </div>
+              <div style="font-size:.8rem;color:#666;margin-bottom:.3rem;">📅 ${p.fecha} · 🕐 ${p.horaFinCoccion}</div>
+              <div style="font-size:.8rem;color:#666;margin-bottom:.3rem;">⚙️ ${p.equipoNombre} · 👤 ${p.operador}</div>
+              <div style="font-size:.8rem;color:#666;margin-bottom:.75rem;">📋 OP: ${p.numeroOP} · ⚖️ ${p.kgReales} kg reales</div>
+              <button onclick="abrirHACCPPendiente('${p.id}')"
+                style="width:100%;padding:.6rem;background:${p.esPrepFria?'linear-gradient(135deg,#0891b2,#06b6d4)':'linear-gradient(135deg,#1e3a5f,#2d5986)'};color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.88rem;">
+                📋 Completar Registro HACCP
+              </button>
+            </div>`;
+          }).join('');
+          if (_panel) _panel.style.display = 'block';
+        }
 
         // Si era prep fría → limpiar panel ❄️
         if (eraFria) {
@@ -5347,8 +5383,8 @@ function generarPDFHACCP() {
           if (window._prepsFriasJornada && window._prepsFriasJornada.length > 0) {
             mostrarPrepsFriasEnDashboard(window._prepsFriasJornada);
           } else {
-            const pf = document.getElementById('dashPrepsFrias');
-            if (pf) pf.style.display = 'none';
+            const _pf = document.getElementById('dashPrepsFrias');
+            if (_pf) _pf.style.display = 'none';
           }
           mostrarNotificacion('✅ HACCP preparación fría completado ❄️', 'success');
         } else {
@@ -5616,8 +5652,7 @@ function imprimirRegistroHACCP(d) {
 </body>
 </html>`;
   _imprimirContenido(html);
-  ventana.onload = () => { ventana.focus(); };
-  
+
   document.getElementById('firmaEstado').innerHTML = '✅ <strong>Firmado</strong> — ' + d.firmaNombre + ' · ' + d.firmaTimestamp;
   document.getElementById('firmaEstado').style.color = '#059669';
 }
