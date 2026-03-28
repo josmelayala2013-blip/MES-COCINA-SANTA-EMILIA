@@ -10485,6 +10485,8 @@ function confirmarInicioJornada() {
   // Si es hoy, activar los componentes cuya hora ya pasó
   if (esHoy) {
     const ahoraMin = new Date().getHours() * 60 + new Date().getMinutes();
+    const equiposPendientesOperador = [];
+
     equipos.forEach(eq => {
       if (!eq.planificaciones) return;
       const planHoy = eq.planificaciones.filter(p => p.fechaStr === fechaStr);
@@ -10493,26 +10495,14 @@ function confirmarInicioJornada() {
       // El primer bloque del día para este equipo
       const primero = planHoy.sort((a,b) => a.inicioMin - b.inicioMin)[0];
       if (primero && ahoraMin >= primero.inicioMin) {
-        // Verificar que no sea componente frío
         if (esComponenteFrio(primero.componente)) {
           primero.estado = 'ignorado';
           console.log('❄️ Saltando componente frío en jornada:', primero.componente);
         } else {
-          // Ya es hora — iniciar inmediatamente
-          eq.estado = 'activa';
-          eq.produccion = {
-            numeroOP: primero.numeroOP,
-            producto: `${primero.opNombre} — OP ${primero.numeroOP}`,
-            componente: primero.componente,
-            kgProgramados: primero.kgProgramados,
-            operador: primero.operador,
-            inicio: new Date().toISOString(),
-            fase: 'coccion',
-            opVinculadaId: primero.opId,
-            tiempoCoccionMin: primero.duracion,
-            enEspera: false
-          };
-          primero.estado = 'activo';
+          // Ya es hora — pedir operador antes de iniciar
+          primero.estado = 'programado';
+          eq.estado = 'programado';
+          equiposPendientesOperador.push({ eq, plan: primero });
         }
       } else if (primero && !esComponenteFrio(primero.componente)) {
         // Aún no es hora — poner en espera programada
@@ -10520,6 +10510,11 @@ function confirmarInicioJornada() {
         primero.estado = 'programado';
       }
     });
+
+    // Mostrar popup de operadores si hay equipos que iniciar
+    if (equiposPendientesOperador.length > 0) {
+      setTimeout(() => mostrarPopupAsignarOperadoresAuto(equiposPendientesOperador), 600);
+    }
   }
 
   limpiarComponentesFriosDeEquipos();
