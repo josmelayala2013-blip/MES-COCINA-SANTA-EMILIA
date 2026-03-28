@@ -5208,14 +5208,20 @@ function generarPDFHACCP() {
 
   // Recopilar datos del formulario
   const eq = equipos.find(e => e.id === window._haaccpEquipoId);
-  const op = ordenesProduccion.find(o => o.id === eq?.produccion?.opVinculadaId);
-  const _nb = (eq?.produccion?.componente || '').toLowerCase().trim();
+  // Si viene de pendiente, usar contexto guardado (el equipo virtual puede ya no existir)
+  const _ctx = window._haccpContextoPendiente || {};
+  const _opVinculadaId = eq?.produccion?.opVinculadaId || _ctx.opVinculadaId;
+  const _componenteNombre = eq?.produccion?.componente || _ctx.componente || '';
+  const op = ordenesProduccion.find(o => o.id === _opVinculadaId);
+  const _nb = _componenteNombre.toLowerCase().trim();
+
   // PRIORIDAD 1: componente de la OP (tiene cantidadTotal ya calculada)
   let _comp = op?.componentes?.find(c =>
     (c.nombre||'').toLowerCase().trim() === _nb ||
-    _nb.includes((c.nombre||'').toLowerCase().trim())
+    _nb.includes((c.nombre||'').toLowerCase().trim()) ||
+    (c.nombre||'').toLowerCase().trim().includes(_nb)
   );
-  // PRIORIDAD 2: receta
+  // PRIORIDAD 2: receta vinculada a la OP
   if (!_comp || !_comp.ingredientes?.length) {
     let _receta = recetas.find(r => r.id === op?.recetaId);
     if (!_receta && op?.sku) _receta = recetas.find(r => r.sku === op.sku);
@@ -5223,17 +5229,32 @@ function generarPDFHACCP() {
       op.nombre.toLowerCase().includes(r.nombre.toLowerCase()) ||
       r.nombre.toLowerCase().includes(op.nombre.toLowerCase())
     );
-    _comp = _receta?.componentes?.find(c => c.nombre?.toLowerCase().trim() === _nb);
+    if (_receta) {
+      _comp = _receta.componentes?.find(c =>
+        (c.nombre||'').toLowerCase().trim() === _nb ||
+        _nb.includes((c.nombre||'').toLowerCase().trim())
+      );
+    }
   }
+  // PRIORIDAD 3: buscar en todas las recetas
   if (!_comp || !_comp.ingredientes?.length) {
     for (const r of recetas) {
-      const c = r.componentes?.find(c => c.nombre?.toLowerCase().trim() === _nb);
+      const c = r.componentes?.find(c =>
+        (c.nombre||'').toLowerCase().trim() === _nb ||
+        _nb.includes((c.nombre||'').toLowerCase().trim())
+      );
       if (c?.ingredientes?.length) { _comp = c; break; }
     }
   }
   const comp = _comp;
   const ingredientes = comp?.ingredientes || [];
   const platos = op?.platos || 0;
+
+  // Limpiar equipo virtual si quedó pendiente
+  if (window._equipoVirtualPendienteId) {
+    equipos = equipos.filter(e => e.id !== window._equipoVirtualPendienteId);
+    window._equipoVirtualPendienteId = null;
+  }
 
   const datos = {
     fecha: document.getElementById('hFecha')?.value || '',
@@ -13809,8 +13830,9 @@ function mostrarPopupGantt(eq) {
                 const d = new Date(); d.setHours(h, m, 0, 0);
                 return d.toISOString();
             };
+            const eqVirtualId = p.equipoId || 'pendiente_' + id;
             const equipoVirtual = {
-                id: p.equipoId || 'pendiente_' + id,
+                id: eqVirtualId,
                 nombre: p.equipoNombre || '—',
                 tipo: 'marmita',
                 produccion: {
@@ -13827,28 +13849,24 @@ function mostrarPopupGantt(eq) {
                 }
             };
 
-            // Si hay equipoId real, intentar usar el equipo real primero
+            // Guardar contexto global para que generarPDFHACCP lo use aunque el equipo virtual ya no exista
+            window._haccpContextoPendiente = {
+                opVinculadaId: p.opVinculadaId || null,
+                componente: p.componente || p.producto || '—',
+                esPrepFria: p.esPrepFria || false
+            };
+
+            // Si hay equipoId real con produccion activa, usarlo directamente
             const equipoReal = equipos.find(e => e.id === p.equipoId);
             if (equipoReal && equipoReal.produccion) {
-                // El equipo real aún tiene produccion — usar abrirRegistroHACCP directamente
                 abrirRegistroHACCP(p.equipoId);
             } else {
-                // Equipo ya liberado — reconstruir contexto temporal
-                // Guardar en window para que abrirRegistroHACCP lo encuentre
-                if (!window._equiposTemp) window._equiposTemp = {};
-                window._equiposTemp[equipoVirtual.id] = equipoVirtual;
-
-                // Inyectar temporalmente en equipos si no está
-                const yaEsta = equipos.find(e => e.id === equipoVirtual.id);
+                // Inyectar equipo virtual temporalmente
+                const yaEsta = equipos.find(e => e.id === eqVirtualId);
                 if (!yaEsta) equipos.push(equipoVirtual);
-
-                abrirRegistroHACCP(equipoVirtual.id);
-
-                // Limpiar después
-                setTimeout(() => {
-                    equipos = equipos.filter(e => e.id !== equipoVirtual.id);
-                    if (window._equiposTemp) delete window._equiposTemp[equipoVirtual.id];
-                }, 500);
+                abrirRegistroHACCP(eqVirtualId);
+                // NO limpiar inmediatamente — dejar hasta que se genere el PDF
+                window._equipoVirtualPendienteId = eqVirtualId;
             }
         }
 
