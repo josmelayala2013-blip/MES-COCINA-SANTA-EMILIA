@@ -13040,6 +13040,8 @@ function mostrarPopupGantt(eq) {
             // Verificar activaciones cada minuto
             if (window._activacionTimer) clearInterval(window._activacionTimer);
             window._activacionTimer = setInterval(activarBloquesProgramados, 60000);
+            // Verificar inmediatamente al entrar al Gantt (sin esperar el minuto)
+            setTimeout(activarBloquesProgramados, 500);
         }
 
         function detenerCronometroGantt() {
