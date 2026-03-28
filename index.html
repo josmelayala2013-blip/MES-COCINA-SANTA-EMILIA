@@ -13739,16 +13739,20 @@ function mostrarPopupGantt(eq) {
                     ? '<span style="background:#fee2e2;color:#991b1b;border-radius:20px;padding:.15rem .6rem;font-size:.72rem;font-weight:700;">⚠️ Vencido</span>'
                     : '<span style="background:#fef3c7;color:#92400e;border-radius:20px;padding:.15rem .6rem;font-size:.72rem;font-weight:700;">⏳ Pendiente</span>';
                 return `
-                <div style="background:${colorFondo};border-radius:12px;padding:1rem;border-left:4px solid ${colorBorde};">
+                <div style="background:${colorFondo};border-radius:12px;padding:1rem;border-left:4px solid ${p.esPrepFria?'#0891b2':colorBorde};">
                     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem;">
-                        <div style="font-weight:700;font-size:.95rem;color:#333;">${p.producto}</div>
-                        ${etiqueta}
+                        <div style="font-weight:700;font-size:.95rem;color:#333;">
+                            ${p.esPrepFria?'⏱❄️ ':''} ${p.componente || p.producto}
+                        </div>
+                        ${p.esPrepFria
+                          ? '<span style="background:#cffafe;color:#0891b2;border-radius:20px;padding:.15rem .6rem;font-size:.72rem;font-weight:700;">❄️ Prep. Fría</span>'
+                          : etiqueta}
                     </div>
                     <div style="font-size:.8rem;color:#666;margin-bottom:.3rem;">📅 ${p.fecha} · 🕐 ${p.horaFinCoccion}</div>
                     <div style="font-size:.8rem;color:#666;margin-bottom:.3rem;">⚙️ ${p.equipoNombre} · 👤 ${p.operador}</div>
                     <div style="font-size:.8rem;color:#666;margin-bottom:.75rem;">📋 OP: ${p.numeroOP} · ⚖️ ${p.kgReales} kg reales</div>
                     <button onclick="abrirHACCPPendiente('${p.id}')"
-                        style="width:100%;padding:.6rem;background:linear-gradient(135deg,#1e3a5f,#2d5986);color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.88rem;">
+                        style="width:100%;padding:.6rem;background:${p.esPrepFria?'linear-gradient(135deg,#0891b2,#06b6d4)':'linear-gradient(135deg,#1e3a5f,#2d5986)'};color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.88rem;">
                         📋 Completar Registro HACCP
                     </button>
                 </div>`;
@@ -13846,8 +13850,29 @@ function mostrarPopupGantt(eq) {
             p.datosHACCP = datos;
 
             guardarHACCPPendientes();
+            guardarEnHistorialHACCP('cocina', { ...datos, componente: p.componente, esPrepFria: p.esPrepFria });
             cerrarModalHACCP();
             renderHACCPPendientes();
+
+            // Si era una prep fría con timer → eliminarla del panel de dashboard
+            if (p.esPrepFria) {
+                // Quitar de _prepsFriasJornada
+                if (window._prepsFriasJornada) {
+                    window._prepsFriasJornada = window._prepsFriasJornada.filter(pf =>
+                        !(pf.componente === p.componente && pf.numeroOP === p.numeroOP)
+                    );
+                    localStorage.setItem('mes_prepsFriasJornada', JSON.stringify(window._prepsFriasJornada));
+                }
+                // Re-renderizar panel de preps frías
+                if (window._prepsFriasJornada && window._prepsFriasJornada.length > 0) {
+                    mostrarPrepsFriasEnDashboard(window._prepsFriasJornada);
+                } else {
+                    // No quedan preps frías — ocultar panel
+                    const panel = document.getElementById('dashPrepsFrias');
+                    if (panel) panel.style.display = 'none';
+                }
+                mostrarNotificacion('✅ HACCP de preparación fría completado y registrado', 'success');
+            }
 
             // Ofrecer imprimir
             if (confirm('¿Deseas imprimir el registro HACCP ahora?')) {
