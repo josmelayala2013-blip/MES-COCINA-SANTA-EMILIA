@@ -9898,32 +9898,57 @@ function previewOP() {
 function sugerirEquipoPorComponente(nombreComponente, kgTerminados) {
   const n = nombreComponente.toLowerCase();
 
-  // MARMITA → desmechadas, estofados, mechadas
+  // ── INSUMOS: no se producen en cocina ─────────────────────────────────────
+  // Verificar en recetas si el componente está marcado como esInsumo
+  for (const r of recetas) {
+    const comp = (r.componentes||[]).find(c =>
+      (c.nombre||'').toLowerCase().trim() === n.trim()
+    );
+    if (comp && comp.esInsumo === true) return '📦 Insumo';
+  }
+  // Palabras clave de insumos comunes de sándwich
+  if (n.includes('pan ') || n === 'pan' || n.includes('pan de') ||
+      n.includes('panini') || n.includes('baguet') || n.includes('marraque') ||
+      n.includes('queso') || n.includes('cheese') ||
+      n.includes('cecina') || n.includes('jamón') || n.includes('jamon') ||
+      n.includes('mortadela') || n.includes('salchich') || n.includes('longaniz') ||
+      n.includes('pepperoni') || n.includes('tocineta') || n.includes('prosciutto')) {
+    return '📦 Insumo';
+  }
+
+  // ── PREPARACIONES FRÍAS: no van a equipo de cocción ───────────────────────
+  for (const r of recetas) {
+    const comp = (r.componentes||[]).find(c =>
+      (c.nombre||'').toLowerCase().trim() === n.trim()
+    );
+    if (comp && comp.preparacionFria === true && !comp.esInsumo) return '❄️ Prep. Fría';
+  }
+
+  // ── MARMITA → desmechadas, estofados, mechadas ───────────────────────────
   if (n.includes('desmech') || n.includes('mechad') || n.includes('estofad') ||
       n.includes('vacuno') || n.includes('cocido')) {
     return '🥘 Marmita';
   }
 
-  // SALSAS EXPLÍCITAS (salsa, jugo, crema) → Sartén ≤110kg / Marmita >110kg
-  // "wok" solo es salsa si viene con salsa/jugo/crema, si no es proteína
+  // ── SALSAS → Sartén ≤110kg / Marmita >110kg ─────────────────────────────
   const esSalsa = n.includes('salsa') || n.includes('jugo') || n.includes('crema') ||
                   (n.includes('wok') && (n.includes('salsa') || n.includes('jugo') || n.includes('crema')));
   if (esSalsa) {
     return kgTerminados <= 110 ? '🔥 Sartén Basculante' : '🥘 Marmita';
   }
 
-  // ARROCES → ≤110kg Sartén / >110kg Marmita
+  // ── ARROCES ──────────────────────────────────────────────────────────────
   if (n.includes('arroz') || n.includes('acompa') || n.includes('cereal')) {
     return kgTerminados <= 110 ? '🔥 Sartén Basculante' : '🥘 Marmita';
   }
 
-  // PASTAS → siempre Sartén Basculante
+  // ── PASTAS ───────────────────────────────────────────────────────────────
   if (n.includes('pasta') || n.includes('fettuc') || n.includes('spaghet') ||
       n.includes('tallar') || n.includes('penne') || n.includes('macarr')) {
     return '🔥 Sartén Basculante';
   }
 
-  // HORNO RATIONAL → proteínas (incluye wok de proteína)
+  // ── HORNO RATIONAL → proteínas ───────────────────────────────────────────
   if (n.includes('wok') || n.includes('lamin') || n.includes('asad') || n.includes('salteado') ||
       n.includes('plancha') || n.includes('pechuga') || n.includes('horno') ||
       n.includes('gratin') || n.includes('rostiz') || n.includes('prote') ||
@@ -9933,7 +9958,7 @@ function sugerirEquipoPorComponente(nombreComponente, kgTerminados) {
     return '🍖 Horno Rational';
   }
 
-  // DEFAULT → ≤110kg Sartén / >110kg Marmita
+  // ── DEFAULT ──────────────────────────────────────────────────────────────
   return kgTerminados <= 110 ? '🔥 Sartén Basculante' : '🥘 Marmita';
 }
 
@@ -10513,7 +10538,15 @@ function planificarJornadaEnGantt(opIds, fechaStr) {
       );
       // Excluir insumos (pan, queso, cecina) — no se producen en cocina
       const esInsumo = comp.esInsumo === true || compReceta?.esInsumo === true;
-      if (esInsumo) return;
+      // También excluir por palabras clave comunes
+      const _n = (comp.nombre||'').toLowerCase();
+      const esInsumoNombre = _n.includes('pan ') || _n === 'pan' || _n.includes('pan de') ||
+        _n.includes('panini') || _n.includes('baguet') || _n.includes('marraque') ||
+        _n.includes('queso') || _n.includes('cheese') ||
+        _n.includes('cecina') || _n.includes('jamón') || _n.includes('jamon') ||
+        _n.includes('mortadela') || _n.includes('salchich') || _n.includes('longaniz') ||
+        _n.includes('pepperoni') || _n.includes('tocineta') || _n.includes('prosciutto');
+      if (esInsumo || esInsumoNombre) return;
 
       const esFrio = comp.preparacionFria === true || compReceta?.preparacionFria === true;
       // Frío con timer = preparacionFria=true Y tiene tiempoCoccionMin — va al dashboard con timer
