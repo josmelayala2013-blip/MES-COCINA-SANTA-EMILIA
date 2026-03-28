@@ -2489,7 +2489,11 @@
         function renderEquipos() {
             const grid = document.getElementById('equipmentGrid');
             grid.innerHTML = '';
-            // Mostrar preps frías si hay activas
+            // Mostrar preps frías — restaurar desde localStorage si es necesario
+            if (!window._prepsFriasJornada || window._prepsFriasJornada.length === 0) {
+              const saved = localStorage.getItem('mes_prepsFriasJornada');
+              if (saved) window._prepsFriasJornada = JSON.parse(saved);
+            }
             if (window._prepsFriasJornada && window._prepsFriasJornada.length > 0) {
               mostrarPrepsFriasEnDashboard(window._prepsFriasJornada);
             }
@@ -7718,7 +7722,8 @@ function imprimirRegistroHACCP(d) {
             document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
             document.getElementById(tabName).classList.add('active');
             event.target.classList.add('active');
-            if (tabName === 'historial') cargarHistorialFecha();
+            if (tabName === 'dashboard') { renderEquipos(); updateStats(); }
+            else if (tabName === 'historial') cargarHistorialFecha();
             else if (tabName === 'acondCarnes') { /* pestaña lista */ }
             else if (tabName === 'acondVegetales') { /* pestaña lista */ }
             else if (tabName === 'carnes') { /* contenido carnes */ }
@@ -10322,7 +10327,7 @@ function mostrarPrepsFriasEnDashboard(preps) {
   if (!panel || !lista || preps.length === 0) return;
 
   lista.innerHTML = preps.map((p, i) => {
-    const idKey = `frioTimer_${i}_${p.componente.replace(/\s/g,'_')}`;
+    const idKey = `frioTimer_${i}_${(p.componente||'').replace(/[^a-zA-Z0-9]/g,'_')}`;
     if (p.conTimer) {
       return `
       <div style="background:white;border-radius:10px;padding:.85rem;border-left:3px solid #0891b2;" id="card_${idKey}">
@@ -10429,6 +10434,9 @@ function finalizarTimerFrioCon(idKey, componente, op, opNombre, kg) {
 function cerrarPrepsFrias() {
   const panel = document.getElementById('dashPrepsFrias');
   if (panel) panel.style.display = 'none';
+  // Limpiar preps frías completadas del día
+  window._prepsFriasJornada = [];
+  localStorage.removeItem('mes_prepsFriasJornada');
 }
 
 // ---- ALGORITMO PLANIFICACIÓN AUTOMÁTICA GANTT ----
@@ -10639,6 +10647,8 @@ function confirmarInicioJornada() {
           conTimer: tieneTimer,
           tiempoCoccionMin: comp.tiempoCoccionMin || compReceta?.tiempoCoccionMin || 0
         });
+        // Persistir en localStorage para sobrevivir recargas
+        localStorage.setItem('mes_prepsFriasJornada', JSON.stringify(window._prepsFriasJornada));
       }
     });
     iniciadas++;
@@ -10691,8 +10701,17 @@ function confirmarInicioJornada() {
     ? `🚀 Jornada iniciada — ${resultado.planificadas} componentes planificados en el Gantt`
     : `📅 Jornada planificada — ${resultado.planificadas} componentes programados para ${fechaStr}`;
   mostrarNotificacion(msg, 'success');
+  // Ir al dashboard para mostrar el estado de la jornada
+  try {
+    const btnDash = document.querySelector('.nav-tab[data-modulo="dashboard"]');
+    if (btnDash) btnDash.click();
+  } catch(e) {
+    renderEquipos();
+    updateStats();
+  }
+  // Mostrar preps frías con timer si las hay
   if (window._prepsFriasJornada && window._prepsFriasJornada.length > 0) {
-    mostrarPrepsFriasEnDashboard(window._prepsFriasJornada);
+    setTimeout(() => mostrarPrepsFriasEnDashboard(window._prepsFriasJornada), 300);
   }
 
   if (resultado.sinEquipo > 0) {
@@ -13570,6 +13589,10 @@ function mostrarPopupGantt(eq) {
         // ============================================
 
         let haccpPendientes = JSON.parse(localStorage.getItem('mes_haccp_pendientes') || '[]');
+        // Restaurar preps frías persistidas
+        if (!window._prepsFriasJornada || window._prepsFriasJornada.length === 0) {
+          window._prepsFriasJornada = JSON.parse(localStorage.getItem('mes_prepsFriasJornada') || '[]');
+        }
 
         function guardarHACCPPendientes() {
             localStorage.setItem('mes_haccp_pendientes', JSON.stringify(haccpPendientes));
