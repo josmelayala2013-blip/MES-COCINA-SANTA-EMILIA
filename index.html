@@ -9185,23 +9185,12 @@ function renderComponentesSandwich() {
     return;
   }
   cont.innerHTML = componentesSandwichTemp.map((comp, ci) => `
-    <div style="background:${comp.preparacionFria?'#f0fdf4':'#f8f9ff'};border-radius:10px;padding:1rem;margin-bottom:.75rem;border-left:4px solid ${comp.preparacionFria?'#10b981':'#f59e0b'};">
-      <div style="display:flex;gap:.5rem;margin-bottom:.75rem;align-items:center;">
+    <div style="background:${comp.esInsumo?'#f9fafb':comp.preparacionFria?'#f0fdf4':'#f8f9ff'};border-radius:10px;padding:1rem;margin-bottom:.75rem;border-left:4px solid ${comp.esInsumo?'#9ca3af':comp.preparacionFria?'#10b981':'#f59e0b'};">
+      <!-- Fila 1: Nombre + Gramaje + Unidad + Timer + Eliminar -->
+      <div style="display:flex;gap:.5rem;margin-bottom:.5rem;align-items:center;">
         <input value="${comp.nombre}" oninput="componentesSandwichTemp[${ci}].nombre=this.value"
           placeholder="Nombre componente (ej: Pollo a la plancha)"
           style="flex:1;padding:.45rem;border-radius:7px;border:1px solid #ddd;font-size:.9rem;">
-        <label style="display:flex;align-items:center;gap:.3rem;cursor:pointer;white-space:nowrap;font-size:.78rem;font-weight:700;color:${comp.esInsumo?'#6b7280':comp.preparacionFria?'#059669':'#94a3b8'};background:${comp.esInsumo?'#f3f4f6':comp.preparacionFria?'#d1fae5':'#f1f5f9'};padding:.3rem .5rem;border-radius:6px;border:1px solid ${comp.esInsumo?'#d1d5db':comp.preparacionFria?'#6ee7b7':'#e2e8f0'};">
-          <input type="checkbox" ${comp.preparacionFria&&!comp.esInsumo?'checked':''} onchange="componentesSandwichTemp[${ci}].preparacionFria=this.checked;if(this.checked)componentesSandwichTemp[${ci}].esInsumo=false;renderComponentesSandwich()" style="accent-color:#10b981;width:14px;height:14px;">
-          ❄️ Frío
-        </label>
-        <label style="display:flex;align-items:center;gap:.3rem;cursor:pointer;white-space:nowrap;font-size:.78rem;font-weight:700;color:${comp.preparacionFria&&comp.tiempoCoccionMin>0?'#0891b2':'#94a3b8'};background:${comp.preparacionFria&&comp.tiempoCoccionMin>0?'#cffafe':'#f1f5f9'};padding:.3rem .5rem;border-radius:6px;border:1px solid ${comp.preparacionFria&&comp.tiempoCoccionMin>0?'#67e8f9':'#e2e8f0'};" title="Preparación fría pero con timer y registro HACCP">
-          <input type="checkbox" ${comp.preparacionFria&&comp.tiempoCoccionMin>0?'checked':''} onchange="if(this.checked){componentesSandwichTemp[${ci}].preparacionFria=true;componentesSandwichTemp[${ci}].esInsumo=false;}else{componentesSandwichTemp[${ci}].tiempoCoccionMin=null;}renderComponentesSandwich()" style="accent-color:#0891b2;width:14px;height:14px;">
-          ⏱ Frío+Timer
-        </label>
-        <label style="display:flex;align-items:center;gap:.3rem;cursor:pointer;white-space:nowrap;font-size:.78rem;font-weight:700;color:${comp.esInsumo?'#374151':'#94a3b8'};background:${comp.esInsumo?'#e5e7eb':'#f1f5f9'};padding:.3rem .5rem;border-radius:6px;border:1px solid ${comp.esInsumo?'#9ca3af':'#e2e8f0'};" title="Insumo comprado — no se produce en cocina">
-          <input type="checkbox" ${comp.esInsumo?'checked':''} onchange="componentesSandwichTemp[${ci}].esInsumo=this.checked;if(this.checked){componentesSandwichTemp[${ci}].preparacionFria=false;}renderComponentesSandwich()" style="accent-color:#6b7280;width:14px;height:14px;">
-          📦 Insumo
-        </label>
         <input type="number" value="${comp.gramajePorUnidad||''}" oninput="componentesSandwichTemp[${ci}].gramajePorUnidad=parseFloat(this.value)||0"
           placeholder="Cantidad" title="Cantidad por unidad de sándwich"
           style="width:80px;padding:.45rem;border-radius:7px;border:1px solid #ddd;font-size:.9rem;">
@@ -9213,7 +9202,7 @@ function renderComponentesSandwich() {
           <option value="lt" ${(comp.unidadComponente||'gr')==='lt'?'selected':''}>lt</option>
           <option value="ml" ${(comp.unidadComponente||'gr')==='ml'?'selected':''}>ml</option>
         </select>
-        ${!comp.preparacionFria ? `
+        ${!comp.preparacionFria && !comp.esInsumo ? `
         <div style="display:flex;flex-direction:column;align-items:center;gap:.1rem;">
           <input type="number" value="${comp.tiempoCoccionMin != null && comp.tiempoCoccionMin > 0 ? comp.tiempoCoccionMin : ''}"
             oninput="componentesSandwichTemp[${ci}].tiempoCoccionMin=this.value===''?null:(parseInt(this.value)>0?parseInt(this.value):null)"
@@ -9223,6 +9212,21 @@ function renderComponentesSandwich() {
           <span style="font-size:.6rem;color:#94a3b8;white-space:nowrap;">⏱ min</span>
         </div>` : ''}
         <button onclick="eliminarComponenteSandwich(${ci})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:7px;padding:.4rem .7rem;cursor:pointer;">✕</button>
+      </div>
+      <!-- Fila 2: Tipo de componente (Frío / Frío+Timer / Insumo) -->
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem;">
+        <label style="display:flex;align-items:center;gap:.3rem;cursor:pointer;font-size:.78rem;font-weight:700;padding:.25rem .6rem;border-radius:6px;border:1px solid ${comp.preparacionFria&&!comp.esInsumo?'#6ee7b7':'#e2e8f0'};background:${comp.preparacionFria&&!comp.esInsumo?'#d1fae5':'#f8fafc'};color:${comp.preparacionFria&&!comp.esInsumo?'#059669':'#94a3b8'};">
+          <input type="checkbox" ${comp.preparacionFria&&!comp.esInsumo?'checked':''} onchange="componentesSandwichTemp[${ci}].preparacionFria=this.checked;if(this.checked)componentesSandwichTemp[${ci}].esInsumo=false;renderComponentesSandwich()" style="accent-color:#10b981;">
+          ❄️ Preparación Fría
+        </label>
+        <label style="display:flex;align-items:center;gap:.3rem;cursor:pointer;font-size:.78rem;font-weight:700;padding:.25rem .6rem;border-radius:6px;border:1px solid ${comp.preparacionFria&&comp.tiempoCoccionMin>0?'#67e8f9':'#e2e8f0'};background:${comp.preparacionFria&&comp.tiempoCoccionMin>0?'#cffafe':'#f8fafc'};color:${comp.preparacionFria&&comp.tiempoCoccionMin>0?'#0891b2':'#94a3b8'};" title="Preparación fría con timer y HACCP">
+          <input type="checkbox" ${comp.preparacionFria&&comp.tiempoCoccionMin>0?'checked':''} onchange="if(this.checked){componentesSandwichTemp[${ci}].preparacionFria=true;componentesSandwichTemp[${ci}].esInsumo=false;}else{componentesSandwichTemp[${ci}].tiempoCoccionMin=null;}renderComponentesSandwich()" style="accent-color:#0891b2;">
+          ⏱ Frío + Timer
+        </label>
+        <label style="display:flex;align-items:center;gap:.3rem;cursor:pointer;font-size:.78rem;font-weight:700;padding:.25rem .6rem;border-radius:6px;border:1px solid ${comp.esInsumo?'#9ca3af':'#e2e8f0'};background:${comp.esInsumo?'#e5e7eb':'#f8fafc'};color:${comp.esInsumo?'#374151':'#94a3b8'};" title="Insumo comprado — no se produce">
+          <input type="checkbox" ${comp.esInsumo?'checked':''} onchange="componentesSandwichTemp[${ci}].esInsumo=this.checked;if(this.checked){componentesSandwichTemp[${ci}].preparacionFria=false;}renderComponentesSandwich()" style="accent-color:#6b7280;">
+          📦 Insumo (no se produce)
+        </label>
       </div>
       <div style="margin-left:.5rem;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;">
