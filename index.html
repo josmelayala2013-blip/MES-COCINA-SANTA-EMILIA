@@ -13749,12 +13749,10 @@ function mostrarPopupGantt(eq) {
                 } catch(e) {}
             }
         }
-        // Exponer funciones al scope global inmediatamente
+        // Exponer al scope global — dentro del bloque correcto
         window._guardarHACCPPendientes = guardarHACCPPendientes;
         window._getHaccpPendientes = () => haccpPendientes;
         window._setHaccpPendientes = (v) => { haccpPendientes = v; };
-
-        // Exponer renderHACCPPendientes al scope global
         window._renderHACCPPendientes = renderHACCPPendientes;
 
         function crearHACCPPendiente(equipo) {
@@ -13792,7 +13790,6 @@ function mostrarPopupGantt(eq) {
         }
 
         function renderHACCPPendientes() {
-            window._renderHACCPPendientes = renderHACCPPendientes; // autoexposición
             const panel = document.getElementById('dashHACCPPendientes');
             const lista = document.getElementById('listaHACCPPendientes');
             const badge = document.getElementById('badgeHACCPPendientes');
@@ -15908,11 +15905,6 @@ ${d._ingredientes.map(ing => `<tr>
                 renderVistaTandas();
             }
         }, 60000);
-
-        // Exponer funciones HACCP al scope global DESPUÉS de todas las declaraciones
-        window._guardarHACCPPendientes = guardarHACCPPendientes;
-        window._renderHACCPPendientes = renderHACCPPendientes;
-        window._haccpPendientesRef = { get: () => haccpPendientes, set: (v) => { haccpPendientes = v; } };
 
         window.onload = init;
 
