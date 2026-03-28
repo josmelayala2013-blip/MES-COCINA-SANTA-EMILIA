@@ -5311,11 +5311,12 @@ function generarPDFHACCP() {
   const pendienteId = window._haccpPendienteActual;
   if (pendienteId) {
     try {
-      // Usar referencia global al array (expuesta via window._haccpPendientesRef)
-      const _ref = window._haccpPendientesRef;
-      const _pends = _ref ? _ref.get() : JSON.parse(localStorage.getItem('mes_haccp_pendientes') || '[]');
-      const _p = _pends.find(x => x.id === pendienteId);
+      // Obtener array via referencia global
+      const _pends = window._getHaccpPendientes
+        ? window._getHaccpPendientes()
+        : JSON.parse(localStorage.getItem('mes_haccp_pendientes') || '[]');
 
+      const _p = _pends.find(x => x.id === pendienteId);
       if (_p) {
         const eraFria = _p.esPrepFria || false;
         const compFria = _p.componente || '';
@@ -5326,26 +5327,16 @@ function generarPDFHACCP() {
         _p.completadoEn = new Date().toLocaleString('es-CL');
         _p.datosHACCP = { preparacion: _p.componente, ...datos };
 
-        // Guardar — usar función expuesta o localStorage directo
-        if (window._guardarHACCPPendientes) {
-          window._guardarHACCPPendientes();
-        } else {
-          localStorage.setItem('mes_haccp_pendientes', JSON.stringify(_pends));
-        }
+        // Actualizar el array original via referencia global
+        if (window._setHaccpPendientes) window._setHaccpPendientes(_pends);
 
-        // Re-renderizar panel
-        if (window._renderHACCPPendientes) {
-          window._renderHACCPPendientes();
-        } else {
-          // Fallback manual
-          const _activos = _pends.filter(p => p.estado !== 'completado');
-          const _badge = document.getElementById('badgeHACCPPendientes');
-          const _panel = document.getElementById('dashHACCPPendientes');
-          if (_badge) _badge.textContent = _activos.filter(p=>p.estado==='pendiente').length;
-          if (_activos.length === 0 && _panel) _panel.style.display = 'none';
-        }
+        // Guardar y re-renderizar
+        if (window._guardarHACCPPendientes) window._guardarHACCPPendientes();
+        else localStorage.setItem('mes_haccp_pendientes', JSON.stringify(_pends));
 
-        // Si era prep fría → eliminar del panel ❄️
+        if (window._renderHACCPPendientes) window._renderHACCPPendientes();
+
+        // Si era prep fría → limpiar panel ❄️
         if (eraFria) {
           if (window._prepsFriasJornada) {
             window._prepsFriasJornada = window._prepsFriasJornada.filter(pf =>
@@ -5354,14 +5345,14 @@ function generarPDFHACCP() {
             localStorage.setItem('mes_prepsFriasJornada', JSON.stringify(window._prepsFriasJornada));
           }
           if (window._prepsFriasJornada && window._prepsFriasJornada.length > 0) {
-            if (typeof mostrarPrepsFriasEnDashboard === 'function') mostrarPrepsFriasEnDashboard(window._prepsFriasJornada);
+            mostrarPrepsFriasEnDashboard(window._prepsFriasJornada);
           } else {
-            const panelFrio = document.getElementById('dashPrepsFrias');
-            if (panelFrio) panelFrio.style.display = 'none';
+            const pf = document.getElementById('dashPrepsFrias');
+            if (pf) pf.style.display = 'none';
           }
-          mostrarNotificacion('✅ HACCP preparación fría completado — eliminado del panel ❄️', 'success');
+          mostrarNotificacion('✅ HACCP preparación fría completado ❄️', 'success');
         } else {
-          mostrarNotificacion('✅ Registro HACCP completado y guardado', 'success');
+          mostrarNotificacion('✅ Registro HACCP completado', 'success');
         }
       }
     } catch(e) { console.error('Error actualizando pendiente HACCP:', e); }
@@ -13758,8 +13749,13 @@ function mostrarPopupGantt(eq) {
                 } catch(e) {}
             }
         }
-        // Exponer funciones al scope global
+        // Exponer funciones al scope global inmediatamente
         window._guardarHACCPPendientes = guardarHACCPPendientes;
+        window._getHaccpPendientes = () => haccpPendientes;
+        window._setHaccpPendientes = (v) => { haccpPendientes = v; };
+
+        // Exponer renderHACCPPendientes al scope global
+        window._renderHACCPPendientes = renderHACCPPendientes;
 
         function crearHACCPPendiente(equipo) {
             const hoy = new Date().toLocaleDateString('es-CL');
@@ -15916,6 +15912,11 @@ ${d._ingredientes.map(ing => `<tr>
                 renderVistaTandas();
             }
         }, 60000);
+
+        // Exponer funciones HACCP al scope global DESPUÉS de todas las declaraciones
+        window._guardarHACCPPendientes = guardarHACCPPendientes;
+        window._renderHACCPPendientes = renderHACCPPendientes;
+        window._haccpPendientesRef = { get: () => haccpPendientes, set: (v) => { haccpPendientes = v; } };
 
         window.onload = init;
 
