@@ -16077,17 +16077,35 @@ let registrosTransito = JSON.parse(localStorage.getItem('cal_transito') || '[]')
 function guardarCE() {
   localStorage.setItem('cal_ce', JSON.stringify(registrosCE));
   if (window.db && window.firestoreLoaded) {
-    try { const {doc,setDoc}=window.firestoreFunctions; setDoc(doc(window.db,'mes-data','calidad-ce'),{registros:registrosCE,ts:new Date().toISOString()}); } catch(e){}
+    const {doc,setDoc}=window.firestoreFunctions;
+    const datos = _limpiarParaFirebase({registros:registrosCE, ts:new Date().toISOString()});
+    setDoc(doc(window.db,'mes-data','calidad-ce'), datos)
+      .catch(e => console.error('❌ Error guardando CE:', e.message));
   }
 }
+// Limpia undefined recursivamente para Firebase
+function _limpiarParaFirebase(obj) {
+  if (Array.isArray(obj)) return obj.map(_limpiarParaFirebase);
+  if (obj !== null && typeof obj === 'object') {
+    const limpio = {};
+    for (const k in obj) {
+      const v = obj[k];
+      limpio[k] = (v === undefined) ? null : _limpiarParaFirebase(v);
+    }
+    return limpio;
+  }
+  return obj;
+}
+
 function guardarTunel() {
   localStorage.setItem('cal_tunel', JSON.stringify(registrosTunel));
   if (window.db && window.firestoreLoaded) {
     const {doc,setDoc}=window.firestoreFunctions;
-    setDoc(doc(window.db,'mes-data','calidad-tunel'),{registros:registrosTunel,ts:new Date().toISOString()})
+    const datos = _limpiarParaFirebase({registros:registrosTunel, ts:new Date().toISOString()});
+    setDoc(doc(window.db,'mes-data','calidad-tunel'), datos)
       .then(() => console.log('✅ Túnel guardado en Firebase'))
       .catch(e => {
-        console.error('❌ Error guardando túnel en Firebase:', e.message);
+        console.error('❌ Error guardando túnel:', e.message);
         mostrarNotificacion('⚠️ Guardado local OK — Error Firebase: ' + e.message, 'warning');
       });
   }
@@ -16096,10 +16114,11 @@ function guardarTransito() {
   localStorage.setItem('cal_transito', JSON.stringify(registrosTransito));
   if (window.db && window.firestoreLoaded) {
     const {doc,setDoc}=window.firestoreFunctions;
-    setDoc(doc(window.db,'mes-data','calidad-transito'),{registros:registrosTransito,ts:new Date().toISOString()})
+    const datos = _limpiarParaFirebase({registros:registrosTransito, ts:new Date().toISOString()});
+    setDoc(doc(window.db,'mes-data','calidad-transito'), datos)
       .then(() => console.log('✅ Tránsito guardado en Firebase'))
       .catch(e => {
-        console.error('❌ Error guardando tránsito en Firebase:', e.message);
+        console.error('❌ Error guardando tránsito:', e.message);
         mostrarNotificacion('⚠️ Guardado local OK — Error Firebase: ' + e.message, 'warning');
       });
   }
