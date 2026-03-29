@@ -16029,11 +16029,44 @@ function changeTabCalidad(tab) {
     if (el && !el.value) { el.value = fechaHoy; renderRegistrosCE(); }
   } else if (tab === 'tempTunel') {
     const el = document.getElementById('fechaFiltroTunel');
-    if (el && !el.value) { el.value = fechaHoy; renderRegistrosTunel(); }
+    if (el && !el.value) el.value = fechaHoy;
+    sincronizarCalidadDesdeFirebase('tunel', renderRegistrosTunel);
   } else if (tab === 'tempTransito') {
     const el = document.getElementById('fechaFiltroTransito');
-    if (el && !el.value) { el.value = fechaHoy; renderRegistrosTransito(); }
+    if (el && !el.value) el.value = fechaHoy;
+    sincronizarCalidadDesdeFirebase('transito', renderRegistrosTransito);
+  } else if (tab === 'tempCoccionEnvasado') {
+    const el = document.getElementById('fechaFiltroCE');
+    if (el && !el.value) el.value = fechaHoy;
+    sincronizarCalidadDesdeFirebase('ce', renderRegistrosCE);
   }
+}
+
+async function sincronizarCalidadDesdeFirebase(tipo, callback) {
+  // Primero renderizar con datos locales
+  if (callback) callback();
+  // Luego intentar cargar desde Firebase
+  if (!window.db || !window.firestoreLoaded) return;
+  try {
+    const { doc, getDoc } = window.firestoreFunctions;
+    const key = tipo === 'tunel' ? 'calidad-tunel' : tipo === 'transito' ? 'calidad-transito' : 'calidad-ce';
+    const snap = await getDoc(doc(window.db, 'mes-data', key));
+    if (snap.exists()) {
+      const data = snap.data();
+      const registros = data.registros || [];
+      if (tipo === 'tunel') {
+        registrosTunel = registros;
+        localStorage.setItem('cal_tunel', JSON.stringify(registrosTunel));
+      } else if (tipo === 'transito') {
+        registrosTransito = registros;
+        localStorage.setItem('cal_transito', JSON.stringify(registrosTransito));
+      } else {
+        registrosCE = registros;
+        localStorage.setItem('cal_ce', JSON.stringify(registrosCE));
+      }
+      if (callback) callback();
+    }
+  } catch(e) { console.error('Error sincronizando calidad:', e); }
 }
 
 // ---- DATOS ----
@@ -16050,13 +16083,25 @@ function guardarCE() {
 function guardarTunel() {
   localStorage.setItem('cal_tunel', JSON.stringify(registrosTunel));
   if (window.db && window.firestoreLoaded) {
-    try { const {doc,setDoc}=window.firestoreFunctions; setDoc(doc(window.db,'mes-data','calidad-tunel'),{registros:registrosTunel,ts:new Date().toISOString()}); } catch(e){}
+    const {doc,setDoc}=window.firestoreFunctions;
+    setDoc(doc(window.db,'mes-data','calidad-tunel'),{registros:registrosTunel,ts:new Date().toISOString()})
+      .then(() => console.log('✅ Túnel guardado en Firebase'))
+      .catch(e => {
+        console.error('❌ Error guardando túnel en Firebase:', e.message);
+        mostrarNotificacion('⚠️ Guardado local OK — Error Firebase: ' + e.message, 'warning');
+      });
   }
 }
 function guardarTransito() {
   localStorage.setItem('cal_transito', JSON.stringify(registrosTransito));
   if (window.db && window.firestoreLoaded) {
-    try { const {doc,setDoc}=window.firestoreFunctions; setDoc(doc(window.db,'mes-data','calidad-transito'),{registros:registrosTransito,ts:new Date().toISOString()}); } catch(e){}
+    const {doc,setDoc}=window.firestoreFunctions;
+    setDoc(doc(window.db,'mes-data','calidad-transito'),{registros:registrosTransito,ts:new Date().toISOString()})
+      .then(() => console.log('✅ Tránsito guardado en Firebase'))
+      .catch(e => {
+        console.error('❌ Error guardando tránsito en Firebase:', e.message);
+        mostrarNotificacion('⚠️ Guardado local OK — Error Firebase: ' + e.message, 'warning');
+      });
   }
 }
 
