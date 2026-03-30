@@ -16964,9 +16964,9 @@ function _renderTablaAlmacenamiento(registros, tipo, color) {
 }
 
 function calcularFechaDesdeJuliano(juliano) {
-  if (!juliano || juliano.length < 3) return '';
+  if (!juliano || juliano.trim() === '') return '';
   const anio = new Date().getFullYear();
-  const dia = parseInt(juliano.slice(-3));
+  const dia = parseInt(juliano.trim());
   if (isNaN(dia) || dia < 1 || dia > 366) return '';
   const fecha = new Date(anio, 0, dia);
   fecha.setDate(fecha.getDate() + 15);
@@ -17022,7 +17022,7 @@ function _abrirModalAlmacenamiento(tipo, fecha, titulo, color, icono) {
           <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">⑥ Producto (Tarja)</label>
             <input type="text" id="alProducto${n}_${tipo}" placeholder="Nombre" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #e2e8f0;font-size:.82rem;box-sizing:border-box;"></div>
           <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">Lote / Juliano</label>
-            <input type="text" id="alLote${n}_${tipo}" placeholder="Ej: 084" oninput="alCalcVenc(this)" data-mon="${n}" data-tipo="${tipo}" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #e2e8f0;font-size:.82rem;box-sizing:border-box;"></div>
+            <input type="text" id="alLote${n}_${tipo}" placeholder="Ej: 084" oninput="alCalcVenc(this)" onchange="alCalcVenc(this)" data-mon="${n}" data-tipo="${tipo}" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #e2e8f0;font-size:.82rem;box-sizing:border-box;"></div>
           <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">F. Vencimiento ${tipo==='tunel'?'(+15 días auto)':''}</label>
             <input type="date" id="alFVenc${n}_${tipo}" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #e2e8f0;font-size:.82rem;box-sizing:border-box;"></div>
         </div>
@@ -17099,20 +17099,26 @@ function alCalcularVenc(n, tipo) {
   if (fVenc) { const el = document.getElementById(`alFVenc${n}_${tipo}`); if(el) el.value = fVenc; }
 }
 
-// Calcula vencimiento desde el ID del campo lote
+// Calcula vencimiento +15 días desde lote juliano
 function alCalcVenc(input) {
-  // ID formato: alLoteN_tipo  ej: alLote1_tunel
-  const id = input.id; // ej: "alLote1_tunel"
-  const match = id.match(/alLote(\d+)_(.+)/);
-  if (!match) return;
-  const n = match[1];
-  const tipo = match[2];
-  if (tipo !== 'tunel') return;
-  const fVenc = calcularFechaDesdeJuliano(input.value);
-  if (fVenc) {
+  try {
+    const id = input.id; // ej: alLote1_tunel
+    const match = id.match(/alLote(\d+)_(.+)/);
+    if (!match) return;
+    const n = match[1], tipo = match[2];
+    if (tipo !== 'tunel') return;
+    const val = (input.value || '').trim();
+    if (val.length < 3) return;
+    const dia = parseInt(val.slice(-3));
+    if (isNaN(dia) || dia < 1 || dia > 366) return;
+    const fecha = new Date(new Date().getFullYear(), 0, dia + 15);
+    const yyyy = fecha.getFullYear();
+    const mm = String(fecha.getMonth()+1).padStart(2,'0');
+    const dd = String(fecha.getDate()).padStart(2,'0');
+    const fVenc = yyyy + '-' + mm + '-' + dd;
     const el = document.getElementById('alFVenc' + n + '_' + tipo);
-    if (el) el.value = fVenc;
-  }
+    if (el) { el.value = fVenc; }
+  } catch(e) { console.error('alCalcVenc error:', e); }
 }
 
 function alToggleACC(n, tipo) {
@@ -17167,7 +17173,7 @@ function alAgregarFila(tipo) {
           <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">⑥ Producto (Tarja)</label>
             <input type="text" id="alProducto${n}_${tipo}" placeholder="Nombre" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #e2e8f0;font-size:.82rem;box-sizing:border-box;"></div>
           <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">Lote / Juliano</label>
-            <input type="text" id="alLote${n}_${tipo}" placeholder="Ej: 084" oninput="alCalcVenc(this)" data-mon="${n}" data-tipo="${tipo}" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #e2e8f0;font-size:.82rem;box-sizing:border-box;"></div>
+            <input type="text" id="alLote${n}_${tipo}" placeholder="Ej: 084" oninput="alCalcVenc(this)" onchange="alCalcVenc(this)" data-mon="${n}" data-tipo="${tipo}" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #e2e8f0;font-size:.82rem;box-sizing:border-box;"></div>
           <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">F. Vencimiento ${tipo==='tunel'?'(+15 días auto)':''}</label>
             <input type="date" id="alFVenc${n}_${tipo}" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #e2e8f0;font-size:.82rem;box-sizing:border-box;"></div>
         </div>
