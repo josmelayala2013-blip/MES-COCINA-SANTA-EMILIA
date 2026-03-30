@@ -6480,6 +6480,97 @@ function imprimirRegistroHACCP(d) {
         function abrirFinalizarEnvasado(index) { abrirRegistrarTanda(index); }
         function finalizarEnvasado() { guardarTanda(); }
 
+        function eliminarTandaEnvasado(procesoIdx, tandaIdx) {
+            if (!confirm('¿Eliminar esta tanda?')) return;
+            const proceso = procesosEnvasado[procesoIdx];
+            if (!proceso || !proceso.tandas) return;
+            proceso.tandas.splice(tandaIdx, 1);
+            // Renumerar tandas
+            proceso.tandas.forEach((t, i) => t.nTanda = i + 1);
+            guardarDatos();
+            renderEnvasado();
+            mostrarNotificacion('Tanda eliminada', 'info');
+        }
+
+        function editarTandaEnvasado(procesoIdx, tandaIdx) {
+            const proceso = procesosEnvasado[procesoIdx];
+            if (!proceso || !proceso.tandas) return;
+            const t = proceso.tandas[tandaIdx];
+            if (!t) return;
+
+            // Crear modal de edición
+            let modal = document.getElementById('_modalEditTanda');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = '_modalEditTanda';
+                modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;';
+                document.body.appendChild(modal);
+            }
+            modal.innerHTML = `
+            <div style="background:white;border-radius:16px;padding:1.75rem;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3);border-top:5px solid #8b5cf6;">
+                <h3 style="margin:0 0 1rem;color:#6d28d9;">✏️ Editar Tanda ${tandaIdx+1}</h3>
+                <div style="display:grid;gap:.75rem;margin-bottom:1.25rem;">
+                    <div>
+                        <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.3rem;">Kg de la tanda</label>
+                        <input type="number" id="_editTandaKg" value="${t.kg}" step="0.1" min="0.1"
+                            style="width:100%;padding:.65rem;border-radius:8px;border:2px solid #8b5cf6;font-size:1rem;font-weight:700;box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.3rem;">N° de Bolsas</label>
+                        <input type="number" id="_editTandaBolsas" value="${t.nBolsas}" min="1"
+                            style="width:100%;padding:.65rem;border-radius:8px;border:2px solid #8b5cf6;font-size:.95rem;box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.3rem;">Hora Inicio</label>
+                        <input type="time" id="_editTandaHoraIni" value="${t.horaInicio||''}"
+                            style="width:100%;padding:.65rem;border-radius:8px;border:2px solid #e2e8f0;font-size:.95rem;box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.3rem;">Hora Fin</label>
+                        <input type="time" id="_editTandaHoraFin" value="${t.horaFin||''}"
+                            style="width:100%;padding:.65rem;border-radius:8px;border:2px solid #e2e8f0;font-size:.95rem;box-sizing:border-box;">
+                    </div>
+                </div>
+                <div style="display:flex;gap:.75rem;">
+                    <button onclick="_guardarEdicionTanda(${procesoIdx},${tandaIdx})"
+                        style="flex:1;padding:.75rem;background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:1rem;">
+                        💾 Guardar
+                    </button>
+                    <button onclick="document.getElementById('_modalEditTanda').style.display='none'"
+                        style="padding:.75rem 1.25rem;background:#f1f5f9;color:#64748b;border:none;border-radius:10px;font-weight:600;cursor:pointer;">
+                        Cancelar
+                    </button>
+                </div>
+            </div>`;
+            modal.style.display = 'flex';
+        }
+
+        function _guardarEdicionTanda(procesoIdx, tandaIdx) {
+            const proceso = procesosEnvasado[procesoIdx];
+            if (!proceso || !proceso.tandas) return;
+            const t = proceso.tandas[tandaIdx];
+            const nuevoKg = parseFloat(document.getElementById('_editTandaKg')?.value);
+            const nuevoBolsas = parseInt(document.getElementById('_editTandaBolsas')?.value);
+            const nuevoHoraIni = document.getElementById('_editTandaHoraIni')?.value;
+            const nuevoHoraFin = document.getElementById('_editTandaHoraFin')?.value;
+            if (!nuevoKg || nuevoKg <= 0) { alert('Ingresa los kg correctamente'); return; }
+            t.kg = nuevoKg;
+            t.nBolsas = nuevoBolsas || t.nBolsas;
+            t.horaInicio = nuevoHoraIni || t.horaInicio;
+            t.horaFin = nuevoHoraFin || t.horaFin;
+            // Recalcular tak time
+            if (nuevoHoraIni && nuevoHoraFin) {
+                const [h1,m1] = nuevoHoraIni.split(':').map(Number);
+                const [h2,m2] = nuevoHoraFin.split(':').map(Number);
+                const min = (h2*60+m2)-(h1*60+m1);
+                t.takTime = min > 0 ? min+' min' : '—';
+            }
+            document.getElementById('_modalEditTanda').style.display = 'none';
+            guardarDatos();
+            renderEnvasado();
+            mostrarNotificacion('✅ Tanda actualizada', 'success');
+        }
+
         // ============================================
         // FINALIZAR ABATIMIENTO
         // ============================================
@@ -6797,12 +6888,13 @@ function imprimirRegistroHACCP(d) {
                         <div style="font-size:.78rem;font-weight:700;color:#6d28d9;margin-bottom:.5rem;">📋 Tandas registradas (${tandas.length})</div>
                         <div style="display:grid;gap:.3rem;">
                             ${tandas.map((t, ti) => `
-                            <div style="display:grid;grid-template-columns:auto 1fr auto auto auto;gap:.5rem;align-items:center;background:white;border-radius:7px;padding:.4rem .65rem;font-size:.8rem;">
-                                <span style="background:#8b5cf6;color:white;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;">${ti+1}</span>
-                                <span style="font-weight:600;color:#333;">${t.kg} kg · ${t.nBolsas} bolsas ${t.formato}</span>
-                                <span style="color:#666;">${t.horaInicio}</span>
-                                <span style="color:#666;">→ ${t.horaFin}</span>
+                            <div style="display:flex;gap:.5rem;align-items:center;background:white;border-radius:7px;padding:.4rem .65rem;font-size:.8rem;flex-wrap:wrap;">
+                                <span style="background:#8b5cf6;color:white;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0;">${ti+1}</span>
+                                <span style="font-weight:600;color:#333;flex:1;">${t.kg} kg · ${t.nBolsas} bolsas ${t.formato}</span>
+                                <span style="color:#666;">${t.horaInicio} → ${t.horaFin}</span>
                                 <span style="background:#ede9fe;color:#6d28d9;border-radius:6px;padding:.1rem .4rem;font-weight:700;">${t.takTime}</span>
+                                <button onclick="editarTandaEnvasado(${index},${ti})" style="background:#fef3c7;border:1px solid #f59e0b;border-radius:5px;padding:.2rem .6rem;cursor:pointer;font-size:.8rem;color:#92400e;font-weight:700;" title="Editar tanda">✏️ Editar</button>
+                                <button onclick="eliminarTandaEnvasado(${index},${ti})" style="background:#fee2e2;border:1px solid #fca5a5;border-radius:5px;padding:.2rem .5rem;cursor:pointer;font-size:.8rem;color:#dc2626;font-weight:700;" title="Eliminar tanda">✕</button>
                             </div>`).join('')}
                         </div>
                         <div style="margin-top:.5rem;font-size:.78rem;color:#6d28d9;font-weight:600;text-align:right;">
