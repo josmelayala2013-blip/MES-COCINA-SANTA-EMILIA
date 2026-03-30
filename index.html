@@ -11191,6 +11191,49 @@ function planificarJornadaEnGantt(opIds, fechaStr) {
   let planificadas = 0;
   let sinEquipo = 0;
 
+  // ── Palabras clave para identificar carne cruda ──
+  const PALABRAS_CARNE_CRUDA = [
+    'tapapecho','plateada','huachalomo','osobuco','malaya','choclillo','vacuno',
+    'pollo','pechuga','muslo','pierna','pavo','ave',
+    'cerdo','costilla','lomo','pernil'
+  ];
+  const MAX_KG_MARMITA = 140; // 70% de 200 kg
+
+  // Función para calcular kg crudos del componente desde sus ingredientes
+  function calcularKgCrudosMarmita(comp, op) {
+    const platos = op.platos || 0;
+
+    // Buscar ingredientes — primero en el comp, luego en la receta original
+    let ingredientes = comp.ingredientes || [];
+    if (ingredientes.length === 0) {
+      const recetaOp = recetas.find(r => r.id === op.recetaId);
+      if (recetaOp) {
+        const compReceta = recetaOp.componentes?.find(c =>
+          (c.nombre||'').toLowerCase().trim() === (comp.nombre||'').toLowerCase().trim()
+        );
+        ingredientes = compReceta?.ingredientes || [];
+      }
+    }
+
+    if (ingredientes.length === 0) return 0;
+
+    let kgCrudo = 0;
+    ingredientes.forEach(ing => {
+      const nombreIng = (ing.nombre || '').toLowerCase();
+      const esCarne = PALABRAS_CARNE_CRUDA.some(p => nombreIng.includes(p));
+      if (!esCarne) return;
+      let cant = 0;
+      if (platos > 0 && ing.cantidadBruta > 0) {
+        if (ing.unidad === 'gr') cant = Math.round((platos * ing.cantidadBruta / 1000) * 100) / 100;
+        else cant = Math.round(platos * ing.cantidadBruta * 100) / 100;
+      } else {
+        cant = ing.cantidadBruta || 0;
+      }
+      kgCrudo += cant;
+    });
+    return kgCrudo;
+  }
+
   tareas.forEach(tarea => {
     const { op, comp, tipoEquipo, duracion } = tarea;
 
@@ -11202,6 +11245,55 @@ function planificarJornadaEnGantt(opIds, fechaStr) {
       equipos.filter(eq => eq.tipo === 'sartenBasculante' || eq.tipo === 'marmita');
 
     if (equiposCandidatos.length === 0) { sinEquipo++; return; }
+
+    // ── Lógica de división para marmitas ──────────────────────────────
+    const esMarmita = tipoEquipo === 'marmita';
+    const marmitas = equipos.filter(eq => eq.tipo === 'marmita');
+    const kgCrudo = esMarmita ? calcularKgCrudosMarmita(comp, op) : 0;
+    const necesitaDivision = esMarmita && kgCrudo > MAX_KG_MARMITA && marmitas.length >= 2;
+
+    if (necesitaDivision) {
+      // Dividir en dos cargas proporcionales
+      const kg1 = Math.round((comp.kgTerminados || 0) * 0.5 * 100) / 100;
+      const kg2 = Math.round(((comp.kgTerminados || 0) - kg1) * 100) / 100;
+      const cargas = [
+        { kg: kg1, sufijo: '(Carga 1/2)' },
+        { kg: kg2, sufijo: '(Carga 2/2)' }
+      ];
+
+      // Ordenar marmitas por disponibilidad
+      const marmitasOrdenadas = [...marmitas].sort((a, b) =>
+        (equipoLibreEn[a.id] ?? HORA_INICIO) - (equipoLibreEn[b.id] ?? HORA_INICIO)
+      );
+
+      cargas.forEach((carga, ci) => {
+        // Asignar a la marmita disponible — alternar entre las dos
+        const eq = marmitasOrdenadas[ci % marmitasOrdenadas.length];
+        const libre = equipoLibreEn[eq.id] ?? HORA_INICIO;
+        const inicioMin = Math.max(libre, HORA_INICIO);
+        // Carga 2 empieza cuando carga 1 termina en esa misma marmita
+        const finMin = inicioMin + duracion;
+        if (inicioMin >= HORA_FIN_MAX) return;
+
+        if (!eq.planificaciones) eq.planificaciones = [];
+        eq.planificaciones.push({
+          fechaStr, inicioMin, finMin, duracion,
+          componente: `${comp.nombre} ${carga.sufijo}`,
+          numeroOP: op.numeroOp,
+          opId: op.id,
+          opNombre: op.nombre,
+          kgProgramados: carga.kg,
+          operador: op.operador || 'Sin asignar',
+          estaEnJornada: inicioMin < HORA_FIN_NORMAL,
+          estado: 'programado',
+          esDivisionMarmita: true
+        });
+        equipoLibreEn[eq.id] = finMin;
+        planificadas++;
+      });
+      return; // No continuar con la lógica normal
+    }
+    // ──────────────────────────────────────────────────────────────────
 
     // Elegir el que quede libre más pronto
     let mejorEq = null;
@@ -11233,7 +11325,7 @@ function planificarJornadaEnGantt(opIds, fechaStr) {
       kgProgramados: comp.kgTerminados || 0,
       operador: op.operador || 'Sin asignar',
       estaEnJornada: inicioMin < HORA_FIN_NORMAL,
-      estado: 'programado' // programado → activo cuando llegue la hora
+      estado: 'programado'
     });
 
     // Actualizar cuándo queda libre este equipo
