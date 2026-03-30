@@ -16979,6 +16979,10 @@ function _abrirModalAlmacenamiento(tipo, fecha, titulo, color, icono) {
   const contId = tipo === 'tunel' ? 'contenidoModalTunel' : 'contenidoModalTransito';
   const lcText = tipo === 'tunel' ? 'LC: ≤ -5°C (Congelación)' : 'LC: ≤ 4°C (Refrigeración)';
   const maxMonitoreos = 3;
+  // Mes automático desde la fecha
+  const [fy, fm] = (fecha || new Date().toISOString().split('T')[0]).split('-');
+  const meses = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const mesAuto = (meses[parseInt(fm)] || '') + ' ' + fy;
 
   const filaMonitoreo = (n) => `
     <div style="background:white;border-radius:8px;padding:.75rem;border:1px solid #a5f3fc;margin-bottom:.5rem;" id="alFilaMon${n}_${tipo}">
@@ -16989,7 +16993,7 @@ function _abrirModalAlmacenamiento(tipo, fecha, titulo, color, icono) {
       <!-- Info general del monitoreo -->
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.5rem;margin-bottom:.6rem;">
         <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">② Hora</label>
-          <input type="time" id="alHora${n}_${tipo}" value="${n===1?ahora:''}" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #a5f3fc;font-size:.88rem;box-sizing:border-box;"></div>
+          <input type="time" id="alHora${n}_${tipo}" value="${ahora}" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #a5f3fc;font-size:.88rem;box-sizing:border-box;"></div>
         <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">③ Sistema Enfriamiento</label>
           <input type="text" id="alSistema${n}_${tipo}" placeholder="Ej: Cámara 1" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #a5f3fc;font-size:.88rem;box-sizing:border-box;"></div>
         <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">⑨ Temp °C Equipo (PCC)</label>
@@ -17067,7 +17071,7 @@ function _abrirModalAlmacenamiento(tipo, fecha, titulo, color, icono) {
       <div><label style="font-size:.8rem;font-weight:600;color:${color};display:block;margin-bottom:.3rem;">① Fecha</label>
         <input type="date" id="alFecha_${tipo}" value="${fecha}" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #a5f3fc;font-size:.9rem;box-sizing:border-box;"></div>
       <div><label style="font-size:.8rem;font-weight:600;color:${color};display:block;margin-bottom:.3rem;">Mes</label>
-        <input type="text" id="alMes_${tipo}" placeholder="Ej: Marzo 2026" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #a5f3fc;font-size:.9rem;box-sizing:border-box;"></div>
+        <input type="text" id="alMes_${tipo}" value="${mesAuto}" placeholder="Ej: Marzo 2026" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #a5f3fc;font-size:.9rem;box-sizing:border-box;"></div>
       <div><label style="font-size:.8rem;font-weight:600;color:${color};display:block;margin-bottom:.3rem;">⑱ Responsable Verificación</label>
         <input type="text" id="alResponsable_${tipo}" placeholder="Nombre" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #a5f3fc;font-size:.9rem;box-sizing:border-box;"></div>
     </div>
@@ -17185,6 +17189,11 @@ function alAgregarFila(tipo) {
     </div>`;
   lista.appendChild(div.firstElementChild);
   if (n >= 3) document.getElementById(`alBtnAgregar_${tipo}`).style.display = 'none';
+  // Setear hora automática al nuevo monitoreo
+  setTimeout(() => {
+    const horaEl = document.getElementById(`alHora${n}_${tipo}`);
+    if (horaEl && !horaEl.value) horaEl.value = new Date().toTimeString().slice(0,5);
+  }, 50);
 }
 
 function alEliminarFila(n, tipo) {
