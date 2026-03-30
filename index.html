@@ -16196,97 +16196,120 @@ function renderRegistrosCE() {
   }).join('');
 }
 
-function abrirRegistroCoccionEnvasado() {
-  const fecha = document.getElementById('fechaFiltroCE')?.value || new Date().toISOString().split('T')[0];
+function _ceFilaMonitoreo(m) {
   const ahora = new Date().toTimeString().slice(0,5);
-
-  const filaPrep = (n) => `
-    <div style="background:white;border-radius:8px;padding:.75rem;border:1px solid #fca5a5;margin-bottom:.5rem;" id="ceFilaPrep${n}">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;">
-        <span style="font-size:.8rem;font-weight:700;color:#dc2626;">Preparación ${n}</span>
-        ${n > 1 ? `<button onclick="ceEliminarFila(${n})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:.2rem .6rem;cursor:pointer;font-size:.75rem;">✕ Quitar</button>` : ''}
-      </div>
-      <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:.5rem;margin-bottom:.5rem;">
-        <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">⑤ Producto/Preparación</label>
-          <input type="text" id="ceProducto${n}" placeholder="Nombre" style="width:100%;padding:.5rem;border-radius:6px;border:1px solid #fca5a5;font-size:.88rem;box-sizing:border-box;"></div>
-        <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">⑥ Lote</label>
-          <input type="text" id="ceLote${n}" placeholder="Lote" style="width:100%;padding:.5rem;border-radius:6px;border:1px solid #fca5a5;font-size:.88rem;box-sizing:border-box;"></div>
-        <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">⑦ Temp °C</label>
-          <input type="number" id="ceTemp${n}" step="0.1" placeholder="75.0" style="width:100%;padding:.5rem;border-radius:6px;border:1px solid #fca5a5;font-size:.9rem;font-weight:700;box-sizing:border-box;"></div>
-        <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">⑧ ¿Requiere ACC?</label>
-          <select id="ceReqACC${n}" onchange="ceToggleACC(${n})" style="width:100%;padding:.5rem;border-radius:6px;border:1px solid #fca5a5;font-size:.85rem;box-sizing:border-box;">
-            <option value="no">No</option><option value="si">Sí</option>
-          </select></div>
-      </div>
-      <div id="ceDivACC${n}" style="display:none;display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.5rem;">
-        <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">⑨ ACC N°</label>
-          <select id="ceACC${n}" style="width:100%;padding:.5rem;border-radius:6px;border:1px solid #fca5a5;font-size:.8rem;box-sizing:border-box;">
-            <option value="">— Seleccionar —</option>
-            <option value="ACC1">ACC1 — Tratamiento térmico >75°C por 30 min</option>
-            <option value="ACC2">ACC2 — Retirar y segregar como PNC</option>
-          </select></div>
-        <div><label style="font-size:.72rem;color:#666;display:block;margin-bottom:.2rem;">⑩ Verif. ACC (°C)</label>
-          <input type="number" id="ceVerifACC${n}" step="0.1" placeholder="Temp post-ACC" style="width:100%;padding:.5rem;border-radius:6px;border:1px solid #fca5a5;font-size:.88rem;box-sizing:border-box;"></div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:.4rem;">
-        ${['Color','Olor','Sabor','Textura','Elem.Ext'].map(attr => `
-        <div style="background:#fff7f7;border-radius:6px;padding:.4rem;text-align:center;border:1px solid #fca5a5;">
-          <div style="font-size:.68rem;font-weight:600;color:#333;margin-bottom:.3rem;">${attr}</div>
-          <div style="display:flex;gap:.3rem;justify-content:center;">
-            <label style="cursor:pointer;font-size:.8rem;"><input type="radio" name="ce${attr}${n}" value="✓" style="accent-color:#10b981;"> ✓</label>
-            <label style="cursor:pointer;font-size:.8rem;"><input type="radio" name="ce${attr}${n}" value="✗" style="accent-color:#ef4444;"> ✗</label>
-          </div>
-        </div>`).join('')}
-      </div>
-    </div>`;
-
-  document.getElementById('contenidoModalCE').innerHTML = `
-    <div style="font-size:.82rem;color:#64748b;margin-bottom:1rem;background:#fff7f7;border-radius:8px;padding:.75rem;border-left:4px solid #dc2626;">
-      <strong>Instrucciones:</strong> Monitoreo 4 veces al día. Tome temperatura en el centro térmico del alimento.
-      LC Cocción: ≥75°C · LC Envasado: ≥65°C
+  const fecha = document.getElementById('fechaFiltroCE')?.value || new Date().toISOString().split('T')[0];
+  const [y,mo,d] = fecha.split('-');
+  const meses = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const mesAuto = meses[parseInt(mo)] + ' ' + y;
+  return `
+  <div style="background:#fff7f7;border-radius:12px;padding:1rem;margin-bottom:1rem;border:2px solid #fca5a5;" id="ceMonitoreo${m}">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
+      <span style="font-size:.9rem;font-weight:800;color:#dc2626;">📋 Monitoreo ${m}</span>
+      ${m > 1 ? `<button onclick="ceEliminarMonitoreo(${m})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:.25rem .7rem;cursor:pointer;font-size:.8rem;">✕ Quitar</button>` : ''}
     </div>
-    <!-- Datos generales del monitoreo -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:1rem;">
-      <div><label style="font-size:.8rem;font-weight:600;color:#dc2626;display:block;margin-bottom:.3rem;">① Fecha</label>
-        <input type="date" id="ceFecha" value="${fecha}" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #fca5a5;font-size:.9rem;box-sizing:border-box;"></div>
-      <div><label style="font-size:.8rem;font-weight:600;color:#dc2626;display:block;margin-bottom:.3rem;">② Hora Monitoreo</label>
-        <input type="time" id="ceHora" value="${ahora}" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #fca5a5;font-size:.9rem;box-sizing:border-box;"></div>
-      <div><label style="font-size:.8rem;font-weight:600;color:#dc2626;display:block;margin-bottom:.3rem;">③ Área / Sección</label>
-        <select id="ceArea" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #fca5a5;font-size:.9rem;box-sizing:border-box;">
+    <!-- Datos del monitoreo -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.75rem;margin-bottom:.75rem;">
+      <div><label style="font-size:.75rem;font-weight:600;color:#dc2626;display:block;margin-bottom:.2rem;">① Fecha</label>
+        <input type="date" id="ceFecha${m}" value="${fecha}" style="width:100%;padding:.5rem;border-radius:6px;border:1px solid #fca5a5;font-size:.85rem;box-sizing:border-box;"></div>
+      <div><label style="font-size:.75rem;font-weight:600;color:#dc2626;display:block;margin-bottom:.2rem;">Mes</label>
+        <input type="text" id="ceMes${m}" value="${mesAuto}" style="width:100%;padding:.5rem;border-radius:6px;border:1px solid #fca5a5;font-size:.85rem;box-sizing:border-box;"></div>
+      <div><label style="font-size:.75rem;font-weight:600;color:#dc2626;display:block;margin-bottom:.2rem;">② Hora</label>
+        <input type="time" id="ceHora${m}" value="${ahora}" style="width:100%;padding:.5rem;border-radius:6px;border:1px solid #fca5a5;font-size:.85rem;box-sizing:border-box;"></div>
+      <div><label style="font-size:.75rem;font-weight:600;color:#dc2626;display:block;margin-bottom:.2rem;">③ Área</label>
+        <select id="ceArea${m}" style="width:100%;padding:.5rem;border-radius:6px;border:1px solid #fca5a5;font-size:.85rem;box-sizing:border-box;">
           <option value="">— Seleccionar —</option>
           <option value="Cocina">Cocina</option>
           <option value="Envasado">Envasado</option>
           <option value="Preelaborado">Preelaborado</option>
         </select></div>
-      <div><label style="font-size:.8rem;font-weight:600;color:#dc2626;display:block;margin-bottom:.3rem;">④ Equipo Monitoreado</label>
-        <input type="text" id="ceEquipo" placeholder="Ej: Sartén 1, Marmita 2..." style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #fca5a5;font-size:.9rem;box-sizing:border-box;"></div>
+      <div><label style="font-size:.75rem;font-weight:600;color:#dc2626;display:block;margin-bottom:.2rem;">④ Equipo</label>
+        <input type="text" id="ceEquipo${m}" placeholder="Ej: Sartén 1" style="width:100%;padding:.5rem;border-radius:6px;border:1px solid #fca5a5;font-size:.85rem;box-sizing:border-box;"></div>
     </div>
-    <!-- Preparaciones (hasta 4) -->
-    <div style="font-weight:700;color:#dc2626;margin-bottom:.5rem;font-size:.9rem;">📋 Preparaciones verificadas</div>
-    <div id="ceListaPreps">
-      ${filaPrep(1)}
+    <!-- Preparaciones del monitoreo -->
+    <div style="font-size:.78rem;font-weight:700;color:#dc2626;margin-bottom:.4rem;">Preparaciones verificadas</div>
+    <div id="cePrepsM${m}">
+      ${_ceFilaPrep(m, 1)}
     </div>
-    <div id="ceContadorPreps" data-count="1"></div>
-    <button id="ceBtnAgregarPrep" onclick="ceAgregarFila()" style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:8px;padding:.5rem 1rem;cursor:pointer;font-size:.85rem;font-weight:600;margin-bottom:1rem;">
-      ➕ Agregar preparación (máx. 4)
+    <div id="ceContPrepsM${m}" data-count="1"></div>
+    <button onclick="ceAgregarPrep(${m})" style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:7px;padding:.35rem .8rem;cursor:pointer;font-size:.8rem;font-weight:600;margin-bottom:.75rem;">
+      ➕ Agregar preparación
     </button>
-    <!-- Envase y responsable -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1.25rem;">
-      <div><label style="font-size:.8rem;font-weight:600;color:#333;display:block;margin-bottom:.3rem;">⑫ Tipo Envase Primario</label>
-        <select id="ceTipoEnvase" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
+    <!-- Envase y responsable del monitoreo -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;">
+      <div><label style="font-size:.75rem;font-weight:600;color:#333;display:block;margin-bottom:.2rem;">⑫ Tipo Envase Primario</label>
+        <select id="ceTipoEnvase${m}" style="width:100%;padding:.5rem;border-radius:6px;border:1px solid #e2e8f0;font-size:.85rem;box-sizing:border-box;">
           <option value="">— Seleccionar —</option>
           <option value="B">B — Bolsa</option>
-          <option value="P">P — Pote</option>
+          <option value="E">E — Envase</option>
           <option value="C">C — Caja</option>
         </select></div>
-      <div><label style="font-size:.8rem;font-weight:600;color:#333;display:block;margin-bottom:.3rem;">Lote Insumo</label>
-        <input type="text" id="ceLoteEnvase" placeholder="Lote envase" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;"></div>
-      <div><label style="font-size:.8rem;font-weight:600;color:#333;display:block;margin-bottom:.3rem;">⑬ Responsable Monitoreo</label>
-        <input type="text" id="ceResponsable" placeholder="Nombre y firma" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;"></div>
+      <div><label style="font-size:.75rem;font-weight:600;color:#333;display:block;margin-bottom:.2rem;">Lote Insumo</label>
+        <input type="text" id="ceLoteEnvase${m}" placeholder="Lote envase" style="width:100%;padding:.5rem;border-radius:6px;border:1px solid #e2e8f0;font-size:.85rem;box-sizing:border-box;"></div>
+      <div><label style="font-size:.75rem;font-weight:600;color:#333;display:block;margin-bottom:.2rem;">⑬ Responsable</label>
+        <input type="text" id="ceResponsable${m}" placeholder="Nombre" style="width:100%;padding:.5rem;border-radius:6px;border:1px solid #e2e8f0;font-size:.85rem;box-sizing:border-box;"></div>
     </div>
+  </div>`;
+}
+
+function _ceFilaPrep(m, p) {
+  return `
+  <div style="background:white;border-radius:7px;padding:.6rem;border:1px solid #fca5a5;margin-bottom:.4rem;" id="cePrepM${m}P${p}">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem;">
+      <span style="font-size:.75rem;font-weight:700;color:#dc2626;">Preparación ${p}</span>
+      ${p > 1 ? `<button onclick="ceEliminarPrep(${m},${p})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:5px;padding:.15rem .5rem;cursor:pointer;font-size:.72rem;">✕</button>` : ''}
+    </div>
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:.4rem;margin-bottom:.4rem;">
+      <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.15rem;">⑤ Producto/Preparación</label>
+        <input type="text" id="ceProd_${m}_${p}" placeholder="Nombre" style="width:100%;padding:.4rem;border-radius:5px;border:1px solid #fca5a5;font-size:.82rem;box-sizing:border-box;"></div>
+      <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.15rem;">⑥ Lote</label>
+        <input type="text" id="ceLote_${m}_${p}" placeholder="Lote" style="width:100%;padding:.4rem;border-radius:5px;border:1px solid #fca5a5;font-size:.82rem;box-sizing:border-box;"></div>
+      <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.15rem;">⑦ Temp °C</label>
+        <input type="number" id="ceTemp_${m}_${p}" step="0.1" placeholder="75.0" style="width:100%;padding:.4rem;border-radius:5px;border:1px solid #fca5a5;font-size:.85rem;font-weight:700;box-sizing:border-box;"></div>
+      <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.15rem;">⑧ ACC?</label>
+        <select id="ceACC_req_${m}_${p}" onchange="ceToggleACCv2(${m},${p})" style="width:100%;padding:.4rem;border-radius:5px;border:1px solid #fca5a5;font-size:.8rem;box-sizing:border-box;">
+          <option value="no">No</option><option value="si">Sí</option>
+        </select></div>
+    </div>
+    <div id="ceDivACC_${m}_${p}" style="display:none;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:.4rem;">
+      <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.15rem;">⑨ ACC N°</label>
+        <select id="ceACC_${m}_${p}" style="width:100%;padding:.4rem;border-radius:5px;border:1px solid #fca5a5;font-size:.76rem;box-sizing:border-box;">
+          <option value="">— Seleccionar —</option>
+          <option value="ACC1">ACC1 — Tratamiento térmico >75°C por 30 min</option>
+          <option value="ACC2">ACC2 — Retirar y segregar como PNC</option>
+        </select></div>
+      <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.15rem;">⑩ Verif. ACC (°C)</label>
+        <input type="number" id="ceVerif_${m}_${p}" step="0.1" placeholder="°C" style="width:100%;padding:.4rem;border-radius:5px;border:1px solid #fca5a5;font-size:.82rem;box-sizing:border-box;"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:.3rem;">
+      ${['Color','Olor','Sabor','Textura','Elem.Ext'].map(attr => `
+      <div style="background:#fff7f7;border-radius:5px;padding:.3rem;text-align:center;border:1px solid #fca5a5;">
+        <div style="font-size:.63rem;font-weight:600;color:#333;margin-bottom:.2rem;">${attr}</div>
+        <div style="display:flex;gap:.2rem;justify-content:center;">
+          <label style="cursor:pointer;font-size:.75rem;"><input type="radio" name="ceAt_${attr}_${m}_${p}" value="✓" style="accent-color:#10b981;"> ✓</label>
+          <label style="cursor:pointer;font-size:.75rem;"><input type="radio" name="ceAt_${attr}_${m}_${p}" value="✗" style="accent-color:#ef4444;"> ✗</label>
+        </div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function abrirRegistroCoccionEnvasado() {
+  // Reset contador de monitoreos
+  window._ceTotalMonitoreos = 1;
+  document.getElementById('contenidoModalCE').innerHTML = `
+    <div style="font-size:.82rem;color:#64748b;margin-bottom:1rem;background:#fff7f7;border-radius:8px;padding:.75rem;border-left:4px solid #dc2626;">
+      <strong>Instrucciones:</strong> Monitoreo 4 veces al día. Cada monitoreo es independiente (diferente equipo/producto/hora).
+      LC Cocción: ≥75°C · LC Envasado: ≥65°C
+    </div>
+    <div id="ceListaMonitoreos">${_ceFilaMonitoreo(1)}</div>
+    <button id="ceBtnAgregarMon" onclick="ceAgregarMonitoreo()"
+      style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:8px;padding:.5rem 1.2rem;cursor:pointer;font-size:.85rem;font-weight:600;margin-bottom:1rem;width:100%;">
+      ➕ Agregar Monitoreo (máx. 4)
+    </button>
     <div style="background:#fffbeb;border-radius:8px;padding:.75rem;margin-bottom:1.25rem;font-size:.78rem;color:#64748b;">
       <strong>LC:</strong> Cocción ≥75°C · Envasado ≥65°C &nbsp;|&nbsp;
-      <strong>ACC1:</strong> Tratamiento térmico hasta >75°C por más de 30 min &nbsp;|&nbsp;
+      <strong>ACC1:</strong> Tratamiento térmico >75°C por más de 30 min &nbsp;|&nbsp;
       <strong>ACC2:</strong> Retirar y segregar como PNC
     </div>
     <div style="display:flex;gap:.75rem;justify-content:flex-end;">
@@ -16295,6 +16318,48 @@ function abrirRegistroCoccionEnvasado() {
     </div>`;
   document.getElementById('modalCE').style.display = 'block';
 }
+
+function ceAgregarMonitoreo() {
+  if (!window._ceTotalMonitoreos) window._ceTotalMonitoreos = 1;
+  window._ceTotalMonitoreos++;
+  if (window._ceTotalMonitoreos > 4) { alert('Máximo 4 monitoreos por registro'); window._ceTotalMonitoreos = 4; return; }
+  const lista = document.getElementById('ceListaMonitoreos');
+  const div = document.createElement('div');
+  div.innerHTML = _ceFilaMonitoreo(window._ceTotalMonitoreos);
+  lista.appendChild(div.firstElementChild);
+  if (window._ceTotalMonitoreos >= 4) document.getElementById('ceBtnAgregarMon').style.display = 'none';
+}
+
+function ceEliminarMonitoreo(m) {
+  document.getElementById(`ceMonitoreo${m}`)?.remove();
+  if (window._ceTotalMonitoreos > 1) window._ceTotalMonitoreos--;
+  const btn = document.getElementById('ceBtnAgregarMon');
+  if (btn) btn.style.display = 'block';
+}
+
+function ceAgregarPrep(m) {
+  const cont = document.getElementById(`ceContPrepsM${m}`);
+  let p = parseInt(cont.dataset.count) + 1;
+  if (p > 4) { alert('Máximo 4 preparaciones por monitoreo'); return; }
+  cont.dataset.count = p;
+  const lista = document.getElementById(`cePrepsM${m}`);
+  const div = document.createElement('div');
+  div.innerHTML = _ceFilaPrep(m, p);
+  lista.appendChild(div.firstElementChild);
+}
+
+function ceEliminarPrep(m, p) {
+  document.getElementById(`cePrepM${m}P${p}`)?.remove();
+  const cont = document.getElementById(`ceContPrepsM${m}`);
+  if (cont) cont.dataset.count = Math.max(1, parseInt(cont.dataset.count) - 1);
+}
+
+function ceToggleACCv2(m, p) {
+  const req = document.getElementById(`ceACC_req_${m}_${p}`)?.value;
+  const div = document.getElementById(`ceDivACC_${m}_${p}`);
+  if (div) div.style.display = req === 'si' ? 'grid' : 'none';
+}
+
 
 function ceAgregarFila() {
   const cont = document.getElementById('ceContadorPreps');
@@ -16364,38 +16429,68 @@ function toggleVerifACC() { ceToggleACC(1); }
 function cerrarModalCE() { document.getElementById('modalCE').style.display = 'none'; }
 
 function guardarRegistroCE() {
-  const n = parseInt(document.getElementById('ceContadorPreps')?.dataset.count) || 1;
-  const preparaciones = [];
-  for (let i = 1; i <= 4; i++) {
-    if (!document.getElementById(`ceProducto${i}`)) continue;
-    const prod = document.getElementById(`ceProducto${i}`)?.value;
-    const temp = document.getElementById(`ceTemp${i}`)?.value;
-    if (!prod && !temp) continue;
-    preparaciones.push({
-      producto: prod,
-      lote: document.getElementById(`ceLote${i}`)?.value,
-      temp: temp,
-      reqACC: document.getElementById(`ceReqACC${i}`)?.value,
-      acc: document.getElementById(`ceACC${i}`)?.value,
-      verifACC: document.getElementById(`ceVerifACC${i}`)?.value,
-      color: document.querySelector(`input[name="ceColor${i}"]:checked`)?.value,
-      olor: document.querySelector(`input[name="ceOlor${i}"]:checked`)?.value,
-      sabor: document.querySelector(`input[name="ceSabor${i}"]:checked`)?.value,
-      textura: document.querySelector(`input[name="ceTextura${i}"]:checked`)?.value,
-      elemExt: document.querySelector(`input[name="ceElem.Ext${i}"]:checked`)?.value,
+  const totalMons = window._ceTotalMonitoreos || 1;
+  const monitoreos = [];
+
+  for (let m = 1; m <= totalMons; m++) {
+    if (!document.getElementById(`ceMonitoreo${m}`)) continue;
+    const fecha = document.getElementById(`ceFecha${m}`)?.value;
+    const hora = document.getElementById(`ceHora${m}`)?.value;
+    if (!fecha && !hora) continue;
+
+    const preparaciones = [];
+    const totalPreps = parseInt(document.getElementById(`ceContPrepsM${m}`)?.dataset.count) || 1;
+    for (let p = 1; p <= totalPreps + 3; p++) {
+      if (!document.getElementById(`cePrepM${m}P${p}`)) continue;
+      const prod = document.getElementById(`ceProd_${m}_${p}`)?.value;
+      const temp = document.getElementById(`ceTemp_${m}_${p}`)?.value;
+      if (!prod && !temp) continue;
+      preparaciones.push({
+        producto: prod,
+        lote: document.getElementById(`ceLote_${m}_${p}`)?.value,
+        temp,
+        reqACC: document.getElementById(`ceACC_req_${m}_${p}`)?.value,
+        acc: document.getElementById(`ceACC_${m}_${p}`)?.value,
+        verifACC: document.getElementById(`ceVerif_${m}_${p}`)?.value,
+        color: document.querySelector(`input[name="ceAt_Color_${m}_${p}"]:checked`)?.value,
+        olor: document.querySelector(`input[name="ceAt_Olor_${m}_${p}"]:checked`)?.value,
+        sabor: document.querySelector(`input[name="ceAt_Sabor_${m}_${p}"]:checked`)?.value,
+        textura: document.querySelector(`input[name="ceAt_Textura_${m}_${p}"]:checked`)?.value,
+        elemExt: document.querySelector(`input[name="ceAt_Elem.Ext_${m}_${p}"]:checked`)?.value,
+      });
+    }
+    monitoreos.push({
+      numero: m,
+      fecha,
+      mes: document.getElementById(`ceMes${m}`)?.value,
+      hora,
+      area: document.getElementById(`ceArea${m}`)?.value,
+      equipo: document.getElementById(`ceEquipo${m}`)?.value,
+      preparaciones,
+      tipoEnvase: document.getElementById(`ceTipoEnvase${m}`)?.value,
+      loteEnvase: document.getElementById(`ceLoteEnvase${m}`)?.value,
+      responsable: document.getElementById(`ceResponsable${m}`)?.value,
     });
   }
-  if (preparaciones.length === 0) { alert('Ingresa al menos una preparación con producto y temperatura'); return; }
+
+  if (monitoreos.length === 0 || monitoreos.every(mon => mon.preparaciones.length === 0)) {
+    alert('Ingresa al menos un monitoreo con preparación y temperatura');
+    return;
+  }
+
+  // Compatibilidad: el registro usa el primer monitoreo como cabecera
+  const primerMon = monitoreos[0];
   const registro = {
     id: Date.now().toString(),
-    fecha: document.getElementById('ceFecha')?.value,
-    hora: document.getElementById('ceHora')?.value,
-    area: document.getElementById('ceArea')?.value,
-    equipo: document.getElementById('ceEquipo')?.value,
-    preparaciones,
-    tipoEnvase: document.getElementById('ceTipoEnvase')?.value,
-    loteEnvase: document.getElementById('ceLoteEnvase')?.value,
-    responsable: document.getElementById('ceResponsable')?.value,
+    fecha: primerMon.fecha,
+    hora: primerMon.hora,
+    area: primerMon.area,
+    equipo: primerMon.equipo,
+    preparaciones: primerMon.preparaciones,
+    tipoEnvase: primerMon.tipoEnvase,
+    loteEnvase: primerMon.loteEnvase,
+    responsable: primerMon.responsable,
+    monitoreos, // todos los monitoreos independientes
     creadoEn: new Date().toLocaleString('es-CL')
   };
   registrosCE.push(registro);
