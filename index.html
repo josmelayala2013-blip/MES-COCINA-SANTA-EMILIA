@@ -2426,6 +2426,8 @@
                 renderHACCPPendientesPre('carnes');
                 renderHACCPPendientesPre('vegetales');
             }, 1200);
+            // Sincronizar pendientes carnes y vegetales desde Firebase
+            setTimeout(() => sincronizarHACCPPreDesdeFirebase(), 2500);
         }
 
         function inicializarDateSelector() {
@@ -7980,6 +7982,7 @@ function imprimirRegistroHACCP(d) {
             else if (tabName === 'vegetales') { /* contenido vegetales */ }
             else if (tabName === 'envasado') { _sincronizarEnvasadoDesdeFirebase(); }
             else if (tabName === 'abatimiento') { _sincronizarAbatDesdeFirebase(); renderAbatimiento(); }
+            else if (tabName === 'acondicionamiento') { sincronizarHACCPPreDesdeFirebase(); }
             else if (tabName === 'analytics') actualizarAnalytics();
             else if (tabName === 'personal') { 
                 renderListaPersonal('cocina'); 
@@ -15504,6 +15507,42 @@ ${d._ingredientes.map(ing => `<tr>
                     try { const {doc,setDoc}=window.firestoreFunctions; setDoc(doc(window.db,'mes-data','haccp-pend-vegetales'),{pendientes:haccpPendientesVegetales,ts:new Date().toISOString()}); } catch(e){}
                 }
             }
+        }
+
+        async function sincronizarHACCPPreDesdeFirebase() {
+            if (!window.db || !window.firestoreLoaded) return;
+            try {
+                const {doc, getDoc} = window.firestoreFunctions;
+                // Sincronizar carnes
+                const snapCarnes = await getDoc(doc(window.db, 'mes-data', 'haccp-pend-carnes'));
+                if (snapCarnes.exists()) {
+                    const data = snapCarnes.data();
+                    if (Array.isArray(data.pendientes) && data.pendientes.length > 0) {
+                        const merged = [...data.pendientes];
+                        haccpPendientesCarnes.forEach(local => {
+                            if (!merged.find(r => r.id === local.id)) merged.push(local);
+                        });
+                        haccpPendientesCarnes = merged;
+                        localStorage.setItem('mes_haccp_pend_carnes', JSON.stringify(haccpPendientesCarnes));
+                        renderHACCPPendientesPre('carnes');
+                    }
+                }
+                // Sincronizar vegetales
+                const snapVeg = await getDoc(doc(window.db, 'mes-data', 'haccp-pend-vegetales'));
+                if (snapVeg.exists()) {
+                    const data = snapVeg.data();
+                    if (Array.isArray(data.pendientes) && data.pendientes.length > 0) {
+                        const merged = [...data.pendientes];
+                        haccpPendientesVegetales.forEach(local => {
+                            if (!merged.find(r => r.id === local.id)) merged.push(local);
+                        });
+                        haccpPendientesVegetales = merged;
+                        localStorage.setItem('mes_haccp_pend_vegetales', JSON.stringify(haccpPendientesVegetales));
+                        renderHACCPPendientesPre('vegetales');
+                    }
+                }
+                console.log('✅ HACCP Pre carnes/vegetales sincronizados desde Firebase');
+            } catch(e) { console.error('Error sync HACCP Pre:', e); }
         }
 
         function crearHACCPPendientePre(pre) {
