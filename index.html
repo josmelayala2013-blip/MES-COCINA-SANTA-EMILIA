@@ -17022,7 +17022,7 @@ function _abrirModalAlmacenamiento(tipo, fecha, titulo, color, icono) {
           <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">⑥ Producto (Tarja)</label>
             <input type="text" id="alProducto${n}_${tipo}" placeholder="Nombre" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #e2e8f0;font-size:.82rem;box-sizing:border-box;"></div>
           <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">Lote / Juliano</label>
-            <input type="text" id="alLote${n}_${tipo}" placeholder="Ej: 084" oninput="alCalcularVenc(${n},'${tipo}')" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #e2e8f0;font-size:.82rem;box-sizing:border-box;"></div>
+            <input type="text" id="alLote${n}_${tipo}" placeholder="Ej: 084" oninput="alCalcVenc(this)" data-mon="${n}" data-tipo="${tipo}" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #e2e8f0;font-size:.82rem;box-sizing:border-box;"></div>
           <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">F. Vencimiento ${tipo==='tunel'?'(+15 días auto)':''}</label>
             <input type="date" id="alFVenc${n}_${tipo}" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #e2e8f0;font-size:.82rem;box-sizing:border-box;"></div>
         </div>
@@ -17099,6 +17099,18 @@ function alCalcularVenc(n, tipo) {
   if (fVenc) { const el = document.getElementById(`alFVenc${n}_${tipo}`); if(el) el.value = fVenc; }
 }
 
+// Versión sin comillas problemáticas — usa data attributes
+function alCalcVenc(input) {
+  const n = input.dataset.mon;
+  const tipo = input.dataset.tipo;
+  if (tipo !== 'tunel') return;
+  const fVenc = calcularFechaDesdeJuliano(input.value);
+  if (fVenc) {
+    const el = document.getElementById('alFVenc' + n + '_' + tipo);
+    if (el) el.value = fVenc;
+  }
+}
+
 function alToggleACC(n, tipo) {
   const req = document.getElementById(`alReqACC${n}_${tipo}`)?.value;
   const show = req === 'si';
@@ -17151,7 +17163,7 @@ function alAgregarFila(tipo) {
           <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">⑥ Producto (Tarja)</label>
             <input type="text" id="alProducto${n}_${tipo}" placeholder="Nombre" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #e2e8f0;font-size:.82rem;box-sizing:border-box;"></div>
           <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">Lote / Juliano</label>
-            <input type="text" id="alLote${n}_${tipo}" placeholder="Ej: 084" oninput="alCalcularVenc(${n},'${tipo}')" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #e2e8f0;font-size:.82rem;box-sizing:border-box;"></div>
+            <input type="text" id="alLote${n}_${tipo}" placeholder="Ej: 084" oninput="alCalcVenc(this)" data-mon="${n}" data-tipo="${tipo}" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #e2e8f0;font-size:.82rem;box-sizing:border-box;"></div>
           <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">F. Vencimiento ${tipo==='tunel'?'(+15 días auto)':''}</label>
             <input type="date" id="alFVenc${n}_${tipo}" style="width:100%;padding:.4rem;border-radius:6px;border:1px solid #e2e8f0;font-size:.82rem;box-sizing:border-box;"></div>
         </div>
