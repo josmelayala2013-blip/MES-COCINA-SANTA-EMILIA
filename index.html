@@ -14813,10 +14813,16 @@ ${d._ingredientes.map(ing => `<tr>
                                     <strong style="color:#333;">${p.producto}</strong>
                                     <div style="font-size:.78rem;color:#666;">👤 ${p.completadoPor||'—'} · ${p.completadoEn||'—'}</div>
                                 </div>
-                                <button onclick="reimprimirHACCPModulo('${p.id}','${modulo}')"
-                                    style="background:${color};color:white;border:none;border-radius:7px;padding:.3rem .75rem;cursor:pointer;font-size:.8rem;font-weight:600;">
-                                    🖨️ Reimprimir
-                                </button>
+                                <div style="display:flex;gap:.4rem;">
+                                    ${modulo==='abatimiento' ? `<button onclick="editarHACCPAbat('${p.id}')"
+                                        style="background:#fef3c7;color:#92400e;border:none;border-radius:7px;padding:.3rem .75rem;cursor:pointer;font-size:.8rem;font-weight:600;">
+                                        ✏️ Editar
+                                    </button>` : ''}
+                                    <button onclick="reimprimirHACCPModulo('${p.id}','${modulo}')"
+                                        style="background:${color};color:white;border:none;border-radius:7px;padding:.3rem .75rem;cursor:pointer;font-size:.8rem;font-weight:600;">
+                                        🖨️ Reimprimir
+                                    </button>
+                                </div>
                             </div>
                         </div>`;
                     }).join('');
@@ -15253,6 +15259,31 @@ ${d._ingredientes.map(ing => `<tr>
             if (confirm('¿Deseas imprimir el registro HACCP de Abatimiento?')) {
                 imprimirRegistroHACCPAbatimiento(datos);
             }
+        }
+
+        function editarHACCPAbat(id) {
+            const p = haccpPendientesAbatimiento.find(x => x.id === id);
+            if (!p) { alert('No se encontró el registro'); return; }
+
+            // Guardar referencia al pendiente que estamos editando
+            window._haccpAbatEditandoId = id;
+
+            // Abrir el modal HACCP con los datos del pendiente
+            abrirHACCPPendienteModulo(id, 'abatimiento');
+
+            // Marcar visualmente como edición
+            setTimeout(() => {
+                const contEl = document.getElementById('contenidoModalHACCPAbatimiento');
+                if (contEl) {
+                    const firstDiv = contEl.firstElementChild;
+                    if (firstDiv) {
+                        firstDiv.style.background = '#fef3c7';
+                        firstDiv.style.borderLeftColor = '#f59e0b';
+                        firstDiv.style.color = '#92400e';
+                        firstDiv.innerHTML = `<strong>✏️ Editando Registro HACCP</strong><br>Modifica los datos y presiona "Generar PDF y Guardar" para actualizar el registro.`;
+                    }
+                }
+            }, 200);
         }
 
         function reimprimirHACCPModulo(id, modulo) {
@@ -16169,6 +16200,11 @@ ${d._ingredientes.map(ing => `<tr>
                       min > 90  ? '<br><span style="color:#f59e0b;font-weight:700;">⚠️ Superó el ideal de 90 min</span>' : ''}
                 </div>
                 <div style="margin-bottom:1rem;">
+                    <label style="font-size:.82rem;font-weight:700;color:#065f46;display:block;margin-bottom:.4rem;">⚖️ Kg retirados</label>
+                    <input type="number" id="abatKgSalida" step="0.1" min="0.1" placeholder="Ej: 30.5"
+                        style="width:100%;padding:.65rem;border-radius:8px;border:2px solid #86efac;font-size:1.1rem;font-weight:700;box-sizing:border-box;color:#065f46;">
+                </div>
+                <div style="margin-bottom:1rem;">
                     <label style="font-size:.82rem;font-weight:700;color:#065f46;display:block;margin-bottom:.4rem;">🌡️ Temperatura de salida (°C)</label>
                     <input type="number" id="abatTempSalida" step="0.1" placeholder="Ej: 3.5°C"
                         style="width:100%;padding:.65rem;border-radius:8px;border:2px solid #86efac;font-size:1.1rem;font-weight:700;box-sizing:border-box;color:#065f46;">
@@ -16202,8 +16238,10 @@ ${d._ingredientes.map(ing => `<tr>
 
             const tempSalida = parseFloat(document.getElementById('abatTempSalida')?.value);
             const obs = document.getElementById('abatObsSalida')?.value;
+            const kgSalida = parseFloat(document.getElementById('abatKgSalida')?.value);
 
             if (!tempSalida && tempSalida !== 0) { alert('Ingresa la temperatura de salida'); return; }
+            if (kgSalida && kgSalida > 0) asig.kgReales = kgSalida;
 
             const min = Math.floor((new Date() - new Date(asig.inicioISO)) / 60000);
             asig.tempSalida = tempSalida;
@@ -16235,7 +16273,7 @@ ${d._ingredientes.map(ing => `<tr>
                 equipoNombre: EQUIPOS_ABAT[asig.equipoId]?.nombre || asig.equipoId,
                 manipulador: asig.operador,
                 operadoraCierre: asig.operador,
-                kgReales: asig.kg,
+                kgReales: asig.kgReales || asig.kg,
                 tempInicioAbatimiento: asig.tempEntrada,
                 tempFinAbatimiento: asig.tempSalida,
                 tiempoAbatimientoFormateado: `${asig.tiempoMinutos} min`,
