@@ -8253,10 +8253,6 @@ function limpiarComponentesFriosDeEquipos() {
                     const data = snap.data();
                     const esOtroDispositivo = data.dispositivo !== navigator.userAgent.substring(0, 50);
 
-                    // Siempre actualizar envasado y abatimiento (independiente del dispositivo)
-                    if (Array.isArray(data.procesosEnvasado)) procesosEnvasado = data.procesosEnvasado;
-                    if (Array.isArray(data.procesosAbatimiento)) procesosAbatimiento = data.procesosAbatimiento;
-
                     if (!esOtroDispositivo) return;
 
                     console.log('🔄 estado-actual actualizado desde otro dispositivo...');
