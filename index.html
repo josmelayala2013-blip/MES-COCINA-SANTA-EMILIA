@@ -17099,10 +17099,14 @@ function alCalcularVenc(n, tipo) {
   if (fVenc) { const el = document.getElementById(`alFVenc${n}_${tipo}`); if(el) el.value = fVenc; }
 }
 
-// Versión sin comillas problemáticas — usa data attributes
+// Calcula vencimiento desde el ID del campo lote
 function alCalcVenc(input) {
-  const n = input.dataset.mon;
-  const tipo = input.dataset.tipo;
+  // ID formato: alLoteN_tipo  ej: alLote1_tunel
+  const id = input.id; // ej: "alLote1_tunel"
+  const match = id.match(/alLote(\d+)_(.+)/);
+  if (!match) return;
+  const n = match[1];
+  const tipo = match[2];
   if (tipo !== 'tunel') return;
   const fVenc = calcularFechaDesdeJuliano(input.value);
   if (fVenc) {
