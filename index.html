@@ -15105,6 +15105,10 @@ ${d._ingredientes.map(ing => `<tr>
                                         style="background:#fef3c7;color:#92400e;border:none;border-radius:7px;padding:.3rem .75rem;cursor:pointer;font-size:.8rem;font-weight:600;">
                                         ✏️ Editar
                                     </button>` : ''}
+                                    ${modulo==='envasado' ? `<button onclick="editarHACCPEnvasado('${p.id}')"
+                                        style="background:#fef3c7;color:#92400e;border:none;border-radius:7px;padding:.3rem .75rem;cursor:pointer;font-size:.8rem;font-weight:600;">
+                                        ✏️ Editar
+                                    </button>` : ''}
                                     <button onclick="reimprimirHACCPModulo('${p.id}','${modulo}')"
                                         style="background:${color};color:white;border:none;border-radius:7px;padding:.3rem .75rem;cursor:pointer;font-size:.8rem;font-weight:600;">
                                         🖨️ Reimprimir
@@ -15546,6 +15550,25 @@ ${d._ingredientes.map(ing => `<tr>
             if (confirm('¿Deseas imprimir el registro HACCP de Abatimiento?')) {
                 imprimirRegistroHACCPAbatimiento(datos);
             }
+        }
+
+        function editarHACCPEnvasado(id) {
+            const p = haccpPendientesEnvasado.find(x => x.id === id);
+            if (!p) { alert('No se encontró el registro'); return; }
+            window._haccpEnvasadoEditandoId = id;
+            abrirHACCPPendienteModulo(id, 'envasado');
+            setTimeout(() => {
+                const contEl = document.getElementById('contenidoModalHACCPEnvasado');
+                if (contEl) {
+                    const firstDiv = contEl.firstElementChild;
+                    if (firstDiv) {
+                        firstDiv.style.background = '#fef3c7';
+                        firstDiv.style.borderLeftColor = '#f59e0b';
+                        firstDiv.style.color = '#92400e';
+                        firstDiv.innerHTML = `<strong>✏️ Editando Registro HACCP Envasado</strong><br>Modifica los datos y presiona "Guardar" para actualizar el registro.`;
+                    }
+                }
+            }, 200);
         }
 
         function editarHACCPAbat(id) {
