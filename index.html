@@ -16740,7 +16740,48 @@ function imprimirRegistroCE(id) {
   const color = '#991b1b';
   const [y,m,d] = (r.fecha||'').split('-');
   const fechaDisplay = r.fecha ? `${d}/${m}/${y}` : '—';
-  const preps = r.preparaciones || [{producto:r.producto,lote:r.lote,temp:r.temp,reqACC:r.reqACC,acc:r.acc,verifACC:r.verifACC,color:r.color,olor:r.olor,sabor:r.sabor,textura:r.textura,elemExt:r.elemExt}];
+
+  // Usar monitoreos si existen, si no construir desde el registro plano (compatibilidad)
+  const monitoreos = r.monitoreos && r.monitoreos.length > 0 ? r.monitoreos : [{
+    numero: 1, fecha: r.fecha, hora: r.hora, area: r.area, equipo: r.equipo,
+    preparaciones: r.preparaciones || [], tipoEnvase: r.tipoEnvase,
+    loteEnvase: r.loteEnvase, responsable: r.responsable
+  }];
+
+  const tablaMonitoreo = (mon, idx) => {
+    const preps = mon.preparaciones || [];
+    return `
+    <div style="margin-bottom:8px;">
+      <div class="seccion-titulo">📋 Monitoreo ${idx+1} — ${mon.hora||'—'} · ${mon.area||'—'} · ${mon.equipo||'—'} · Envase: ${mon.tipoEnvase||'—'}${mon.loteEnvase?' / '+mon.loteEnvase:''} · Resp: ${mon.responsable||'—'}</div>
+      <table>
+        <tr>
+          <th>#</th>
+          <th>⑤ Producto / Preparación</th>
+          <th>⑥ Lote</th>
+          <th>⑦ Temp °C</th>
+          <th>⑧ ¿Req. ACC?</th>
+          <th>⑨ ACC</th>
+          <th>⑩ Verif. ACC °C</th>
+          <th>Color</th><th>Olor</th><th>Sabor</th><th>Textura</th><th>Elem. Ext.</th>
+        </tr>
+        ${preps.length > 0 ? preps.map((p,i) => `
+        <tr>
+          <td style="font-weight:bold;color:${color};">${i+1}</td>
+          <td style="text-align:left;font-weight:bold;">${p.producto||'—'}</td>
+          <td>${p.lote||'—'}</td>
+          <td style="font-weight:bold;font-size:11pt;color:${parseFloat(p.temp)>=65?'#16a34a':'#dc2626'};">${p.temp||'—'}°C</td>
+          <td>${p.reqACC==='si'?'<span class="nok">SÍ</span>':'<span class="ok">NO</span>'}</td>
+          <td>${p.acc||'—'}</td>
+          <td>${p.verifACC?p.verifACC+'°C':'—'}</td>
+          <td class="${p.color==='✓'?'ok':'nok'}">${p.color||'—'}</td>
+          <td class="${p.olor==='✓'?'ok':'nok'}">${p.olor||'—'}</td>
+          <td class="${p.sabor==='✓'?'ok':'nok'}">${p.sabor||'—'}</td>
+          <td class="${p.textura==='✓'?'ok':'nok'}">${p.textura||'—'}</td>
+          <td class="${p.elemExt==='✓'?'ok':'nok'}">${p.elemExt||'—'}</td>
+        </tr>`).join('') : '<tr><td colspan="12" style="text-align:center;color:#999;">Sin preparaciones registradas</td></tr>'}
+      </table>
+    </div>`;
+  };
 
   _imprimirContenido(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
 <title>Verif. Temp. Cocción y Envasado</title>
@@ -16756,15 +16797,15 @@ function imprimirRegistroCE(id) {
   .header-titulo h2{font-size:11pt;font-weight:bold;color:${color};}
   .header-codigo{padding:6px 10px;font-size:8pt;text-align:right;line-height:1.6;}
   .instrucciones{font-size:7pt;border:1px solid #ccc;padding:5px;margin-bottom:5px;color:#555;line-height:1.4;}
-  .datos-gen{display:flex;border:1px solid ${color};margin-bottom:5px;flex-wrap:wrap;}
+  .datos-gen{display:flex;border:1px solid ${color};margin-bottom:8px;flex-wrap:wrap;}
   .dato-item{flex:1;min-width:100px;padding:4px 6px;border-right:1px solid ${color};}
   .dato-item:last-child{border-right:none;}
   .dato-label{font-size:7pt;font-weight:bold;color:${color};}
   .dato-val{font-size:9.5pt;font-weight:bold;margin-top:2px;}
-  .seccion-titulo{background:${color};color:white;padding:4px 8px;font-size:8.5pt;font-weight:bold;margin-bottom:3px;}
-  table{width:100%;border-collapse:collapse;margin-bottom:6px;}
-  th{background:${color};color:white;padding:4px 6px;font-size:7.5pt;border:1px solid #c53030;text-align:center;}
-  td{padding:4px 6px;border:1px solid #ccc;font-size:8.5pt;text-align:center;}
+  .seccion-titulo{background:${color};color:white;padding:4px 8px;font-size:8pt;font-weight:bold;margin-bottom:3px;}
+  table{width:100%;border-collapse:collapse;margin-bottom:4px;}
+  th{background:${color};color:white;padding:3px 5px;font-size:7pt;border:1px solid #c53030;text-align:center;}
+  td{padding:3px 5px;border:1px solid #ccc;font-size:8pt;text-align:center;}
   tr:nth-child(even) td{background:#fff5f5;}
   .acc-box{border:1px solid #f59e0b;background:#fffbeb;padding:5px;margin-bottom:5px;font-size:7pt;line-height:1.5;}
   .firma-box{display:flex;gap:10px;margin-top:6px;}
@@ -16785,58 +16826,28 @@ function imprimirRegistroCE(id) {
 </div>
 <div class="datos-gen">
   <div class="dato-item"><div class="dato-label">① Fecha</div><div class="dato-val">${fechaDisplay}</div></div>
-  <div class="dato-item"><div class="dato-label">② Hora</div><div class="dato-val">${r.hora||'—'}</div></div>
-  <div class="dato-item"><div class="dato-label">③ Área/Sección</div><div class="dato-val">${r.area||'—'}</div></div>
-  <div class="dato-item"><div class="dato-label">④ Equipo Monitoreado</div><div class="dato-val">${r.equipo||'—'}</div></div>
-  <div class="dato-item"><div class="dato-label">⑫ Envase / Lote</div><div class="dato-val">${r.tipoEnvase||'—'} ${r.loteEnvase?'/ '+r.loteEnvase:''}</div></div>
-  <div class="dato-item"><div class="dato-label">⑬ Responsable</div><div class="dato-val">${r.responsable||'—'}</div></div>
+  <div class="dato-item"><div class="dato-label">Total Monitoreos</div><div class="dato-val">${monitoreos.length} / 4</div></div>
+  <div class="dato-item"><div class="dato-label">Registrado</div><div class="dato-val">${r.creadoEn||'—'}</div></div>
 </div>
-<div class="seccion-titulo">⑤⑥⑦⑧⑨⑩⑪ Preparaciones Verificadas (${preps.length})</div>
-<table>
-  <tr>
-    <th>#</th>
-    <th>⑤ Producto / Preparación</th>
-    <th>⑥ Lote</th>
-    <th>⑦ Temp °C</th>
-    <th>⑧ ¿Req. ACC?</th>
-    <th>⑨ ACC</th>
-    <th>⑩ Verif. ACC °C</th>
-    <th>Color</th>
-    <th>Olor</th>
-    <th>Sabor</th>
-    <th>Textura</th>
-    <th>Elem. Extraños</th>
-  </tr>
-  ${preps.map((p,i) => `
-  <tr>
-    <td style="font-weight:bold;color:${color};">${i+1}</td>
-    <td style="text-align:left;font-weight:bold;">${p.producto||'—'}</td>
-    <td>${p.lote||'—'}</td>
-    <td style="font-weight:bold;font-size:11pt;color:${parseFloat(p.temp)>=65?'#16a34a':'#dc2626'};">${p.temp||'—'}°C</td>
-    <td>${p.reqACC==='si'?'<span class="nok">SÍ</span>':'<span class="ok">NO</span>'}</td>
-    <td>${p.acc||'—'}</td>
-    <td>${p.verifACC?p.verifACC+'°C':'—'}</td>
-    <td class="${p.color==='✓'?'ok':'nok'}">${p.color||'—'}</td>
-    <td class="${p.olor==='✓'?'ok':'nok'}">${p.olor||'—'}</td>
-    <td class="${p.sabor==='✓'?'ok':'nok'}">${p.sabor||'—'}</td>
-    <td class="${p.textura==='✓'?'ok':'nok'}">${p.textura||'—'}</td>
-    <td class="${p.elemExt==='✓'?'ok':'nok'}">${p.elemExt||'—'}</td>
-  </tr>`).join('')}
-  ${Array(Math.max(0,4-preps.length)).fill('<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>').join('')}
-</table>
+${monitoreos.map((mon, idx) => tablaMonitoreo(mon, idx)).join('')}
 <div class="acc-box">
   <strong>LC:</strong> Cocción ≥75°C · Envasado ≥65°C &nbsp;|&nbsp;
   <strong>ACC1:</strong> Tratamiento térmico hasta >75°C por más de 30 min &nbsp;|&nbsp;
   <strong>ACC2:</strong> Retirar y segregar como Producto No Conforme
 </div>
 <div class="firma-box">
-  <div class="firma-item"><div class="firma-label">⑬ Responsable del Monitoreo</div>
-    <div style="font-size:11pt;font-weight:bold;margin-bottom:10px;">${r.responsable||'—'}</div>
+  <div class="firma-item"><div class="firma-label">Responsable Monitoreo 1</div>
+    <div style="font-size:10pt;font-weight:bold;margin-bottom:8px;">${monitoreos[0]?.responsable||'—'}</div>
     <div class="firma-linea">Nombre y Firma</div></div>
-  <div class="firma-item"><div class="firma-label">Verificación Calidad</div>
-    <div class="firma-linea" style="margin-top:25px;">Nombre y Firma</div></div>
-  <div class="firma-item"><div class="firma-label">Registrado en sistema</div>
-    <div style="font-size:9pt;margin-top:8px;">${r.creadoEn||'—'}</div></div>
+  <div class="firma-item"><div class="firma-label">Responsable Monitoreo 2</div>
+    <div style="font-size:10pt;font-weight:bold;margin-bottom:8px;">${monitoreos[1]?.responsable||''}</div>
+    <div class="firma-linea">Nombre y Firma</div></div>
+  <div class="firma-item"><div class="firma-label">Responsable Monitoreo 3</div>
+    <div style="font-size:10pt;font-weight:bold;margin-bottom:8px;">${monitoreos[2]?.responsable||''}</div>
+    <div class="firma-linea">Nombre y Firma</div></div>
+  <div class="firma-item"><div class="firma-label">Responsable Monitoreo 4</div>
+    <div style="font-size:10pt;font-weight:bold;margin-bottom:8px;">${monitoreos[3]?.responsable||''}</div>
+    <div class="firma-linea">Nombre y Firma</div></div>
 </div>
 </body></html>`);
 }
