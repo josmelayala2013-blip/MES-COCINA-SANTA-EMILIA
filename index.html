@@ -599,6 +599,9 @@
                 <button onclick="recuperarDatosFirebase()" style="background:#667eea;color:white;border:none;border-radius:8px;padding:.5rem 1rem;cursor:pointer;font-size:.85rem;font-weight:700;" title="Recargar todos los datos desde Firebase">
                     🔄 Recargar datos
                 </button>
+                <button onclick="subirHistorialAFirebase()" style="background:#dc2626;color:white;border:none;border-radius:8px;padding:.5rem 1rem;cursor:pointer;font-size:.85rem;font-weight:700;" title="Subir historial local a Firebase">
+                    ⬆️ Subir a Firebase
+                </button>
                 <div class="time-display" id="currentTime">00:00:00</div>
                 <div class="user-info">
                     <span id="userEmailDisplay" style="font-size:0.8rem;color:#666;"></span>
@@ -8030,46 +8033,131 @@ function imprimirRegistroHACCP(d) {
             }
         }
         
+        async function subirHistorialAFirebase() {
+            const lsHist = localStorage.getItem('mes_historialPorFecha');
+            if (!lsHist) { alert('No hay historial en este dispositivo'); return; }
+            try {
+                const parsed = JSON.parse(lsHist);
+                const fechas = Object.keys(parsed);
+                if (fechas.length === 0) { alert('Historial local vacío'); return; }
+                const hoy = getHoy();
+                const histHoy = parsed[hoy] || [];
+                if (!confirm(`Subir a Firebase:\n${fechas.length} fechas\n${histHoy.length} producciones hoy\n\n¿Confirmar?`)) return;
+                historialPorFecha = parsed;
+                guardarDatos();
+                mostrarNotificacion(`✅ Subido a Firebase — ${histHoy.length} producciones hoy`, 'success');
+                renderEquipos();
+                updateStats();
+                if (typeof actualizarAnalytics === 'function') actualizarAnalytics();
+            } catch(e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
         async function recuperarDatosFirebase() {
             if (!window.db || !window.firestoreLoaded) {
                 alert('Firebase no disponible'); return;
             }
             mostrarNotificacion('🔄 Recuperando datos desde Firebase...', 'info');
             try {
-                const {doc, getDoc} = window.firestoreFunctions;
+                const {doc, getDoc, collection, getDocs} = window.firestoreFunctions;
+
+                // Intentar desde estado-actual
                 const snap = await getDoc(doc(window.db, 'mes-data', 'estado-actual'));
+                let histRecuperado = {};
+
                 if (snap.exists()) {
                     const data = snap.data();
-                    // Recuperar historial
+                    console.log('📦 Firebase estado-actual keys:', Object.keys(data));
+                    console.log('📦 historialPorFecha:', data.historialPorFecha);
+                    console.log('📦 ultimaActualizacion:', data.ultimaActualizacion);
+
                     if (data.historialPorFecha && Object.keys(data.historialPorFecha).length > 0) {
-                        historialPorFecha = data.historialPorFecha;
-                        localStorage.setItem('mes_historialPorFecha', JSON.stringify(historialPorFecha));
+                        histRecuperado = data.historialPorFecha;
                     }
+
                     // Recuperar equipos
                     if (data.equipos && data.equipos.length > 0) {
-                        const equiposBase = equipos;
-                        equipos = equiposBase.map(eqBase => {
-                            const eqFirebase = data.equipos.find(e => e.id === eqBase.id);
-                            if (eqFirebase) return { ...eqBase, estado: eqFirebase.estado, produccion: eqFirebase.produccion, planificaciones: eqFirebase.planificaciones };
-                            return eqBase;
+                        equipos = equipos.map(eqBase => {
+                            const eqFB = data.equipos.find(e => e.id === eqBase.id);
+                            return eqFB ? {...eqBase, estado: eqFB.estado, produccion: eqFB.produccion, planificaciones: eqFB.planificaciones} : eqBase;
                         });
-                        localStorage.setItem('mes_equipos', JSON.stringify(equipos));
                     }
-                    // Recuperar procesos
-                    if (Array.isArray(data.procesosEnvasado)) { procesosEnvasado = data.procesosEnvasado; localStorage.setItem('mes_procesosEnvasado', JSON.stringify(procesosEnvasado)); }
-                    if (Array.isArray(data.procesosAbatimiento)) { procesosAbatimiento = data.procesosAbatimiento; localStorage.setItem('mes_procesosAbatimiento', JSON.stringify(procesosAbatimiento)); }
+                    if (Array.isArray(data.procesosEnvasado)) procesosEnvasado = data.procesosEnvasado;
+                    if (Array.isArray(data.procesosAbatimiento)) procesosAbatimiento = data.procesosAbatimiento;
                     if (data.planDiario) planDiario = data.planDiario;
-                    // Refrescar UI
-                    renderEquipos();
-                    updateStats();
-                    renderProcesosActivos();
-                    if (typeof actualizarAnalytics === 'function') actualizarAnalytics();
-                    const hoy = getHoy();
-                    const histHoy = historialPorFecha[hoy] || [];
-                    mostrarNotificacion(`✅ Datos recuperados — ${histHoy.length} producciones hoy`, 'success');
-                } else {
-                    mostrarNotificacion('⚠️ No se encontraron datos en Firebase', 'warning');
                 }
+
+                // También intentar desde haccp-historial (respaldo)
+                try {
+                    const snapHACCP = await getDoc(doc(window.db, 'mes-data', 'haccp-historial'));
+                    if (snapHACCP.exists()) {
+                        const hData = snapHACCP.data();
+                        console.log('📦 HACCP historial keys:', Object.keys(hData));
+                        const registrosCocina = hData.cocina || [];
+                        console.log('📦 Registros cocina en HACCP:', registrosCocina.length);
+                    }
+                } catch(e2) { console.log('Sin haccp-historial:', e2.message); }
+
+                // Aplicar historial recuperado
+                if (Object.keys(histRecuperado).length > 0) {
+                    historialPorFecha = histRecuperado;
+                    localStorage.setItem('mes_historialPorFecha', JSON.stringify(historialPorFecha));
+                } else {
+                    // Último recurso: intentar desde localStorage de otro dispositivo
+                    const lsHist = localStorage.getItem('mes_historialPorFecha');
+                    if (lsHist) {
+                        const parsed = JSON.parse(lsHist);
+                        if (Object.keys(parsed).length > 0) historialPorFecha = parsed;
+                    }
+                }
+
+                localStorage.setItem('mes_equipos', JSON.stringify(equipos));
+                localStorage.setItem('mes_procesosEnvasado', JSON.stringify(procesosEnvasado));
+                localStorage.setItem('mes_procesosAbatimiento', JSON.stringify(procesosAbatimiento));
+
+                renderEquipos();
+                updateStats();
+                renderProcesosActivos();
+                if (typeof actualizarAnalytics === 'function') actualizarAnalytics();
+
+                const hoy = getHoy();
+                const histHoy = historialPorFecha[hoy] || [];
+                const totalFechas = Object.keys(historialPorFecha).length;
+
+                // Mostrar diagnóstico completo
+                const msg = `Historial: ${histHoy.length} prod. hoy | ${totalFechas} fechas totales en Firebase`;
+                mostrarNotificacion(histHoy.length > 0 ? '✅ ' + msg : '⚠️ ' + msg, histHoy.length > 0 ? 'success' : 'warning');
+
+                // Diagnóstico completo en consola
+                console.log('🔍 DIAGNÓSTICO COMPLETO:');
+                console.log('Historial hoy:', histHoy);
+                console.log('Todas las fechas:', Object.keys(historialPorFecha));
+                console.log('Total producciones hoy:', histHoy.length);
+                histHoy.forEach((h,i) => console.log(`  ${i+1}. ${h.componente||h.producto} — ${h.kgFinales||0}kg`));
+
+                // Si no hay datos en Firebase, intentar recuperar desde localStorage local
+                if (histHoy.length === 0) {
+                    const lsHist = localStorage.getItem('mes_historialPorFecha');
+                    console.log('📦 localStorage historial RAW:', lsHist ? lsHist.substring(0,200) : 'VACÍO');
+                    if (lsHist) {
+                        try {
+                            const parsed = JSON.parse(lsHist);
+                            const fechas = Object.keys(parsed);
+                            console.log('📦 Fechas en localStorage:', fechas);
+                            fechas.forEach(f => console.log(`  ${f}: ${parsed[f].length} producciones`));
+                            if (fechas.length > 0) {
+                                historialPorFecha = parsed;
+                                renderEquipos();
+                                updateStats();
+                                if (typeof actualizarAnalytics === 'function') actualizarAnalytics();
+                                const hoyLocal = parsed[getHoy()] || [];
+                                mostrarNotificacion(`✅ Recuperado desde localStorage — ${hoyLocal.length} producciones`, 'success');
+                            }
+                        } catch(e3) { console.error('Error parseando localStorage:', e3); }
+                    }
+                }
+
             } catch(e) {
                 console.error('Error recuperando:', e);
                 mostrarNotificacion('❌ Error: ' + e.message, 'warning');
