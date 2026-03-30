@@ -8010,17 +8010,44 @@ function imprimirRegistroHACCP(d) {
             }
             
             try {
-                const { doc, setDoc } = window.firestoreFunctions;
-                
-                // Guardar en un solo documento para simplificar
-                // NOTA: recetas se guardan en su propio doc 'mes-data/recetas'
-                // NO se incluyen aquí para evitar que estado-actual sobreescriba recetas editadas
+                const { doc, setDoc, getDoc } = window.firestoreFunctions;
+
+                // ── PROTECCIÓN HISTORIAL ─────────────────────────────────────────
+                // Antes de guardar, mergear el historialPorFecha local con Firebase
+                // para que ningún dispositivo borre el historial de otro
+                let historialParaGuardar = historialPorFecha || {};
+                try {
+                    const snapActual = await getDoc(doc(window.db, 'mes-data', 'estado-actual'));
+                    if (snapActual.exists()) {
+                        const dataActual = snapActual.data();
+                        const histFirebase = dataActual.historialPorFecha || {};
+                        // Merge: para cada fecha usar el que tenga MÁS registros
+                        const merged = { ...historialParaGuardar };
+                        Object.keys(histFirebase).forEach(fecha => {
+                            const remotas = histFirebase[fecha] || [];
+                            const locales = merged[fecha] || [];
+                            if (remotas.length > locales.length) {
+                                merged[fecha] = remotas;
+                            }
+                        });
+                        historialParaGuardar = merged;
+                        // Actualizar memoria local con el merge
+                        if (JSON.stringify(merged) !== JSON.stringify(historialPorFecha)) {
+                            historialPorFecha = merged;
+                            localStorage.setItem('mes_historialPorFecha', JSON.stringify(historialPorFecha));
+                        }
+                    }
+                } catch(mergeErr) {
+                    console.warn('⚠️ No se pudo mergear historial, guardando local:', mergeErr.message);
+                }
+                // ────────────────────────────────────────────────────────────────
+
                 await setDoc(doc(window.db, 'mes-data', 'estado-actual'), {
                     equipos,
                     productos,
                     procesosEnvasado,
                     procesosAbatimiento,
-                    historialPorFecha,
+                    historialPorFecha: historialParaGuardar,
                     planDiario,
                     ultimaActualizacion: new Date().toISOString(),
                     dispositivo: navigator.userAgent.substring(0, 50)
