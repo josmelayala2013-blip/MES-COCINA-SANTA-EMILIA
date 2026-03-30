@@ -16151,11 +16151,13 @@ function renderRegistrosCE() {
       <div style="background:#fff7f7;padding:.75rem 1rem;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #fca5a5;">
         <div style="display:flex;gap:1.5rem;align-items:center;">
           <span style="font-weight:700;color:#dc2626;font-size:.95rem;">🕐 ${r.hora||'—'}</span>
+          <span style="background:#fee2e2;color:#dc2626;border-radius:20px;padding:.15rem .6rem;font-size:.75rem;font-weight:700;">${(r.monitoreos||[r]).length}/4 monitoreos</span>
           <span style="font-size:.85rem;color:#666;">📍 ${r.area||'—'} · ${r.equipo||'—'}</span>
           <span style="font-size:.85rem;color:#666;">📦 Envase: ${r.tipoEnvase||'—'} ${r.loteEnvase?'/ '+r.loteEnvase:''}</span>
           <span style="font-size:.85rem;color:#666;">👤 ${r.responsable||'—'}</span>
         </div>
         <div style="display:flex;gap:.5rem;">
+          <button onclick="editarRegistroCE('${r.id}')" style="background:#fef3c7;color:#92400e;border:none;border-radius:6px;padding:.3rem .7rem;cursor:pointer;font-size:.8rem;font-weight:600;">✏️ ${(r.monitoreos||[r]).length < 4 ? 'Agregar Monitoreo' : 'Editar'}</button>
           <button onclick="imprimirRegistroCE('${r.id}')" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:.3rem .7rem;cursor:pointer;font-size:.8rem;">🖨️ Imprimir</button>
           <button onclick="eliminarRegistroCE('${r.id}')" style="background:#f3f4f6;color:#666;border:none;border-radius:6px;padding:.3rem .7rem;cursor:pointer;font-size:.8rem;">🗑️</button>
         </div>
@@ -16295,8 +16297,16 @@ function _ceFilaPrep(m, p) {
 }
 
 function abrirRegistroCoccionEnvasado() {
+  // Si ya existe un registro para esta fecha, abrirlo para editar
+  const fecha = document.getElementById('fechaFiltroCE')?.value || new Date().toISOString().split('T')[0];
+  const existente = registrosCE.find(r => r.fecha === fecha);
+  if (existente) {
+    editarRegistroCE(existente.id);
+    return;
+  }
   // Reset contador de monitoreos
   window._ceTotalMonitoreos = 1;
+  window._ceRegistroEditandoId = null;
   document.getElementById('contenidoModalCE').innerHTML = `
     <div style="font-size:.82rem;color:#64748b;margin-bottom:1rem;background:#fff7f7;border-radius:8px;padding:.75rem;border-left:4px solid #dc2626;">
       <strong>Instrucciones:</strong> Monitoreo 4 veces al día. Cada monitoreo es independiente (diferente equipo/producto/hora).
@@ -16317,6 +16327,33 @@ function abrirRegistroCoccionEnvasado() {
       <button onclick="guardarRegistroCE()" style="padding:.75rem 1.5rem;border-radius:10px;border:none;background:linear-gradient(135deg,#dc2626,#ef4444);color:white;cursor:pointer;font-weight:700;font-size:1rem;">💾 Guardar Registro</button>
     </div>`;
   document.getElementById('modalCE').style.display = 'block';
+  // Precargar datos si estamos editando
+  setTimeout(() => {
+    const datos = window._ceDatosMonitoreo || {};
+    Object.keys(datos).forEach(m => {
+      const mon = datos[m];
+      if (!mon) return;
+      if (document.getElementById(`ceFecha${m}`)) document.getElementById(`ceFecha${m}`).value = mon.fecha || '';
+      if (document.getElementById(`ceMes${m}`)) document.getElementById(`ceMes${m}`).value = mon.mes || '';
+      if (document.getElementById(`ceHora${m}`)) document.getElementById(`ceHora${m}`).value = mon.hora || '';
+      if (document.getElementById(`ceArea${m}`)) document.getElementById(`ceArea${m}`).value = mon.area || '';
+      if (document.getElementById(`ceEquipo${m}`)) document.getElementById(`ceEquipo${m}`).value = mon.equipo || '';
+      if (document.getElementById(`ceTipoEnvase${m}`)) document.getElementById(`ceTipoEnvase${m}`).value = mon.tipoEnvase || '';
+      if (document.getElementById(`ceLoteEnvase${m}`)) document.getElementById(`ceLoteEnvase${m}`).value = mon.loteEnvase || '';
+      if (document.getElementById(`ceResponsable${m}`)) document.getElementById(`ceResponsable${m}`).value = mon.responsable || '';
+      // Precargar preparaciones
+      (mon.preparaciones || []).forEach((prep, pi) => {
+        const p = pi + 1;
+        if (p > 1) ceAgregarPrep(parseInt(m));
+        setTimeout(() => {
+          if (document.getElementById(`ceProd_${m}_${p}`)) document.getElementById(`ceProd_${m}_${p}`).value = prep.producto || '';
+          if (document.getElementById(`ceLote_${m}_${p}`)) document.getElementById(`ceLote_${m}_${p}`).value = prep.lote || '';
+          if (document.getElementById(`ceTemp_${m}_${p}`)) document.getElementById(`ceTemp_${m}_${p}`).value = prep.temp || '';
+        }, 100);
+      });
+    });
+    window._ceDatosMonitoreo = {};
+  }, 100);
 }
 
 function ceAgregarMonitoreo() {
@@ -16426,7 +16463,50 @@ function ceToggleACC(n) {
 
 function toggleVerifACC() { ceToggleACC(1); }
 
-function cerrarModalCE() { document.getElementById('modalCE').style.display = 'none'; }
+function cerrarModalCE() { document.getElementById('modalCE').style.display = 'none'; window._ceRegistroEditandoId = null; }
+
+function editarRegistroCE(id) {
+  const r = registrosCE.find(x => x.id === id);
+  if (!r) return;
+  window._ceRegistroEditandoId = id;
+
+  const monitoreos = r.monitoreos || [{
+    numero: 1, fecha: r.fecha, mes: '', hora: r.hora,
+    area: r.area, equipo: r.equipo, preparaciones: r.preparaciones || [],
+    tipoEnvase: r.tipoEnvase, loteEnvase: r.loteEnvase, responsable: r.responsable
+  }];
+  window._ceTotalMonitoreos = monitoreos.length;
+
+  document.getElementById('contenidoModalCE').innerHTML = `
+    <div style="font-size:.82rem;color:#64748b;margin-bottom:1rem;background:#fff7f7;border-radius:8px;padding:.75rem;border-left:4px solid #dc2626;">
+      <strong>Editando registro del día — ${r.fecha}</strong> · Agrega nuevos monitoreos o modifica los existentes.
+      LC Cocción: ≥75°C · LC Envasado: ≥65°C
+    </div>
+    <div id="ceListaMonitoreos">${monitoreos.map((mon,i) => _ceFilaMonitoreoConDatos(i+1, mon)).join('')}</div>
+    <button id="ceBtnAgregarMon" onclick="ceAgregarMonitoreo()" ${monitoreos.length >= 4 ? 'style="display:none;"' : ''}
+      style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:8px;padding:.5rem 1.2rem;cursor:pointer;font-size:.85rem;font-weight:600;margin-bottom:1rem;width:100%;">
+      ➕ Agregar Monitoreo (máx. 4)
+    </button>
+    <div style="background:#fffbeb;border-radius:8px;padding:.75rem;margin-bottom:1.25rem;font-size:.78rem;color:#64748b;">
+      <strong>LC:</strong> Cocción ≥75°C · Envasado ≥65°C &nbsp;|&nbsp;
+      <strong>ACC1:</strong> Tratamiento térmico >75°C por más de 30 min &nbsp;|&nbsp;
+      <strong>ACC2:</strong> Retirar y segregar como PNC
+    </div>
+    <div style="display:flex;gap:.75rem;justify-content:flex-end;">
+      <button onclick="cerrarModalCE()" style="padding:.75rem 1.5rem;border-radius:10px;border:1px solid #ddd;cursor:pointer;font-weight:600;color:#64748b;background:white;">Cancelar</button>
+      <button onclick="guardarRegistroCE()" style="padding:.75rem 1.5rem;border-radius:10px;border:none;background:linear-gradient(135deg,#dc2626,#ef4444);color:white;cursor:pointer;font-weight:700;font-size:1rem;">💾 Guardar Registro</button>
+    </div>`;
+  document.getElementById('modalCE').style.display = 'block';
+}
+
+function _ceFilaMonitoreoConDatos(m, mon) {
+  // Generar la fila y luego pre-cargar datos via setTimeout
+  const html = _ceFilaMonitoreo(m);
+  // Retornar HTML y programar llenado de datos
+  window._ceDatosMonitoreo = window._ceDatosMonitoreo || {};
+  window._ceDatosMonitoreo[m] = mon;
+  return html;
+}
 
 function guardarRegistroCE() {
   const totalMons = window._ceTotalMonitoreos || 1;
@@ -16493,13 +16573,23 @@ function guardarRegistroCE() {
     monitoreos, // todos los monitoreos independientes
     creadoEn: new Date().toLocaleString('es-CL')
   };
-  registrosCE.push(registro);
-  // Ordenar cronológicamente por hora
-  registrosCE.sort((a,b) => (a.fecha+a.hora).localeCompare(b.fecha+b.hora));
+  if (window._ceRegistroEditandoId) {
+    // Actualizar registro existente
+    const idx = registrosCE.findIndex(r => r.id === window._ceRegistroEditandoId);
+    if (idx !== -1) {
+      registro.id = window._ceRegistroEditandoId;
+      registrosCE[idx] = registro;
+    } else {
+      registrosCE.push(registro);
+    }
+  } else {
+    registrosCE.push(registro);
+  }
+  // Ordenar cronológicamente
+  registrosCE.sort((a,b) => (a.fecha+(a.hora||'')).localeCompare(b.fecha+(b.hora||'')));
   guardarCE();
   cerrarModalCE();
   renderRegistrosCE();
-  // Mostrar toast con botón imprimir
   _mostrarToastImprimir('ce', registro.id);
 }
 
