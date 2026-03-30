@@ -16875,9 +16875,12 @@ function renderRegistrosTunel() {
 
 function abrirRegistroTunel() {
   const fecha = document.getElementById('fechaFiltroTunel')?.value || new Date().toISOString().split('T')[0];
+  const existente = registrosTunel.find(r => r.fecha === fecha);
+  if (existente) { editarRegistroAlmacenamiento(existente.id, 'tunel'); return; }
+  window._alEditandoId = null;
   _abrirModalAlmacenamiento('tunel', fecha, 'Congelación — Túnel de Abatimiento', '#0e7490', '❄️');
 }
-function cerrarModalTunel() { document.getElementById('modalTunel').style.display = 'none'; }
+function cerrarModalTunel() { document.getElementById('modalTunel').style.display = 'none'; window._alEditandoId = null; }
 
 // ---- C. TRÁNSITO ----
 function setFechaHoyTransito() {
@@ -16902,9 +16905,12 @@ function renderRegistrosTransito() {
 
 function abrirRegistroTransito() {
   const fecha = document.getElementById('fechaFiltroTransito')?.value || new Date().toISOString().split('T')[0];
+  const existente = registrosTransito.find(r => r.fecha === fecha);
+  if (existente) { editarRegistroAlmacenamiento(existente.id, 'transito'); return; }
+  window._alEditandoId = null;
   _abrirModalAlmacenamiento('transito', fecha, 'Refrigeración — C. Tránsito', '#7c3aed', '🪣');
 }
-function cerrarModalTransito() { document.getElementById('modalTransito').style.display = 'none'; }
+function cerrarModalTransito() { document.getElementById('modalTransito').style.display = 'none'; window._alEditandoId = null; }
 
 // ---- ALMACENAMIENTO (compartido túnel y tránsito) ----
 function _renderTablaAlmacenamiento(registros, tipo, color) {
@@ -16917,9 +16923,10 @@ function _renderTablaAlmacenamiento(registros, tipo, color) {
         <div style="display:flex;gap:1.5rem;align-items:center;">
           <span style="font-weight:700;color:${color};font-size:.95rem;">📅 ${r.fecha||'—'}</span>
           <span style="font-size:.85rem;color:#666;">👤 ${r.responsable||'—'}</span>
-          <span style="font-size:.82rem;color:#94a3b8;">${mons.length} monitoreo(s)</span>
+          <span style="background:#e0f2fe;color:${color};border-radius:20px;padding:.15rem .6rem;font-size:.75rem;font-weight:700;">${mons.length}/3 monitoreos</span>
         </div>
         <div style="display:flex;gap:.5rem;">
+          <button onclick="editarRegistroAlmacenamiento('${r.id}','${tipo}')" style="background:#fef3c7;color:#92400e;border:none;border-radius:6px;padding:.3rem .7rem;cursor:pointer;font-size:.8rem;font-weight:600;">✏️ ${mons.length < 3 ? 'Agregar Monitoreo' : 'Editar'}</button>
           <button onclick="imprimirRegistroAlmacenamiento('${r.id}','${tipo}')" style="background:#e0f2fe;color:${color};border:none;border-radius:6px;padding:.3rem .7rem;cursor:pointer;font-size:.8rem;">🖨️ Imprimir</button>
           <button onclick="eliminarRegistroAlmacenamiento('${r.id}','${tipo}')" style="background:#f3f4f6;color:#666;border:none;border-radius:6px;padding:.3rem .7rem;cursor:pointer;font-size:.8rem;">🗑️</button>
         </div>
@@ -17225,6 +17232,79 @@ function alEliminarFila(n, tipo) {
   document.getElementById(`alBtnAgregar_${tipo}`).style.display = 'inline-block';
 }
 
+function editarRegistroAlmacenamiento(id, tipo) {
+  const lista = tipo === 'tunel' ? registrosTunel : registrosTransito;
+  const r = lista.find(x => x.id === id);
+  if (!r) return;
+  window._alEditandoId = id;
+  const color = tipo === 'tunel' ? '#0e7490' : '#7c3aed';
+  const titulo = tipo === 'tunel' ? 'Congelación — Túnel de Abatimiento' : 'Refrigeración — C. Tránsito';
+  const icono = tipo === 'tunel' ? '❄️' : '🪣';
+  const maxMons = 3;
+  const mons = r.monitoreos || [];
+
+  // Abrir el modal con los datos existentes
+  _abrirModalAlmacenamiento(tipo, r.fecha, titulo, color, icono);
+
+  // Después de renderizar, precargar datos existentes y agregar monitoreos faltantes
+  setTimeout(() => {
+    // Responsable y mes
+    const respEl = document.getElementById(`alResponsable_${tipo}`);
+    if (respEl) respEl.value = r.responsable || '';
+    const mesEl = document.getElementById(`alMes_${tipo}`);
+    if (mesEl) mesEl.value = r.mes || '';
+
+    // Precargar monitoreo 1
+    if (mons.length > 0) _alPrecargarMonitoreo(1, mons[0], tipo);
+
+    // Agregar y precargar monitoreos 2 y 3 si existen
+    for (let i = 1; i < mons.length; i++) {
+      alAgregarFila(tipo);
+      setTimeout(() => _alPrecargarMonitoreo(i+1, mons[i], tipo), 100 * i);
+    }
+
+    // Actualizar banner informativo
+    const cont = tipo === 'tunel' ? 'contenidoModalTunel' : 'contenidoModalTransito';
+    const banner = document.querySelector(`#${cont} div:first-child`);
+    if (banner) banner.innerHTML = `✏️ <strong>Editando registro del ${r.fecha}</strong> — ${mons.length} monitoreo(s) guardado(s). ${mons.length < maxMons ? 'Puedes agregar ' + (maxMons - mons.length) + ' más.' : 'Registro completo (3/3).'}`;
+  }, 150);
+}
+
+function _alPrecargarMonitoreo(n, mon, tipo) {
+  if (!mon) return;
+  const set = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.value = val || ''; };
+  set(`alHora${n}_${tipo}`, mon.hora);
+  set(`alSistema${n}_${tipo}`, mon.sistemaEnfriamiento);
+  set(`alTemp${n}_${tipo}`, mon.temp);
+  set(`alTempInterna${n}_${tipo}`, mon.tempInterna);
+  set(`alHumedad${n}_${tipo}`, mon.humedad);
+  set(`alTempContrast${n}_${tipo}`, mon.tempContrast);
+  set(`alTempProducto${n}_${tipo}`, mon.tempProducto);
+  set(`alProducto${n}_${tipo}`, mon.producto);
+  set(`alLote${n}_${tipo}`, mon.lote);
+  set(`alFVenc${n}_${tipo}`, mon.fVencimiento);
+  set(`alReqACC${n}_${tipo}`, mon.reqACC || 'no');
+  set(`alACC${n}_${tipo}`, mon.acc);
+  set(`alTempACC${n}_${tipo}`, mon.tempACC);
+  set(`alProdEval${n}_${tipo}`, mon.prodEval);
+  // Radios inspección
+  const setRadio = (name, val) => {
+    if (!val) return;
+    const r = document.querySelector(`input[name="${name}"][value="${val}"]`);
+    if (r) r.checked = true;
+  };
+  setRadio(`alOrden${n}_${tipo}`, mon.orden);
+  setRadio(`alLimpieza${n}_${tipo}`, mon.limpieza);
+  setRadio(`alRotacion${n}_${tipo}`, mon.rotacion);
+  setRadio(`alSepPiso${n}_${tipo}`, mon.piso);
+  setRadio(`alSepAlérgeno${n}_${tipo}`, mon.alergeno);
+  setRadio(`alSepEspecias${n}_${tipo}`, mon.especias);
+  setRadio(`alSepProd.Term.${n}_${tipo}`, mon.prodTerm);
+  setRadio(`alSepProd.NC${n}_${tipo}`, mon.prodNoConf);
+  // Mostrar ACC si aplica
+  if (mon.reqACC === 'si') alToggleACC(n, tipo);
+}
+
 function guardarRegistroAlmacenamiento(tipo) {
   const fecha = document.getElementById(`alFecha_${tipo}`)?.value;
   const mes = document.getElementById(`alMes_${tipo}`)?.value;
@@ -17274,19 +17354,31 @@ function guardarRegistroAlmacenamiento(tipo) {
     creadoEn: new Date().toLocaleString('es-CL')
   };
 
+  // Actualizar existente o crear nuevo
+  if (window._alEditandoId) {
+    registro.id = window._alEditandoId;
+    if (tipo === 'tunel') {
+      const idx = registrosTunel.findIndex(r => r.id === window._alEditandoId);
+      if (idx !== -1) registrosTunel[idx] = registro; else registrosTunel.push(registro);
+    } else {
+      const idx = registrosTransito.findIndex(r => r.id === window._alEditandoId);
+      if (idx !== -1) registrosTransito[idx] = registro; else registrosTransito.push(registro);
+    }
+  } else {
+    if (tipo === 'tunel') registrosTunel.push(registro);
+    else registrosTransito.push(registro);
+  }
+
   if (tipo === 'tunel') {
-    registrosTunel.push(registro);
     registrosTunel.sort((a,b) => (a.fecha+(a.monitoreos[0]?.hora||'')).localeCompare(b.fecha+(b.monitoreos[0]?.hora||'')));
-    guardarTunel(); 
+    guardarTunel();
     cerrarModalTunel();
-    // Guardar referencia directa para impresión inmediata
     window._ultimoRegistroCalidad = { registro, tipo };
     _mostrarToastImprimir(tipo, registro.id);
     renderRegistrosTunel();
   } else {
-    registrosTransito.push(registro);
     registrosTransito.sort((a,b) => (a.fecha+(a.monitoreos[0]?.hora||'')).localeCompare(b.fecha+(b.monitoreos[0]?.hora||'')));
-    guardarTransito(); 
+    guardarTransito();
     cerrarModalTransito();
     window._ultimoRegistroCalidad = { registro, tipo };
     _mostrarToastImprimir(tipo, registro.id);
