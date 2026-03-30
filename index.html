@@ -596,6 +596,9 @@
                     <span style="width:8px; height:8px; background:white; border-radius:50%; animation:pulse 2s infinite;"></span>
                     🔥 Sincronizado
                 </div>
+                <button onclick="recuperarDatosFirebase()" style="background:#667eea;color:white;border:none;border-radius:8px;padding:.5rem 1rem;cursor:pointer;font-size:.85rem;font-weight:700;" title="Recargar todos los datos desde Firebase">
+                    🔄 Recargar datos
+                </button>
                 <div class="time-display" id="currentTime">00:00:00</div>
                 <div class="user-info">
                     <span id="userEmailDisplay" style="font-size:0.8rem;color:#666;"></span>
@@ -8027,6 +8030,52 @@ function imprimirRegistroHACCP(d) {
             }
         }
         
+        async function recuperarDatosFirebase() {
+            if (!window.db || !window.firestoreLoaded) {
+                alert('Firebase no disponible'); return;
+            }
+            mostrarNotificacion('🔄 Recuperando datos desde Firebase...', 'info');
+            try {
+                const {doc, getDoc} = window.firestoreFunctions;
+                const snap = await getDoc(doc(window.db, 'mes-data', 'estado-actual'));
+                if (snap.exists()) {
+                    const data = snap.data();
+                    // Recuperar historial
+                    if (data.historialPorFecha && Object.keys(data.historialPorFecha).length > 0) {
+                        historialPorFecha = data.historialPorFecha;
+                        localStorage.setItem('mes_historialPorFecha', JSON.stringify(historialPorFecha));
+                    }
+                    // Recuperar equipos
+                    if (data.equipos && data.equipos.length > 0) {
+                        const equiposBase = equipos;
+                        equipos = equiposBase.map(eqBase => {
+                            const eqFirebase = data.equipos.find(e => e.id === eqBase.id);
+                            if (eqFirebase) return { ...eqBase, estado: eqFirebase.estado, produccion: eqFirebase.produccion, planificaciones: eqFirebase.planificaciones };
+                            return eqBase;
+                        });
+                        localStorage.setItem('mes_equipos', JSON.stringify(equipos));
+                    }
+                    // Recuperar procesos
+                    if (Array.isArray(data.procesosEnvasado)) { procesosEnvasado = data.procesosEnvasado; localStorage.setItem('mes_procesosEnvasado', JSON.stringify(procesosEnvasado)); }
+                    if (Array.isArray(data.procesosAbatimiento)) { procesosAbatimiento = data.procesosAbatimiento; localStorage.setItem('mes_procesosAbatimiento', JSON.stringify(procesosAbatimiento)); }
+                    if (data.planDiario) planDiario = data.planDiario;
+                    // Refrescar UI
+                    renderEquipos();
+                    updateStats();
+                    renderProcesosActivos();
+                    if (typeof actualizarAnalytics === 'function') actualizarAnalytics();
+                    const hoy = getHoy();
+                    const histHoy = historialPorFecha[hoy] || [];
+                    mostrarNotificacion(`✅ Datos recuperados — ${histHoy.length} producciones hoy`, 'success');
+                } else {
+                    mostrarNotificacion('⚠️ No se encontraron datos en Firebase', 'warning');
+                }
+            } catch(e) {
+                console.error('Error recuperando:', e);
+                mostrarNotificacion('❌ Error: ' + e.message, 'warning');
+            }
+        }
+
         async function cargarDesdeFirebase() {
             if (!window.db || !window.firestoreLoaded) {
                 console.log('Firebase no disponible');
