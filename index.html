@@ -17021,14 +17021,19 @@ function _ceFilaMonitoreoPreloaded(m, mon) {
           <input type="number" id="ceVerif_${m}_${p}" value="${prep.verifACC||''}" step="0.1" placeholder="°C" style="width:100%;padding:.4rem;border-radius:5px;border:1px solid #fca5a5;font-size:.82rem;box-sizing:border-box;"></div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:.3rem;">
-        ${['Color','Olor','Sabor','Textura','Elem.Ext'].map(attr => `
-        <div style="background:#fff7f7;border-radius:5px;padding:.3rem;text-align:center;border:1px solid #fca5a5;">
-          <div style="font-size:.63rem;font-weight:600;color:#333;margin-bottom:.2rem;">${attr}</div>
-          <div style="display:flex;gap:.2rem;justify-content:center;">
-            <label style="cursor:pointer;font-size:.75rem;"><input type="radio" name="ceAt_${attr}_${m}_${p}" value="✓" ${(prep[attr.toLowerCase().replace('.','')]||prep.color||'') === '✓' && attr==='Color' ? 'checked' : ''} style="accent-color:#10b981;"> ✓</label>
-            <label style="cursor:pointer;font-size:.75rem;"><input type="radio" name="ceAt_${attr}_${m}_${p}" value="✗" style="accent-color:#ef4444;"> ✗</label>
-          </div>
-        </div>`).join('')}
+        ${['Color','Olor','Sabor','Textura','Elem.Ext'].map(attr => {
+          // Mapear nombre del atributo al campo guardado en prep
+          const fieldMap = {'Color':'color','Olor':'olor','Sabor':'sabor','Textura':'textura','Elem.Ext':'elemExt'};
+          const val = prep[fieldMap[attr]] || '';
+          return `
+          <div style="background:#fff7f7;border-radius:5px;padding:.3rem;text-align:center;border:1px solid #fca5a5;">
+            <div style="font-size:.63rem;font-weight:600;color:#333;margin-bottom:.2rem;">${attr}</div>
+            <div style="display:flex;gap:.2rem;justify-content:center;">
+              <label style="cursor:pointer;font-size:.75rem;"><input type="radio" name="ceAt_${attr}_${m}_${p}" value="✓" ${val === '✓' ? 'checked' : ''} style="accent-color:#10b981;"> ✓</label>
+              <label style="cursor:pointer;font-size:.75rem;"><input type="radio" name="ceAt_${attr}_${m}_${p}" value="✗" ${val === '✗' ? 'checked' : ''} style="accent-color:#ef4444;"> ✗</label>
+            </div>
+          </div>`;
+        }).join('')}
       </div>
     </div>`;
   }).join('');
