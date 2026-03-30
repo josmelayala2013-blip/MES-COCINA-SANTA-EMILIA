@@ -16333,11 +16333,18 @@ function ceAgregarMonitoreo() {
   if (!window._ceTotalMonitoreos) window._ceTotalMonitoreos = 1;
   window._ceTotalMonitoreos++;
   if (window._ceTotalMonitoreos > 4) { alert('Máximo 4 monitoreos por registro'); window._ceTotalMonitoreos = 4; return; }
+  const m = window._ceTotalMonitoreos;
   const lista = document.getElementById('ceListaMonitoreos');
   const div = document.createElement('div');
-  div.innerHTML = _ceFilaMonitoreo(window._ceTotalMonitoreos);
-  lista.appendChild(div.firstElementChild);
-  if (window._ceTotalMonitoreos >= 4) document.getElementById('ceBtnAgregarMon').style.display = 'none';
+  div.innerHTML = _ceFilaMonitoreo(m).trim();
+  // Insertar todos los elementos hijos (evita problema con firstElementChild si hay espacios)
+  while (div.firstChild) lista.appendChild(div.firstChild);
+  if (m >= 4) document.getElementById('ceBtnAgregarMon').style.display = 'none';
+  // Scroll al nuevo monitoreo
+  setTimeout(() => {
+    const el = document.getElementById(`ceMonitoreo${m}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 100);
 }
 
 function ceEliminarMonitoreo(m) {
