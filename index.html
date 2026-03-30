@@ -6724,6 +6724,26 @@ function imprimirRegistroHACCP(d) {
             renderAbatimiento();
         }
 
+        async function _sincronizarEnvasadoDesdeFirebase() {
+            if (!window.db || !window.firestoreLoaded) {
+                renderEnvasado(); return;
+            }
+            try {
+                const {doc, getDoc} = window.firestoreFunctions;
+                const snap = await getDoc(doc(window.db, 'mes-data', 'estado-actual'));
+                if (snap.exists()) {
+                    const data = snap.data();
+                    if (Array.isArray(data.procesosEnvasado)) {
+                        procesosEnvasado = data.procesosEnvasado;
+                    }
+                    if (Array.isArray(data.procesosAbatimiento)) {
+                        procesosAbatimiento = data.procesosAbatimiento;
+                    }
+                }
+            } catch(e) { console.error('Error sync envasado:', e); }
+            renderEnvasado();
+        }
+
         function renderEnvasado() {
             const cont = document.getElementById('contenidoEnvasado');
             const badge = document.getElementById('badgeEnvasado');
@@ -7853,7 +7873,7 @@ function imprimirRegistroHACCP(d) {
             else if (tabName === 'acondVegetales') { /* pestaña lista */ }
             else if (tabName === 'carnes') { /* contenido carnes */ }
             else if (tabName === 'vegetales') { /* contenido vegetales */ }
-            else if (tabName === 'envasado') renderEnvasado();
+            else if (tabName === 'envasado') { _sincronizarEnvasadoDesdeFirebase(); }
             else if (tabName === 'abatimiento') { _sincronizarAbatDesdeFirebase(); renderAbatimiento(); }
             else if (tabName === 'analytics') actualizarAnalytics();
             else if (tabName === 'personal') { 
@@ -7977,6 +7997,25 @@ function imprimirRegistroHACCP(d) {
         }
 
         async function cargarDatos() {
+            // Cargar abatimiento desde Firebase (independiente de estado-actual)
+            if (window.db && window.firestoreLoaded) {
+                try {
+                    const {doc, getDoc} = window.firestoreFunctions;
+                    const snapAbat = await getDoc(doc(window.db, 'mes-data', 'abat-asignaciones'));
+                    if (snapAbat.exists()) {
+                        const d = snapAbat.data();
+                        if (d.asignaciones && Array.isArray(d.asignaciones)) {
+                            asignacionesAbat = d.asignaciones;
+                            localStorage.setItem('mes_abat_asignaciones', JSON.stringify(asignacionesAbat));
+                        }
+                        if (d.queue && Array.isArray(d.queue)) {
+                            tandasPendientesAbatQueue = d.queue;
+                            localStorage.setItem('mes_abat_queue', JSON.stringify(tandasPendientesAbatQueue));
+                        }
+                        console.log('✅ Abatimiento cargado desde Firebase');
+                    }
+                } catch(e) { console.error('Error cargando abatimiento:', e); }
+            }
             // Intentar cargar desde Firebase primero
             const cargadoFirebase = await cargarDesdeFirebase();
             
@@ -8121,6 +8160,11 @@ function limpiarComponentesFriosDeEquipos() {
                     if (!snap.exists()) return;
                     const data = snap.data();
                     const esOtroDispositivo = data.dispositivo !== navigator.userAgent.substring(0, 50);
+
+                    // Siempre actualizar envasado y abatimiento (independiente del dispositivo)
+                    if (Array.isArray(data.procesosEnvasado)) procesosEnvasado = data.procesosEnvasado;
+                    if (Array.isArray(data.procesosAbatimiento)) procesosAbatimiento = data.procesosAbatimiento;
+
                     if (!esOtroDispositivo) return;
 
                     console.log('🔄 estado-actual actualizado desde otro dispositivo...');
