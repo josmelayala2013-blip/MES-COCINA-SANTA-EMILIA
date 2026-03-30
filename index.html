@@ -4554,17 +4554,19 @@ function renderEtiquetas() {
     const platos = op.platos || 0;
 
     (op.componentes || []).forEach(comp => {
-      // Ignorar preparaciones frías — no van en bolsas envasadas
-      if (comp.preparacionFria) return;
+      // Ignorar insumos — no se producen
+      if (comp.esInsumo) return;
+      // Buscar también en receta original
+      const compRecetaBase = recetaOp?.componentes?.find(c =>
+        (c.nombre||'').toLowerCase().trim() === (comp.nombre||'').toLowerCase().trim()
+      );
+      if (compRecetaBase?.esInsumo) return;
 
       // Obtener kg del componente — priorizar kgTerminados de la OP
       let kgComp = comp.kgTerminados || 0;
       if (kgComp <= 0 && recetaOp && platos > 0) {
-        const compReceta = recetaOp.componentes?.find(c =>
-          (c.nombre||'').toLowerCase().trim() === (comp.nombre||'').toLowerCase().trim()
-        );
-        if (compReceta?.gramajePorcion > 0) {
-          kgComp = Math.round((platos * compReceta.gramajePorcion / 1000) * 10) / 10;
+        if (compRecetaBase?.gramajePorcion > 0) {
+          kgComp = Math.round((platos * compRecetaBase.gramajePorcion / 1000) * 10) / 10;
         }
       }
       if (kgComp <= 0) return;
@@ -4572,12 +4574,14 @@ function renderEtiquetas() {
       // Usar formato ajustado individualmente si existe, si no el formato por defecto
       const key = `${op.numeroOp}__${comp.nombre}`;
       const formatoFila = ajustesAnteriores[key] || formatoKg;
+      const esFria = comp.preparacionFria || compRecetaBase?.preparacionFria || false;
 
       const etiquetasCalculadas = Math.ceil(kgComp / formatoFila);
       totalEtiquetas += etiquetasCalculadas;
 
       filas.push({
         op: op.numeroOp,
+        esFria,
         receta: op.nombre,
         componente: comp.nombre,
         kgPlanificados: kgComp,
@@ -4646,7 +4650,10 @@ function renderEtiquetas() {
                   <span style="background:#eef2ff;color:#667eea;border-radius:6px;padding:.15rem .5rem;font-size:.78rem;font-weight:700;">OP ${f.op}</span>
                 </td>
                 <td style="padding:.7rem 1rem;font-size:.85rem;font-weight:600;color:#1e293b;">${f.receta}</td>
-                <td style="padding:.7rem 1rem;font-size:.85rem;color:#475569;">${f.componente}</td>
+                <td style="padding:.7rem 1rem;font-size:.85rem;color:${f.esFria?'#0891b2':'#475569'};font-weight:${f.esFria?'600':'400'};">
+                  ${f.esFria?'❄️ ':''}${f.componente}
+                  ${f.esFria?'<span style="background:#cffafe;color:#0891b2;border-radius:4px;padding:.1rem .35rem;font-size:.68rem;margin-left:.3rem;font-weight:700;">Prep. Fría</span>':''}
+                </td>
                 <td style="padding:.7rem 1rem;text-align:center;font-size:.9rem;font-weight:700;color:#374151;">${f.kgPlanificados} kg</td>
                 <td style="padding:.7rem 1rem;text-align:center;font-size:.85rem;color:#64748b;">Bolsa ${f.formatoKg} kg</td>
                 <td style="padding:.7rem 1rem;text-align:center;background:#eef2ff;">
