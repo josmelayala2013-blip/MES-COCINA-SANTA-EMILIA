@@ -10556,59 +10556,155 @@ function finalizarTimerFrioCon(idKey, componente, op, opNombre, kg) {
   const ss = String(tiempoSeg%60).padStart(2,'0');
   const tiempoFormateado = `${hh}:${mm}:${ss}`;
 
-  // Buscar la OP vinculada para obtener opVinculadaId e ingredientes
   const opObj = ordenesProduccion.find(o => o.numeroOp === op || o.numeroOp === String(op));
   const opVinculadaId = opObj?.id || null;
-
-  // ── Crear pendiente HACCP en el panel de cocina ──────────────────────────
-  // Reutiliza el mismo sistema que las producciones calientes
   const horaInicioStr = (d => `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`)(inicio);
   const horaFinStr    = (d => `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`)(fin);
 
+  // Guardar contexto para usar en el modal
+  window._prepFriaFinalizando = { idKey, componente, op, opNombre, kg, inicio, fin,
+    tiempoFormateado, tiempoMin, opVinculadaId, horaInicioStr, horaFinStr };
+
+  // Mostrar modal para preguntar si pasa a envasado
+  _mostrarModalFinPrepFria();
+}
+
+function _mostrarModalFinPrepFria() {
+  const ctx = window._prepFriaFinalizando;
+  if (!ctx) return;
+
+  // Construir opciones de operadoras de envasado
+  const opEnvasado = (personal?.envasado || []).map(p => {
+    const n = typeof p === 'string' ? p : p.nombre;
+    return `<option value="${n}">${n}</option>`;
+  }).join('');
+
+  // Crear modal
+  let modal = document.getElementById('_modalFinPrepFria');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = '_modalFinPrepFria';
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;';
+    document.body.appendChild(modal);
+  }
+
+  modal.innerHTML = `
+    <div style="background:white;border-radius:16px;padding:1.75rem;max-width:440px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3);border-top:5px solid #0891b2;">
+      <h3 style="margin:0 0 .5rem;color:#0e7490;font-size:1.1rem;">✅ Preparación Fría Completada</h3>
+      <p style="font-size:.9rem;color:#475569;margin-bottom:1.25rem;">
+        <strong>${ctx.componente}</strong> · OP ${ctx.op} · ${ctx.kg} kg · ${ctx.tiempoMin} min
+      </p>
+      <div style="margin-bottom:1rem;">
+        <label style="font-size:.85rem;font-weight:600;color:#333;display:block;margin-bottom:.4rem;">¿Continuar a Envasado?</label>
+        <select id="_prepFriaIrEnvasado" onchange="_toggleManipuladorFrio()" style="width:100%;padding:.6rem;border-radius:8px;border:2px solid #a5f3fc;font-size:.9rem;">
+          <option value="si">Sí, continuar a envasado</option>
+          <option value="no">No, finalizar aquí (sin envasado)</option>
+        </select>
+      </div>
+      <div id="_prepFriaManipuladorDiv" style="margin-bottom:1.25rem;">
+        <label style="font-size:.85rem;font-weight:600;color:#333;display:block;margin-bottom:.4rem;">Manipulador para Envasado:</label>
+        <select id="_prepFriaManipulador" style="width:100%;padding:.6rem;border-radius:8px;border:2px solid #a5f3fc;font-size:.9rem;">
+          <option value="">— Selecciona operadora —</option>
+          ${opEnvasado}
+        </select>
+      </div>
+      <div style="display:flex;gap:.75rem;">
+        <button onclick="_confirmarFinPrepFria()" style="flex:1;padding:.75rem;background:linear-gradient(135deg,#0891b2,#06b6d4);color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;">
+          ✅ Confirmar
+        </button>
+        <button onclick="document.getElementById('_modalFinPrepFria').style.display='none'" style="padding:.75rem 1.25rem;background:#f1f5f9;color:#64748b;border:none;border-radius:10px;font-weight:600;cursor:pointer;">
+          Cancelar
+        </button>
+      </div>
+    </div>`;
+  modal.style.display = 'flex';
+}
+
+function _toggleManipuladorFrio() {
+  const val = document.getElementById('_prepFriaIrEnvasado')?.value;
+  const div = document.getElementById('_prepFriaManipuladorDiv');
+  if (div) div.style.display = val === 'si' ? 'block' : 'none';
+}
+
+function _confirmarFinPrepFria() {
+  const ctx = window._prepFriaFinalizando;
+  if (!ctx) return;
+  const irEnvasado = document.getElementById('_prepFriaIrEnvasado')?.value === 'si';
+  const manipulador = document.getElementById('_prepFriaManipulador')?.value || '—';
+
+  // Cerrar modal
+  const modal = document.getElementById('_modalFinPrepFria');
+  if (modal) modal.style.display = 'none';
+
+  // ── Crear pendiente HACCP ──
   const pendiente = {
     id: Date.now().toString(),
     fecha: new Date().toLocaleDateString('es-CL'),
     fechaISO: new Date().toISOString().split('T')[0],
-    horaFinCoccion: horaFinStr,
+    horaFinCoccion: ctx.horaFinStr,
     equipoId: null,
     equipoNombre: '❄️ Preparación Fría',
-    producto: `${opNombre} — OP ${op}`,
-    componente: componente,
-    numeroOP: String(op),
-    opVinculadaId: opVinculadaId,   // ← clave para encontrar ingredientes
+    producto: `${ctx.opNombre} — OP ${ctx.op}`,
+    componente: ctx.componente,
+    numeroOP: String(ctx.op),
+    opVinculadaId: ctx.opVinculadaId,
     operador: '—',
-    kgProgramados: kg,
-    kgReales: kg,
-    horaInicio: horaInicioStr,
-    horaTermino: horaFinStr,
-    tiempoCoccionFormateado: tiempoFormateado,
-    esPrepFria: true,               // identificador para el HACCP
+    kgProgramados: ctx.kg,
+    kgReales: ctx.kg,
+    horaInicio: ctx.horaInicioStr,
+    horaTermino: ctx.horaFinStr,
+    tiempoCoccionFormateado: ctx.tiempoFormateado,
+    esPrepFria: true,
     estado: 'pendiente',
-    completadoPor: null,
-    completadoEn: null,
-    datosHACCP: null
+    completadoPor: null, completadoEn: null, datosHACCP: null
   };
 
-  // Agregar al array de pendientes y persistir
-  if (typeof haccpPendientes !== 'undefined') {
-    haccpPendientes.push(pendiente);
-    if (typeof guardarHACCPPendientes === 'function') guardarHACCPPendientes();
-    if (typeof renderHACCPPendientes === 'function') renderHACCPPendientes();
+  const _pends = JSON.parse(localStorage.getItem('mes_haccp_pendientes') || '[]');
+  _pends.push(pendiente);
+  localStorage.setItem('mes_haccp_pendientes', JSON.stringify(_pends));
+  if (typeof guardarHACCPPendientes === 'function') guardarHACCPPendientes();
+  if (typeof renderHACCPPendientes === 'function') renderHACCPPendientes();
+
+  // ── Pasar a Envasado si corresponde ──
+  if (irEnvasado) {
+    const procesoEnv = {
+      componente: ctx.componente,
+      producto: `${ctx.opNombre} — OP ${ctx.op}`,
+      numeroOP: String(ctx.op),
+      opVinculadaId: ctx.opVinculadaId,
+      kgProgramados: ctx.kg,
+      kgReales: ctx.kg,
+      operador: '—',
+      manipulador,
+      equipoNombre: '❄️ Preparación Fría',
+      equipoId: null,
+      inicio: ctx.inicio.toISOString(),
+      finCoccion: ctx.fin.toISOString(),
+      tiempoCoccionFormateado: ctx.tiempoFormateado,
+      esPrepFria: true,
+      inicioEnvasado: new Date().toISOString()
+    };
+    procesosEnvasado.push(procesoEnv);
+    guardarDatos();
+    renderProcesosActivos();
+    mostrarNotificacion(`❄️ ${ctx.componente} pasó a Envasado`, 'success');
   }
 
-  // Limpiar estado del timer
-  delete window._timersFrioCon[idKey];
-  const card = document.getElementById('card_' + idKey);
+  // ── Actualizar card en dashboard ──
+  delete window._timersFrioCon[ctx.idKey];
+  const card = document.getElementById('card_' + ctx.idKey);
   if (card) {
     card.style.borderColor = '#10b981';
     card.style.background = '#f0fdf4';
     card.innerHTML = `
-      <div style="font-weight:700;color:#065f46;">✅ ${componente} — Completado</div>
-      <div style="font-size:.8rem;color:#6b7280;margin-top:.25rem;">OP ${op} · ${kg} kg · ${tiempoMin} min</div>
-      <div style="font-size:.72rem;color:#10b981;margin-top:.2rem;font-weight:600;">📋 Registro HACCP pendiente en Dashboard ✓</div>
-    `;
+      <div style="font-weight:700;color:#065f46;">✅ ${ctx.componente} — Completado</div>
+      <div style="font-size:.8rem;color:#6b7280;margin-top:.25rem;">OP ${ctx.op} · ${ctx.kg} kg · ${ctx.tiempoMin} min</div>
+      <div style="font-size:.72rem;color:#10b981;margin-top:.2rem;font-weight:600;">
+        📋 HACCP pendiente ✓ ${irEnvasado ? '· 📦 Pasó a Envasado ✓' : ''}
+      </div>`;
   }
-  mostrarNotificacion(`✅ ${componente} finalizado — ${tiempoMin} min · HACCP guardado`, 'success');
+  mostrarNotificacion(`✅ ${ctx.componente} finalizado · ${ctx.tiempoMin} min`, 'success');
+  window._prepFriaFinalizando = null;
 }
 
 function cerrarPrepsFrias() {
