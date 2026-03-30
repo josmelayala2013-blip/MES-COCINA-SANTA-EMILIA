@@ -7991,12 +7991,13 @@ function imprimirRegistroHACCP(d) {
         // ============================================
         
         function guardarDatos() {
-            // Guardar localmente (backup)
+            // Guardar localmente PRIMERO (backup inmediato)
             localStorage.setItem('mes_equipos', JSON.stringify(equipos));
             localStorage.setItem('mes_productos', JSON.stringify(productos));
             localStorage.setItem('mes_procesosEnvasado', JSON.stringify(procesosEnvasado));
             localStorage.setItem('mes_procesosAbatimiento', JSON.stringify(procesosAbatimiento));
             localStorage.setItem('mes_historialPorFecha', JSON.stringify(historialPorFecha));
+            localStorage.setItem('mes_historial_backup_ts', new Date().toISOString());
             
             // Sincronizar con Firebase
             sincronizarFirebase();
@@ -8196,7 +8197,19 @@ function imprimirRegistroHACCP(d) {
                     productos = data.productos || productos;
                     procesosEnvasado = data.procesosEnvasado || [];
                     procesosAbatimiento = data.procesosAbatimiento || [];
-                    historialPorFecha = data.historialPorFecha || {};
+                    // Mergear historial — nunca perder datos locales
+                    if (data.historialPorFecha) {
+                        const localHist = historialPorFecha || {};
+                        const remoteHist = data.historialPorFecha;
+                        const merged = {...localHist};
+                        Object.keys(remoteHist).forEach(fecha => {
+                            const remotas = remoteHist[fecha] || [];
+                            const locales = localHist[fecha] || [];
+                            merged[fecha] = remotas.length >= locales.length ? remotas : locales;
+                        });
+                        historialPorFecha = merged;
+                        localStorage.setItem('mes_historialPorFecha', JSON.stringify(historialPorFecha));
+                    }
                     planDiario = data.planDiario || {};
                     // Recetas NO se cargan desde estado-actual, tienen su propio doc 'mes-data/recetas'
                     // Esto evita que una versión vieja sobreescriba tiempos manuales de componentes
@@ -8408,8 +8421,20 @@ function limpiarComponentesFriosDeEquipos() {
                     productos = data.productos || productos;
                     procesosEnvasado = data.procesosEnvasado || [];
                     procesosAbatimiento = data.procesosAbatimiento || [];
-                    historialPorFecha = data.historialPorFecha || {};
                     planDiario = data.planDiario || {};
+                    // ⚠️ NUNCA sobreescribir historial desde listener — solo MERGEAR
+                    // Si Firebase tiene fechas que nosotros no tenemos, agregarlas
+                    if (data.historialPorFecha) {
+                        Object.keys(data.historialPorFecha).forEach(fecha => {
+                            const remotas = data.historialPorFecha[fecha] || [];
+                            const locales = historialPorFecha[fecha] || [];
+                            // Usar el que tenga más registros
+                            if (remotas.length > locales.length) {
+                                historialPorFecha[fecha] = remotas;
+                            }
+                        });
+                        localStorage.setItem('mes_historialPorFecha', JSON.stringify(historialPorFecha));
+                    }
 
                     // Refrescar UI módulos afectados
                     renderEquipos();
