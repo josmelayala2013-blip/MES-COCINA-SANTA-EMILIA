@@ -7854,7 +7854,7 @@ function imprimirRegistroHACCP(d) {
             else if (tabName === 'carnes') { /* contenido carnes */ }
             else if (tabName === 'vegetales') { /* contenido vegetales */ }
             else if (tabName === 'envasado') renderEnvasado();
-            else if (tabName === 'abatimiento') renderAbatimiento();
+            else if (tabName === 'abatimiento') { _sincronizarAbatDesdeFirebase(); renderAbatimiento(); }
             else if (tabName === 'analytics') actualizarAnalytics();
             else if (tabName === 'personal') { 
                 renderListaPersonal('cocina'); 
@@ -8187,7 +8187,29 @@ function limpiarComponentesFriosDeEquipos() {
                     mostrarNotificacion('🔄 Planificación actualizada en tiempo real', 'info');
                 });
 
-                console.log('👀 Escuchando cambios en tiempo real (dashboard + OPs)...');
+                // ── LISTENER 3: abat-asignaciones (Abatimiento) ──
+                const abatRef = doc(window.db, 'mes-data', 'abat-asignaciones');
+                onSnapshot(abatRef, (snap) => {
+                    if (!snap.exists()) return;
+                    const data = snap.data();
+                    // Actualizar queue de tandas pendientes
+                    if (data.queue && Array.isArray(data.queue)) {
+                        tandasPendientesAbatQueue = data.queue;
+                        localStorage.setItem('mes_abat_queue', JSON.stringify(tandasPendientesAbatQueue));
+                    }
+                    if (data.asignaciones && Array.isArray(data.asignaciones)) {
+                        asignacionesAbat = data.asignaciones;
+                        localStorage.setItem('mes_abat_asignaciones', JSON.stringify(asignacionesAbat));
+                    }
+                    // Refrescar módulo abatimiento si está visible
+                    if (document.getElementById('abatimiento')?.classList.contains('active')) {
+                        if (typeof renderAbatimiento === 'function') renderAbatimiento();
+                    }
+                    // Actualizar badge siempre
+                    if (typeof actualizarBadgeAbatimiento === 'function') actualizarBadgeAbatimiento();
+                });
+
+                console.log('👀 Escuchando cambios en tiempo real (dashboard + OPs + Abatimiento)...');
             } catch (error) {
                 console.error('Error configurando listener:', error);
             }
@@ -15608,6 +15630,25 @@ ${d._ingredientes.map(ing => `<tr>
         }
 
         // Recibir tanda desde envasado
+        async function _sincronizarAbatDesdeFirebase() {
+            if (!window.db || !window.firestoreLoaded) return;
+            try {
+                const {doc, getDoc} = window.firestoreFunctions;
+                const snap = await getDoc(doc(window.db, 'mes-data', 'abat-asignaciones'));
+                if (!snap.exists()) return;
+                const data = snap.data();
+                if (data.queue && Array.isArray(data.queue)) {
+                    tandasPendientesAbatQueue = data.queue;
+                    localStorage.setItem('mes_abat_queue', JSON.stringify(tandasPendientesAbatQueue));
+                }
+                if (data.asignaciones && Array.isArray(data.asignaciones)) {
+                    asignacionesAbat = data.asignaciones;
+                    localStorage.setItem('mes_abat_asignaciones', JSON.stringify(asignacionesAbat));
+                }
+                renderAbatimiento();
+            } catch(e) { console.error('Error sync abat:', e); }
+        }
+
         function recibirTandaEnAbatimiento(tanda) {
             // Evitar duplicados
             if (tandasPendientesAbatQueue.find(t => t.id === tanda.id)) return;
