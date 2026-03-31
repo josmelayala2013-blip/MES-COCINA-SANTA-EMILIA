@@ -10402,9 +10402,13 @@ function sugerirEquipoPorComponente(nombreComponente, kgTerminados) {
     if (comp && comp.preparacionFria === true && !comp.esInsumo) return '❄️ Prep. Fría';
   }
 
-  // ── MARMITA → desmechadas, estofados, mechadas ───────────────────────────
+  // ── MARMITA → desmechadas, estofados, mechadas, ave mayo, pollo cocido ─────
   if (n.includes('desmech') || n.includes('mechad') || n.includes('estofad') ||
-      n.includes('vacuno') || n.includes('cocido')) {
+      n.includes('vacuno') || n.includes('cocido') ||
+      n.includes('ave mayo') || n.includes('ave-mayo') ||
+      n.includes('pollo mayo') || n.includes('pollo desmech') ||
+      n.includes('pollo mech') || n.includes('tapapecho') || n.includes('plateada') ||
+      n.includes('huachalomo') || n.includes('osobuco')) {
     return '🥘 Marmita';
   }
 
@@ -10426,13 +10430,18 @@ function sugerirEquipoPorComponente(nombreComponente, kgTerminados) {
     return '🔥 Sartén Basculante';
   }
 
-  // ── HORNO RATIONAL → proteínas ───────────────────────────────────────────
+  // ── HORNO RATIONAL → proteínas a la plancha/asado (NO desmechadas que ya están en marmita) ──
   if (n.includes('wok') || n.includes('lamin') || n.includes('asad') || n.includes('salteado') ||
-      n.includes('plancha') || n.includes('pechuga') || n.includes('horno') ||
+      n.includes('plancha') || n.includes('horno') ||
       n.includes('gratin') || n.includes('rostiz') || n.includes('prote') ||
-      n.includes('pollo') || n.includes('cerdo') || n.includes('pavo') ||
+      n.includes('cerdo') || n.includes('pavo') ||
       n.includes('salmón') || n.includes('salmon') || n.includes('merluza') ||
       n.includes('pescad') || n.includes('filete')) {
+    return '🍖 Horno Rational';
+  }
+  // Pechuga/pollo solo va al horno si NO es cocido/desmechado (ya fue capturado arriba)
+  if ((n.includes('pechuga') || n.includes('pollo')) &&
+      !n.includes('cocid') && !n.includes('desmech') && !n.includes('mechad')) {
     return '🍖 Horno Rational';
   }
 
@@ -11071,15 +11080,25 @@ function cerrarPrepsFrias() {
 // ---- ALGORITMO PLANIFICACIÓN AUTOMÁTICA GANTT ----
 
 // Obtiene el tiempo real de cocción de un componente (VSM > manual > default)
-function getTiempoComponente(comp) {
-  // 1. Tiempo manual definido en la receta → SIEMPRE tiene prioridad
+function getTiempoComponente(comp, recetaId) {
+  // 1. Buscar tiempo en la receta original actualizada (tiene prioridad máxima)
+  if (recetaId) {
+    const receta = recetas.find(r => r.id === recetaId);
+    if (receta) {
+      const compReceta = receta.componentes?.find(c =>
+        (c.nombre||'').toLowerCase().trim() === (comp.nombre||'').toLowerCase().trim()
+      );
+      if (compReceta?.tiempoCoccionMin > 0) return compReceta.tiempoCoccionMin;
+    }
+  }
+  // 2. Tiempo manual del componente de la OP
   if (comp.tiempoCoccionMin && comp.tiempoCoccionMin > 0) return comp.tiempoCoccionMin;
-  // 2. VSM aprendido → solo si NO hay tiempo manual en la receta
+  // 3. VSM aprendido
   const prod = productos.find(p => p.nombre.toLowerCase() === (comp.nombre||'').toLowerCase());
   if (prod && prod.vsm && prod.vsm.promCoccion && prod.vsm.totalProducciones >= 3) {
     return Math.round(prod.vsm.promCoccion);
   }
-  // 3. Default
+  // 4. Default
   return 30;
 }
 
@@ -11142,7 +11161,7 @@ function planificarJornadaEnGantt(opIds, fechaStr) {
       const compEnriquecido = (!comp.tiempoCoccionMin && recetaOp)
         ? { ...comp, tiempoCoccionMin: compReceta?.tiempoCoccionMin || null }
         : comp;
-      const duracion = getTiempoComponente(compEnriquecido);
+      const duracion = getTiempoComponente(compEnriquecido, op.recetaId);
       tareas.push({
         op, comp, tipoEquipo, duracion,
         kg: comp.kgTerminados || 0
