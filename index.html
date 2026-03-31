@@ -14588,24 +14588,23 @@ function mostrarPopupGantt(eq) {
         function editarHACCPCocina(id) {
             const p = haccpPendientes.find(x => x.id === id);
             if (!p) { alert('No se encontró el registro'); return; }
-            // Reabrir el pendiente en modo edición
             window._haccpEditandoCocinaId = id;
+            // Marcar como pendiente temporalmente para que abrirHACCPPendiente lo abra
+            const estadoOriginal = p.estado;
+            p.estado = 'pendiente';
             abrirHACCPPendiente(id);
-            // Marcar visualmente como edición
+            // Restaurar estado y agregar banner de edición
             setTimeout(() => {
-                const modal = document.getElementById('modalHACCP') ||
-                              document.getElementById('modalRegistroHACCP') ||
-                              document.querySelector('.modal.active');
-                if (modal) {
-                    const banner = modal.querySelector('div[style*="background"]');
-                    if (banner) {
-                        banner.style.background = '#fef3c7';
-                        banner.style.borderLeftColor = '#f59e0b';
-                        banner.style.color = '#92400e';
-                        banner.innerHTML = '<strong>✏️ Editando Registro HACCP</strong><br>Modifica los datos y presiona "Generar PDF y Guardar" para actualizar.';
-                    }
+                p.estado = estadoOriginal;
+                const contEl = document.getElementById('contenidoModalHACCP');
+                if (contEl) {
+                    // Insertar banner amarillo al inicio del contenido
+                    const banner = document.createElement('div');
+                    banner.style.cssText = 'background:#fef3c7;border-left:4px solid #f59e0b;color:#92400e;border-radius:8px;padding:.75rem;margin-bottom:1rem;font-size:.85rem;';
+                    banner.innerHTML = '<strong>✏️ Editando Registro HACCP</strong><br>Modifica los datos y presiona "Generar PDF y Guardar" para actualizar.';
+                    contEl.insertBefore(banner, contEl.firstChild);
                 }
-            }, 300);
+            }, 400);
         }
 
         function abrirHACCPPendiente(id) {
