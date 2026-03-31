@@ -2415,6 +2415,8 @@
                 }
             }, 2000);
 
+            // Cargar recetas desde Firebase al iniciar
+            setTimeout(() => cargarRecetasFirebase(), 800);
             // Mostrar HACCP pendientes del día anterior
             setTimeout(() => renderHACCPPendientes(), 1000);
             // Cargar historial HACCP desde Firebase
@@ -8011,8 +8013,11 @@ function imprimirRegistroHACCP(d) {
             document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
             document.getElementById(tabName).classList.add('active');
             event.target.classList.add('active');
-            if (tabName === 'dashboard') { renderEquipos(); updateStats(); renderHACCPCompletados(); }
-            else if (tabName === 'historial') cargarHistorialFecha();
+            if (tabName === 'dashboard') { 
+                // Siempre recargar estado completo desde Firebase al volver al dashboard
+                _sincronizarEstadoCompleto();
+            }
+            else if (tabName === 'historial') { _sincronizarEstadoCompleto(); cargarHistorialFecha(); }
             else if (tabName === 'acondCarnes') { /* pestaña lista */ }
             else if (tabName === 'acondVegetales') { /* pestaña lista */ }
             else if (tabName === 'carnes') { /* contenido carnes */ }
@@ -8020,17 +8025,51 @@ function imprimirRegistroHACCP(d) {
             else if (tabName === 'envasado') { _sincronizarEnvasadoDesdeFirebase(); }
             else if (tabName === 'abatimiento') { _sincronizarAbatDesdeFirebase(); renderAbatimiento(); }
             else if (tabName === 'acondicionamiento') { sincronizarHACCPPreDesdeFirebase(); }
-            else if (tabName === 'analytics') actualizarAnalytics();
+            else if (tabName === 'analytics') { _sincronizarEstadoCompleto().then(() => actualizarAnalytics()); }
             else if (tabName === 'personal') { 
                 renderListaPersonal('cocina'); 
                 renderListaPersonal('envasado'); 
                 renderListaPersonal('abatimiento');
                 renderListaPersonal('preelaborado');
             }
-            else if (tabName === 'planificador') { initPlanificador(); renderSelectorPlanProductos(); renderPlanVisual(); setTimeout(() => { cargarSelectorOPs(); initFechaPlan(); renderListaOPs(); }, 1500); }
-            else if (tabName === 'etiquetas') { initModuloEtiquetas(); }
-            else if (tabName === 'gantt') { renderGanttGrid(); iniciarLineaHora(); renderGanttBloques(); iniciarCronometroGantt(); }
-            else if (tabName === 'ejecutivo') actualizarVistaEjecutivo();
+            else if (tabName === 'recetas') { cargarRecetasFirebase().then(() => { if(typeof renderListaRecetas==='function') renderListaRecetas(); if(typeof cargarSelectorOPsSimple==='function') cargarSelectorOPsSimple(); }); }
+            else if (tabName === 'planificador') { cargarRecetasFirebase().then(() => { initPlanificador(); renderSelectorPlanProductos(); renderPlanVisual(); setTimeout(() => { cargarSelectorOPs(); initFechaPlan(); renderListaOPs(); }, 500); }); }
+            else if (tabName === 'etiquetas') { cargarRecetasFirebase().then(() => initModuloEtiquetas()); }
+            else if (tabName === 'gantt') { cargarRecetasFirebase().then(() => { renderGanttGrid(); iniciarLineaHora(); renderGanttBloques(); iniciarCronometroGantt(); }); }
+            else if (tabName === 'ejecutivo') { _sincronizarEstadoCompleto().then(() => actualizarVistaEjecutivo()); }
+        }
+
+        // Sincronizar estado completo desde Firebase (historial, equipos, procesos)
+        async function _sincronizarEstadoCompleto() {
+            if (!window.db || !window.firestoreLoaded) {
+                renderEquipos(); updateStats(); renderHACCPCompletados();
+                return;
+            }
+            try {
+                const {doc, getDoc} = window.firestoreFunctions;
+                const snap = await getDoc(doc(window.db, 'mes-data', 'estado-actual'));
+                if (snap.exists()) {
+                    const data = snap.data();
+                    if (data.equipos?.length > 0) {
+                        equipos = equipos.map(eqBase => {
+                            const eqFB = data.equipos.find(e => e.id === eqBase.id);
+                            return eqFB ? {...eqBase, estado: eqFB.estado, produccion: eqFB.produccion, planificaciones: eqFB.planificaciones} : eqBase;
+                        });
+                    }
+                    if (Array.isArray(data.procesosEnvasado)) procesosEnvasado = data.procesosEnvasado;
+                    if (Array.isArray(data.procesosAbatimiento)) procesosAbatimiento = data.procesosAbatimiento;
+                    // Merge historial — nunca perder datos
+                    if (data.historialPorFecha) {
+                        Object.keys(data.historialPorFecha).forEach(fecha => {
+                            const remotas = data.historialPorFecha[fecha] || [];
+                            const locales = historialPorFecha[fecha] || [];
+                            if (remotas.length > locales.length) historialPorFecha[fecha] = remotas;
+                        });
+                        localStorage.setItem('mes_historialPorFecha', JSON.stringify(historialPorFecha));
+                    }
+                }
+            } catch(e) { console.error('Error sync estado:', e); }
+            renderEquipos(); updateStats(); renderHACCPCompletados();
         }
 
         // ============================================
@@ -13738,8 +13777,13 @@ async function cargarRecetasFirebase(intentos = 0) {
       
       // Usar Firebase si: tiene más recetas, O es más reciente que local
       // Esto evita que un dispositivo con pocas recetas en localStorage ignore Firebase
+      // Usar Firebase si tiene más recetas O es más reciente
+      // Si hay discrepancia grande (local tiene mucho menos), ignorar timestamp
+      const diferenciaPorcentual = recetasLocal.length > 0 ? 
+        Math.abs(recetasFirebase.length - recetasLocal.length) / recetasLocal.length : 1;
       const usarFirebase = recetasFirebase.length > recetasLocal.length || 
-                           !tsLocal || tsFirebase > tsLocal;
+                           !tsLocal || tsFirebase > tsLocal ||
+                           diferenciaPorcentual > 0.3; // Si difieren más del 30% usar Firebase
       
       if (usarFirebase) {
         recetas = recetasFirebase;
