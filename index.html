@@ -13732,16 +13732,22 @@ async function cargarRecetasFirebase(intentos = 0) {
     if (docSnap.exists() && docSnap.data().recetas && docSnap.data().recetas.length > 0) {
       const dataFirebase = docSnap.data();
       const tsFirebase = dataFirebase.ultimaActualizacion || '';
-      // Solo sobreescribir si Firebase es MAS RECIENTE que lo que tenemos en localStorage
-      // Esto evita que Firebase borre los tiempos manuales recién editados
       const tsLocal = localStorage.getItem('mes_recetas_ts') || '';
-      if (!tsLocal || tsFirebase > tsLocal) {
-        recetas = dataFirebase.recetas;
+      const recetasFirebase = dataFirebase.recetas || [];
+      const recetasLocal = recetas || [];
+      
+      // Usar Firebase si: tiene más recetas, O es más reciente que local
+      // Esto evita que un dispositivo con pocas recetas en localStorage ignore Firebase
+      const usarFirebase = recetasFirebase.length > recetasLocal.length || 
+                           !tsLocal || tsFirebase > tsLocal;
+      
+      if (usarFirebase) {
+        recetas = recetasFirebase;
         localStorage.setItem('mes_recetas', JSON.stringify(recetas));
         localStorage.setItem('mes_recetas_ts', tsFirebase);
         console.log('✅ Recetas cargadas desde Firebase:', recetas.length);
       } else {
-        console.log('ℹ️ Recetas locales más recientes — Firebase ignorado para no sobreescribir tiempos editados');
+        console.log('ℹ️ Recetas locales más recientes (' + recetasLocal.length + ' vs ' + recetasFirebase.length + ' en Firebase)');
       }
       cargarSelectorOPsSimple();
     }
