@@ -5420,6 +5420,7 @@ function generarPDFHACCP() {
       }
     } catch(e) { console.error('Error actualizando pendiente HACCP:', e); }
     window._haccpPendienteActual = null;
+    window._haccpEditandoCocinaId = null;
     window._haccpContextoPendiente = null;
   }
 
@@ -10872,9 +10873,13 @@ window._timersFrioCon = window._timersFrioCon || {};
 function mostrarPrepsFriasEnDashboard(preps) {
   const panel = document.getElementById('dashPrepsFrias');
   const lista = document.getElementById('dashListaPrepsFrias');
-  if (!panel || !lista || preps.length === 0) return;
+  if (!panel || !lista) return;
 
-  lista.innerHTML = preps.map((p, i) => {
+  // Filtrar las ya completadas — no mostrarlas de nuevo
+  const prepsPendientes = preps.filter(p => !p.completada);
+  if (prepsPendientes.length === 0) { panel.style.display = 'none'; return; }
+
+  lista.innerHTML = prepsPendientes.map((p, i) => {
     const idKey = `frioTimer_${i}_${(p.componente||'').replace(/[^a-zA-Z0-9]/g,'_')}`;
     if (p.conTimer) {
       return `
@@ -11088,6 +11093,34 @@ function _confirmarFinPrepFria() {
     mostrarNotificacion(`❄️ ${ctx.componente} pasó a Envasado`, 'success');
   }
 
+  // ── Agregar al historial de producción (para kg del día) ──
+  const _fechaHoy = new Date().toISOString().split('T')[0];
+  if (!historialPorFecha[_fechaHoy]) historialPorFecha[_fechaHoy] = [];
+  historialPorFecha[_fechaHoy].push({
+    componente: ctx.componente,
+    producto: `${ctx.opNombre} — OP ${ctx.op}`,
+    numeroOP: String(ctx.op),
+    equipoNombre: '❄️ Preparación Fría',
+    operador: manipulador || '—',
+    kgProgramados: ctx.kg,
+    kgFinales: ctx.kg,
+    inicio: ctx.inicio.toISOString(),
+    finCoccion: ctx.fin.toISOString(),
+    tiempoCoccionFormateado: ctx.tiempoFormateado,
+    esPrepFria: true,
+    fechaISO: _fechaHoy
+  });
+  guardarDatos();
+  updateStats();
+
+  // ── Marcar como completada en _prepsFriasJornada para que no vuelva a aparecer ──
+  if (window._prepsFriasJornada) {
+    window._prepsFriasJornada = window._prepsFriasJornada.map(pf =>
+      pf.idKey === ctx.idKey ? { ...pf, completada: true } : pf
+    );
+    localStorage.setItem('mes_prepsFriasJornada', JSON.stringify(window._prepsFriasJornada));
+  }
+
   // ── Actualizar card en dashboard ──
   delete window._timersFrioCon[ctx.idKey];
   const card = document.getElementById('card_' + ctx.idKey);
@@ -11192,7 +11225,11 @@ function planificarJornadaEnGantt(opIds, fechaStr) {
         op._prepsFrias.push({ ...comp, conTimer: true });
         return;
       }
-      const tipoEquipo = mapearTipoEquipoTexto(comp.equipoSugerido || sugerirEquipoPorComponente(comp.nombre, comp.kgTerminados || 0));
+      // Siempre recalcular equipo para asegurar que desmechadas/carnes vayan a marmita
+      const _equipoRecalc = sugerirEquipoPorComponente(comp.nombre, comp.kgTerminados || 0);
+      const _equipoFinal = (comp.equipoSugerido && !_equipoRecalc.includes('Marmita') && _equipoRecalc.includes('Marmita')) 
+        ? _equipoRecalc : (_equipoRecalc || comp.equipoSugerido || '');
+      const tipoEquipo = mapearTipoEquipoTexto(_equipoRecalc || comp.equipoSugerido || '');
       // Si el componente de la OP no tiene tiempoCoccionMin, buscarlo en la receta original
       const compEnriquecido = (!comp.tiempoCoccionMin && recetaOp)
         ? { ...comp, tiempoCoccionMin: compReceta?.tiempoCoccionMin || null }
@@ -11267,10 +11304,31 @@ function planificarJornadaEnGantt(opIds, fechaStr) {
           (c.nombre||'').toLowerCase().trim() === (comp.nombre||'').toLowerCase().trim()
         );
         ingredientes = compReceta?.ingredientes || [];
+        // Si no hay ingredientes en receta, buscar en todos los componentes de todas las recetas
+        if (ingredientes.length === 0) {
+          for (const r of recetas) {
+            const c2 = r.componentes?.find(c => 
+              (c.nombre||'').toLowerCase().trim() === (comp.nombre||'').toLowerCase().trim()
+            );
+            if (c2?.ingredientes?.length > 0) { ingredientes = c2.ingredientes; break; }
+          }
+        }
       }
     }
 
-    if (ingredientes.length === 0) return 0;
+    console.log(`🥘 calcularKgCrudosMarmita: ${comp.nombre} → ${ingredientes.length} ingredientes, ${platos} platos`);
+    if (ingredientes.length === 0) {
+      // Si no hay ingredientes pero es claramente una carne, estimar por kg terminados
+      // usando ratio típico: 1 kg terminado ≈ 1.4 kg crudo (desmechada pierde ~30%)
+      const _n = (comp.nombre||'').toLowerCase();
+      const esCarnePrincipal = PALABRAS_CARNE_CRUDA.some(p => _n.includes(p));
+      if (esCarnePrincipal && comp.kgTerminados > 0) {
+        const estimado = Math.round(comp.kgTerminados * 1.4 * 100) / 100;
+        console.log(`🥘 Sin ingredientes — estimando: ${estimado} kg crudo`);
+        return estimado;
+      }
+      return 0;
+    }
 
     let kgCrudo = 0;
     ingredientes.forEach(ing => {
@@ -14457,7 +14515,13 @@ function mostrarPopupGantt(eq) {
                         <div style="font-weight:700;font-size:.95rem;color:#065f46;">
                             ${p.esPrepFria?'⏱❄️ ':'🔥 '}${p.componente||p.producto}
                         </div>
-                        <span style="background:#d1fae5;color:#065f46;border-radius:20px;padding:.15rem .6rem;font-size:.72rem;font-weight:700;">✅ Completado</span>
+                        <div style="display:flex;gap:.4rem;align-items:center;">
+                            <span style="background:#d1fae5;color:#065f46;border-radius:20px;padding:.15rem .6rem;font-size:.72rem;font-weight:700;">✅ Completado</span>
+                            <button onclick="editarHACCPCocina('${p.id}')"
+                                style="background:#fef3c7;color:#92400e;border:none;border-radius:7px;padding:.3rem .75rem;cursor:pointer;font-size:.8rem;font-weight:600;">
+                                ✏️ Editar
+                            </button>
+                        </div>
                     </div>
                     <div style="font-size:.8rem;color:#666;margin-bottom:.2rem;">📅 ${p.fecha} · ⚙️ ${p.equipoNombre}</div>
                     <div style="font-size:.8rem;color:#666;margin-bottom:.2rem;">📋 OP: ${p.numeroOP} · ⚖️ ${p.kgReales||p.kgProgramados} kg</div>
@@ -14519,6 +14583,29 @@ function mostrarPopupGantt(eq) {
                     </button>
                 </div>`;
             }).join('');
+        }
+
+        function editarHACCPCocina(id) {
+            const p = haccpPendientes.find(x => x.id === id);
+            if (!p) { alert('No se encontró el registro'); return; }
+            // Reabrir el pendiente en modo edición
+            window._haccpEditandoCocinaId = id;
+            abrirHACCPPendiente(id);
+            // Marcar visualmente como edición
+            setTimeout(() => {
+                const modal = document.getElementById('modalHACCP') ||
+                              document.getElementById('modalRegistroHACCP') ||
+                              document.querySelector('.modal.active');
+                if (modal) {
+                    const banner = modal.querySelector('div[style*="background"]');
+                    if (banner) {
+                        banner.style.background = '#fef3c7';
+                        banner.style.borderLeftColor = '#f59e0b';
+                        banner.style.color = '#92400e';
+                        banner.innerHTML = '<strong>✏️ Editando Registro HACCP</strong><br>Modifica los datos y presiona "Generar PDF y Guardar" para actualizar.';
+                    }
+                }
+            }, 300);
         }
 
         function abrirHACCPPendiente(id) {
