@@ -3470,6 +3470,9 @@ function confirmarHoraSalida() {
 // HISTORIAL HACCP — COCINA / ENVASADO / ABATIMIENTO
 // ============================================================
 let registrosHACCPHistorial = JSON.parse(localStorage.getItem('mes_haccp_historial') || '[]');
+// Exponer globalmente para acceso desde listeners
+window._getRegistrosHACCP = () => registrosHACCPHistorial;
+window._setRegistrosHACCP = (v) => { registrosHACCPHistorial = v; };
 
 function guardarEnHistorialHACCP(tipo, datos) {
   const hoy = new Date().toISOString().split('T')[0];
@@ -3517,8 +3520,10 @@ async function cargarHACCPHistorialFirebase(intentos = 0) {
     const { doc, getDoc } = window.firestoreFunctions;
     const snap = await getDoc(doc(window.db, 'mes-data', 'haccp-historial'));
     if (snap.exists() && snap.data().registros?.length > 0) {
-      registrosHACCPHistorial = snap.data().registros;
-      localStorage.setItem('mes_haccp_historial', JSON.stringify(registrosHACCPHistorial));
+      const loaded = snap.data().registros;
+      if (window._setRegistrosHACCP) window._setRegistrosHACCP(loaded);
+      else registrosHACCPHistorial = loaded;
+      localStorage.setItem('mes_haccp_historial', JSON.stringify(loaded));
     }
   } catch(e) {}
 }
@@ -7348,7 +7353,8 @@ function imprimirRegistroHACCP(d) {
                 if (p.length === 3) return `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
                 return f;
             };
-            const registrosDia = registrosHACCPHistorial.filter(r => _normF(r.fechaISO) === fecha);
+            const _allRegHist = window._getRegistrosHACCP ? window._getRegistrosHACCP() : registrosHACCPHistorial;
+            const registrosDia = _allRegHist.filter(r => _normF(r.fechaISO) === fecha);
             if (registrosDia.length === 0) return '';
 
             const iconos = { cocina: '🍳', envasado: '📦', abatimiento: '❄️' };
@@ -7555,10 +7561,16 @@ function imprimirRegistroHACCP(d) {
                                 <div style="font-weight:700;color:#333;margin-top:.2rem;">${p.componente||p.producto||'—'}</div>
                                 <div style="font-size:.75rem;color:#666;">OP: ${p.numeroOP||'—'} · 👤 ${p.completadoPor||'—'} · ${p.completadoEn||'—'}</div>
                             </div>
-                            <button onclick="${editFn}"
-                                style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;border-radius:6px;padding:.3rem .7rem;cursor:pointer;font-size:.78rem;font-weight:700;">
-                                ✏️ Editar
-                            </button>
+                            <div style="display:flex;gap:.35rem;flex-wrap:wrap;">
+                                <button onclick="${editFn}"
+                                    style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;border-radius:6px;padding:.3rem .6rem;cursor:pointer;font-size:.78rem;font-weight:700;">
+                                    ✏️ Editar
+                                </button>
+                                <button onclick="reimprimirHACCPPendiente('${p.id}','${t}')"
+                                    style="background:${color};color:white;border:none;border-radius:6px;padding:.3rem .6rem;cursor:pointer;font-size:.78rem;font-weight:600;">
+                                    🖨️
+                                </button>
+                            </div>
                         </div>
                     </div>`;
                 });
@@ -7594,6 +7606,21 @@ function imprimirRegistroHACCP(d) {
                 </div>` : html;
         }
 
+        function reimprimirHACCPPendiente(id, tipo) {
+            const lista = tipo === 'cocina' ? (window._getHaccpPendientes ? window._getHaccpPendientes() : haccpPendientes) :
+                          tipo === 'envasado' ? (window._getHaccpEnvasado ? window._getHaccpEnvasado() : []) :
+                          (window._getHaccpAbatimiento ? window._getHaccpAbatimiento() : []);
+            const p = lista.find(x => x.id === id);
+            if (!p || !p.datosHACCP) { 
+                mostrarNotificacion('⚠️ No hay datos para reimprimir', 'warning'); 
+                return; 
+            }
+            const d = p.datosHACCP;
+            if (tipo === 'cocina') imprimirRegistroHACCP(d);
+            else if (tipo === 'envasado') imprimirRegistroHACCPEnvasado(d);
+            else if (tipo === 'abatimiento') imprimirRegistroHACCPAbatimiento(d);
+        }
+
         function renderRegistrosFirmadosEnModulo(tipo) {
             const hoy = new Date().toISOString().split('T')[0];
             const fecha = fechaSeleccionada || hoy;
@@ -7623,7 +7650,8 @@ function imprimirRegistroHACCP(d) {
                     if (p.length === 3) return `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
                     return f;
                 };
-                const firmados = registrosHACCPHistorial.filter(r => r.tipo === t && _normFecha(r.fechaISO) === fecha);
+                const _allRegistros = window._getRegistrosHACCP ? window._getRegistrosHACCP() : registrosHACCPHistorial;
+                const firmados = _allRegistros.filter(r => r.tipo === t && _normFecha(r.fechaISO) === fecha);
                 // Registros completados de haccpPendientes (módulo)
                 const _listPend = t === 'cocina' ? 
                     (window._getHaccpPendientes ? window._getHaccpPendientes() : haccpPendientes) :
@@ -9143,13 +9171,13 @@ function limpiarComponentesFriosDeEquipos() {
                     const data = snap.data();
                     const remotos = data.registros || data.cocina || [];
                     if (Array.isArray(remotos) && remotos.length > 0) {
-                        // Merge — no perder registros locales
+                        const current = window._getRegistrosHACCP ? window._getRegistrosHACCP() : [];
                         const merged = [...remotos];
-                        registrosHACCPHistorial.forEach(l => {
+                        current.forEach(l => {
                             if (!merged.find(r => r.id === l.id)) merged.push(l);
                         });
-                        registrosHACCPHistorial = merged;
-                        localStorage.setItem('mes_haccp_historial', JSON.stringify(registrosHACCPHistorial));
+                        if (window._setRegistrosHACCP) window._setRegistrosHACCP(merged);
+                        localStorage.setItem('mes_haccp_historial', JSON.stringify(merged));
                         if (typeof renderHACCPCompletados === 'function') renderHACCPCompletados();
                         if (typeof renderRegistrosFirmadosEnModulo === 'function') {
                             renderRegistrosFirmadosEnModulo('cocina');
@@ -15158,7 +15186,8 @@ function mostrarPopupGantt(eq) {
                 if (p.length === 3) return `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
                 return f;
             };
-            const firmados = registrosHACCPHistorial.filter(r => _norm(r.fechaISO) === hoy);
+            const _allReg = window._getRegistrosHACCP ? window._getRegistrosHACCP() : registrosHACCPHistorial;
+            const firmados = _allReg.filter(r => _norm(r.fechaISO) === hoy);
 
             const totalTodos = cocina.length + envasado.length + abatimiento.length + firmados.length;
 
