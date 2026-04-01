@@ -1585,6 +1585,7 @@
 
         <!-- Botones principales -->
         <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem;">
+        <button class="btn" onclick="forzarRecargaRecetas()" style="background:linear-gradient(135deg,#0891b2,#06b6d4);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">🔄 Sincronizar Recetas</button>
         <button class="btn" onclick="abrirModalReceta()" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">➕ Nueva Receta Plato</button>
         <button class="btn" onclick="abrirModalRecetaSandwich()" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">🥪 Nueva Receta Sándwich</button>
         <button class="btn" onclick="abrirModalRecetaAveMayo()" style="background:linear-gradient(135deg,#10b981,#059669);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">🥗 Nueva Receta Ave Mayo</button>
@@ -9627,6 +9628,16 @@ function eliminarReceta(id) {
 }
 
 // ---- RENDER LISTA ----
+function forzarRecargaRecetas() {
+    localStorage.removeItem('mes_recetas_ts'); // Borrar timestamp para forzar carga desde Firebase
+    localStorage.removeItem('mes_recetas');    // Borrar recetas locales
+    recetas = [];
+    cargarRecetasFirebase().then(() => {
+        renderListaRecetas();
+        mostrarNotificacion('✅ Recetas recargadas: ' + recetas.length, 'success');
+    });
+}
+
 function renderListaRecetas() {
   const cont = document.getElementById('listaRecetas');
   const filtro = (document.getElementById('buscarReceta')?.value || '').toLowerCase();
