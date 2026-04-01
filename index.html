@@ -1666,6 +1666,7 @@
         <button class="btn" onclick="abrirModalReceta()" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">➕ Nueva Receta Plato</button>
         <button class="btn" onclick="abrirModalRecetaSandwich()" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">🥪 Nueva Receta Sándwich</button>
         <button class="btn" onclick="abrirModalRecetaAveMayo()" style="background:linear-gradient(135deg,#10b981,#059669);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">🥗 Nueva Receta Ave Mayo</button>
+        <button class="btn" onclick="abrirModalRecetaSalsa()" style="background:linear-gradient(135deg,#e11d48,#be123c);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">🥫 Nueva Receta Salsas</button>
         <label style="background:linear-gradient(135deg,#43e97b,#38f9d7);color:white;padding:.75rem 1.5rem;border-radius:10px;cursor:pointer;font-size:1rem;">
         📥 Importar Excel
         <input type="file" id="importarExcelRecetas" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarRecetasExcel(event)">
@@ -1681,6 +1682,7 @@
             <button id="filtroPlatoR" onclick="setFiltroReceta('plato')" style="padding:.45rem 1rem;border-radius:20px;border:2px solid #667eea;background:white;color:#667eea;font-weight:700;cursor:pointer;font-size:.82rem;">🍽️ Platos</button>
             <button id="filtroSandwichR" onclick="setFiltroReceta('sandwich')" style="padding:.45rem 1rem;border-radius:20px;border:2px solid #f59e0b;background:white;color:#f59e0b;font-weight:700;cursor:pointer;font-size:.82rem;">🥪 Sándwiches</button>
             <button id="filtroAveMayoR" onclick="setFiltroReceta('avemayo')" style="padding:.45rem 1rem;border-radius:20px;border:2px solid #10b981;background:white;color:#10b981;font-weight:700;cursor:pointer;font-size:.82rem;">🥗 Ave Mayo</button>
+            <button id="filtroSalsaR" onclick="setFiltroReceta('salsa')" style="padding:.45rem 1rem;border-radius:20px;border:2px solid #e11d48;background:white;color:#e11d48;font-weight:700;cursor:pointer;font-size:.82rem;">🥫 Salsas</button>
           </div>
           <input type="text" id="buscarReceta" placeholder="🔍 Buscar receta por nombre o SKU..." oninput="filtrarRecetas()" style="flex:1;min-width:200px;padding:.6rem 1rem;border-radius:10px;border:1px solid #ddd;font-size:1rem;">
         </div>
@@ -1778,6 +1780,49 @@
           <div style="display:flex;gap:1rem;justify-content:flex-end;">
             <button onclick="cerrarModalAveMayo()" style="padding:.75rem 1.5rem;border-radius:10px;border:1px solid #ddd;cursor:pointer;">Cancelar</button>
             <button onclick="guardarRecetaAveMayo()" style="background:linear-gradient(135deg,#10b981,#059669);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">💾 Guardar Ave Mayo</button>
+          </div>
+        </div>
+        </div>
+
+        <!-- Modal Salsa -->
+        <div id="modalSalsa" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;overflow-y:auto;">
+        <div style="background:white;max-width:700px;margin:2rem auto;border-radius:20px;padding:2rem;position:relative;">
+          <button onclick="cerrarModalSalsa()" style="position:absolute;top:1rem;right:1rem;background:none;border:none;font-size:1.5rem;cursor:pointer;">✕</button>
+          <h2 style="color:#e11d48;margin-bottom:1.5rem;">🥫 Receta Salsas</h2>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+            <div>
+              <label style="font-weight:600;display:block;margin-bottom:.3rem;">SKU *</label>
+              <input id="slSku" type="text" placeholder="Ej: SAL-001" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;">
+            </div>
+            <div>
+              <label style="font-weight:600;display:block;margin-bottom:.3rem;">Nombre *</label>
+              <input id="slNombre" type="text" placeholder="Ej: Salsa Chick" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;">
+            </div>
+            <div>
+              <label style="font-weight:600;display:block;margin-bottom:.3rem;">Rendimiento Esperado (%)</label>
+              <input id="slRendimiento" type="number" placeholder="Ej: 95" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;">
+            </div>
+          </div>
+          <div style="margin-bottom:1rem;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
+              <h3 style="color:#be123c;margin:0;">🧩 Componentes</h3>
+              <button onclick="agregarComponenteSalsa()" style="background:#e11d48;color:white;padding:.4rem 1rem;border-radius:8px;border:none;cursor:pointer;">+ Componente</button>
+            </div>
+            <div style="font-size:.8rem;color:#9f1239;background:#ffe4e6;border-radius:8px;padding:.5rem .75rem;margin-bottom:.75rem;">
+              💡 Ingresa el gramaje de cada componente <strong>por unidad/porción</strong>
+            </div>
+            <div style="background:#ffe4e6;border-radius:8px;padding:.5rem .85rem;margin-bottom:.6rem;font-size:.78rem;color:#9f1239;display:flex;align-items:center;gap:.5rem;">
+              ⏱ El campo <strong>min</strong> es el tiempo de cocción por componente. El VSM lo ajustará automáticamente con el historial real.
+            </div>
+            <div id="listaComponentesSalsa"></div>
+          </div>
+          <div style="margin-bottom:1rem;">
+            <label style="font-weight:600;display:block;margin-bottom:.3rem;">📝 Observaciones</label>
+            <textarea id="slObservaciones" rows="2" placeholder="Notas importantes..." style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;resize:vertical;"></textarea>
+          </div>
+          <div style="display:flex;gap:1rem;justify-content:flex-end;">
+            <button onclick="cerrarModalSalsa()" style="padding:.75rem 1.5rem;border-radius:10px;border:1px solid #ddd;cursor:pointer;">Cancelar</button>
+            <button onclick="guardarRecetaSalsa()" style="background:linear-gradient(135deg,#e11d48,#be123c);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">💾 Guardar Salsas</button>
           </div>
         </div>
         </div>
@@ -10304,11 +10349,11 @@ function renderListaRecetas() {
     const tieneSugerencia = historial.some(h => h.sugerencia && !h.aprobada);
 
     return `
-      <div style="background:white;border-radius:15px;padding:1.5rem;box-shadow:0 4px 15px rgba(0,0,0,0.1);border-top:4px solid ${r.tipo==='sandwich'?'#f59e0b':r.tipo==='avemayo'?'#10b981':'#667eea'};position:relative;">
+      <div style="background:white;border-radius:15px;padding:1.5rem;box-shadow:0 4px 15px rgba(0,0,0,0.1);border-top:4px solid ${r.tipo==='sandwich'?'#f59e0b':r.tipo==='avemayo'?'#10b981':r.tipo==='salsa'?'#e11d48':'#667eea'};position:relative;">
         ${tieneSugerencia ? '<div style="position:absolute;top:.75rem;right:.75rem;background:#f39c12;color:white;border-radius:20px;padding:.2rem .6rem;font-size:.75rem;">⚠️ Sugerencia IA</div>' : ''}
         <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem;">
           <h3 style="color:#333;margin:0;font-size:1.05rem;">${r.nombre}</h3>
-          ${r.tipo==='sandwich'?'<span style="background:#fef3c7;color:#92400e;border-radius:20px;padding:.1rem .5rem;font-size:.7rem;font-weight:700;">🥪 Sándwich</span>':r.tipo==='avemayo'?'<span style="background:#d1fae5;color:#065f46;border-radius:20px;padding:.1rem .5rem;font-size:.7rem;font-weight:700;">🥗 Ave Mayo</span>':'<span style="background:#eef2ff;color:#4338ca;border-radius:20px;padding:.1rem .5rem;font-size:.7rem;font-weight:700;">🍽️ Plato</span>'}
+          ${r.tipo==='sandwich'?'<span style="background:#fef3c7;color:#92400e;border-radius:20px;padding:.1rem .5rem;font-size:.7rem;font-weight:700;">🥪 Sándwich</span>':r.tipo==='avemayo'?'<span style="background:#d1fae5;color:#065f46;border-radius:20px;padding:.1rem .5rem;font-size:.7rem;font-weight:700;">🥗 Ave Mayo</span>':r.tipo==='salsa'?'<span style="background:#ffe4e6;color:#9f1239;border-radius:20px;padding:.1rem .5rem;font-size:.7rem;font-weight:700;">🥫 Salsa</span>':'<span style="background:#eef2ff;color:#4338ca;border-radius:20px;padding:.1rem .5rem;font-size:.7rem;font-weight:700;">🍽️ Plato</span>'}
         </div>
         <div style="font-size:.8rem;color:#667eea;font-weight:600;margin-bottom:.4rem;">🏷️ ${r.sku || 'Sin SKU'}</div>
         <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:.75rem;font-size:.85rem;color:#666;">
@@ -10322,7 +10367,7 @@ function renderListaRecetas() {
         </div>
         <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
           <button onclick="verDetalleReceta('${r.id}')" style="flex:1;background:#e8edff;color:#667eea;border:none;border-radius:8px;padding:.5rem;cursor:pointer;font-size:.85rem;">👁️ Ver</button>
-          <button onclick="${r.tipo==='sandwich'?`abrirModalRecetaSandwich('${r.id}')`:(r.tipo==='avemayo'?`abrirModalRecetaAveMayo('${r.id}')`:`abrirModalReceta('${r.id}')`)}" style="flex:1;background:#fff3e0;color:#f39c12;border:none;border-radius:8px;padding:.5rem;cursor:pointer;font-size:.85rem;">✏️ Editar</button>
+          <button onclick="${r.tipo==='sandwich'?`abrirModalRecetaSandwich('${r.id}')`:(r.tipo==='avemayo'?`abrirModalRecetaAveMayo('${r.id}')`:(r.tipo==='salsa'?`abrirModalRecetaSalsa('${r.id}')`:`abrirModalReceta('${r.id}')`))}" style="flex:1;background:#fff3e0;color:#f39c12;border:none;border-radius:8px;padding:.5rem;cursor:pointer;font-size:.85rem;">✏️ Editar</button>
           <button onclick="registrarRendimiento('${r.id}')" style="flex:1;background:#e8fff0;color:#27ae60;border:none;border-radius:8px;padding:.5rem;cursor:pointer;font-size:.85rem;">📊 Rendimiento</button>
           <button onclick="eliminarReceta('${r.id}')" style="background:#ffe8e8;color:#e74c3c;border:none;border-radius:8px;padding:.5rem .75rem;cursor:pointer;font-size:.85rem;">🗑️</button>
         </div>
@@ -10337,14 +10382,15 @@ function filtrarRecetas() { renderListaRecetas(); }
 window._filtroTipoReceta = 'todo';
 function setFiltroReceta(tipo) {
   window._filtroTipoReceta = tipo;
-  ['filtroTodoR','filtroPlatoR','filtroSandwichR','filtroAveMayoR'].forEach(id => {
+  ['filtroTodoR','filtroPlatoR','filtroSandwichR','filtroAveMayoR','filtroSalsaR'].forEach(id => {
     const btn = document.getElementById(id);
     if (!btn) return;
     const color = id==='filtroSandwichR' ? '#f59e0b' : id==='filtroAveMayoR' ? '#10b981' : '#667eea';
     const activo = (tipo === 'todo' && id === 'filtroTodoR') ||
                    (tipo === 'plato' && id === 'filtroPlatoR') ||
                    (tipo === 'sandwich' && id === 'filtroSandwichR') ||
-                   (tipo === 'avemayo' && id === 'filtroAveMayoR');
+                   (tipo === 'avemayo' && id === 'filtroAveMayoR') ||
+                   (tipo === 'salsa' && id === 'filtroSalsaR');
     btn.style.background = activo ? color : 'white';
     btn.style.color = activo ? 'white' : color;
   });
@@ -10708,6 +10754,189 @@ function renderComponentesAveMayo() {
       </div>
     </div>
   `).join('');
+}
+
+// ============================================================
+// MÓDULO RECETA SALSA
+// ============================================================
+let salsaEditandoId = null;
+let componentesSalsaTemp = [];
+
+function abrirModalRecetaSalsa(id = null) {
+  salsaEditandoId = id;
+  componentesSalsaTemp = [];
+  if (id) {
+    const r = recetas.find(x => x.id === id);
+    document.getElementById('slSku').value = r.sku || '';
+    document.getElementById('slNombre').value = r.nombre || '';
+    document.getElementById('slRendimiento').value = r.rendimientoEsperado || '';
+    document.getElementById('slObservaciones').value = r.observaciones || '';
+    componentesSalsaTemp = JSON.parse(JSON.stringify(r.componentes || [])).map(c => ({
+      ...c,
+      gramajePorUnidad: c.gramajePorUnidad !== undefined ? c.gramajePorUnidad : (c.gramajePorcion || 0),
+      unidadComponente: c.unidadComponente || 'gr',
+      tiempoCoccionMin: (c.tiempoCoccionMin != null && c.tiempoCoccionMin > 0) ? c.tiempoCoccionMin : null,
+      preparacionFria: c.preparacionFria || false
+    }));
+  } else {
+    document.getElementById('slSku').value = '';
+    document.getElementById('slNombre').value = '';
+    document.getElementById('slRendimiento').value = '';
+    document.getElementById('slObservaciones').value = '';
+    componentesSalsaTemp = [];
+  }
+  renderComponentesSalsa();
+  document.getElementById('modalSalsa').style.display = 'block';
+}
+
+function cerrarModalSalsa() {
+  document.getElementById('modalSalsa').style.display = 'none';
+}
+
+function agregarComponenteSalsa() {
+  componentesSalsaTemp.push({ nombre: '', gramajePorUnidad: 0, unidadComponente: 'gr', tiempoCoccionMin: null, preparacionFria: false, ingredientes: [] });
+  renderComponentesSalsa();
+}
+
+function eliminarComponenteSalsa(idx) {
+  componentesSalsaTemp.splice(idx, 1);
+  renderComponentesSalsa();
+}
+
+function agregarIngredienteSalsa(ci) {
+  componentesSalsaTemp[ci].ingredientes.push({ nombre: '', cantidadBruta: 0, unidad: 'kg' });
+  renderComponentesSalsa();
+}
+
+function eliminarIngredienteSalsa(ci, ii) {
+  componentesSalsaTemp[ci].ingredientes.splice(ii, 1);
+  renderComponentesSalsa();
+}
+
+function renderComponentesSalsa() {
+  const cont = document.getElementById('listaComponentesSalsa');
+  if (!cont) return;
+  if (componentesSalsaTemp.length === 0) {
+    cont.innerHTML = '<p style="color:#999;font-size:.9rem;">Agrega al menos un componente (ej: Base, Condimentos, Insumos)</p>';
+    return;
+  }
+  cont.innerHTML = componentesSalsaTemp.map((comp, ci) => `
+    <div style="background:#fff1f2;border-radius:10px;padding:1rem;margin-bottom:.75rem;border-left:4px solid #e11d48;">
+      <div style="display:flex;gap:.5rem;margin-bottom:.75rem;align-items:center;">
+        <input value="${comp.nombre}" oninput="componentesSalsaTemp[${ci}].nombre=this.value"
+          placeholder="Nombre componente (ej: Base Tomate, Especias)"
+          style="flex:1;padding:.45rem;border-radius:7px;border:1px solid #ddd;font-size:.9rem;">
+        <label style="display:flex;align-items:center;gap:.3rem;cursor:pointer;white-space:nowrap;font-size:.78rem;font-weight:700;color:${comp.preparacionFria?'#059669':'#94a3b8'};background:${comp.preparacionFria?'#d1fae5':'#f1f5f9'};padding:.3rem .5rem;border-radius:6px;border:1px solid ${comp.preparacionFria?'#6ee7b7':'#e2e8f0'};">
+          <input type="checkbox" ${comp.preparacionFria?'checked':''} onchange="componentesSalsaTemp[${ci}].preparacionFria=this.checked;renderComponentesSalsa()" style="accent-color:#e11d48;width:14px;height:14px;">
+          ❄️ Frío
+        </label>
+        <input type="number" value="${comp.gramajePorUnidad||''}" oninput="componentesSalsaTemp[${ci}].gramajePorUnidad=parseFloat(this.value)||0"
+          placeholder="Cantidad" style="width:80px;padding:.45rem;border-radius:7px;border:1px solid #ddd;font-size:.9rem;">
+        <select onchange="componentesSalsaTemp[${ci}].unidadComponente=this.value"
+          style="width:65px;padding:.45rem;border-radius:7px;border:1px solid #ddd;font-size:.9rem;color:#9f1239;font-weight:600;">
+          <option value="gr" ${(comp.unidadComponente||'gr')==='gr'?'selected':''}>gr</option>
+          <option value="un" ${(comp.unidadComponente||'gr')==='un'?'selected':''}>un</option>
+          <option value="kg" ${(comp.unidadComponente||'gr')==='kg'?'selected':''}>kg</option>
+          <option value="lt" ${(comp.unidadComponente||'gr')==='lt'?'selected':''}>lt</option>
+          <option value="ml" ${(comp.unidadComponente||'gr')==='ml'?'selected':''}>ml</option>
+        </select>
+        ${!comp.preparacionFria ? `
+        <div style="display:flex;flex-direction:column;align-items:center;gap:.1rem;">
+          <input type="number" value="${comp.tiempoCoccionMin != null && comp.tiempoCoccionMin > 0 ? comp.tiempoCoccionMin : ''}"
+            oninput="componentesSalsaTemp[${ci}].tiempoCoccionMin=this.value===''?null:(parseInt(this.value)>0?parseInt(this.value):null)"
+            onchange="componentesSalsaTemp[${ci}].tiempoCoccionMin=this.value===''?null:(parseInt(this.value)>0?parseInt(this.value):null)"
+            placeholder="ej: 45" min="1" max="480"
+            style="width:60px;padding:.45rem;border-radius:7px;border:1px solid #fca5a5;background:#fff1f2;text-align:center;font-weight:700;color:#e11d48;">
+          <span style="font-size:.6rem;color:#94a3b8;white-space:nowrap;">⏱ min</span>
+        </div>` : ''}
+        <button onclick="eliminarComponenteSalsa(${ci})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:7px;padding:.4rem .7rem;cursor:pointer;">✕</button>
+      </div>
+      <div style="margin-left:.5rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;">
+          <span style="font-size:.8rem;font-weight:600;color:#9f1239;">🧂 Ingredientes del componente</span>
+          <button onclick="agregarIngredienteSalsa(${ci})" style="background:#ffe4e6;color:#9f1239;border:1px solid #e11d48;border-radius:6px;padding:.25rem .7rem;font-size:.8rem;cursor:pointer;font-weight:600;">+ Ingrediente</button>
+        </div>
+        ${comp.ingredientes && comp.ingredientes.length > 0 ? `
+        <div style="display:grid;grid-template-columns:1fr 80px 65px 105px 28px;gap:.3rem;margin-bottom:.3rem;padding:0 .2rem;">
+          <span style="font-size:.72rem;color:#999;">Ingrediente</span>
+          <span style="font-size:.72rem;color:#999;">Cantidad</span>
+          <span style="font-size:.72rem;color:#999;">Unidad</span>
+          <span style="font-size:.72rem;color:#999;">Tipo ▼</span>
+          <span></span>
+        </div>
+        ${comp.ingredientes.map((ing, ii) => `
+          <div style="display:grid;grid-template-columns:1fr 80px 65px 105px 28px;gap:.3rem;margin-bottom:.35rem;align-items:center;">
+            <input value="${ing.nombre}" oninput="componentesSalsaTemp[${ci}].ingredientes[${ii}].nombre=this.value"
+              placeholder="Ej: Tomate, Ajo, Especias"
+              style="padding:.35rem;border-radius:6px;border:1px solid #ddd;font-size:.82rem;width:100%;">
+            <input type="number" value="${ing.cantidadBruta||''}" oninput="componentesSalsaTemp[${ci}].ingredientes[${ii}].cantidadBruta=parseFloat(this.value)||0"
+              placeholder="0" style="padding:.35rem;border-radius:6px;border:1px solid #ddd;font-size:.82rem;width:100%;">
+            <select onchange="componentesSalsaTemp[${ci}].ingredientes[${ii}].unidad=this.value"
+              style="padding:.35rem;border-radius:6px;border:1px solid #ddd;font-size:.82rem;width:100%;">
+              <option value="kg" ${ing.unidad==='kg'?'selected':''}>kg</option>
+              <option value="gr" ${ing.unidad==='gr'?'selected':''}>gr</option>
+              <option value="lt" ${ing.unidad==='lt'?'selected':''}>lt</option>
+              <option value="ml" ${ing.unidad==='ml'?'selected':''}>ml</option>
+              <option value="un" ${ing.unidad==='un'?'selected':''}>un</option>
+            </select>
+            <select onchange="componentesSalsaTemp[${ci}].ingredientes[${ii}].tipoPreelaborado=this.value"
+              style="padding:.35rem;border-radius:6px;border:1px solid #ddd;font-size:.78rem;font-weight:600;width:100%;">
+              <option value="" ${!ing.tipoPreelaborado?'selected':''}>— tipo —</option>
+              <option value="carnes" ${ing.tipoPreelaborado==='carnes'?'selected':''} style="color:#dc2626;">🥩 Carne</option>
+              <option value="vegetales" ${ing.tipoPreelaborado==='vegetales'?'selected':''} style="color:#16a34a;">🥗 Vegetal</option>
+              <option value="insumo" ${ing.tipoPreelaborado==='insumo'?'selected':''} style="color:#888;">📦 Insumo</option>
+            </select>
+            <button onclick="eliminarIngredienteSalsa(${ci},${ii})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:5px;padding:.3rem .5rem;cursor:pointer;font-size:.78rem;">✕</button>
+          </div>
+        `).join('')}
+        ` : `<p style="font-size:.78rem;color:#bbb;margin:.3rem 0 0 .2rem;">Sin ingredientes — usa "+ Ingrediente" para agregar</p>`}
+      </div>
+    </div>
+  `).join('');
+}
+
+function guardarRecetaSalsa() {
+  const sku = document.getElementById('slSku').value.trim();
+  const nombre = document.getElementById('slNombre').value.trim();
+  if (!sku || !nombre) { alert('SKU y nombre son obligatorios'); return; }
+  if (componentesSalsaTemp.length === 0) { alert('Agrega al menos un componente'); return; }
+  if (componentesSalsaTemp.some(c => !c.nombre || !c.gramajePorUnidad)) {
+    alert('Completa nombre y gramaje en cada componente'); return;
+  }
+  const gramajeTotalGr = componentesSalsaTemp.reduce((s, c) => s + (c.gramajePorUnidad || 0), 0);
+  const componentes = componentesSalsaTemp.map(c => ({
+    nombre: c.nombre,
+    gramajePorcion: c.gramajePorUnidad,
+    gramajePorUnidad: c.gramajePorUnidad,
+    unidadComponente: c.unidadComponente || 'gr',
+    tiempoCoccionMin: (c.tiempoCoccionMin != null && c.tiempoCoccionMin > 0) ? c.tiempoCoccionMin : null,
+    preparacionFria: c.preparacionFria || false,
+    ingredientes: c.ingredientes || []
+  }));
+  const receta = {
+    id: salsaEditandoId || Date.now().toString(),
+    sku, nombre,
+    tipo: 'salsa',
+    gramaje: gramajeTotalGr,
+    envase: 0,
+    rendimientoEsperado: parseFloat(document.getElementById('slRendimiento').value) || 100,
+    observaciones: document.getElementById('slObservaciones').value,
+    componentes,
+    historialRendimientos: salsaEditandoId ? (recetas.find(r=>r.id===salsaEditandoId)?.historialRendimientos||[]) : [],
+    fechaCreacion: salsaEditandoId ? (recetas.find(r=>r.id===salsaEditandoId)?.fechaCreacion||new Date().toLocaleDateString('es-CL')) : new Date().toLocaleDateString('es-CL'),
+    version: salsaEditandoId ? ((recetas.find(r=>r.id===salsaEditandoId)?.version||1)+1) : 1
+  };
+  if (salsaEditandoId) {
+    const idx = recetas.findIndex(r => r.id === salsaEditandoId);
+    recetas[idx] = receta;
+  } else {
+    recetas.push(receta);
+  }
+  guardarRecetasStorage();
+  cerrarModalSalsa();
+  renderListaRecetas();
+  cargarSelectorOPsSimple();
+  mostrarNotificacion('🥫 Receta Salsas guardada correctamente', 'success');
 }
 
 function guardarRecetaAveMayo() {
