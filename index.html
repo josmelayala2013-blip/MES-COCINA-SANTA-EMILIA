@@ -15972,12 +15972,30 @@ function mostrarPopupGantt(eq) {
                     <div style="font-size:.8rem;color:#666;margin-bottom:.3rem;">📅 ${p.fecha} · 🕐 ${p.horaFinCoccion}</div>
                     <div style="font-size:.8rem;color:#666;margin-bottom:.3rem;">⚙️ ${p.equipoNombre} · 👤 ${p.operador}</div>
                     <div style="font-size:.8rem;color:#666;margin-bottom:.75rem;">📋 OP: ${p.numeroOP} · ⚖️ ${p.kgReales} kg reales</div>
-                    <button onclick="abrirHACCPPendiente('${p.id}')"
-                        style="width:100%;padding:.6rem;background:${p.esPrepFria?'linear-gradient(135deg,#0891b2,#06b6d4)':'linear-gradient(135deg,#1e3a5f,#2d5986)'};color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.88rem;">
-                        📋 Completar Registro HACCP
-                    </button>
+                    <div style="display:flex;gap:.5rem;">
+                        <button onclick="abrirHACCPPendiente('${p.id}')"
+                            style="flex:1;padding:.6rem;background:${p.esPrepFria?'linear-gradient(135deg,#0891b2,#06b6d4)':'linear-gradient(135deg,#1e3a5f,#2d5986)'};color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.88rem;">
+                            📋 Completar Registro HACCP
+                        </button>
+                        <button onclick="eliminarHACCPPendienteCocina('${p.id}')"
+                            style="padding:.6rem .9rem;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:8px;font-weight:700;cursor:pointer;font-size:.88rem;"
+                            title="Eliminar este registro pendiente">
+                            🗑️
+                        </button>
+                    </div>
                 </div>`;
             }).join('');
+        }
+
+        function eliminarHACCPPendienteCocina(id) {
+            const p = haccpPendientes.find(x => x.id === id);
+            if (!p) return;
+            if (!confirm(`¿Eliminar el registro pendiente de "${p.componente || p.producto}"?\nEsta acción no se puede deshacer.`)) return;
+            haccpPendientes = haccpPendientes.filter(x => x.id !== id);
+            guardarHACCPPendientes();
+            renderHACCPPendientes();
+            renderHACCPCompletados();
+            mostrarNotificacion('🗑️ Registro pendiente eliminado', 'info');
         }
 
         function editarHACCPCocina(id) {
