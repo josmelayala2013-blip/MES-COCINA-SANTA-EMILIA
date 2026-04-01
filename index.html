@@ -7340,7 +7340,15 @@ function imprimirRegistroHACCP(d) {
 
         function htmlHACCPRegistros(fecha) {
             // Convertir fecha del selector (YYYY-MM-DD) al formato guardado
-            const registrosDia = registrosHACCPHistorial.filter(r => r.fechaISO === fecha);
+            const _normF = (f) => {
+                if (!f) return '';
+                if (/^\d{4}-\d{2}-\d{2}$/.test(f)) return f;
+                const p = f.split(/[-\/]/);
+                if (p.length === 3 && p[0].length === 4) return f;
+                if (p.length === 3) return `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
+                return f;
+            };
+            const registrosDia = registrosHACCPHistorial.filter(r => _normF(r.fechaISO) === fecha);
             if (registrosDia.length === 0) return '';
 
             const iconos = { cocina: '🍳', envasado: '📦', abatimiento: '❄️' };
@@ -7606,7 +7614,16 @@ function imprimirRegistroHACCP(d) {
                 const icono = iconos[t];
 
                 // Registros del historial firmado
-                const firmados = registrosHACCPHistorial.filter(r => r.tipo === t && r.fechaISO === hoy);
+                // Normalizar fecha para comparar — soportar YYYY-MM-DD y DD-MM-YYYY
+                const _normFecha = (f) => {
+                    if (!f) return '';
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(f)) return f;
+                    const p = f.split(/[-\/]/);
+                    if (p.length === 3 && p[0].length === 4) return f;
+                    if (p.length === 3) return `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
+                    return f;
+                };
+                const firmados = registrosHACCPHistorial.filter(r => r.tipo === t && _normFecha(r.fechaISO) === fecha);
                 // Registros completados de haccpPendientes (módulo)
                 const _listPend = t === 'cocina' ? 
                     (window._getHaccpPendientes ? window._getHaccpPendientes() : haccpPendientes) :
@@ -15133,7 +15150,15 @@ function mostrarPopupGantt(eq) {
             const envasado = (window._getHaccpEnvasado ? window._getHaccpEnvasado() : []).filter(p => p.estado === 'completado' && p.fechaISO === hoy);
             const abatimiento = (window._getHaccpAbatimiento ? window._getHaccpAbatimiento() : []).filter(p => p.estado === 'completado' && p.fechaISO === hoy);
             // También incluir registros firmados del historial
-            const firmados = registrosHACCPHistorial.filter(r => r.fechaISO === hoy);
+            const _norm = (f) => {
+                if (!f) return '';
+                if (/^\d{4}-\d{2}-\d{2}$/.test(f)) return f;
+                const p = f.split(/[-\/]/);
+                if (p.length === 3 && p[0].length === 4) return f;
+                if (p.length === 3) return `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
+                return f;
+            };
+            const firmados = registrosHACCPHistorial.filter(r => _norm(r.fechaISO) === hoy);
 
             const totalTodos = cocina.length + envasado.length + abatimiento.length + firmados.length;
 
