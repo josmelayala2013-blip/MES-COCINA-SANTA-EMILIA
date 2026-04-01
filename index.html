@@ -19509,8 +19509,8 @@ function _abrirModalAlmacenamiento(tipo, fecha, titulo, color, icono) {
           <div style="background:white;border-radius:6px;padding:.4rem;text-align:center;border:1px solid #e2e8f0;">
             <div style="font-size:.68rem;font-weight:600;color:#333;margin-bottom:.3rem;">${lbl}</div>
             <div style="display:flex;gap:.3rem;justify-content:center;">
-              <label style="cursor:pointer;font-size:.8rem;"><input type="radio" name="al${lbl.replace(/[⑤⑥⑦⑧④\s]/g,'')}${n}_${tipo}" value="✓"> ✓</label>
-              <label style="cursor:pointer;font-size:.8rem;"><input type="radio" name="al${lbl.replace(/[⑤⑥⑦⑧④\s]/g,'')}${n}_${tipo}" value="✗"> ✗</label>
+              <label style="cursor:pointer;font-size:.8rem;"><input type="radio" name="al${lbl.replace(/[⑤⑥⑦⑧④\s]/g,'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')}${n}_${tipo}" value="✓"> ✓</label>
+              <label style="cursor:pointer;font-size:.8rem;"><input type="radio" name="al${lbl.replace(/[⑤⑥⑦⑧④\s]/g,'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')}${n}_${tipo}" value="✗"> ✗</label>
             </div>
           </div>`).join('')}
           <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">⑥ Producto (Tarja)</label>
@@ -19527,8 +19527,8 @@ function _abrirModalAlmacenamiento(tipo, fecha, titulo, color, icono) {
           <div style="background:white;border-radius:6px;padding:.35rem;text-align:center;border:1px solid #e2e8f0;">
             <div style="font-size:.65rem;font-weight:600;color:#333;margin-bottom:.25rem;">${s}</div>
             <div style="display:flex;gap:.2rem;justify-content:center;">
-              <label style="cursor:pointer;font-size:.78rem;"><input type="radio" name="alSep${s.replace(/[\s.]/g,'')}${n}_${tipo}" value="✓"> ✓</label>
-              <label style="cursor:pointer;font-size:.78rem;"><input type="radio" name="alSep${s.replace(/[\s.]/g,'')}${n}_${tipo}" value="✗"> ✗</label>
+              <label style="cursor:pointer;font-size:.78rem;"><input type="radio" name="alSep${s.replace(/[\s.]/g,'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')}${n}_${tipo}" value="✓"> ✓</label>
+              <label style="cursor:pointer;font-size:.78rem;"><input type="radio" name="alSep${s.replace(/[\s.]/g,'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')}${n}_${tipo}" value="✗"> ✗</label>
             </div>
           </div>`).join('')}
         </div>
@@ -19651,8 +19651,8 @@ function alAgregarFila(tipo) {
           <div style="background:white;border-radius:6px;padding:.4rem;text-align:center;border:1px solid #e2e8f0;">
             <div style="font-size:.68rem;font-weight:600;color:#333;margin-bottom:.3rem;">${lbl}</div>
             <div style="display:flex;gap:.3rem;justify-content:center;">
-              <label style="cursor:pointer;font-size:.8rem;"><input type="radio" name="al${lbl.replace(/[⑤⑥⑦⑧④\s]/g,'')}${n}_${tipo}" value="✓"> ✓</label>
-              <label style="cursor:pointer;font-size:.8rem;"><input type="radio" name="al${lbl.replace(/[⑤⑥⑦⑧④\s]/g,'')}${n}_${tipo}" value="✗"> ✗</label>
+              <label style="cursor:pointer;font-size:.8rem;"><input type="radio" name="al${lbl.replace(/[⑤⑥⑦⑧④\s]/g,'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')}${n}_${tipo}" value="✓"> ✓</label>
+              <label style="cursor:pointer;font-size:.8rem;"><input type="radio" name="al${lbl.replace(/[⑤⑥⑦⑧④\s]/g,'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')}${n}_${tipo}" value="✗"> ✗</label>
             </div>
           </div>`).join('')}
           <div><label style="font-size:.68rem;color:#666;display:block;margin-bottom:.2rem;">⑥ Producto (Tarja)</label>
@@ -19668,8 +19668,8 @@ function alAgregarFila(tipo) {
           <div style="background:white;border-radius:6px;padding:.35rem;text-align:center;border:1px solid #e2e8f0;">
             <div style="font-size:.65rem;font-weight:600;color:#333;margin-bottom:.25rem;">${s}</div>
             <div style="display:flex;gap:.2rem;justify-content:center;">
-              <label style="cursor:pointer;font-size:.78rem;"><input type="radio" name="alSep${s.replace(/[\s.]/g,'')}${n}_${tipo}" value="✓"> ✓</label>
-              <label style="cursor:pointer;font-size:.78rem;"><input type="radio" name="alSep${s.replace(/[\s.]/g,'')}${n}_${tipo}" value="✗"> ✗</label>
+              <label style="cursor:pointer;font-size:.78rem;"><input type="radio" name="alSep${s.replace(/[\s.]/g,'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')}${n}_${tipo}" value="✓"> ✓</label>
+              <label style="cursor:pointer;font-size:.78rem;"><input type="radio" name="alSep${s.replace(/[\s.]/g,'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')}${n}_${tipo}" value="✗"> ✗</label>
             </div>
           </div>`).join('')}
         </div>
@@ -19738,7 +19738,7 @@ function editarRegistroAlmacenamiento(id, tipo) {
     // Agregar y precargar monitoreos 2 y 3 si existen
     for (let i = 1; i < mons.length; i++) {
       alAgregarFila(tipo);
-      setTimeout(() => _alPrecargarMonitoreo(i+1, mons[i], tipo), 100 * i);
+      setTimeout(() => _alPrecargarMonitoreo(i+1, mons[i], tipo), 250 * i);
     }
 
     // Actualizar banner informativo
@@ -19775,10 +19775,10 @@ function _alPrecargarMonitoreo(n, mon, tipo) {
   setRadio(`alLimpieza${n}_${tipo}`, mon.limpieza);
   setRadio(`alRotacion${n}_${tipo}`, mon.rotacion);
   setRadio(`alSepPiso${n}_${tipo}`, mon.piso);
-  setRadio(`alSepAlérgeno${n}_${tipo}`, mon.alergeno);
+  setRadio(`alSepAlergeno${n}_${tipo}`, mon.alergeno);
   setRadio(`alSepEspecias${n}_${tipo}`, mon.especias);
-  setRadio(`alSepProd.Term.${n}_${tipo}`, mon.prodTerm);
-  setRadio(`alSepProd.NC${n}_${tipo}`, mon.prodNoConf);
+  setRadio(`alSepProdTerm${n}_${tipo}`, mon.prodTerm);
+  setRadio(`alSepProdNC${n}_${tipo}`, mon.prodNoConf);
   // Mostrar ACC si aplica
   if (mon.reqACC === 'si') alToggleACC(n, tipo);
 }
@@ -19811,10 +19811,10 @@ function guardarRegistroAlmacenamiento(tipo) {
       lote: document.getElementById(`alLote${i}_${tipo}`)?.value,
       fVencimiento: document.getElementById(`alFVenc${i}_${tipo}`)?.value,
       piso: document.querySelector(`input[name="alSepPiso${i}_${tipo}"]:checked`)?.value,
-      alergeno: document.querySelector(`input[name="alSepAlérgeno${i}_${tipo}"]:checked`)?.value,
+      alergeno: document.querySelector(`input[name="alSepAlergeno${i}_${tipo}"]:checked`)?.value,
       especias: document.querySelector(`input[name="alSepEspecias${i}_${tipo}"]:checked`)?.value,
-      prodTerm: document.querySelector(`input[name="alSepProd.Term.${i}_${tipo}"]:checked`)?.value,
-      prodNoConf: document.querySelector(`input[name="alSepProd.NC${i}_${tipo}"]:checked`)?.value,
+      prodTerm: document.querySelector(`input[name="alSepProdTerm${i}_${tipo}"]:checked`)?.value,
+      prodNoConf: document.querySelector(`input[name="alSepProdNC${i}_${tipo}"]:checked`)?.value,
       reqACC: document.getElementById(`alReqACC${i}_${tipo}`)?.value,
       acc: document.getElementById(`alACC${i}_${tipo}`)?.value,
       tempACC: document.getElementById(`alTempACC${i}_${tipo}`)?.value,
