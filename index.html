@@ -16017,6 +16017,49 @@ function mostrarPopupGantt(eq) {
                 return d.toISOString();
             };
             const eqVirtualId = p.equipoId || 'pendiente_' + id;
+            // Buscar receta por nombre del componente para cargar ingredientes
+            const _nombreComp = (p.componente || p.producto || '').toLowerCase().trim();
+            let _recetaVinculada = null;
+            let _compVinculado = null;
+            for (const rec of recetas) {
+                const compEncontrado = (rec.componentes||[]).find(c =>
+                    (c.nombre||'').toLowerCase().trim() === _nombreComp ||
+                    _nombreComp.includes((c.nombre||'').toLowerCase().trim()) ||
+                    (c.nombre||'').toLowerCase().trim().includes(_nombreComp)
+                );
+                if (compEncontrado) {
+                    _recetaVinculada = rec;
+                    _compVinculado = compEncontrado;
+                    break;
+                }
+                // También buscar por nombre de receta completa (para salsas)
+                if (rec.nombre.toLowerCase().trim() === _nombreComp ||
+                    _nombreComp.includes(rec.nombre.toLowerCase().trim()) ||
+                    rec.nombre.toLowerCase().trim().includes(_nombreComp)) {
+                    _recetaVinculada = rec;
+                    _compVinculado = rec.componentes?.[0] || null;
+                    break;
+                }
+            }
+
+            // Si encontramos receta, crear OP virtual para que abrirRegistroHACCP encuentre los ingredientes
+            let _opVirtualId = p.opVinculadaId || null;
+            if (_recetaVinculada && !_opVirtualId) {
+                const opVirtual = {
+                    id: 'op_virtual_' + id,
+                    nombre: p.producto || _nombreComp,
+                    numeroOp: p.numeroOP || '—',
+                    recetaId: _recetaVinculada.id,
+                    sku: _recetaVinculada.sku || '',
+                    componentes: _recetaVinculada.componentes || []
+                };
+                // Inyectar OP virtual temporalmente
+                ordenesProduccion = ordenesProduccion.filter(o => o.id !== opVirtual.id);
+                ordenesProduccion.push(opVirtual);
+                _opVirtualId = opVirtual.id;
+                window._opVirtualPendienteId = opVirtual.id;
+            }
+
             const equipoVirtual = {
                 id: eqVirtualId,
                 nombre: p.equipoNombre || '—',
@@ -16025,7 +16068,7 @@ function mostrarPopupGantt(eq) {
                     componente: p.componente || p.producto || '—',
                     producto: p.producto || '—',
                     numeroOP: p.numeroOP || '—',
-                    opVinculadaId: p.opVinculadaId || null,
+                    opVinculadaId: _opVirtualId,
                     operador: p.operador || '—',
                     kgProgramados: p.kgProgramados || 0,
                     kgReales: p.kgReales || 0,
@@ -16050,6 +16093,18 @@ function mostrarPopupGantt(eq) {
             equipos.push(equipoVirtual);
             window._equipoVirtualPendienteId = eqVirtualId;
             abrirRegistroHACCP(eqVirtualId);
+        }
+
+        function _limpiarVirtualesPendiente() {
+            // Limpiar equipo y OP virtual al cerrar modal
+            if (window._equipoVirtualPendienteId) {
+                equipos = equipos.filter(e => e.id !== window._equipoVirtualPendienteId);
+                window._equipoVirtualPendienteId = null;
+            }
+            if (window._opVirtualPendienteId) {
+                ordenesProduccion = ordenesProduccion.filter(o => o.id !== window._opVirtualPendienteId);
+                window._opVirtualPendienteId = null;
+            }
         }
 
         function guardarHACCPDesdePendiente(pendienteId) {
