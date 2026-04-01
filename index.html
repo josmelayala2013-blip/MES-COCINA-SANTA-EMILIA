@@ -7466,38 +7466,60 @@ function imprimirRegistroHACCP(d) {
             const r = registrosHACCPHistorial.find(x => x.id === id);
             if (!r) { alert('No se encontró el registro'); return; }
             window._haccpHistorialEditandoId = id;
-            // Crear un pendiente temporal para poder reabrir el formulario
+
+            // Crear pendiente temporal con los datos guardados
+            const tempId = 'temp_edit_' + id;
+            // Eliminar temporal anterior si existe
+            haccpPendientes = haccpPendientes.filter(p => p.id !== tempId);
+            haccpPendientesEnvasado = haccpPendientesEnvasado.filter(p => p.id !== tempId);
+            haccpPendientesAbatimiento = haccpPendientesAbatimiento.filter(p => p.id !== tempId);
+
             const pendienteTemp = {
-                id: 'temp_' + id,
+                id: tempId,
                 estado: 'pendiente',
                 fechaISO: r.fechaISO,
                 fecha: r.fecha,
-                equipoNombre: r.equipo || '—',
+                equipoId: null,
+                equipoNombre: r.equipo || r.datos?.equipo || '—',
                 componente: r.producto,
                 producto: r.producto,
                 numeroOP: r.op || '—',
+                opVinculadaId: null,
                 operador: r.responsable || '—',
-                kgProgramados: r.datos?.cantTotal || r.datos?.cantidad || 0,
-                kgReales: r.datos?.cantTotal || r.datos?.cantidad || 0,
+                kgProgramados: r.datos?.cantTotal || r.datos?.cantidad || r.datos?.kgReales || 0,
+                kgReales: r.datos?.cantTotal || r.datos?.cantidad || r.datos?.kgReales || 0,
                 horaInicio: r.datos?.horaInicio || '',
-                horaTermino: r.datos?.horaFin || '',
+                horaTermino: r.datos?.horaFin || r.datos?.horaSalida || '',
                 tiempoCoccionFormateado: r.datos?.tiempoCoccion || '—',
-                esPrepFria: false
+                tempSalida: r.datos?.tempSalida || r.datos?.tempFin || '',
+                tempEntrada: r.datos?.tempInicio || '',
+                cumpleLimite: r.datos?.cumpleTemp === 'C',
+                formato: r.datos?.formato || '',
+                horaIngresoISO: null,
+                horaSalidaISO: null,
+                esPrepFria: false,
+                _esEdicionHistorial: true
             };
-            // Inyectar pendiente temporal
-            haccpPendientes.push(pendienteTemp);
+
             if (r.tipo === 'cocina') {
-                abrirHACCPPendiente('temp_' + id);
+                haccpPendientes.push(pendienteTemp);
+                window._haccpPendienteActual = tempId;
+                abrirHACCPPendiente(tempId);
             } else if (r.tipo === 'envasado') {
-                abrirHACCPPendienteModulo('temp_' + id, 'envasado');
+                haccpPendientesEnvasado.push(pendienteTemp);
+                abrirHACCPPendienteModulo(tempId, 'envasado');
             } else if (r.tipo === 'abatimiento') {
-                abrirHACCPPendienteModulo('temp_' + id, 'abatimiento');
+                haccpPendientesAbatimiento.push(pendienteTemp);
+                abrirHACCPPendienteModulo(tempId, 'abatimiento');
             }
-            // Al guardar, actualizar el registro original en lugar de crear nuevo
+
+            // Banner de edición
             setTimeout(() => {
-                const contEl = document.getElementById('contenidoModalHACCP') ||
-                               document.getElementById('contenidoModalHACCPEnvasado') ||
-                               document.getElementById('contenidoModalHACCPAbatimiento');
+                const contEl = document.getElementById(
+                    r.tipo === 'cocina' ? 'contenidoModalHACCP' :
+                    r.tipo === 'envasado' ? 'contenidoModalHACCPEnvasado' :
+                    'contenidoModalHACCPAbatimiento'
+                );
                 if (contEl) {
                     const banner = document.createElement('div');
                     banner.style.cssText = 'background:#fef3c7;border-left:4px solid #f59e0b;color:#92400e;border-radius:8px;padding:.75rem;margin-bottom:1rem;font-size:.85rem;';
@@ -8812,10 +8834,12 @@ function limpiarComponentesFriosDeEquipos() {
                     if (!snap.exists()) return;
                     const data = snap.data();
                     if (!Array.isArray(data.pendientes)) return;
+                    const current = window._getHaccpEnvasado ? window._getHaccpEnvasado() : [];
                     const merged = [...data.pendientes];
-                    haccpPendientesEnvasado.forEach(l => { if (!merged.find(r => r.id === l.id)) merged.push(l); });
-                    haccpPendientesEnvasado = merged;
-                    localStorage.setItem('mes_haccp_pend_envasado', JSON.stringify(haccpPendientesEnvasado));
+                    current.forEach(l => { if (!merged.find(r => r.id === l.id)) merged.push(l); });
+                    if (window._setHaccpEnvasado) window._setHaccpEnvasado(merged);
+                    localStorage.setItem('mes_haccp_pend_envasado', JSON.stringify(merged));
+                    if (typeof renderHACCCPCompletados === 'function') renderHACCPCompletados();
                     if (typeof renderHACCPPendientesModulo === 'function') renderHACCPPendientesModulo('envasado');
                 });
 
@@ -8824,10 +8848,12 @@ function limpiarComponentesFriosDeEquipos() {
                     if (!snap.exists()) return;
                     const data = snap.data();
                     if (!Array.isArray(data.pendientes)) return;
+                    const current = window._getHaccpAbatimiento ? window._getHaccpAbatimiento() : [];
                     const merged = [...data.pendientes];
-                    haccpPendientesAbatimiento.forEach(l => { if (!merged.find(r => r.id === l.id)) merged.push(l); });
-                    haccpPendientesAbatimiento = merged;
-                    localStorage.setItem('mes_haccp_pend_abatimiento', JSON.stringify(haccpPendientesAbatimiento));
+                    current.forEach(l => { if (!merged.find(r => r.id === l.id)) merged.push(l); });
+                    if (window._setHaccpAbatimiento) window._setHaccpAbatimiento(merged);
+                    localStorage.setItem('mes_haccp_pend_abatimiento', JSON.stringify(merged));
+                    if (typeof renderHACCPCompletados === 'function') renderHACCPCompletados();
                     if (typeof renderHACCPPendientesModulo === 'function') renderHACCPPendientesModulo('abatimiento');
                 });
 
@@ -14862,37 +14888,78 @@ function mostrarPopupGantt(eq) {
             if (!panel || !lista) return;
 
             const hoy = new Date().toISOString().split('T')[0];
-            const completadosHoy = haccpPendientes.filter(p =>
-                p.estado === 'completado' && p.fechaISO === hoy
-            );
 
-            if (completadosHoy.length === 0) {
-                panel.style.display = 'none';
-                return;
-            }
+            // ── Recopilar completados de los 3 módulos ──
+            const cocina = (window._getHaccpPendientes ? window._getHaccpPendientes() : haccpPendientes).filter(p => p.estado === 'completado' && p.fechaISO === hoy);
+            const envasado = (window._getHaccpEnvasado ? window._getHaccpEnvasado() : []).filter(p => p.estado === 'completado' && p.fechaISO === hoy);
+            const abatimiento = (window._getHaccpAbatimiento ? window._getHaccpAbatimiento() : []).filter(p => p.estado === 'completado' && p.fechaISO === hoy);
+            // También incluir registros firmados del historial
+            const firmados = registrosHACCPHistorial.filter(r => r.fechaISO === hoy);
 
-            if (badge) badge.textContent = completadosHoy.length;
+            const totalTodos = cocina.length + envasado.length + abatimiento.length + firmados.length;
+
+            if (totalTodos === 0) { panel.style.display = 'none'; return; }
+
+            if (badge) badge.textContent = totalTodos + ' completado(s)';
             panel.style.display = 'block';
 
-            lista.innerHTML = completadosHoy.map(p => `
-                <div style="background:white;border-radius:12px;padding:1rem;border-left:4px solid ${p.esPrepFria?'#0891b2':'#10b981'};">
-                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem;">
-                        <div style="font-weight:700;font-size:.95rem;color:#065f46;">
-                            ${p.esPrepFria?'⏱❄️ ':'🔥 '}${p.componente||p.producto}
+            const _tarjetaPendiente = (p, tipo) => {
+                const colores = { cocina: '#10b981', envasado: '#8b5cf6', abatimiento: '#0891b2' };
+                const iconos = { cocina: '🍳', envasado: '📦', abatimiento: '❄️' };
+                const labels = { cocina: 'Cocina', envasado: 'Envasado', abatimiento: 'Abatimiento' };
+                const color = colores[tipo];
+                const editFn = tipo === 'cocina' ? `editarHACCPCocina('${p.id}')` :
+                               tipo === 'envasado' ? `editarHACCPEnvasado('${p.id}')` :
+                               `editarHACCPAbat('${p.id}')`;
+                return `
+                <div style="background:white;border-radius:12px;padding:1rem;border-left:4px solid ${color};">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem;gap:.5rem;flex-wrap:wrap;">
+                        <div>
+                            <span style="background:${color}22;color:${color};border-radius:20px;padding:.1rem .5rem;font-size:.7rem;font-weight:700;">${iconos[tipo]} ${labels[tipo]}</span>
+                            <div style="font-weight:700;font-size:.9rem;color:#333;margin-top:.25rem;">${p.componente||p.producto||'—'}</div>
                         </div>
-                        <div style="display:flex;gap:.4rem;align-items:center;">
-                            <span style="background:#d1fae5;color:#065f46;border-radius:20px;padding:.15rem .6rem;font-size:.72rem;font-weight:700;">✅ Completado</span>
-                            <button onclick="editarHACCPCocina('${p.id}')"
-                                style="background:#fef3c7;color:#92400e;border:none;border-radius:7px;padding:.3rem .75rem;cursor:pointer;font-size:.8rem;font-weight:600;">
-                                ✏️ Editar
-                            </button>
+                        <div style="display:flex;gap:.35rem;align-items:center;">
+                            <span style="background:#d1fae5;color:#065f46;border-radius:20px;padding:.1rem .5rem;font-size:.7rem;font-weight:700;">✅</span>
+                            <button onclick="${editFn}"
+                                style="background:#fef3c7;color:#92400e;border:none;border-radius:6px;padding:.25rem .6rem;cursor:pointer;font-size:.78rem;font-weight:600;">✏️ Editar</button>
                         </div>
                     </div>
-                    <div style="font-size:.8rem;color:#666;margin-bottom:.2rem;">📅 ${p.fecha} · ⚙️ ${p.equipoNombre}</div>
-                    <div style="font-size:.8rem;color:#666;margin-bottom:.2rem;">📋 OP: ${p.numeroOP} · ⚖️ ${p.kgReales||p.kgProgramados} kg</div>
-                    <div style="font-size:.8rem;color:#059669;font-weight:600;">👤 ${p.completadoPor||'—'} · ${p.completadoEn||''}</div>
-                </div>
-            `).join('');
+                    <div style="font-size:.78rem;color:#666;">📋 OP: ${p.numeroOP||'—'} · ⚖️ ${p.kgReales||p.kgProgramados||0} kg</div>
+                    <div style="font-size:.78rem;color:#059669;font-weight:600;margin-top:.2rem;">👤 ${p.completadoPor||'—'} · ${p.completadoEn||''}</div>
+                </div>`;
+            };
+
+            const _tarjetaFirmado = (r) => {
+                const colores = { cocina: '#1e3a5f', envasado: '#5b21b6', abatimiento: '#0e7490' };
+                const iconos = { cocina: '🍳', envasado: '📦', abatimiento: '❄️' };
+                const labels = { cocina: 'Cocina', envasado: 'Envasado', abatimiento: 'Abatimiento' };
+                const color = colores[r.tipo] || '#1e3a5f';
+                return `
+                <div style="background:white;border-radius:12px;padding:1rem;border-left:4px solid ${color};">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem;gap:.5rem;flex-wrap:wrap;">
+                        <div>
+                            <span style="background:${color}22;color:${color};border-radius:20px;padding:.1rem .5rem;font-size:.7rem;font-weight:700;">${iconos[r.tipo]||'📋'} ${labels[r.tipo]||r.tipo}</span>
+                            <div style="font-weight:700;font-size:.9rem;color:#333;margin-top:.25rem;">${r.producto||'—'}</div>
+                        </div>
+                        <div style="display:flex;gap:.35rem;align-items:center;">
+                            <button onclick="editarHACCPHistorial('${r.id}')"
+                                style="background:#fef3c7;color:#92400e;border:none;border-radius:6px;padding:.25rem .6rem;cursor:pointer;font-size:.78rem;font-weight:600;">✏️ Editar</button>
+                            <button onclick="imprimirHACCPHistorial('${r.id}')"
+                                style="background:${color};color:white;border:none;border-radius:6px;padding:.25rem .6rem;cursor:pointer;font-size:.78rem;font-weight:600;">🖨️</button>
+                            <button onclick="eliminarHACCPHistorial('${r.id}')"
+                                style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:.25rem .5rem;cursor:pointer;font-size:.78rem;">🗑️</button>
+                        </div>
+                    </div>
+                    <div style="font-size:.78rem;color:#666;">📋 OP: ${r.op||'—'} · 👤 ${r.responsable||'—'}</div>
+                    <div style="font-size:.78rem;color:#666;margin-top:.1rem;">🕐 ${r.firmadoEn||'—'}</div>
+                </div>`;
+            };
+
+            lista.innerHTML = 
+                cocina.map(p => _tarjetaPendiente(p, 'cocina')).join('') +
+                envasado.map(p => _tarjetaPendiente(p, 'envasado')).join('') +
+                abatimiento.map(p => _tarjetaPendiente(p, 'abatimiento')).join('') +
+                firmados.map(r => _tarjetaFirmado(r)).join('');
         }
 
         function renderHACCPPendientes() {
@@ -15477,6 +15544,11 @@ ${d._ingredientes.map(ing => `<tr>
 
         let haccpPendientesEnvasado = JSON.parse(localStorage.getItem('mes_haccp_pend_envasado') || '[]');
         let haccpPendientesAbatimiento = JSON.parse(localStorage.getItem('mes_haccp_pend_abatimiento') || '[]');
+        // Exponer globalmente para acceso desde listeners y otros scopes
+        window._getHaccpEnvasado = () => haccpPendientesEnvasado;
+        window._setHaccpEnvasado = (v) => { haccpPendientesEnvasado = v; };
+        window._getHaccpAbatimiento = () => haccpPendientesAbatimiento;
+        window._setHaccpAbatimiento = (v) => { haccpPendientesAbatimiento = v; };
 
         function guardarHACCPPendientesModulo(modulo) {
             if (modulo === 'envasado') {
