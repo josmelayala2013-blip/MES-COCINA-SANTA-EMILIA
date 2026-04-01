@@ -257,6 +257,8 @@
         .equipment-card.activa::before { background: #f59e0b; }
         .equipment-card.limpieza::before { background: #3b82f6; }
         .equipment-card.limpieza.alerta::before { background: #ef4444; animation: pulse-alert 1s infinite; }
+        .equipment-card.desmechado { border-top: 4px solid #d97706 !important; }
+        .equipment-card.desmechado::before { background: #d97706; }
         @keyframes pulse-alert { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         .equipment-card.alerta { animation: shake 0.5s infinite; border: 3px solid #ef4444; }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
@@ -2628,6 +2630,7 @@
                 activa: '● En Cocción',
                 ocupado: '● En Cocción',
                 programado: '🕐 Programado',
+                desmechado: '🔪 DESMECHANDO',
                 limpieza: '🧹 En Limpieza',
                 envasando: '📦 Envasando',
                 abatiendo: '❄️ Abatiendo'
@@ -2655,6 +2658,16 @@
             equipos.forEach(equipo => {
                 const card = document.createElement('div');
                 let classes = `equipment-card ${equipo.estado}`;
+                
+                if (equipo.estado === 'desmechado' && equipo.produccion && equipo.produccion.inicioDesmechado) {
+                    const timerEl = document.getElementById(`timer-desmechado-${equipo.id}`);
+                    if (timerEl) {
+                        const elapsed = Math.floor((new Date() - new Date(equipo.produccion.inicioDesmechado)) / 1000);
+                        timerEl.textContent = formatTime(elapsed);
+                        const maxSeg = (equipo.produccion.tiempoDesmechadoMin || 40) * 60;
+                        timerEl.style.color = elapsed > maxSeg ? '#dc2626' : elapsed > maxSeg * 0.8 ? '#f59e0b' : '#d97706';
+                    }
+                }
                 
                 if (equipo.estado === 'limpieza' && equipo.produccion) {
                     const tiempoLimpieza = Math.floor((new Date() - new Date(equipo.produccion.inicioLimpieza)) / 1000);
@@ -2714,6 +2727,40 @@
                             <button class="btn btn-success" style="flex:1;" onclick="abrirFinalizarCoccion(${equipo.id})">✅ FINALIZAR COCCIÓN</button>
                             <button style="background:#f0fdf4;border:2px solid #10b981;color:#065f46;border-radius:8px;padding:.5rem .75rem;cursor:pointer;font-weight:700;font-size:.82rem;white-space:nowrap;" onclick="abrirRegistroHACCP(${equipo.id})">📋 HACCP</button>
                             </div>
+                        `;
+                    } else if (equipo.estado === 'desmechado') {
+                        const p = equipo.produccion;
+                        const tiempoDesmMin = p.tiempoDesmechadoMin || 40;
+                        content += `
+                            <div class="equipment-details">
+                                <div class="detail-row">
+                                    <span class="detail-label">🔪 Desmechando:</span>
+                                    <span class="detail-value" style="font-weight:800;color:#d97706;">${p.componente || p.producto}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">OP:</span>
+                                    <span class="detail-value" style="font-size:.8rem;color:#64748b;">${p.producto}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Kg:</span>
+                                    <span class="detail-value">${p.kgReales || p.kgProgramados} kg</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">⏱ Cocción:</span>
+                                    <span class="detail-value" style="color:#10b981;font-weight:700;">✅ ${p.tiempoCoccionFormateado || '—'}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">🔪 Desmechado:</span>
+                                    <span class="timer" id="timer-desmechado-${equipo.id}" style="color:#d97706;">00:00:00</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Tiempo asignado:</span>
+                                    <span class="detail-value">${tiempoDesmMin} min</span>
+                                </div>
+                            </div>
+                            <button class="btn" style="width:100%;margin-top:.5rem;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;font-weight:800;font-size:.95rem;" onclick="finalizarDesmechado(${equipo.id})">
+                                🔪 FINALIZAR DESMECHADO → ENVASADO
+                            </button>
                         `;
                     } else if (equipo.estado === 'programado') {
                         // Mostrar info del bloque programado
@@ -2793,6 +2840,16 @@
                     const timerEl = document.getElementById(`timer-coccion-${equipo.id}`);
                     if (timerEl) {
                         timerEl.textContent = calcularTiempo(equipo.produccion.inicio);
+                    }
+                }
+                
+                if (equipo.estado === 'desmechado' && equipo.produccion && equipo.produccion.inicioDesmechado) {
+                    const timerEl = document.getElementById(`timer-desmechado-${equipo.id}`);
+                    if (timerEl) {
+                        const elapsed = Math.floor((new Date() - new Date(equipo.produccion.inicioDesmechado)) / 1000);
+                        timerEl.textContent = formatTime(elapsed);
+                        const maxSeg = (equipo.produccion.tiempoDesmechadoMin || 40) * 60;
+                        timerEl.style.color = elapsed > maxSeg ? '#dc2626' : elapsed > maxSeg * 0.8 ? '#f59e0b' : '#d97706';
                     }
                 }
                 
@@ -2961,6 +3018,16 @@
         
         function checkAlertas() {
             equipos.forEach(equipo => {
+                if (equipo.estado === 'desmechado' && equipo.produccion && equipo.produccion.inicioDesmechado) {
+                    const timerEl = document.getElementById(`timer-desmechado-${equipo.id}`);
+                    if (timerEl) {
+                        const elapsed = Math.floor((new Date() - new Date(equipo.produccion.inicioDesmechado)) / 1000);
+                        timerEl.textContent = formatTime(elapsed);
+                        const maxSeg = (equipo.produccion.tiempoDesmechadoMin || 40) * 60;
+                        timerEl.style.color = elapsed > maxSeg ? '#dc2626' : elapsed > maxSeg * 0.8 ? '#f59e0b' : '#d97706';
+                    }
+                }
+                
                 if (equipo.estado === 'limpieza' && equipo.produccion) {
                     const tiempoLimpieza = Math.floor((new Date() - new Date(equipo.produccion.inicioLimpieza)) / 1000);
                     
@@ -6338,6 +6405,71 @@ function imprimirRegistroHACCP(d) {
             openModal('finalizarCoccion');
         }
 
+        // Verifica si la producción actual requiere desmechado
+        // SOLO se activa si el checkbox está marcado en la receta — sin detección automática
+        function _verificarRequiereDesmechado(produccion) {
+            if (!produccion) return { requiere: false, tiempoMin: 0 };
+            const nombreComp = (produccion.componente || produccion.producto || '').toLowerCase();
+            
+            // 1. Buscar en receta activa — ÚNICA fuente de verdad
+            for (const rec of recetas) {
+                const comp = (rec.componentes||[]).find(c => 
+                    (c.nombre||'').toLowerCase().trim() === nombreComp.trim()
+                );
+                if (comp) {
+                    // Solo si el checkbox está explícitamente marcado
+                    if (comp.requiereDesmechado === true) {
+                        return { requiere: true, tiempoMin: comp.tiempoDesmechadoMin || 40 };
+                    }
+                    return { requiere: false, tiempoMin: 0 };
+                }
+            }
+            // 2. Si no está en receta, buscar en la OP directamente
+            if (produccion.requiereDesmechado === true) {
+                return { requiere: true, tiempoMin: produccion.tiempoDesmechadoMin || 40 };
+            }
+            // Sin checkbox marcado = sin desmechado
+            return { requiere: false, tiempoMin: 0 };
+        }
+
+        // Finalizar desmechado → pasar a limpieza y envasado
+        function finalizarDesmechado(equipoId) {
+            const equipo = equipos.find(e => e.id === equipoId);
+            if (!equipo || equipo.estado !== 'desmechado') return;
+            
+            const tiempoDesmechado = Math.floor((new Date() - new Date(equipo.produccion.inicioDesmechado)) / 1000);
+            equipo.produccion.tiempoDesmechadoReal = tiempoDesmechado;
+            equipo.produccion.tiempoDesmechadoFormateado = formatTime(tiempoDesmechado);
+            equipo.produccion.finDesmechado = new Date().toISOString();
+            
+            // Calcular lead time total cocción + desmechado
+            const tiempoCoccion = equipo.produccion.tiempoCoccion || 0;
+            equipo.produccion.tiempoTotalCoccionDesmechado = tiempoCoccion + tiempoDesmechado;
+            
+            // Pasar a limpieza
+            equipo.estado = 'limpieza';
+            equipo.produccion.fase = 'limpieza';
+            equipo.produccion.inicioLimpieza = new Date().toISOString();
+            
+            // Pasar a envasado automáticamente
+            procesosEnvasado.push({
+                ...equipo.produccion,
+                manipulador: equipo.produccion.manipuladorDesmechado || equipo.produccion.operador,
+                equipoNombre: equipo.nombre,
+                equipoId: equipo.id,
+                inicioEnvasado: new Date().toISOString()
+            });
+            
+            // Crear HACCP pendiente
+            crearHACCPPendiente(equipo);
+            
+            guardarDatos();
+            renderEquipos();
+            renderProcesosActivos();
+            updateStats();
+            mostrarNotificacion('✅ Desmechado finalizado — Pasando a Envasado', 'success');
+        }
+
         function finalizarCoccion() {
             const kgReales = parseFloat(document.getElementById('kgReales').value);
             const observaciones = document.getElementById('observaciones').value;
@@ -6359,22 +6491,34 @@ function imprimirRegistroHACCP(d) {
             equipo.produccion.tiempoCoccion = tiempoCoccion;
             equipo.produccion.tiempoCoccionFormateado = formatTime(tiempoCoccion);
 
-            equipo.estado = 'limpieza';
-            equipo.produccion.fase = 'limpieza';
-            equipo.produccion.inicioLimpieza = new Date().toISOString();
+            // Verificar si el componente requiere desmechado
+            const _reqDesmechado = _verificarRequiereDesmechado(equipo.produccion);
+            
+            if (_reqDesmechado.requiere) {
+                // Iniciar fase desmechado — NO pasar a limpieza todavía
+                equipo.estado = 'desmechado';
+                equipo.produccion.fase = 'desmechado';
+                equipo.produccion.inicioDesmechado = new Date().toISOString();
+                equipo.produccion.tiempoDesmechadoMin = _reqDesmechado.tiempoMin;
+                equipo.produccion.manipuladorDesmechado = manipulador;
+                mostrarNotificacion('🔪 Cocción finalizada — Iniciando Desmechado (' + _reqDesmechado.tiempoMin + ' min)', 'success');
+            } else {
+                equipo.estado = 'limpieza';
+                equipo.produccion.fase = 'limpieza';
+                equipo.produccion.inicioLimpieza = new Date().toISOString();
 
-            if (continuarEnvasado === 'si') {
-                procesosEnvasado.push({
-                    ...equipo.produccion,
-                    manipulador,
-                    equipoNombre: equipo.nombre,
-                    equipoId: equipo.id,
-                    inicioEnvasado: new Date().toISOString()
-                });
+                if (continuarEnvasado === 'si') {
+                    procesosEnvasado.push({
+                        ...equipo.produccion,
+                        manipulador,
+                        equipoNombre: equipo.nombre,
+                        equipoId: equipo.id,
+                        inicioEnvasado: new Date().toISOString()
+                    });
+                }
+                // Crear HACCP pendiente para esta producción
+                crearHACCPPendiente(equipo);
             }
-
-            // Crear HACCP pendiente para esta producción
-            crearHACCPPendiente(equipo);
 
             guardarDatos();
             renderEquipos();
@@ -10222,6 +10366,22 @@ function renderComponentesModal() {
         </div>
         <button onclick="eliminarComponente(${ci})" style="background:#ff6b6b;color:white;border:none;border-radius:8px;padding:.4rem .7rem;cursor:pointer;">🗑️</button>
       </div>
+      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.5rem;padding:.5rem .75rem;background:${comp.requiereDesmechado?'#fef3c7':'#f8f9ff'};border-radius:8px;border:1px solid ${comp.requiereDesmechado?'#fcd34d':'#e2e8f0'};">
+        <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.85rem;font-weight:700;color:${comp.requiereDesmechado?'#92400e':'#64748b'};">
+          <input type="checkbox" ${comp.requiereDesmechado?'checked':''} 
+            onchange="componentesTemp[${ci}].requiereDesmechado=this.checked;renderComponentes()"
+            style="width:16px;height:16px;accent-color:#f59e0b;cursor:pointer;">
+          🔪 Requiere Desmechado
+        </label>
+        ${comp.requiereDesmechado ? `
+        <div style="display:flex;flex-direction:column;align-items:center;gap:.1rem;">
+          <input type="number" value="${comp.tiempoDesmechadoMin||''}"
+            oninput="componentesTemp[${ci}].tiempoDesmechadoMin=parseInt(this.value)||0"
+            placeholder="ej: 40" min="1" max="240"
+            style="width:65px;padding:.4rem;border-radius:8px;border:2px solid #fcd34d;background:#fffbeb;text-align:center;font-weight:700;color:#92400e;">
+          <span style="font-size:.6rem;color:#94a3b8;white-space:nowrap;">🔪 min</span>
+        </div>` : ''}
+      </div>
       <div style="margin-left:1rem;">
         <div style="display:grid;grid-template-columns:1fr 90px 70px 110px 28px;gap:.4rem;margin-bottom:.3rem;padding:0 .2rem;">
           <span style="font-size:.72rem;color:#999;">Ingrediente</span>
@@ -10261,6 +10421,12 @@ function guardarReceta() {
   const nombre = document.getElementById('recetaNombre').value.trim();
   const gramaje = parseFloat(document.getElementById('recetaGramaje').value) || 0;
   if (!sku || !nombre || !gramaje) { alert('El SKU, nombre y gramaje son obligatorios'); return; }
+
+  // Asegurar que los componentes guarden requiereDesmechado y tiempoDesmechadoMin
+  componentesTemp.forEach(c => {
+    if (c.requiereDesmechado === undefined) c.requiereDesmechado = false;
+    if (!c.tiempoDesmechadoMin) c.tiempoDesmechadoMin = 0;
+  });
 
   const receta = {
     id: recetaEditandoId || Date.now().toString(),
@@ -14924,13 +15090,17 @@ function mostrarPopupGantt(eq) {
                 const width = colW - 8;
 
                 // ── 1. BLOQUE ACTIVO (producción en curso) ──
-                if (eq.produccion && eq.produccion.inicio) {
-                    const inicio = new Date(eq.produccion.inicio);
+                if (eq.produccion && (eq.produccion.inicio || eq.estado === 'desmechado')) {
+                    const _esDesmechando2 = eq.estado === 'desmechado';
+                    const inicio = new Date(_esDesmechando2 ? 
+                        (eq.produccion.inicio || eq.produccion.inicioDesmechado) : eq.produccion.inicio);
                     let hInicio = inicio.getHours() + inicio.getMinutes() / 60;
                     if (hInicio < 2) hInicio += 24;
                     if (hInicio < HORA_INICIO || hInicio > 26) {} else {
                         const esEspera = eq.produccion.enEspera || eq.estado === 'en_espera';
                         // Buscar tiempo correcto desde la receta — ignorar VSM si tiene < 5 producciones
+                        // Si está en desmechado, mostrar tiempo total (cocción + desmechado)
+                        const _esDesmechando = eq.estado === 'desmechado';
                         let durMin = (() => {
                             const nombreComp = eq.produccion.componente || eq.produccion.producto || '';
                             // 1. Buscar en receta activa
@@ -14938,14 +15108,20 @@ function mostrarPopupGantt(eq) {
                                 const comp = (rec.componentes||[]).find(c => 
                                     (c.nombre||'').toLowerCase().trim() === nombreComp.toLowerCase().trim()
                                 );
-                                if (comp && comp.tiempoCoccionMin > 0) return comp.tiempoCoccionMin;
+                                if (comp && comp.tiempoCoccionMin > 0) {
+                                    const tCoc = comp.tiempoCoccionMin;
+                                    const tDes = comp.requiereDesmechado ? (comp.tiempoDesmechadoMin || 40) : 0;
+                                    return tCoc + tDes;
+                                }
                             }
                             // 2. Tiempo guardado en la producción activa
-                            if (eq.produccion.tiempoCoccionMin && eq.produccion.tiempoCoccionMin > 0) 
-                                return eq.produccion.tiempoCoccionMin;
-                            // 3. Default
-                            return 60;
+                            const tBase = eq.produccion.tiempoCoccionMin || 60;
+                            const tDes = eq.produccion.tiempoDesmechadoMin || 0;
+                            return tBase + tDes;
                         })();
+                        // Inicio real: si está desmechando, el inicio fue la cocción
+                        const _inicioReal = _esDesmechando ? 
+                            (eq.produccion.inicio || eq.produccion.inicioDesmechado) : eq.produccion.inicio;
                         const hFin = hInicio + durMin / 60;
                         const ahora = new Date();
                         let hAhora = ahora.getHours() + ahora.getMinutes() / 60;
@@ -14985,10 +15161,11 @@ function mostrarPopupGantt(eq) {
                         bloque.style.cursor = 'pointer';
                         bloque.style.cssText += `position:absolute;top:${top}px;left:${left}px;width:${width}px;height:${altura}px;background:${bgColor};border-left:4px solid ${borderColor};border-radius:0 6px 6px 0;padding:.25rem .4rem;overflow:hidden;z-index:5;box-shadow:0 2px 6px rgba(0,0,0,0.1);cursor:pointer;`;
                         const textoBloque = eq.produccion.componente || eq.produccion.producto || '';
+                        const _faseLabel = _esDesmechando ? '🔪 DESMECHANDO' : (esEspera ? '⏳ En espera' : '🔥 COCCIÓN');
                         bloque.innerHTML = `
                             <div style="font-size:.72rem;font-weight:800;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${textoBloque}</div>
-                            <div style="font-size:.65rem;color:#64748b;margin-top:.1rem;">OP ${eq.produccion.numeroOP||''}</div>
-                            <div style="font-size:.65rem;color:${borderColor};font-weight:700;">${esEspera ? '⏳ En espera' : cuentaStr}</div>`;
+                            <div style="font-size:.65rem;color:${_esDesmechando?'#d97706':'#64748b'};margin-top:.1rem;font-weight:${_esDesmechando?'700':'400'};">${_faseLabel}</div>
+                            <div style="font-size:.65rem;color:${borderColor};font-weight:700;">${cuentaStr}</div>`;
                         bloque.onclick = (e) => { e.stopPropagation(); mostrarPopupGantt(eq); };
                         contenedor.appendChild(bloque);
                     }
