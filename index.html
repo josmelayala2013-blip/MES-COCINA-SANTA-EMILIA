@@ -9628,14 +9628,32 @@ function eliminarReceta(id) {
 }
 
 // ---- RENDER LISTA ----
-function forzarRecargaRecetas() {
-    localStorage.removeItem('mes_recetas_ts'); // Borrar timestamp para forzar carga desde Firebase
-    localStorage.removeItem('mes_recetas');    // Borrar recetas locales
+async function forzarRecargaRecetas() {
+    mostrarNotificacion('🔄 Cargando recetas...', 'info');
+    localStorage.removeItem('mes_recetas_ts');
+    localStorage.removeItem('mes_recetas');
     recetas = [];
-    cargarRecetasFirebase().then(() => {
-        renderListaRecetas();
-        mostrarNotificacion('✅ Recetas recargadas: ' + recetas.length, 'success');
-    });
+    // Cargar directamente desde Firebase sin pasar por la lógica de comparación
+    try {
+        const {doc, getDoc} = window.firestoreFunctions;
+        const docSnap = await getDoc(doc(window.db, 'mes-data', 'recetas'));
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.recetas && data.recetas.length > 0) {
+                recetas = data.recetas;
+                localStorage.setItem('mes_recetas', JSON.stringify(recetas));
+                localStorage.setItem('mes_recetas_ts', data.ultimaActualizacion || new Date().toISOString());
+                renderListaRecetas();
+                cargarSelectorOPsSimple();
+                mostrarNotificacion('✅ ' + recetas.length + ' recetas cargadas', 'success');
+                return;
+            }
+        }
+        mostrarNotificacion('⚠️ No hay recetas en Firebase', 'warning');
+    } catch(e) {
+        mostrarNotificacion('❌ Error: ' + e.message, 'warning');
+        console.error(e);
+    }
 }
 
 function renderListaRecetas() {
