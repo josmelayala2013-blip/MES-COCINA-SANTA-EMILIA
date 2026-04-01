@@ -10688,6 +10688,19 @@ function renderComponentesSandwich() {
           <input type="checkbox" ${comp.esInsumo?'checked':''} onchange="componentesSandwichTemp[${ci}].esInsumo=this.checked;if(this.checked){componentesSandwichTemp[${ci}].preparacionFria=false;}renderComponentesSandwich()" style="accent-color:#6b7280;">
           📦 Insumo (no se produce)
         </label>
+        ${!comp.preparacionFria && !comp.esInsumo ? `
+        <label style="display:flex;align-items:center;gap:.3rem;cursor:pointer;font-size:.78rem;font-weight:700;padding:.25rem .6rem;border-radius:6px;border:1px solid ${comp.requiereDesmechado?'#fcd34d':'#e2e8f0'};background:${comp.requiereDesmechado?'#fef3c7':'#f8fafc'};color:${comp.requiereDesmechado?'#92400e':'#94a3b8'};" title="Requiere proceso de desmechado después de cocción">
+          <input type="checkbox" ${comp.requiereDesmechado?'checked':''} onchange="componentesSandwichTemp[${ci}].requiereDesmechado=this.checked;renderComponentesSandwich()" style="accent-color:#f59e0b;">
+          🔪 Requiere Desmechado
+        </label>
+        ${comp.requiereDesmechado ? \`
+        <div style="display:flex;align-items:center;gap:.3rem;background:#fef3c7;border-radius:6px;padding:.25rem .6rem;border:1px solid #fcd34d;">
+          <span style="font-size:.75rem;color:#92400e;font-weight:600;">🔪 min:</span>
+          <input type="number" value="${comp.tiempoDesmechadoMin||''}" min="1" max="240"
+            oninput="componentesSandwichTemp[${ci}].tiempoDesmechadoMin=parseInt(this.value)||0"
+            style="width:55px;padding:.2rem .3rem;border-radius:5px;border:1px solid #fcd34d;font-size:.85rem;font-weight:700;color:#92400e;text-align:center;"
+            placeholder="40">
+        </div>\` : ''}` : ''}
       </div>
       <div style="margin-left:.5rem;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;">
@@ -10878,6 +10891,20 @@ function renderComponentesAveMayo() {
         </div>` : ''}
         <button onclick="eliminarComponenteAveMayo(${ci})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:7px;padding:.4rem .7rem;cursor:pointer;">✕</button>
       </div>
+      ${!comp.preparacionFria ? `
+      <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem;">
+        <label style="display:flex;align-items:center;gap:.3rem;cursor:pointer;font-size:.78rem;font-weight:700;padding:.25rem .6rem;border-radius:6px;border:1px solid ${comp.requiereDesmechado?'#fcd34d':'#e2e8f0'};background:${comp.requiereDesmechado?'#fef3c7':'#f8fafc'};color:${comp.requiereDesmechado?'#92400e':'#94a3b8'};">
+          <input type="checkbox" ${comp.requiereDesmechado?'checked':''} onchange="componentesAveMayoTemp[${ci}].requiereDesmechado=this.checked;renderComponentesAveMayo()" style="accent-color:#f59e0b;">
+          🔪 Requiere Desmechado
+        </label>
+        ${comp.requiereDesmechado ? \`
+        <div style="display:flex;align-items:center;gap:.3rem;background:#fef3c7;border-radius:6px;padding:.25rem .6rem;border:1px solid #fcd34d;">
+          <span style="font-size:.75rem;color:#92400e;font-weight:600;">🔪 min:</span>
+          <input type="number" value="${comp.tiempoDesmechadoMin||''}" min="1" max="240"
+            oninput="componentesAveMayoTemp[${ci}].tiempoDesmechadoMin=parseInt(this.value)||0"
+            style="width:55px;padding:.2rem .3rem;border-radius:5px;border:1px solid #fcd34d;font-size:.85rem;font-weight:700;color:#92400e;text-align:center;" placeholder="40">
+        </div>\` : ''}
+      </div>` : ''}
       <div style="margin-left:.5rem;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;">
           <span style="font-size:.8rem;font-weight:600;color:#065f46;">🧂 Ingredientes del componente</span>
@@ -16367,48 +16394,122 @@ ${d._ingredientes.map(ing => `<tr>
         function crearHACCPPendienteModulo(modulo, proceso) {
             const hoy = new Date().toISOString().split('T')[0];
             const horaFin = new Date().toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'});
-            const pendiente = {
-                id: Date.now().toString(),
-                fecha: new Date().toLocaleDateString('es-CL'),
-                fechaISO: hoy,
-                horaFin,
-                modulo,
-                equipoNombre: proceso.equipoNombre || '—',
-                producto: proceso.producto || '—',
-                componente: proceso.componente || proceso.producto || '—',
-                numeroOP: proceso.numeroOP || '—',
-                operador: modulo === 'envasado'
-                    ? (proceso.operadoraCierre || proceso.operador || proceso.manipulador || '—')
-                    : (proceso.operador || proceso.manipulador || '—'),
-                operadoraCierre: proceso.operadoraCierre || null,
-                kgProgramados: proceso.kgProgramados || 0,
-                kgReales: proceso.kgReales || proceso.kgAbatimiento || 0,
-                tiempoFormateado: modulo === 'envasado' ? (proceso.tiempoEnvasadoFormateado || '—') : (proceso.tiempoAbatimientoFormateado || '—'),
-                // Datos envasado
-                tempInicioEnvasado: proceso.tempInicioEnvasado || null,
-                tempFinEnvasado: proceso.tempFinEnvasado || null,
-                horaInicioEnvasado: proceso.horaInicioEnvasado || null,
-                horaFinEnvasado: proceso.horaFinEnvasado || null,
-                // Datos abatimiento — para autollenar HACCP
-                formato: proceso.formato || '',
-                horaIngresoISO: proceso.horaIngresoISO || proceso.inicioAbatimiento || null,
-                horaSalidaISO: proceso.horaSalidaISO || proceso.finAbatimiento || null,
-                tempEntrada: proceso.tempInicioAbatimiento || null,
-                tempSalida: proceso.tempSalida || proceso.tempFinAbatimiento || null,
-                cumpleLimite: proceso.cumpleLimite ?? null,
-                estado: 'pendiente',
-                completadoPor: null,
-                completadoEn: null,
-                datosHACCP: null
-            };
+
             if (modulo === 'envasado') {
+                // ENVASADO: Siempre un solo registro por proceso — con tandas consolidadas
+                const kgTotal = (proceso.tandas || []).reduce((s, t) => s + (t.kg || 0), 0) || proceso.kgAbatimiento || proceso.kgReales || 0;
+                const nBolsasTotal = (proceso.tandas || []).reduce((s, t) => s + (t.nBolsas || 0), 0);
+                const pendiente = {
+                    id: Date.now().toString(),
+                    fecha: new Date().toLocaleDateString('es-CL'),
+                    fechaISO: hoy,
+                    horaFin,
+                    modulo,
+                    equipoNombre: proceso.equipoNombre || '—',
+                    producto: proceso.producto || '—',
+                    componente: proceso.componente || proceso.producto || '—',
+                    numeroOP: proceso.numeroOP || '—',
+                    operador: proceso.operadoraCierre || proceso.operador || proceso.manipulador || '—',
+                    operadoraCierre: proceso.operadoraCierre || null,
+                    kgProgramados: proceso.kgProgramados || 0,
+                    kgReales: kgTotal,
+                    nBolsasTotal,
+                    tiempoFormateado: proceso.tiempoEnvasadoFormateado || '—',
+                    // Temperaturas
+                    tempInicioEnvasado: proceso.tempInicioEnvasado || null,
+                    tempFinEnvasado: proceso.tempFinEnvasado || null,
+                    horaInicioEnvasado: proceso.horaInicioEnvasado || null,
+                    horaFinEnvasado: proceso.horaFinEnvasado || null,
+                    // Detalle de tandas consolidado
+                    tandas: proceso.tandas || [],
+                    nTandas: (proceso.tandas || []).length,
+                    estado: 'pendiente',
+                    completadoPor: null,
+                    completadoEn: null,
+                    datosHACCP: null
+                };
                 haccpPendientesEnvasado.push(pendiente);
                 guardarHACCPPendientesModulo('envasado');
                 renderHACCPPendientesModulo('envasado');
+
             } else {
-                haccpPendientesAbatimiento.push(pendiente);
-                guardarHACCPPendientesModulo('abatimiento');
-                renderHACCPPendientesModulo('abatimiento');
+                // ABATIMIENTO: Acumular en registro existente del mismo producto+OP
+                // Buscar si ya hay un pendiente del mismo producto y OP del día de hoy
+                const existente = haccpPendientesAbatimiento.find(p =>
+                    p.estado === 'pendiente' &&
+                    p.fechaISO === hoy &&
+                    (p.componente || p.producto) === (proceso.componente || proceso.producto) &&
+                    p.numeroOP === (proceso.numeroOP || '—')
+                );
+
+                const kgEsta = proceso.kgReales || proceso.kgAbatimiento || 0;
+
+                if (existente) {
+                    // Acumular kg en el registro existente
+                    existente.kgReales = (existente.kgReales || 0) + kgEsta;
+                    existente.nTandas = (existente.nTandas || 1) + 1;
+                    existente.tandas = existente.tandas || [];
+                    existente.tandas.push({
+                        kg: kgEsta,
+                        tempEntrada: proceso.tempInicioAbatimiento || null,
+                        tempSalida: proceso.tempSalida || proceso.tempFinAbatimiento || null,
+                        cumpleLimite: proceso.cumpleLimite ?? null,
+                        horaIngreso: proceso.horaIngresoISO || proceso.inicioAbatimiento || null,
+                        horaSalida: proceso.horaSalidaISO || proceso.finAbatimiento || null,
+                        formato: proceso.formato || '',
+                        tiempoMin: proceso.tiempoAbatimientoFormateado || '—'
+                    });
+                    // Actualizar temperatura de salida con la última tanda
+                    if (proceso.tempSalida || proceso.tempFinAbatimiento) {
+                        existente.tempSalida = proceso.tempSalida || proceso.tempFinAbatimiento;
+                    }
+                    existente.horaFin = horaFin;
+                    guardarHACCPPendientesModulo('abatimiento');
+                    renderHACCPPendientesModulo('abatimiento');
+                } else {
+                    // Crear nuevo registro acumulador
+                    const pendiente = {
+                        id: Date.now().toString(),
+                        fecha: new Date().toLocaleDateString('es-CL'),
+                        fechaISO: hoy,
+                        horaFin,
+                        modulo,
+                        equipoNombre: proceso.equipoNombre || '—',
+                        producto: proceso.producto || '—',
+                        componente: proceso.componente || proceso.producto || '—',
+                        numeroOP: proceso.numeroOP || '—',
+                        operador: proceso.operador || proceso.manipulador || '—',
+                        operadoraCierre: proceso.operadoraCierre || null,
+                        kgProgramados: proceso.kgProgramados || 0,
+                        kgReales: kgEsta,
+                        nTandas: 1,
+                        tandas: [{
+                            kg: kgEsta,
+                            tempEntrada: proceso.tempInicioAbatimiento || null,
+                            tempSalida: proceso.tempSalida || proceso.tempFinAbatimiento || null,
+                            cumpleLimite: proceso.cumpleLimite ?? null,
+                            horaIngreso: proceso.horaIngresoISO || proceso.inicioAbatimiento || null,
+                            horaSalida: proceso.horaSalidaISO || proceso.finAbatimiento || null,
+                            formato: proceso.formato || '',
+                            tiempoMin: proceso.tiempoAbatimientoFormateado || '—'
+                        }],
+                        tiempoFormateado: proceso.tiempoAbatimientoFormateado || '—',
+                        // Datos abatimiento
+                        formato: proceso.formato || '',
+                        horaIngresoISO: proceso.horaIngresoISO || proceso.inicioAbatimiento || null,
+                        horaSalidaISO: proceso.horaSalidaISO || proceso.finAbatimiento || null,
+                        tempEntrada: proceso.tempInicioAbatimiento || null,
+                        tempSalida: proceso.tempSalida || proceso.tempFinAbatimiento || null,
+                        cumpleLimite: proceso.cumpleLimite ?? null,
+                        estado: 'pendiente',
+                        completadoPor: null,
+                        completadoEn: null,
+                        datosHACCP: null
+                    };
+                    haccpPendientesAbatimiento.push(pendiente);
+                    guardarHACCPPendientesModulo('abatimiento');
+                    renderHACCPPendientesModulo('abatimiento');
+                }
             }
         }
 
