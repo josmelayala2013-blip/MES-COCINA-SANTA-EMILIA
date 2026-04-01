@@ -6521,8 +6521,13 @@ function imprimirRegistroHACCP(d) {
                 proceso.tempInicioEnvasado = parseFloat(tempInicio);
                 proceso.horaInicioEnvasado = horaInicio;
             }
-            // T° final solo en última tanda
+            // T° final solo en última tanda — OBLIGATORIA
             const tempFin = document.getElementById('tandaTempFin')?.value;
+            if (esUltimaTanda && !tempFin) {
+                // Mostrar popup de alerta — no guardar sin temperatura
+                _mostrarAlertaTempFinal(procesoActual);
+                return;
+            }
             if (esUltimaTanda && tempFin) {
                 proceso.tempFinEnvasado = parseFloat(tempFin);
                 proceso.horaFinEnvasado = horaFin;
@@ -6584,18 +6589,58 @@ function imprimirRegistroHACCP(d) {
             mostrarNotificacion(`✅ Tanda ${tanda.nTanda}: ${kg} kg → Abatimiento`, 'success');
         }
 
+        function _mostrarAlertaTempFinal(procesoIdx, tandaIdx) {
+            // Popup visible de alerta
+            let modal = document.getElementById('_modalAlertaTempFinal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = '_modalAlertaTempFinal';
+                modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:99999;display:flex;align-items:center;justify-content:center;';
+                document.body.appendChild(modal);
+            }
+
+            const proceso = procesosEnvasado[procesoIdx];
+            const tandas = proceso?.tandas || [];
+            const ultimaTanda = tandas[tandas.length - 1];
+            const tandaInfo = ultimaTanda ? 
+                `Tanda ${ultimaTanda.nTanda} — ${ultimaTanda.kg} kg · ${ultimaTanda.horaInicio} → ${ultimaTanda.horaFin}` : 
+                'última tanda registrada';
+
+            modal.innerHTML = `
+                <div style="background:white;border-radius:20px;padding:2rem;max-width:480px;width:90%;box-shadow:0 25px 60px rgba(0,0,0,.4);border-top:6px solid #ef4444;text-align:center;">
+                    <div style="font-size:3.5rem;margin-bottom:.75rem;">⚠️</div>
+                    <h2 style="color:#dc2626;margin:0 0 .75rem;font-size:1.3rem;">¡Temperatura Final Faltante!</h2>
+                    <p style="color:#475569;font-size:.95rem;line-height:1.6;margin-bottom:.5rem;">
+                        La <strong>${tandaInfo}</strong> no tiene temperatura final registrada.
+                    </p>
+                    <p style="color:#64748b;font-size:.88rem;margin-bottom:1.5rem;background:#fef2f2;border-radius:8px;padding:.75rem;border-left:4px solid #ef4444;">
+                        ⛔ No se puede crear una nueva tanda.<br>
+                        Debes <strong>editar la última tanda</strong> y agregar la temperatura final.
+                    </p>
+                    <div style="display:flex;gap:.75rem;justify-content:center;">
+                        <button onclick="
+                            document.getElementById('_modalAlertaTempFinal').style.display='none';
+                            editarTandaEnvasado(${procesoIdx}, ${tandas.length - 1});
+                        " style="flex:1;padding:.85rem;background:linear-gradient(135deg,#dc2626,#ef4444);color:white;border:none;border-radius:12px;font-weight:700;cursor:pointer;font-size:1rem;">
+                            ✏️ Editar Última Tanda
+                        </button>
+                        <button onclick="document.getElementById('_modalAlertaTempFinal').style.display='none';"
+                            style="padding:.85rem 1.25rem;background:#f1f5f9;color:#64748b;border:none;border-radius:12px;font-weight:600;cursor:pointer;">
+                            Cancelar
+                        </button>
+                    </div>
+                </div>`;
+            modal.style.display = 'flex';
+        }
+
         function cerrarCicloEnvasado(index) {
             const proceso = procesosEnvasado[index];
             const tandas = proceso.tandas || [];
 
             // Verificar que la última tanda tenga temperatura final
             if (!proceso.tempFinEnvasado) {
-                mostrarNotificacion('⚠️ Debes registrar la temperatura final en la última tanda antes de cerrar el ciclo', 'error');
-                // Abrir modal de la última tanda para que registre la temperatura
-                setTimeout(() => {
-                    procesoActual = index;
-                    abrirRegistrarTanda(index);
-                }, 500);
+                const ultimaTandaIdx = tandas.length - 1;
+                _mostrarAlertaTempFinal(index, ultimaTandaIdx);
                 return;
             }
 
@@ -6679,6 +6724,12 @@ function imprimirRegistroHACCP(d) {
                         <input type="time" id="_editTandaHoraFin" value="${t.horaFin||''}"
                             style="width:100%;padding:.65rem;border-radius:8px;border:2px solid #e2e8f0;font-size:.95rem;box-sizing:border-box;">
                     </div>
+                    <div>
+                        <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.3rem;">Temperatura Final °C <span style="color:#dc2626;font-size:.8rem;">(requerida en ultima tanda)</span></label>
+                        <input type="number" id="_editTandaTempFin" value="${t.tempFin||''}" step="0.1" placeholder="Ej: 68.5"
+                            style="width:100%;padding:.65rem;border-radius:8px;border:2px solid ${t.tempFin?'#10b981':'#fca5a5'};font-size:1rem;font-weight:700;box-sizing:border-box;color:#065f46;">
+                        <div style="font-size:.72rem;color:#64748b;margin-top:.25rem;">LC Envasado: ≥65°C</div>
+                    </div>
                 </div>
                 <div style="display:flex;gap:.75rem;">
                     <button onclick="_guardarEdicionTanda(${procesoIdx},${tandaIdx})"
@@ -6703,10 +6754,19 @@ function imprimirRegistroHACCP(d) {
             const nuevoHoraIni = document.getElementById('_editTandaHoraIni')?.value;
             const nuevoHoraFin = document.getElementById('_editTandaHoraFin')?.value;
             if (!nuevoKg || nuevoKg <= 0) { alert('Ingresa los kg correctamente'); return; }
+            const nuevoTempFin = document.getElementById('_editTandaTempFin')?.value;
             t.kg = nuevoKg;
             t.nBolsas = nuevoBolsas || t.nBolsas;
             t.horaInicio = nuevoHoraIni || t.horaInicio;
             t.horaFin = nuevoHoraFin || t.horaFin;
+            if (nuevoTempFin) {
+                t.tempFin = nuevoTempFin;
+                const esUltima = tandaIdx === proceso.tandas.length - 1;
+                if (esUltima) {
+                    proceso.tempFinEnvasado = parseFloat(nuevoTempFin);
+                    proceso.horaFinEnvasado = nuevoHoraFin || t.horaFin;
+                }
+            }
             // Recalcular tak time
             if (nuevoHoraIni && nuevoHoraFin) {
                 const [h1,m1] = nuevoHoraIni.split(':').map(Number);
