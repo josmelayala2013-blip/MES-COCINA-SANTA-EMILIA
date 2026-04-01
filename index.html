@@ -712,7 +712,11 @@
 
             <!-- Panel HACCP Completados del día -->
             <!-- Botón y Panel HACCP Dashboard -->
-            <div style="margin:0 1.5rem .75rem;display:flex;justify-content:flex-end;">
+            <div style="margin:0 1.5rem .75rem;display:flex;justify-content:flex-end;gap:.5rem;">
+                <button onclick="abrirCrearHACCPManual()"
+                    style="background:linear-gradient(135deg,#dc2626,#b91c1c);color:white;border:none;border-radius:10px;padding:.5rem 1.1rem;cursor:pointer;font-weight:700;font-size:.85rem;">
+                    ➕ Registrar HACCP Pendiente
+                </button>
                 <button onclick="togglePanelHACCP('cocina')"
                     style="background:linear-gradient(135deg,#1e3a5f,#2d5986);color:white;border:none;border-radius:10px;padding:.5rem 1.1rem;cursor:pointer;font-weight:700;font-size:.85rem;">
                     📋 Registros HACCP del Día
@@ -16521,6 +16525,141 @@ ${d._ingredientes.map(ing => `<tr>
                     try { const {doc,setDoc}=window.firestoreFunctions; setDoc(doc(window.db,'mes-data','haccp-pend-abatimiento'),{pendientes:haccpPendientesAbatimiento,ts:new Date().toISOString()}); } catch(e) {}
                 }
             }
+        }
+
+        function abrirCrearHACCPManual() {
+            let modal = document.getElementById('_modalHACCPManual');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = '_modalHACCPManual';
+                modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:99999;display:flex;align-items:center;justify-content:center;overflow-y:auto;';
+                document.body.appendChild(modal);
+            }
+
+            const hoy = new Date().toISOString().split('T')[0];
+            const horaActual = new Date().toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'});
+
+            modal.innerHTML = `
+                <div style="background:white;border-radius:20px;padding:2rem;max-width:520px;width:90%;box-shadow:0 25px 60px rgba(0,0,0,.4);border-top:6px solid #1e3a5f;margin:2rem auto;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+                        <h2 style="color:#1e3a5f;margin:0;font-size:1.15rem;">➕ Registrar HACCP Pendiente de Cocina</h2>
+                        <button onclick="document.getElementById('_modalHACCPManual').style.display='none'"
+                            style="background:#f1f5f9;border:none;border-radius:8px;padding:.4rem .7rem;cursor:pointer;font-size:1.1rem;">✕</button>
+                    </div>
+                    <div style="background:#fef2f2;border-left:4px solid #dc2626;border-radius:8px;padding:.75rem;margin-bottom:1rem;font-size:.85rem;color:#991b1b;">
+                        ⚠️ Usa esto solo para preparaciones que ya se cocinaron pero cuyo registro HACCP no se generó automáticamente.
+                    </div>
+                    <div style="display:grid;gap:.75rem;margin-bottom:1.25rem;">
+                        <div>
+                            <label style="font-weight:700;font-size:.85rem;display:block;margin-bottom:.3rem;">Nombre del Componente / Preparación *</label>
+                            <input id="_haccpManualComponente" type="text" placeholder="Ej: Salsa Mermelada de Tocino Ahumado"
+                                style="width:100%;padding:.6rem;border-radius:8px;border:2px solid #1e3a5f;font-size:.9rem;box-sizing:border-box;">
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
+                            <div>
+                                <label style="font-weight:700;font-size:.85rem;display:block;margin-bottom:.3rem;">N° OP</label>
+                                <input id="_haccpManualOP" type="text" placeholder="Ej: OP-001"
+                                    style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;font-size:.9rem;box-sizing:border-box;">
+                            </div>
+                            <div>
+                                <label style="font-weight:700;font-size:.85rem;display:block;margin-bottom:.3rem;">Equipo</label>
+                                <select id="_haccpManualEquipo" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;font-size:.9rem;">
+                                    ${equipos.map(e => `<option value="${e.nombre}">${e.nombre}</option>`).join('')}
+                                </select>
+                            </div>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
+                            <div>
+                                <label style="font-weight:700;font-size:.85rem;display:block;margin-bottom:.3rem;">Kg Producidos</label>
+                                <input id="_haccpManualKg" type="number" placeholder="Ej: 45" step="0.1"
+                                    style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;font-size:.9rem;box-sizing:border-box;">
+                            </div>
+                            <div>
+                                <label style="font-weight:700;font-size:.85rem;display:block;margin-bottom:.3rem;">Hora Término</label>
+                                <input id="_haccpManualHora" type="time" value="${horaActual}"
+                                    style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;font-size:.9rem;box-sizing:border-box;">
+                            </div>
+                        </div>
+                        <div>
+                            <label style="font-weight:700;font-size:.85rem;display:block;margin-bottom:.3rem;">Operador</label>
+                            <select id="_haccpManualOperador" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;font-size:.9rem;">
+                                <option value="">— Selecciona —</option>
+                                ${(window._personalCocina||[]).map(p => `<option value="${p.nombre}">${p.nombre}</option>`).join('')}
+                            </select>
+                            <input id="_haccpManualOperadorTexto" type="text" placeholder="O escribe el nombre del operador"
+                                style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;font-size:.85rem;margin-top:.4rem;box-sizing:border-box;">
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:.75rem;">
+                        <button onclick="_confirmarHACCPManual()" 
+                            style="flex:1;padding:.85rem;background:linear-gradient(135deg,#1e3a5f,#2d5986);color:white;border:none;border-radius:12px;font-weight:700;cursor:pointer;font-size:.95rem;">
+                            ✅ Crear Registro Pendiente
+                        </button>
+                        <button onclick="document.getElementById('_modalHACCPManual').style.display='none';"
+                            style="padding:.85rem 1.25rem;background:#f1f5f9;color:#64748b;border:none;border-radius:12px;font-weight:600;cursor:pointer;">
+                            Cancelar
+                        </button>
+                    </div>
+                </div>`;
+            modal.style.display = 'flex';
+        }
+
+        function _confirmarHACCPManual() {
+            const componente = document.getElementById('_haccpManualComponente')?.value.trim();
+            const numeroOP = document.getElementById('_haccpManualOP')?.value.trim() || '—';
+            const equipoNombre = document.getElementById('_haccpManualEquipo')?.value || '—';
+            const kg = parseFloat(document.getElementById('_haccpManualKg')?.value) || 0;
+            const horaTermino = document.getElementById('_haccpManualHora')?.value || '';
+            const operadorSelect = document.getElementById('_haccpManualOperador')?.value || '';
+            const operadorTexto = document.getElementById('_haccpManualOperadorTexto')?.value.trim() || '';
+            const operador = operadorTexto || operadorSelect || '—';
+
+            if (!componente) { alert('Ingresa el nombre del componente'); return; }
+            if (!kg || kg <= 0) { alert('Ingresa los kg producidos'); return; }
+            if (!operador || operador === '—') { alert('Ingresa el nombre del operador'); return; }
+
+            const hoy = new Date().toISOString().split('T')[0];
+            const pendiente = {
+                id: Date.now().toString(),
+                fecha: new Date().toLocaleDateString('es-CL'),
+                fechaISO: hoy,
+                horaFinCoccion: horaTermino,
+                equipoId: null,
+                equipoNombre,
+                producto: componente,
+                componente,
+                numeroOP,
+                opVinculadaId: null,
+                operador,
+                kgProgramados: kg,
+                kgReales: kg,
+                horaInicio: '',
+                horaTermino,
+                tiempoCoccionFormateado: '—',
+                estado: 'pendiente',
+                completadoPor: null,
+                completadoEn: null,
+                datosHACCP: null,
+                _creadoManualmente: true
+            };
+
+            haccpPendientes.push(pendiente);
+            guardarHACCPPendientes();
+            renderHACCPPendientes();
+            renderHACCPCompletados();
+
+            document.getElementById('_modalHACCPManual').style.display = 'none';
+            mostrarNotificacion('✅ Registro HACCP pendiente creado para ' + componente, 'success');
+
+            // Abrir panel de HACCP del día para mostrarlo
+            setTimeout(() => {
+                const panel = document.getElementById('panelHACCPCocina');
+                if (panel) {
+                    panel.style.display = 'block';
+                    const fechaEl = document.getElementById('fechaHACCPCocina');
+                    if (fechaEl) { fechaEl.value = hoy; renderHACCPPorFecha('cocina'); }
+                }
+            }, 300);
         }
 
         function crearHACCPPendienteModulo(modulo, proceso) {
