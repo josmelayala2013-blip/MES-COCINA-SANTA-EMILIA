@@ -6001,12 +6001,33 @@ function imprimirRegistroHACCP(d) {
             const select = document.getElementById('productoSelect');
             select.innerHTML = '<option value="">Selecciona un producto...</option>';
             
+            // Productos base
             productos.forEach(p => {
                 const option = document.createElement('option');
                 option.value = p.nombre;
                 option.textContent = `${p.nombre} (${p.categoria})`;
                 select.appendChild(option);
             });
+
+            // Agregar recetas de tipo salsa, plato, avemayo que no estén ya en productos
+            const nombresBase = productos.map(p => p.nombre.toLowerCase());
+            const tiposReceta = ['salsa','plato','avemayo'];
+            const recetasExtra = recetas.filter(r => tiposReceta.includes(r.tipo||'plato'));
+            if (recetasExtra.length > 0) {
+                const sep = document.createElement('option');
+                sep.disabled = true;
+                sep.textContent = '── Recetas ──';
+                select.appendChild(sep);
+                recetasExtra.forEach(r => {
+                    if (nombresBase.includes(r.nombre.toLowerCase())) return;
+                    const opt = document.createElement('option');
+                    opt.value = r.nombre;
+                    const tipoLabel = r.tipo === 'salsa' ? '🥫 Salsa' : 
+                                     r.tipo === 'avemayo' ? '🥗 Ave Mayo' : '🍽️ Plato';
+                    opt.textContent = `${r.nombre} (${tipoLabel})`;
+                    select.appendChild(opt);
+                });
+            }
         }
 
         // ============================================
@@ -6316,7 +6337,12 @@ function imprimirRegistroHACCP(d) {
 
             const equipo = equipos.find(e => e.id === equipoSeleccionado);
             const _prodRef3 = productos.find(p => p.nombre === producto || producto.toLowerCase().includes(p.nombre.toLowerCase()));
-            const _tiempoCoccion3 = _prodRef3 ? ((_prodRef3.tiempoCoccionMin && _prodRef3.tiempoCoccionMin > 0) ? _prodRef3.tiempoCoccionMin : ((_prodRef3.vsm && _prodRef3.vsm.promCoccion && _prodRef3.vsm.totalProducciones >= 3) ? _prodRef3.vsm.promCoccion : 60)) : 60;
+            // Si no está en productos base, buscar tiempo en recetas
+            const _recetaRef3 = !_prodRef3 ? recetas.find(r => r.nombre === producto || r.nombre.toLowerCase() === producto.toLowerCase()) : null;
+            const _tiempoCoccion3 = _prodRef3 ? 
+                ((_prodRef3.tiempoCoccionMin && _prodRef3.tiempoCoccionMin > 0) ? _prodRef3.tiempoCoccionMin : 
+                ((_prodRef3.vsm && _prodRef3.vsm.promCoccion && _prodRef3.vsm.totalProducciones >= 3) ? _prodRef3.vsm.promCoccion : 60)) :
+                (_recetaRef3 ? ((_recetaRef3.componentes||[]).reduce((max,c) => Math.max(max, c.tiempoCoccionMin||0), 0) || 60) : 60);
             const _esDiferido = !!window._inicioDiferido;
             const _inicioReal = window._inicioDiferido || new Date().toISOString();
 
