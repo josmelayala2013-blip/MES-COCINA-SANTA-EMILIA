@@ -2418,6 +2418,8 @@
 
             // Cargar recetas desde Firebase al iniciar
             setTimeout(() => cargarRecetasFirebase(), 800);
+            // Sincronizar HACCP pendientes cocina desde Firebase
+            setTimeout(() => sincronizarHACCPCocinaDesdeFirebase(), 900);
             // Mostrar HACCP pendientes del día anterior
             setTimeout(() => renderHACCPPendientes(), 1000);
             // Cargar historial HACCP desde Firebase
@@ -8016,7 +8018,7 @@ function imprimirRegistroHACCP(d) {
             // Marcar tab activo — usar el elemento pasado, o event si está disponible, o buscar por data-modulo
             const _target = targetEl || (typeof event !== 'undefined' && event?.target) || document.querySelector(`.nav-tab[data-modulo="${tabName}"]`);
             if (_target) _target.classList.add('active');
-            if (tabName === 'dashboard') { renderEquipos(); updateStats(); renderHACCPCompletados(); }
+            if (tabName === 'dashboard') { sincronizarHACCPCocinaDesdeFirebase(); renderEquipos(); updateStats(); }
             else if (tabName === 'historial') cargarHistorialFecha();
             else if (tabName === 'acondCarnes') { /* pestaña lista */ }
             else if (tabName === 'acondVegetales') { /* pestaña lista */ }
@@ -8642,7 +8644,84 @@ function limpiarComponentesFriosDeEquipos() {
                     if (typeof actualizarBadgeAbatimiento === 'function') actualizarBadgeAbatimiento();
                 });
 
-                console.log('👀 Escuchando cambios en tiempo real (dashboard + OPs + Abatimiento)...');
+                // ── LISTENER 4: haccp-pendientes (cocina) ──
+                const haccpRef = doc(window.db, 'mes-data', 'haccp-pendientes');
+                onSnapshot(haccpRef, (snap) => {
+                    if (!snap.exists()) return;
+                    const data = snap.data();
+                    if (!Array.isArray(data.pendientes)) return;
+                    // Merge con locales
+                    const remotos = data.pendientes;
+                    const merged = [...remotos];
+                    haccpPendientes.forEach(local => {
+                        if (!merged.find(r => r.id === local.id)) merged.push(local);
+                    });
+                    haccpPendientes = merged;
+                    localStorage.setItem('mes_haccp_pendientes', JSON.stringify(haccpPendientes));
+                    renderHACCPPendientes();
+                    renderHACCPCompletados();
+                });
+
+                // ── LISTENER 5: haccp-pend-envasado ──
+                onSnapshot(doc(window.db, 'mes-data', 'haccp-pend-envasado'), (snap) => {
+                    if (!snap.exists()) return;
+                    const data = snap.data();
+                    if (!Array.isArray(data.pendientes)) return;
+                    const merged = [...data.pendientes];
+                    haccpPendientesEnvasado.forEach(l => { if (!merged.find(r => r.id === l.id)) merged.push(l); });
+                    haccpPendientesEnvasado = merged;
+                    localStorage.setItem('mes_haccp_pend_envasado', JSON.stringify(haccpPendientesEnvasado));
+                    if (typeof renderHACCPPendientesModulo === 'function') renderHACCPPendientesModulo('envasado');
+                });
+
+                // ── LISTENER 6: haccp-pend-abatimiento ──
+                onSnapshot(doc(window.db, 'mes-data', 'haccp-pend-abatimiento'), (snap) => {
+                    if (!snap.exists()) return;
+                    const data = snap.data();
+                    if (!Array.isArray(data.pendientes)) return;
+                    const merged = [...data.pendientes];
+                    haccpPendientesAbatimiento.forEach(l => { if (!merged.find(r => r.id === l.id)) merged.push(l); });
+                    haccpPendientesAbatimiento = merged;
+                    localStorage.setItem('mes_haccp_pend_abatimiento', JSON.stringify(haccpPendientesAbatimiento));
+                    if (typeof renderHACCPPendientesModulo === 'function') renderHACCPPendientesModulo('abatimiento');
+                });
+
+                // ── LISTENER 7: haccp-pend-carnes ──
+                onSnapshot(doc(window.db, 'mes-data', 'haccp-pend-carnes'), (snap) => {
+                    if (!snap.exists()) return;
+                    const data = snap.data();
+                    if (!Array.isArray(data.pendientes)) return;
+                    const merged = [...data.pendientes];
+                    haccpPendientesCarnes.forEach(l => { if (!merged.find(r => r.id === l.id)) merged.push(l); });
+                    haccpPendientesCarnes = merged;
+                    localStorage.setItem('mes_haccp_pend_carnes', JSON.stringify(haccpPendientesCarnes));
+                    if (typeof renderHACCPPendientesPre === 'function') renderHACCPPendientesPre('carnes');
+                });
+
+                // ── LISTENER 8: haccp-pend-vegetales ──
+                onSnapshot(doc(window.db, 'mes-data', 'haccp-pend-vegetales'), (snap) => {
+                    if (!snap.exists()) return;
+                    const data = snap.data();
+                    if (!Array.isArray(data.pendientes)) return;
+                    const merged = [...data.pendientes];
+                    haccpPendientesVegetales.forEach(l => { if (!merged.find(r => r.id === l.id)) merged.push(l); });
+                    haccpPendientesVegetales = merged;
+                    localStorage.setItem('mes_haccp_pend_vegetales', JSON.stringify(haccpPendientesVegetales));
+                    if (typeof renderHACCPPendientesPre === 'function') renderHACCPPendientesPre('vegetales');
+                });
+
+                // ── LISTENER 9: haccp-historial (completados cocina) ──
+                onSnapshot(doc(window.db, 'mes-data', 'haccp-historial'), (snap) => {
+                    if (!snap.exists()) return;
+                    const data = snap.data();
+                    if (data.cocina && Array.isArray(data.cocina)) {
+                        registrosHACCPHistorial = data.cocina;
+                        localStorage.setItem('mes_haccp_historial', JSON.stringify(registrosHACCPHistorial));
+                        if (typeof renderHACCPCompletados === 'function') renderHACCPCompletados();
+                    }
+                });
+
+                console.log('👀 Escuchando cambios en tiempo real — TODOS los módulos sincronizados');
             } catch (error) {
                 console.error('Error configurando listener:', error);
             }
@@ -14540,6 +14619,28 @@ function mostrarPopupGantt(eq) {
         // Restaurar preps frías persistidas
         if (!window._prepsFriasJornada || window._prepsFriasJornada.length === 0) {
           window._prepsFriasJornada = JSON.parse(localStorage.getItem('mes_prepsFriasJornada') || '[]');
+        }
+
+        async function sincronizarHACCPCocinaDesdeFirebase() {
+            if (!window.db || !window.firestoreLoaded) return;
+            try {
+                const {doc, getDoc} = window.firestoreFunctions;
+                const snap = await getDoc(doc(window.db, 'mes-data', 'haccp-pendientes'));
+                if (!snap.exists()) return;
+                const data = snap.data();
+                if (!Array.isArray(data.pendientes) || data.pendientes.length === 0) return;
+                // Merge — conservar locales también
+                const remotos = data.pendientes;
+                const merged = [...remotos];
+                haccpPendientes.forEach(local => {
+                    if (!merged.find(r => r.id === local.id)) merged.push(local);
+                });
+                haccpPendientes = merged;
+                localStorage.setItem('mes_haccp_pendientes', JSON.stringify(haccpPendientes));
+                renderHACCPPendientes();
+                renderHACCPCompletados();
+                console.log('✅ HACCP cocina sincronizado:', haccpPendientes.length, 'registros');
+            } catch(e) { console.error('Error sync HACCP cocina:', e); }
         }
 
         function guardarHACCPPendientes() {
