@@ -8154,6 +8154,7 @@ function imprimirRegistroHACCP(d) {
                     historialPorFecha: historialParaGuardar,
                     planDiario,
                     ultimaActualizacion: new Date().toISOString(),
+                    dispositivoId: window._dispositivoId || localStorage.getItem('mes_dispositivo_id') || 'unknown',
                     dispositivo: navigator.userAgent.substring(0, 50)
                 });
                 
@@ -8532,7 +8533,26 @@ function limpiarComponentesFriosDeEquipos() {
                 onSnapshot(docRef, (snap) => {
                     if (!snap.exists()) return;
                     const data = snap.data();
-                    const esOtroDispositivo = data.dispositivo !== navigator.userAgent.substring(0, 50);
+                    // Usar ID único por pestaña/sesión, no userAgent
+                    if (!window._dispositivoId) {
+                        window._dispositivoId = localStorage.getItem('mes_dispositivo_id') || 
+                            (Math.random().toString(36).substr(2,9) + Date.now());
+                        localStorage.setItem('mes_dispositivo_id', window._dispositivoId);
+                    }
+                    const esOtroDispositivo = data.dispositivoId !== window._dispositivoId;
+
+                    // Historial: SIEMPRE mergear independiente del dispositivo
+                    if (data.historialPorFecha) {
+                        Object.keys(data.historialPorFecha).forEach(fecha => {
+                            const remotas = data.historialPorFecha[fecha] || [];
+                            const locales = historialPorFecha[fecha] || [];
+                            if (remotas.length > locales.length) {
+                                historialPorFecha[fecha] = remotas;
+                            }
+                        });
+                        localStorage.setItem('mes_historialPorFecha', JSON.stringify(historialPorFecha));
+                        updateStats();
+                    }
 
                     if (!esOtroDispositivo) return;
 
@@ -8553,19 +8573,7 @@ function limpiarComponentesFriosDeEquipos() {
                     procesosEnvasado = data.procesosEnvasado || [];
                     procesosAbatimiento = data.procesosAbatimiento || [];
                     planDiario = data.planDiario || {};
-                    // ⚠️ NUNCA sobreescribir historial desde listener — solo MERGEAR
-                    // Si Firebase tiene fechas que nosotros no tenemos, agregarlas
-                    if (data.historialPorFecha) {
-                        Object.keys(data.historialPorFecha).forEach(fecha => {
-                            const remotas = data.historialPorFecha[fecha] || [];
-                            const locales = historialPorFecha[fecha] || [];
-                            // Usar el que tenga más registros
-                            if (remotas.length > locales.length) {
-                                historialPorFecha[fecha] = remotas;
-                            }
-                        });
-                        localStorage.setItem('mes_historialPorFecha', JSON.stringify(historialPorFecha));
-                    }
+                    // Historial ya mergeado arriba para todos los dispositivos
 
                     // Refrescar UI módulos afectados
                     renderEquipos();
