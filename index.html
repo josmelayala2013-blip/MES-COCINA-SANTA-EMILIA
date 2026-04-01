@@ -6856,6 +6856,112 @@ function imprimirRegistroHACCP(d) {
             modal.style.display = 'flex';
         }
 
+        function cerrarCicloParcialEnvasado(index) {
+            const proceso = procesosEnvasado[index];
+            const tandas = proceso.tandas || [];
+            
+            if (tandas.length === 0) {
+                alert('Debes registrar al menos una tanda antes de cerrar');
+                return;
+            }
+
+            if (!proceso.tempFinEnvasado) {
+                const ultimaTandaIdx = tandas.length - 1;
+                _mostrarAlertaTempFinal(index, ultimaTandaIdx);
+                return;
+            }
+
+            const kgEnvasados = tandas.reduce((s, t) => s + (t.kg || 0), 0);
+            const kgProgramados = proceso.kgReales || proceso.kgProgramados || 0;
+            const kgFaltantes = (kgProgramados - kgEnvasados).toFixed(1);
+            const pct = kgProgramados > 0 ? Math.round(kgEnvasados / kgProgramados * 100) : 0;
+
+            // Modal de confirmación con justificación
+            let modal = document.getElementById('_modalCierreParcial');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = '_modalCierreParcial';
+                modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:99999;display:flex;align-items:center;justify-content:center;';
+                document.body.appendChild(modal);
+            }
+
+            modal.innerHTML = `
+                <div style="background:white;border-radius:20px;padding:2rem;max-width:500px;width:90%;box-shadow:0 25px 60px rgba(0,0,0,.4);border-top:6px solid #f59e0b;">
+                    <div style="font-size:3rem;text-align:center;margin-bottom:.75rem;">⚠️</div>
+                    <h2 style="color:#d97706;margin:0 0 .75rem;font-size:1.2rem;text-align:center;">Cierre Parcial de Envasado</h2>
+                    <div style="background:#fef3c7;border-radius:10px;padding:1rem;margin-bottom:1rem;font-size:.9rem;">
+                        <div style="display:flex;justify-content:space-between;margin-bottom:.4rem;">
+                            <span style="color:#92400e;">Kg programados:</span>
+                            <strong style="color:#92400e;">${kgProgramados} kg</strong>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;margin-bottom:.4rem;">
+                            <span style="color:#92400e;">Kg envasados:</span>
+                            <strong style="color:#059669;">${kgEnvasados.toFixed(1)} kg (${pct}%)</strong>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;">
+                            <span style="color:#92400e;">Kg faltantes:</span>
+                            <strong style="color:#dc2626;">${kgFaltantes} kg</strong>
+                        </div>
+                    </div>
+                    <div style="margin-bottom:1rem;">
+                        <label style="font-weight:700;font-size:.9rem;display:block;margin-bottom:.4rem;color:#374151;">📝 Motivo del cierre parcial *</label>
+                        <select id="_motivoCierreParcial" style="width:100%;padding:.6rem;border-radius:8px;border:2px solid #f59e0b;font-size:.9rem;margin-bottom:.5rem;">
+                            <option value="">— Selecciona un motivo —</option>
+                            <option value="Merma mayor a la esperada">Merma mayor a la esperada</option>
+                            <option value="Producto insuficiente post-cocción">Producto insuficiente post-cocción</option>
+                            <option value="Error en planificación de kg">Error en planificación de kg</option>
+                            <option value="Producto descartado por calidad">Producto descartado por calidad</option>
+                            <option value="Otro">Otro (ver observaciones)</option>
+                        </select>
+                        <textarea id="_obsCierreParcial" placeholder="Observaciones adicionales..." 
+                            style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;font-size:.85rem;resize:vertical;min-height:60px;box-sizing:border-box;"></textarea>
+                    </div>
+                    <div style="display:flex;gap:.75rem;">
+                        <button onclick="
+                            const motivo = document.getElementById('_motivoCierreParcial').value;
+                            const obs = document.getElementById('_obsCierreParcial').value;
+                            if (!motivo) { alert('Selecciona un motivo de cierre parcial'); return; }
+                            document.getElementById('_modalCierreParcial').style.display='none';
+                            _ejecutarCierreParcial(${index}, motivo, obs);
+                        " style="flex:1;padding:.85rem;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:12px;font-weight:700;cursor:pointer;font-size:.95rem;">
+                            ⚠️ Confirmar Cierre Parcial
+                        </button>
+                        <button onclick="document.getElementById('_modalCierreParcial').style.display='none';"
+                            style="padding:.85rem 1.25rem;background:#f1f5f9;color:#64748b;border:none;border-radius:12px;font-weight:600;cursor:pointer;">
+                            Cancelar
+                        </button>
+                    </div>
+                </div>`;
+            modal.style.display = 'flex';
+        }
+
+        function _ejecutarCierreParcial(index, motivo, observaciones) {
+            const proceso = procesosEnvasado[index];
+            const tandas = proceso.tandas || [];
+            const kgTotal = tandas.reduce((s, t) => s + (t.kg || 0), 0);
+            const leadTime = _calcularLeadTime(proceso.inicioEnvasado, tandas);
+            const ultimaTanda = tandas[tandas.length - 1];
+
+            proceso.operadoraCierre = ultimaTanda?.operadora || proceso.manipulador;
+            proceso.finEnvasado = new Date().toISOString();
+            proceso.tiempoEnvasado = Math.floor((new Date() - new Date(proceso.inicioEnvasado)) / 1000);
+            proceso.tiempoEnvasadoFormateado = leadTime;
+            proceso.kgAbatimiento = kgTotal;
+            proceso.cierreParcial = true;
+            proceso.motivoCierreParcial = motivo;
+            proceso.observacionesCierreParcial = observaciones;
+            proceso.kgProgramadosOriginal = proceso.kgReales || proceso.kgProgramados || 0;
+
+            // Crear pendiente HACCP con nota de cierre parcial
+            crearHACCPPendienteModulo('envasado', proceso);
+
+            procesosEnvasado.splice(index, 1);
+            guardarDatos();
+            renderProcesosActivos();
+            updateStats();
+            mostrarNotificacion(`⚠️ Cierre parcial registrado — ${kgTotal.toFixed(1)} kg envasados · Motivo: ${motivo}`, 'success');
+        }
+
         function cerrarCicloEnvasado(index) {
             const proceso = procesosEnvasado[index];
             const tandas = proceso.tandas || [];
@@ -7345,6 +7451,11 @@ function imprimirRegistroHACCP(d) {
                         <button style="flex:2;background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;border-radius:8px;padding:.65rem 1rem;cursor:pointer;font-weight:700;font-size:.9rem;"
                             onclick="cerrarCicloEnvasado(${index})">
                             ✅ Cerrar Ciclo de Envasado
+                        </button>` : ''}
+                        ${!cicloCompleto && tandas.length > 0 ? `
+                        <button style="flex:1;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:8px;padding:.65rem .75rem;cursor:pointer;font-weight:700;font-size:.82rem;white-space:nowrap;"
+                            onclick="cerrarCicloParcialEnvasado(${index})">
+                            ⚠️ Cierre Parcial
                         </button>` : ''}
                         <button style="background:#f5f3ff;border:2px solid #8b5cf6;color:#6d28d9;border-radius:8px;padding:.5rem .75rem;cursor:pointer;font-weight:700;font-size:.82rem;white-space:nowrap;"
                             onclick="abrirRegistroHACCPEnvasado(${index})">📋 HACCP</button>
