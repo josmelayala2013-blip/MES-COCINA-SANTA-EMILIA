@@ -2495,6 +2495,14 @@
 
             // Cargar recetas y historial HACCP desde Firebase al iniciar
             setTimeout(() => cargarRecetasFirebase(), 800);
+            // Resetear VSM de Desmechada Pollo si tiene datos erróneos (< 5 producciones)
+            setTimeout(() => {
+                const prodPollo = productos.find(p => p.id === 6 || p.nombre === 'Desmechada Pollo');
+                if (prodPollo && prodPollo.vsm && prodPollo.vsm.totalProducciones < 5) {
+                    prodPollo.vsm = { promCoccion: null, promEnvasado: null, promAbatimiento: null, totalProducciones: 0 };
+                    console.log('🔄 VSM Desmechada Pollo reseteado — usando tiempo base de receta');
+                }
+            }, 500);
             setTimeout(() => cargarHACCPHistorialFirebase().then(() => { renderHACCPCompletados(); renderRegistrosFirmadosEnModulo('cocina'); }), 1000);
             // Sincronizar HACCP pendientes cocina desde Firebase
             setTimeout(() => sincronizarHACCPCocinaDesdeFirebase(), 900);
@@ -11220,10 +11228,26 @@ function calcularRecetaParaPlatos(r, platos) {
 // ---- INICIO DE JORNADA ----
 function abrirResumenJornada() {
   const fechaStr = document.getElementById('fechaPlan')?.value || getHoy();
-  const ops = ordenesProduccion.filter(op => op.fecha === fechaStr && op.estado !== 'completada');
+  const hoyStr = getHoy();
+  // Comparar normalizando formato — soportar YYYY-MM-DD y DD-MM-YYYY
+  const _normFechaOp = (f) => {
+    if (!f) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(f)) return f;
+    const p = f.split(/[-\/]/);
+    if (p.length === 3 && p[0].length === 4) return f;
+    if (p.length === 3) return p[2]+'-'+p[1].padStart(2,'0')+'-'+p[0].padStart(2,'0');
+    return f;
+  };
+  // Buscar OPs de hoy — si fechaPlan vacío o no coincide, usar fecha de hoy
+  const fechaBuscar = fechaStr || hoyStr;
+  const ops = ordenesProduccion.filter(op => {
+    if (op.estado === 'completada') return false;
+    const fechaOp = _normFechaOp(op.fecha);
+    return fechaOp === fechaBuscar || fechaOp === hoyStr;
+  });
 
   if (ops.length === 0) {
-    mostrarNotificacion('No hay OPs pendientes para esta fecha', 'warning');
+    mostrarNotificacion('No hay OPs pendientes para hoy (' + hoyStr + '). Verifica que las OPs estén planificadas para hoy en el Planificador.', 'warning');
     return;
   }
 
@@ -11864,13 +11888,15 @@ function getTiempoComponente(comp, recetaId) {
   }
   // 2. Tiempo manual del componente de la OP
   if (comp.tiempoCoccionMin && comp.tiempoCoccionMin > 0) return comp.tiempoCoccionMin;
-  // 3. VSM aprendido
+  // 3. Tiempo en el equipo base (productos array)
   const prod = productos.find(p => p.nombre.toLowerCase() === (comp.nombre||'').toLowerCase());
-  if (prod && prod.vsm && prod.vsm.promCoccion && prod.vsm.totalProducciones >= 3) {
+  if (prod && prod.tiempoCoccionMin && prod.tiempoCoccionMin > 0) return prod.tiempoCoccionMin;
+  // 4. VSM aprendido — solo si tiene 5+ producciones para ser confiable
+  if (prod && prod.vsm && prod.vsm.promCoccion && prod.vsm.totalProducciones >= 5) {
     return Math.round(prod.vsm.promCoccion);
   }
-  // 4. Default
-  return 30;
+  // 5. Default
+  return 60;
 }
 
 // Mapea equipo sugerido (texto) → tipo de equipo (id interno)
@@ -14675,7 +14701,22 @@ function mostrarPopupGantt(eq) {
                     if (hInicio < 2) hInicio += 24;
                     if (hInicio < HORA_INICIO || hInicio > 26) {} else {
                         const esEspera = eq.produccion.enEspera || eq.estado === 'en_espera';
-                        let durMin = eq.produccion.tiempoCoccionMin || 60;
+                        // Buscar tiempo correcto desde la receta — ignorar VSM si tiene < 5 producciones
+                        let durMin = (() => {
+                            const nombreComp = eq.produccion.componente || eq.produccion.producto || '';
+                            // 1. Buscar en receta activa
+                            for (const rec of recetas) {
+                                const comp = (rec.componentes||[]).find(c => 
+                                    (c.nombre||'').toLowerCase().trim() === nombreComp.toLowerCase().trim()
+                                );
+                                if (comp && comp.tiempoCoccionMin > 0) return comp.tiempoCoccionMin;
+                            }
+                            // 2. Tiempo guardado en la producción activa
+                            if (eq.produccion.tiempoCoccionMin && eq.produccion.tiempoCoccionMin > 0) 
+                                return eq.produccion.tiempoCoccionMin;
+                            // 3. Default
+                            return 60;
+                        })();
                         const hFin = hInicio + durMin / 60;
                         const ahora = new Date();
                         let hAhora = ahora.getHours() + ahora.getMinutes() / 60;
