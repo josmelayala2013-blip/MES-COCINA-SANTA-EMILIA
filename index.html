@@ -633,9 +633,9 @@
         </div>
 
         <div class="nav-tabs">
-            <button class="nav-tab active" data-modulo="dashboard" onclick="changeTab('dashboard')">📊 Dashboard</button>
-            <button class="nav-tab" data-modulo="gantt" onclick="changeTab('gantt')">📅 Gantt</button>
-            <button class="nav-tab" data-modulo="ejecutivo" onclick="changeTab('ejecutivo')">👔 Vista Ejecutivo</button>
+            <button class="nav-tab active" data-modulo="dashboard" onclick="changeTab('dashboard',this)">📊 Dashboard</button>
+            <button class="nav-tab" data-modulo="gantt" onclick="changeTab('gantt',this)">📅 Gantt</button>
+            <button class="nav-tab" data-modulo="ejecutivo" onclick="changeTab('ejecutivo',this)">👔 Vista Ejecutivo</button>
             <!-- Acondicionamiento con submenú -->
             <div class="nav-dropdown" id="dropdownAcondicionamiento" data-modulo="acondicionamiento">
                 <button class="nav-tab" onclick="toggleDropdownAcond(event)" id="btnAcondicionamiento"
@@ -652,16 +652,16 @@
                 </div>
             </div>
 
-            <button class="nav-tab" data-modulo="envasado" onclick="changeTab('envasado')">📦 Envasado</button>
-            <button class="nav-tab" data-modulo="abatimiento" onclick="changeTab('abatimiento')">❄️ Abatimiento</button>
-            <button class="nav-tab" data-modulo="planificador" onclick="changeTab('planificador')">📅 Planificador</button>
-            <button class="nav-tab" data-modulo="asistente" onclick="changeTab('asistente')">🧠 Asistente IA</button>
-            <button class="nav-tab" data-modulo="historial" onclick="changeTab('historial')">🗂️ Historial</button>
-            <button class="nav-tab" data-modulo="analytics" onclick="changeTab('analytics')">📈 Analytics</button>
-            <button class="nav-tab" data-modulo="productos" onclick="changeTab('productos')">🍽️ Productos</button>
-            <button class="nav-tab" data-modulo="recetas" onclick="changeTab('recetas')">📋 Recetas</button>
-            <button class="nav-tab" data-modulo="etiquetas" onclick="changeTab('etiquetas')">🏷️ Etiquetas</button>
-            <button class="nav-tab" data-modulo="personal" onclick="changeTab('personal')">👥 Personal</button>
+            <button class="nav-tab" data-modulo="envasado" onclick="changeTab('envasado',this)">📦 Envasado</button>
+            <button class="nav-tab" data-modulo="abatimiento" onclick="changeTab('abatimiento',this)">❄️ Abatimiento</button>
+            <button class="nav-tab" data-modulo="planificador" onclick="changeTab('planificador',this)">📅 Planificador</button>
+            <button class="nav-tab" data-modulo="asistente" onclick="changeTab('asistente',this)">🧠 Asistente IA</button>
+            <button class="nav-tab" data-modulo="historial" onclick="changeTab('historial',this)">🗂️ Historial</button>
+            <button class="nav-tab" data-modulo="analytics" onclick="changeTab('analytics',this)">📈 Analytics</button>
+            <button class="nav-tab" data-modulo="productos" onclick="changeTab('productos',this)">🍽️ Productos</button>
+            <button class="nav-tab" data-modulo="recetas" onclick="changeTab('recetas',this)">📋 Recetas</button>
+            <button class="nav-tab" data-modulo="etiquetas" onclick="changeTab('etiquetas',this)">🏷️ Etiquetas</button>
+            <button class="nav-tab" data-modulo="personal" onclick="changeTab('personal',this)">👥 Personal</button>
             <button class="nav-tab" id="btnAdmin" data-modulo="administracion" style="display:none;background:linear-gradient(135deg,#374151,#4b5563);color:white;" onclick="changeTab('administracion')">⚙️ Admin</button>
             <!-- BOTÓN CALIDAD — acceso restringido a calidad y jefe de planta -->
             <div class="nav-dropdown" id="dropdownCalidad" style="display:none;">
@@ -8008,16 +8008,15 @@ function imprimirRegistroHACCP(d) {
         // TABS
         // ============================================
         
-        function changeTab(tabName) {
+        function changeTab(tabName, targetEl) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
-            document.getElementById(tabName).classList.add('active');
-            event.target.classList.add('active');
-            if (tabName === 'dashboard') { 
-                // Siempre recargar estado completo desde Firebase al volver al dashboard
-                _sincronizarEstadoCompleto();
-            }
-            else if (tabName === 'historial') { _sincronizarEstadoCompleto(); cargarHistorialFecha(); }
+            document.getElementById(tabName)?.classList.add('active');
+            // Marcar tab activo — usar el elemento pasado, o event si está disponible, o buscar por data-modulo
+            const _target = targetEl || (typeof event !== 'undefined' && event?.target) || document.querySelector(`.nav-tab[data-modulo="${tabName}"]`);
+            if (_target) _target.classList.add('active');
+            if (tabName === 'dashboard') { renderEquipos(); updateStats(); renderHACCPCompletados(); }
+            else if (tabName === 'historial') cargarHistorialFecha();
             else if (tabName === 'acondCarnes') { /* pestaña lista */ }
             else if (tabName === 'acondVegetales') { /* pestaña lista */ }
             else if (tabName === 'carnes') { /* contenido carnes */ }
@@ -8025,51 +8024,69 @@ function imprimirRegistroHACCP(d) {
             else if (tabName === 'envasado') { _sincronizarEnvasadoDesdeFirebase(); }
             else if (tabName === 'abatimiento') { _sincronizarAbatDesdeFirebase(); renderAbatimiento(); }
             else if (tabName === 'acondicionamiento') { sincronizarHACCPPreDesdeFirebase(); }
-            else if (tabName === 'analytics') { _sincronizarEstadoCompleto().then(() => actualizarAnalytics()); }
+            else if (tabName === 'analytics') actualizarAnalytics();
             else if (tabName === 'personal') { 
                 renderListaPersonal('cocina'); 
                 renderListaPersonal('envasado'); 
                 renderListaPersonal('abatimiento');
                 renderListaPersonal('preelaborado');
             }
-            else if (tabName === 'recetas') { cargarRecetasFirebase().then(() => { if(typeof renderListaRecetas==='function') renderListaRecetas(); if(typeof cargarSelectorOPsSimple==='function') cargarSelectorOPsSimple(); }); }
-            else if (tabName === 'planificador') { cargarRecetasFirebase().then(() => { initPlanificador(); renderSelectorPlanProductos(); renderPlanVisual(); setTimeout(() => { cargarSelectorOPs(); initFechaPlan(); renderListaOPs(); }, 500); }); }
-            else if (tabName === 'etiquetas') { cargarRecetasFirebase().then(() => initModuloEtiquetas()); }
-            else if (tabName === 'gantt') { cargarRecetasFirebase().then(() => { renderGanttGrid(); iniciarLineaHora(); renderGanttBloques(); iniciarCronometroGantt(); }); }
-            else if (tabName === 'ejecutivo') { _sincronizarEstadoCompleto().then(() => actualizarVistaEjecutivo()); }
+            else if (tabName === 'planificador') { initPlanificador(); renderSelectorPlanProductos(); renderPlanVisual(); setTimeout(() => { cargarSelectorOPs(); initFechaPlan(); renderListaOPs(); }, 1500); }
+            else if (tabName === 'etiquetas') { initModuloEtiquetas(); }
+            else if (tabName === 'gantt') { renderGanttGrid(); iniciarLineaHora(); renderGanttBloques(); iniciarCronometroGantt(); }
+            else if (tabName === 'ejecutivo') actualizarVistaEjecutivo();
+            // Sincronización al cambiar de tab
+            _onTabChange(tabName);
         }
 
-        // Sincronizar estado completo desde Firebase (historial, equipos, procesos)
-        async function _sincronizarEstadoCompleto() {
-            if (!window.db || !window.firestoreLoaded) {
-                renderEquipos(); updateStats(); renderHACCPCompletados();
-                return;
+        // Hook de sincronización por tab — separado de changeTab para no romper el event
+        function _onTabChange(tabName) {
+            const TABS_RECETAS = ['recetas','planificador','gantt','etiquetas'];
+            const TABS_ESTADO  = ['dashboard','historial','analytics','ejecutivo'];
+            if (TABS_RECETAS.includes(tabName)) {
+                cargarRecetasFirebase().then(() => {
+                    if (tabName === 'recetas' && typeof renderListaRecetas === 'function') renderListaRecetas();
+                    if (tabName === 'planificador') { setTimeout(() => { cargarSelectorOPs(); renderListaOPs(); }, 600); }
+                    if (tabName === 'gantt') renderGanttBloques();
+                    if (tabName === 'etiquetas') initModuloEtiquetas();
+                });
             }
+            if (TABS_ESTADO.includes(tabName)) {
+                _sincronizarEstadoCompleto().then(() => {
+                    if (tabName === 'historial') cargarHistorialFecha();
+                    if (tabName === 'analytics') actualizarAnalytics();
+                    if (tabName === 'ejecutivo') actualizarVistaEjecutivo();
+                });
+            }
+        }
+
+        // Sincronizar estado completo desde Firebase
+        async function _sincronizarEstadoCompleto() {
+            if (!window.db || !window.firestoreLoaded) return;
             try {
                 const {doc, getDoc} = window.firestoreFunctions;
                 const snap = await getDoc(doc(window.db, 'mes-data', 'estado-actual'));
-                if (snap.exists()) {
-                    const data = snap.data();
-                    if (data.equipos?.length > 0) {
-                        equipos = equipos.map(eqBase => {
-                            const eqFB = data.equipos.find(e => e.id === eqBase.id);
-                            return eqFB ? {...eqBase, estado: eqFB.estado, produccion: eqFB.produccion, planificaciones: eqFB.planificaciones} : eqBase;
-                        });
-                    }
-                    if (Array.isArray(data.procesosEnvasado)) procesosEnvasado = data.procesosEnvasado;
-                    if (Array.isArray(data.procesosAbatimiento)) procesosAbatimiento = data.procesosAbatimiento;
-                    // Merge historial — nunca perder datos
-                    if (data.historialPorFecha) {
-                        Object.keys(data.historialPorFecha).forEach(fecha => {
-                            const remotas = data.historialPorFecha[fecha] || [];
-                            const locales = historialPorFecha[fecha] || [];
-                            if (remotas.length > locales.length) historialPorFecha[fecha] = remotas;
-                        });
-                        localStorage.setItem('mes_historialPorFecha', JSON.stringify(historialPorFecha));
-                    }
+                if (!snap.exists()) return;
+                const data = snap.data();
+                if (data.equipos?.length > 0) {
+                    equipos = equipos.map(eqBase => {
+                        const eqFB = data.equipos.find(e => e.id === eqBase.id);
+                        return eqFB ? {...eqBase, estado: eqFB.estado, produccion: eqFB.produccion, planificaciones: eqFB.planificaciones} : eqBase;
+                    });
                 }
+                if (Array.isArray(data.procesosEnvasado)) procesosEnvasado = data.procesosEnvasado;
+                if (Array.isArray(data.procesosAbatimiento)) procesosAbatimiento = data.procesosAbatimiento;
+                if (data.historialPorFecha) {
+                    Object.keys(data.historialPorFecha).forEach(fecha => {
+                        const remotas = data.historialPorFecha[fecha] || [];
+                        const locales = historialPorFecha[fecha] || [];
+                        if (remotas.length > locales.length) historialPorFecha[fecha] = remotas;
+                    });
+                    localStorage.setItem('mes_historialPorFecha', JSON.stringify(historialPorFecha));
+                }
+                renderEquipos(); updateStats();
+                if (typeof renderHACCPCompletados === 'function') renderHACCPCompletados();
             } catch(e) { console.error('Error sync estado:', e); }
-            renderEquipos(); updateStats(); renderHACCPCompletados();
         }
 
         // ============================================
@@ -16222,13 +16239,15 @@ ${d._ingredientes.map(ing => `<tr>
 
         // Interceptar changeTab para bloquear módulos no permitidos
         const _changeTabOriginal = window.changeTab;
-        window.changeTab = function(tab) {
+        window.changeTab = function(tab, targetEl) {
             const email = window._emailActual;
             if (email && !tienePermiso(email, tab)) {
                 mostrarMensajeAccesoDenegado(tab);
                 return;
             }
-            if (typeof _changeTabOriginal === 'function') _changeTabOriginal(tab);
+            // Pasar el elemento target para evitar depender del event implícito
+            const _el = targetEl || (typeof event !== 'undefined' && event?.target) || null;
+            if (typeof _changeTabOriginal === 'function') _changeTabOriginal(tab, _el);
         };
 
         function mostrarMensajeAccesoDenegado(tab) {
