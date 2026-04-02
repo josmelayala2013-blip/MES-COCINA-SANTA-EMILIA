@@ -8220,6 +8220,39 @@ function imprimirRegistroHACCP(d) {
         // ANALYTICS Y GRÁFICOS
         // ============================================
         
+        // Sincroniza historial desde Firebase para TODOS los usuarios antes de renderizar
+        async function _sincronizarHistorialYRenderizar(modulo) {
+            if (window.db && window.firestoreLoaded) {
+                try {
+                    const {doc, getDoc} = window.firestoreFunctions;
+                    const snap = await getDoc(doc(window.db, 'mes-data', 'estado-actual'));
+                    if (snap.exists() && snap.data().historialPorFecha) {
+                        const remoteHist = snap.data().historialPorFecha;
+                        const localHist = historialPorFecha || {};
+                        const merged = {...localHist};
+                        Object.keys(remoteHist).forEach(fecha => {
+                            const remotas = remoteHist[fecha] || [];
+                            const locales = localHist[fecha] || [];
+                            merged[fecha] = remotas.length >= locales.length ? remotas : locales;
+                        });
+                        historialPorFecha = merged;
+                        localStorage.setItem('mes_historialPorFecha', JSON.stringify(historialPorFecha));
+                    }
+                    // También sincronizar OPs para cumplimiento
+                    const snapOPs = await getDoc(doc(window.db, 'mes-data', 'ordenes-produccion'));
+                    if (snapOPs.exists() && Array.isArray(snapOPs.data().ops)) {
+                        const remoteOPs = snapOPs.data().ops;
+                        if (remoteOPs.length >= ordenesProduccion.length) {
+                            ordenesProduccion = remoteOPs;
+                            localStorage.setItem('mes_ops', JSON.stringify(ordenesProduccion));
+                        }
+                    }
+                } catch(e) { console.error('Error sync historial:', e); }
+            }
+            if (modulo === 'analytics') actualizarAnalytics();
+            else if (modulo === 'ejecutivo') actualizarVistaEjecutivo();
+        }
+
         function actualizarAnalytics() {
             const rango = parseInt(document.getElementById('analyticsRange').value);
             const hoy = new Date();
@@ -8876,7 +8909,7 @@ function imprimirRegistroHACCP(d) {
                 cargarHACCPHistorialFirebase().then(() => renderRegistrosFirmadosEnModulo('abatimiento'));
             }
             else if (tabName === 'acondicionamiento') { sincronizarHACCPPreDesdeFirebase(); }
-            else if (tabName === 'analytics') actualizarAnalytics();
+            else if (tabName === 'analytics') { _sincronizarHistorialYRenderizar('analytics'); }
             else if (tabName === 'personal') { 
                 renderListaPersonal('cocina'); 
                 renderListaPersonal('envasado'); 
@@ -8886,7 +8919,7 @@ function imprimirRegistroHACCP(d) {
             else if (tabName === 'planificador') { initPlanificador(); renderSelectorPlanProductos(); renderPlanVisual(); setTimeout(() => { cargarSelectorOPs(); initFechaPlan(); renderListaOPs(); }, 1500); }
             else if (tabName === 'etiquetas') { initModuloEtiquetas(); }
             else if (tabName === 'gantt') { renderGanttGrid(); iniciarLineaHora(); renderGanttBloques(); iniciarCronometroGantt(); }
-            else if (tabName === 'ejecutivo') actualizarVistaEjecutivo();
+            else if (tabName === 'ejecutivo') { _sincronizarHistorialYRenderizar('ejecutivo'); }
             // Sincronización al cambiar de tab
             _onTabChange(tabName);
         }
@@ -8906,8 +8939,8 @@ function imprimirRegistroHACCP(d) {
             if (TABS_ESTADO.includes(tabName)) {
                 _sincronizarEstadoCompleto().then(() => {
                     if (tabName === 'historial') cargarHistorialFecha();
-                    if (tabName === 'analytics') actualizarAnalytics();
-                    if (tabName === 'ejecutivo') actualizarVistaEjecutivo();
+                    if (tabName === 'analytics') _sincronizarHistorialYRenderizar('analytics');
+                    if (tabName === 'ejecutivo') _sincronizarHistorialYRenderizar('ejecutivo');
                 });
             }
         }
@@ -9032,7 +9065,8 @@ function imprimirRegistroHACCP(d) {
                 mostrarNotificacion(`✅ Subido a Firebase — ${histHoy.length} producciones hoy`, 'success');
                 renderEquipos();
                 updateStats();
-                if (typeof actualizarAnalytics === 'function') actualizarAnalytics();
+                if (typeof _sincronizarHistorialYRenderizar === 'function' && document.getElementById('analytics')?.classList.contains('active')) _sincronizarHistorialYRenderizar('analytics');
+                else if (typeof actualizarAnalytics === 'function' && document.getElementById('analytics')?.classList.contains('active')) actualizarAnalytics();
             } catch(e) {
                 alert('Error: ' + e.message);
             }
