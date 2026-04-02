@@ -10568,10 +10568,17 @@ function guardarReceta() {
   const gramaje = parseFloat(document.getElementById('recetaGramaje').value) || 0;
   if (!sku || !nombre || !gramaje) { alert('El SKU, nombre y gramaje son obligatorios'); return; }
 
-  // Asegurar que los componentes guarden requiereDesmechado y tiempoDesmechadoMin
-  componentesTemp.forEach(c => {
-    c.requiereDesmechado = c.requiereDesmechado === true;
-    c.tiempoDesmechadoMin = parseInt(c.tiempoDesmechadoMin) || 0;
+  // Leer valores de desmechado directamente del DOM antes de guardar
+  // Esto asegura que los valores sean correctos aunque el evento oninput no haya disparado
+  componentesTemp.forEach((c, ci) => {
+    // Leer checkbox directamente del DOM
+    const checkEl = document.querySelector(`#listaComponentes input[type="checkbox"][onchange*="componentesTemp[${ci}].requiereDesmechado"]`);
+    if (checkEl) c.requiereDesmechado = checkEl.checked;
+    else c.requiereDesmechado = c.requiereDesmechado === true;
+    // Leer tiempo desmechado directamente del DOM si está visible
+    const inputDes = document.querySelector(`#listaComponentes input[oninput*="tiempoDesmechadoMin"][oninput*="componentesTemp[${ci}]"]`);
+    if (inputDes && inputDes.value) c.tiempoDesmechadoMin = parseInt(inputDes.value) || 0;
+    else c.tiempoDesmechadoMin = parseInt(c.tiempoDesmechadoMin) || 0;
   });
 
   const receta = {
@@ -10913,6 +10920,8 @@ function guardarRecetaSandwich() {
     tiempoCoccionMin: (c.tiempoCoccionMin != null && c.tiempoCoccionMin > 0) ? c.tiempoCoccionMin : null,
     preparacionFria: c.preparacionFria || false,
     esInsumo: c.esInsumo || false,
+    requiereDesmechado: c.requiereDesmechado === true,
+    tiempoDesmechadoMin: parseInt(c.tiempoDesmechadoMin) || 0,
     ingredientes: c.ingredientes || []
   }));
 
@@ -11251,6 +11260,8 @@ function guardarRecetaSalsa() {
     unidadComponente: c.unidadComponente || 'gr',
     tiempoCoccionMin: (c.tiempoCoccionMin != null && c.tiempoCoccionMin > 0) ? c.tiempoCoccionMin : null,
     preparacionFria: c.preparacionFria || false,
+    requiereDesmechado: c.requiereDesmechado === true,
+    tiempoDesmechadoMin: parseInt(c.tiempoDesmechadoMin) || 0,
     ingredientes: c.ingredientes || []
   }));
   const receta = {
@@ -11295,6 +11306,8 @@ function guardarRecetaAveMayo() {
     unidadComponente: c.unidadComponente || 'gr',
     tiempoCoccionMin: (c.tiempoCoccionMin != null && c.tiempoCoccionMin > 0) ? c.tiempoCoccionMin : null,
     preparacionFria: c.preparacionFria || false,
+    requiereDesmechado: c.requiereDesmechado === true,
+    tiempoDesmechadoMin: parseInt(c.tiempoDesmechadoMin) || 0,
     ingredientes: c.ingredientes || []
   }));
   const receta = {
