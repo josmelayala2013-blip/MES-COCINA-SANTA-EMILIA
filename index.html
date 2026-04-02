@@ -10447,7 +10447,12 @@ function abrirModalReceta(id = null) {
     document.getElementById('recetaEnvase').value = r.envase || '';
     document.getElementById('recetaRendimiento').value = r.rendimientoEsperado || '';
     document.getElementById('recetaObservaciones').value = r.observaciones || '';
-    componentesTemp = JSON.parse(JSON.stringify(r.componentes || []));
+    componentesTemp = JSON.parse(JSON.stringify(r.componentes || [])).map(c => ({
+      ...c,
+      requiereDesmechado: c.requiereDesmechado === true,
+      tiempoDesmechadoMin: c.tiempoDesmechadoMin || 0,
+      ingredientes: c.ingredientes || []
+    }));
   } else {
     document.getElementById('recetaSku').value = '';
     document.getElementById('recetaNombre').value = '';
@@ -10467,7 +10472,7 @@ function cerrarModalReceta() {
 }
 
 function agregarComponente() {
-  componentesTemp.push({ nombre: '', gramajePorcion: 0, tiempoCoccionMin: null, ingredientes: [] });
+  componentesTemp.push({ nombre: '', gramajePorcion: 0, tiempoCoccionMin: null, requiereDesmechado: false, tiempoDesmechadoMin: 0, ingredientes: [] });
   renderComponentesModal();
 }
 
@@ -10510,7 +10515,7 @@ function renderComponentesModal() {
       <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.5rem;padding:.5rem .75rem;background:${comp.requiereDesmechado?'#fef3c7':'#f8f9ff'};border-radius:8px;border:1px solid ${comp.requiereDesmechado?'#fcd34d':'#e2e8f0'};">
         <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.85rem;font-weight:700;color:${comp.requiereDesmechado?'#92400e':'#64748b'};">
           <input type="checkbox" ${comp.requiereDesmechado?'checked':''} 
-            onchange="componentesTemp[${ci}].requiereDesmechado=this.checked;renderComponentes()"
+            onchange="componentesTemp[${ci}].requiereDesmechado=this.checked;renderComponentesModal()"
             style="width:16px;height:16px;accent-color:#f59e0b;cursor:pointer;">
           🔪 Requiere Desmechado
         </label>
@@ -10565,8 +10570,8 @@ function guardarReceta() {
 
   // Asegurar que los componentes guarden requiereDesmechado y tiempoDesmechadoMin
   componentesTemp.forEach(c => {
-    if (c.requiereDesmechado === undefined) c.requiereDesmechado = false;
-    if (!c.tiempoDesmechadoMin) c.tiempoDesmechadoMin = 0;
+    c.requiereDesmechado = c.requiereDesmechado === true;
+    c.tiempoDesmechadoMin = parseInt(c.tiempoDesmechadoMin) || 0;
   });
 
   const receta = {
@@ -10723,7 +10728,9 @@ function abrirModalRecetaSandwich(id = null) {
       unidadComponente: c.unidadComponente || 'gr',
       tiempoCoccionMin: (c.tiempoCoccionMin != null && c.tiempoCoccionMin > 0) ? c.tiempoCoccionMin : null,
       preparacionFria: c.preparacionFria || false,
-      esInsumo: c.esInsumo || false
+      esInsumo: c.esInsumo || false,
+      requiereDesmechado: c.requiereDesmechado === true,
+      tiempoDesmechadoMin: parseInt(c.tiempoDesmechadoMin) || 0
     }));
   } else {
     document.getElementById('swSku').value = '';
@@ -10954,7 +10961,9 @@ function abrirModalRecetaAveMayo(id = null) {
       gramajePorUnidad: c.gramajePorUnidad !== undefined ? c.gramajePorUnidad : (c.gramajePorcion || 0),
       unidadComponente: c.unidadComponente || 'gr',
       tiempoCoccionMin: (c.tiempoCoccionMin != null && c.tiempoCoccionMin > 0) ? c.tiempoCoccionMin : null,
-      preparacionFria: c.preparacionFria || false
+      preparacionFria: c.preparacionFria || false,
+      requiereDesmechado: c.requiereDesmechado === true,
+      tiempoDesmechadoMin: parseInt(c.tiempoDesmechadoMin) || 0
     }));
   } else {
     document.getElementById('amSku').value = '';
@@ -11105,7 +11114,9 @@ function abrirModalRecetaSalsa(id = null) {
       gramajePorUnidad: c.gramajePorUnidad !== undefined ? c.gramajePorUnidad : (c.gramajePorcion || 0),
       unidadComponente: c.unidadComponente || 'gr',
       tiempoCoccionMin: (c.tiempoCoccionMin != null && c.tiempoCoccionMin > 0) ? c.tiempoCoccionMin : null,
-      preparacionFria: c.preparacionFria || false
+      preparacionFria: c.preparacionFria || false,
+      requiereDesmechado: c.requiereDesmechado === true,
+      tiempoDesmechadoMin: parseInt(c.tiempoDesmechadoMin) || 0
     }));
   } else {
     document.getElementById('slSku').value = '';
