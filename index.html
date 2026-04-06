@@ -18116,10 +18116,17 @@ ${d._ingredientes.map(ing => `<tr>
                         <div style="font-size:.75rem;color:#94a3b8;margin-bottom:.6rem;">
                             Envasado: ${t.operadorEnvasado} · ${t.horaEnvasado}
                         </div>
-                        <button onclick="abrirAsignarTanda('${t.id}')"
-                            style="width:100%;padding:.55rem;background:linear-gradient(135deg,#0e7490,#06b6d4);color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.88rem;">
-                            ❄️ Asignar a equipo de abatimiento
-                        </button>
+                        <div style="display:flex;gap:.5rem;">
+                            <button onclick="abrirAsignarTanda('${t.id}')"
+                                style="flex:1;padding:.55rem;background:linear-gradient(135deg,#0e7490,#06b6d4);color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.88rem;">
+                                ❄️ Asignar a equipo
+                            </button>
+                            <button onclick="eliminarTandaAbatQueue('${t.id}')"
+                                style="padding:.55rem .75rem;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:8px;font-weight:700;cursor:pointer;font-size:.88rem;"
+                                title="Eliminar tanda">
+                                🗑️
+                            </button>
+                        </div>
                     </div>`).join('')}
                 </div>
             </div>`;
@@ -18267,6 +18274,16 @@ ${d._ingredientes.map(ing => `<tr>
                     </div>
                 </div>`;
             }).join('');
+        }
+
+        function eliminarTandaAbatQueue(tandaId) {
+            const tanda = tandasPendientesAbatQueue.find(t => t.id === tandaId);
+            if (!tanda) return;
+            if (!confirm(`¿Eliminar la tanda "${tanda.producto}" (${tanda.kg} kg · OP ${tanda.numeroOP})?\nEsta acción no se puede deshacer.`)) return;
+            tandasPendientesAbatQueue = tandasPendientesAbatQueue.filter(t => t.id !== tandaId);
+            guardarAbatAsignaciones();
+            renderTandasPendientesAbat();
+            mostrarNotificacion('🗑️ Tanda eliminada de la cola de abatimiento', 'info');
         }
 
         function abrirAsignarTanda(tandaId) {
