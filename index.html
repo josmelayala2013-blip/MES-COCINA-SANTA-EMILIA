@@ -18281,7 +18281,7 @@ ${d._ingredientes.map(ing => `<tr>
             if (!tanda) return;
             if (!confirm(`¿Eliminar la tanda "${tanda.producto}" (${tanda.kg} kg · OP ${tanda.numeroOP})?\nEsta acción no se puede deshacer.`)) return;
             tandasPendientesAbatQueue = tandasPendientesAbatQueue.filter(t => t.id !== tandaId);
-            guardarAbatAsignaciones();
+            guardarAbat();
             renderTandasPendientesAbat();
             mostrarNotificacion('🗑️ Tanda eliminada de la cola de abatimiento', 'info');
         }
