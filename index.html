@@ -8222,23 +8222,43 @@ function imprimirRegistroHACCP(d) {
         
         // Sincroniza historial desde Firebase para TODOS los usuarios antes de renderizar
         async function _sincronizarHistorialYRenderizar(modulo) {
+            // Mostrar indicador de carga
+            if (modulo === 'analytics') {
+                const metrics = document.getElementById('analyticsMetrics');
+                if (metrics) metrics.innerHTML = '<div style="text-align:center;padding:2rem;color:#667eea;font-weight:700;">⏳ Cargando datos desde Firebase...</div>';
+            }
+
             if (window.db && window.firestoreLoaded) {
                 try {
                     const {doc, getDoc} = window.firestoreFunctions;
+                    
+                    // Sincronizar historial
                     const snap = await getDoc(doc(window.db, 'mes-data', 'estado-actual'));
-                    if (snap.exists() && snap.data().historialPorFecha) {
-                        const remoteHist = snap.data().historialPorFecha;
-                        const localHist = historialPorFecha || {};
-                        const merged = {...localHist};
-                        Object.keys(remoteHist).forEach(fecha => {
-                            const remotas = remoteHist[fecha] || [];
-                            const locales = localHist[fecha] || [];
-                            merged[fecha] = remotas.length >= locales.length ? remotas : locales;
-                        });
-                        historialPorFecha = merged;
-                        localStorage.setItem('mes_historialPorFecha', JSON.stringify(historialPorFecha));
+                    if (snap.exists()) {
+                        const data = snap.data();
+                        // Historial
+                        if (data.historialPorFecha) {
+                            const remoteHist = data.historialPorFecha;
+                            const localHist = historialPorFecha || {};
+                            const merged = {...localHist};
+                            Object.keys(remoteHist).forEach(fecha => {
+                                const remotas = remoteHist[fecha] || [];
+                                const locales = localHist[fecha] || [];
+                                merged[fecha] = remotas.length >= locales.length ? remotas : locales;
+                            });
+                            historialPorFecha = merged;
+                            localStorage.setItem('mes_historialPorFecha', JSON.stringify(historialPorFecha));
+                        }
+                        // Equipos y procesos también
+                        if (data.equipos?.length > 0) {
+                            equipos = equipos.map(eqBase => {
+                                const eqFB = data.equipos.find(e => e.id === eqBase.id);
+                                return eqFB ? {...eqBase, estado: eqFB.estado, produccion: eqFB.produccion} : eqBase;
+                            });
+                        }
                     }
-                    // También sincronizar OPs para cumplimiento
+                    
+                    // Sincronizar OPs
                     const snapOPs = await getDoc(doc(window.db, 'mes-data', 'ordenes-produccion'));
                     if (snapOPs.exists() && Array.isArray(snapOPs.data().ops)) {
                         const remoteOPs = snapOPs.data().ops;
@@ -8247,8 +8267,17 @@ function imprimirRegistroHACCP(d) {
                             localStorage.setItem('mes_ops', JSON.stringify(ordenesProduccion));
                         }
                     }
+
+                    // Log diagnóstico
+                    const totalRegistros = Object.values(historialPorFecha).flat().length;
+                    const fechasConDatos = Object.keys(historialPorFecha).filter(f => historialPorFecha[f].length > 0);
+                    console.log('📊 Analytics — Historial cargado:', totalRegistros, 'registros en', fechasConDatos.length, 'fechas:', fechasConDatos);
+
                 } catch(e) { console.error('Error sync historial:', e); }
+            } else {
+                console.warn('⚠️ Firebase no disponible — usando datos locales');
             }
+
             if (modulo === 'analytics') actualizarAnalytics();
             else if (modulo === 'ejecutivo') actualizarVistaEjecutivo();
         }
@@ -8287,6 +8316,22 @@ function imprimirRegistroHACCP(d) {
             const promDiario = fechas.length > 0 ? totalProducido / fechas.length : 0;
             const eficiencia = totalProgramado > 0 ? (totalProducido / totalProgramado * 100) : 0;
 
+            // Verificar si hay datos reales
+            const hayDatos = totalProducciones > 0 || totalProducido > 0;
+            if (!hayDatos) {
+                document.getElementById('analyticsMetrics').innerHTML = `
+                    <div style="grid-column:1/-1;text-align:center;padding:2rem;background:#f8f9ff;border-radius:12px;border:2px dashed #c7d2fe;">
+                        <div style="font-size:2.5rem;margin-bottom:.75rem;">📭</div>
+                        <h3 style="color:#667eea;margin-bottom:.5rem;">Sin datos para este período</h3>
+                        <p style="color:#94a3b8;font-size:.9rem;">No se encontraron producciones en los últimos ${fechas.length} días.<br>
+                        Verifica que las producciones estén completadas (abatimiento finalizado) y sincronizadas.</p>
+                        <div style="margin-top:1rem;font-size:.8rem;color:#a5b4fc;">
+                            Fechas buscadas: ${fechas.join(', ')}
+                        </div>
+                    </div>`;
+                return;
+            }
+
             document.getElementById('analyticsMetrics').innerHTML = `
                 <div class="metric-card">
                     <h4>Total Producido</h4>
@@ -8322,6 +8367,20 @@ function imprimirRegistroHACCP(d) {
         }
 
         function crearGraficos(fechas) {
+            // Verificar si hay datos antes de crear gráficos
+            const totalRegs = fechas.reduce((s, f) => s + (historialPorFecha[f]||[]).length, 0);
+            if (totalRegs === 0) {
+                // Limpiar gráficos anteriores
+                ['chartProduccionDia','chartEficiencia','chartComparativa','chartTiemposPromedio',
+                 'chartRanking','chartPorEquipo','chartPorOperador'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        const ctx = el.getContext('2d');
+                        ctx.clearRect(0, 0, el.width, el.height);
+                    }
+                });
+                return;
+            }
             crearGraficoProduccionDia(fechas);
             crearGraficoTiempos(fechas);
             crearGraficoPorEquipo(fechas);
