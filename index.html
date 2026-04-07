@@ -5221,8 +5221,20 @@ function abrirRegistroHACCP(equipoId) {
               : ingrConCant.map((ing, i) => `
               <tr style="background:${i%2===0?'white':'#f8fafc'};">
                 <td style="padding:.4rem;border:1px solid #e2e8f0;font-weight:600;">${ing.nombre}</td>
-                <td style="padding:.4rem;border:1px solid #e2e8f0;text-align:center;">${ing.cantReal} ${ing.unidad}</td>
-                <td style="padding:.4rem;border:1px solid #e2e8f0;text-align:center;">${ing.cantReal} ${ing.unidad}</td>
+                <td style="padding:.4rem;border:1px solid #e2e8f0;text-align:center;">
+                  <div style="display:flex;align-items:center;gap:.2rem;justify-content:center;">
+                    <input type="number" id="cantMP_${i}" value="${ing.cantReal}" step="0.001" min="0"
+                      style="width:70px;padding:.3rem;border-radius:4px;border:1px solid #a5b4fc;font-size:.82rem;text-align:center;font-weight:700;color:#1e3a5f;background:#eef2ff;">
+                    <span style="font-size:.72rem;color:#64748b;">${ing.unidad}</span>
+                  </div>
+                </td>
+                <td style="padding:.4rem;border:1px solid #e2e8f0;text-align:center;">
+                  <div style="display:flex;align-items:center;gap:.2rem;justify-content:center;">
+                    <input type="number" id="cantPrep_${i}" value="${ing.cantReal}" step="0.001" min="0"
+                      style="width:70px;padding:.3rem;border-radius:4px;border:1px solid #a5b4fc;font-size:.82rem;text-align:center;font-weight:700;color:#1e3a5f;background:#eef2ff;">
+                    <span style="font-size:.72rem;color:#64748b;">${ing.unidad}</span>
+                  </div>
+                </td>
                 <td style="padding:.4rem;border:1px solid #e2e8f0;">
                   <input type="text" id="loteInt_${i}" placeholder="Lote..." style="width:100%;padding:.3rem;border-radius:4px;border:1px solid #ddd;font-size:.78rem;">
                 </td>
@@ -5521,19 +5533,31 @@ function generarPDFHACCP() {
     firmaTimestamp: new Date().toLocaleString('es-CL'),
     firmaPIN: '****',
     ingredientes: ingredientes.map((ing, i) => {
-      let cantReal = 0;
+      // Leer cantidades directamente del DOM (el usuario puede haberlas editado)
+      const cantMPInput = parseFloat(document.getElementById(`cantMP_${i}`)?.value);
+      const cantPrepInput = parseFloat(document.getElementById(`cantPrep_${i}`)?.value);
+
+      // Calcular cantReal base (fallback si no hay input)
+      let cantRealBase = 0;
       if (ing.cantidadTotal && ing.cantidadTotal > 0) {
-        cantReal = ing.cantidadTotal;
+        cantRealBase = ing.cantidadTotal;
       } else if (platos > 0 && ing.cantidadBruta > 0) {
-        if (ing.unidad === 'gr') cantReal = Math.round((platos * ing.cantidadBruta / 1000) * 100) / 100;
-        else cantReal = Math.round(platos * ing.cantidadBruta * 100) / 100;
+        if (ing.unidad === 'gr') cantRealBase = Math.round((platos * ing.cantidadBruta / 1000) * 100) / 100;
+        else cantRealBase = Math.round(platos * ing.cantidadBruta * 100) / 100;
       } else {
-        cantReal = ing.cantidadBruta || 0;
+        cantRealBase = ing.cantidadBruta || 0;
       }
       const unidadMostrar = (ing.cantidadTotal && ing.cantidadTotal > 0 && ing.unidad === 'gr') ? 'kg' : (ing.unidad || 'kg');
+
+      // Usar valor editado si existe, si no usar el calculado
+      const cantMP = !isNaN(cantMPInput) ? cantMPInput : cantRealBase;
+      const cantPrep = !isNaN(cantPrepInput) ? cantPrepInput : cantRealBase;
+
       return {
         nombre: ing.nombre,
-        cantReal, unidad: unidadMostrar,
+        cantReal: cantMP,
+        cantPrep,
+        unidad: unidadMostrar,
         loteInt: document.getElementById(`loteInt_${i}`)?.value || '',
         ausExt: getValorCNC(`insp_ausExt_${i}`),
         aroma: getValorCNC(`insp_aroma_${i}`),
