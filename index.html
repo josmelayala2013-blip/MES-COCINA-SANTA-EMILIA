@@ -1526,29 +1526,6 @@
           </div>
         </div>
 
-        <!-- MODAL: IMPRIMIR ETIQUETA BODEGA -->
-        <div id="modalEtiquetaBodega" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:9999;overflow-y:auto;">
-          <div style="background:white;border-radius:20px;padding:2rem;max-width:480px;width:90%;margin:2rem auto;box-shadow:0 25px 60px rgba(0,0,0,.4);border-top:6px solid #8b5cf6;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
-              <h2 style="color:#5b21b6;margin:0;font-size:1.15rem;">🏷️ Imprimir Etiqueta</h2>
-              <button onclick="document.getElementById('modalEtiquetaBodega').style.display='none'"
-                style="background:#f1f5f9;border:none;border-radius:8px;padding:.4rem .7rem;cursor:pointer;font-size:1.1rem;">✕</button>
-            </div>
-            <!-- Preview etiqueta -->
-            <div id="previewEtiquetaBodega" style="border:2px dashed #8b5cf6;border-radius:12px;padding:1rem;margin-bottom:1.25rem;background:#faf5ff;"></div>
-            <div style="display:flex;gap:.75rem;">
-              <button onclick="imprimirEtiquetaBodega()"
-                style="flex:1;padding:.85rem;background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:white;border:none;border-radius:12px;font-weight:700;cursor:pointer;font-size:.95rem;">
-                🖨️ Imprimir Etiqueta
-              </button>
-              <button onclick="document.getElementById('modalEtiquetaBodega').style.display='none'"
-                style="padding:.85rem 1.25rem;background:#f1f5f9;color:#64748b;border:none;border-radius:12px;font-weight:600;cursor:pointer;">
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
-
         <!-- MODAL: REGISTRAR SALIDA BODEGA -->
         <div id="modalSalidaBodega" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:9999;overflow-y:auto;">
           <div style="background:white;border-radius:20px;padding:2rem;max-width:560px;width:90%;margin:2rem auto;box-shadow:0 25px 60px rgba(0,0,0,.4);border-top:6px solid #f59e0b;">
@@ -4962,6 +4939,174 @@ function initModuloEtiquetas() {
     fechaInput.value = getHoy();
   }
   renderEtiquetas();
+
+  // ── Detectar si venimos desde Bodega con un item pendiente ──
+  if (window._etiquetaBodegaPendiente) {
+    const item = window._etiquetaBodegaPendiente;
+    window._etiquetaBodegaPendiente = null;
+    // Pequeño delay para que el tab esté visible
+    setTimeout(() => mostrarPanelEtiquetaBodega(item), 150);
+  }
+}
+
+// ── Panel de etiqueta de bodega dentro del módulo Etiquetas ──
+function mostrarPanelEtiquetaBodega(item) {
+    const cliente  = (item.cliente  || 'GUSTO FRESCO').toUpperCase();
+    const producto = (item.producto || '').toUpperCase();
+    const fElab    = item.fechaElab || '—';
+    const fVenc    = item.fechaVenc || '—';
+    const peso     = `${(item.kg||0).toFixed(1)} KG`;
+    const lote     = item.lote     || '—';
+    const op       = item.numeroOP || '—';
+    const vencColor = item.fechaVencISO && new Date(item.fechaVencISO) < new Date() ? '#ef4444' : '#059669';
+
+    // Insertar panel justo arriba del contenido existente
+    const cont = document.getElementById('etiquetasContenido');
+    const panelId = 'panelEtiquetaBodega';
+    // Quitar panel anterior si existía
+    document.getElementById(panelId)?.remove();
+
+    const panel = document.createElement('div');
+    panel.id = panelId;
+    panel.style.cssText = 'margin-bottom:1.5rem;';
+    panel.innerHTML = `
+        <div style="background:white;border-radius:16px;padding:1.5rem;box-shadow:0 4px 20px rgba(139,92,246,.15);border:2px solid #8b5cf6;position:relative;">
+            <button onclick="document.getElementById('${panelId}').remove()"
+                style="position:absolute;top:.75rem;right:.75rem;background:#f1f5f9;border:none;border-radius:8px;padding:.3rem .6rem;cursor:pointer;font-size:1rem;color:#64748b;">✕</button>
+            <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:1.25rem;">
+                <span style="font-size:1.5rem;">🏷️</span>
+                <div>
+                    <div style="font-weight:800;color:#5b21b6;font-size:1rem;">Imprimir Etiqueta de Bodega</div>
+                    <div style="font-size:.8rem;color:#7c3aed;">Desde Bodega — ${cliente} · ${producto}</div>
+                </div>
+            </div>
+
+            <div style="display:flex;gap:2rem;align-items:flex-start;flex-wrap:wrap;">
+                <!-- Preview etiqueta -->
+                <div style="flex:0 0 auto;">
+                    <div style="font-size:.75rem;font-weight:700;color:#64748b;margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.5px;">Vista previa:</div>
+                    <div style="font-family:'Arial Narrow',Arial,sans-serif;border:2px solid #1e293b;border-radius:6px;padding:10px;background:white;width:260px;">
+                        <div style="font-size:10px;font-weight:700;text-align:center;letter-spacing:1px;border-bottom:1px solid #333;padding-bottom:5px;margin-bottom:5px;">${cliente}</div>
+                        <div style="font-size:17px;font-weight:900;text-align:center;letter-spacing:2px;margin-bottom:7px;">${producto}</div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:4px;">
+                            <div style="border:1px solid #333;border-radius:3px;padding:3px 5px;">
+                                <div style="font-size:8px;font-weight:700;color:#666;">F.ELAB:</div>
+                                <div style="font-size:11px;font-weight:700;">${fElab}</div>
+                            </div>
+                            <div style="border:1px solid #333;border-radius:3px;padding:3px 5px;">
+                                <div style="font-size:8px;font-weight:700;color:#666;">F.VENC:</div>
+                                <div style="font-size:11px;font-weight:700;color:${vencColor};">${fVenc}</div>
+                            </div>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;">
+                            <div style="border:1px solid #333;border-radius:3px;padding:3px 5px;">
+                                <div style="font-size:8px;font-weight:700;color:#666;">PESO:</div>
+                                <div style="font-size:10px;font-weight:700;">${peso}</div>
+                            </div>
+                            <div style="border:1px solid #333;border-radius:3px;padding:3px 5px;">
+                                <div style="font-size:8px;font-weight:700;color:#666;">LOTE:</div>
+                                <div style="font-size:10px;font-weight:700;">${lote}</div>
+                            </div>
+                            <div style="border:1px solid #333;border-radius:3px;padding:3px 5px;">
+                                <div style="font-size:8px;font-weight:700;color:#666;">OP:</div>
+                                <div style="font-size:10px;font-weight:700;">${op}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Controles -->
+                <div style="flex:1;min-width:200px;">
+                    <div style="margin-bottom:1rem;">
+                        <label style="font-size:.8rem;font-weight:700;color:#374151;display:block;margin-bottom:.35rem;">N° de copias</label>
+                        <input type="number" id="etiqBodegaCopias" value="1" min="1" max="99"
+                            style="width:100%;padding:.6rem;border-radius:8px;border:2px solid #8b5cf6;font-size:1rem;font-weight:700;text-align:center;box-sizing:border-box;">
+                    </div>
+                    <button onclick="ejecutarImpresionEtiquetaBodega('${item.id}')"
+                        style="width:100%;padding:.9rem;background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:white;border:none;border-radius:12px;font-weight:700;cursor:pointer;font-size:1rem;">
+                        🖨️ Imprimir Etiqueta
+                    </button>
+                    <div style="margin-top:.6rem;font-size:.75rem;color:#94a3b8;text-align:center;">
+                        Se abrirá una ventana de impresión · Formato 100×50mm
+                    </div>
+                </div>
+            </div>
+        </div>`;
+
+    // Insertar antes del contenido de etiquetas planificadas
+    cont.parentNode.insertBefore(panel, cont);
+}
+
+function ejecutarImpresionEtiquetaBodega(id) {
+    const item = bodegaStock.find(s => s.id === id);
+    if (!item) { alert('Producto no encontrado'); return; }
+
+    const copias = parseInt(document.getElementById('etiqBodegaCopias')?.value) || 1;
+    const cliente  = (item.cliente  || 'GUSTO FRESCO').toUpperCase();
+    const producto = (item.producto || '').toUpperCase();
+    const fElab    = item.fechaElab || '—';
+    const fVenc    = item.fechaVenc || '—';
+    const peso     = `${(item.kg||0).toFixed(1)} KG`;
+    const lote     = item.lote     || '—';
+    const op       = item.numeroOP || '—';
+
+    // Generar N copias en la misma página
+    const etiquetaHTML = `
+        <div class="etiqueta">
+            <div class="cli">${cliente}</div>
+            <div class="prod">${producto}</div>
+            <div class="grid2">
+                <div class="campo"><div class="clabel">F.ELAB:</div><div class="cval">${fElab}</div></div>
+                <div class="campo"><div class="clabel">F.VENC:</div><div class="cval">${fVenc}</div></div>
+            </div>
+            <div class="grid3">
+                <div class="campo"><div class="clabel">PESO:</div><div class="cval">${peso}</div></div>
+                <div class="campo"><div class="clabel">LOTE:</div><div class="cval">${lote}</div></div>
+                <div class="campo"><div class="clabel">OP:</div><div class="cval">${op}</div></div>
+            </div>
+        </div>`;
+
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>Etiqueta ${producto}</title>
+    <style>
+    @page { size: 100mm 50mm; margin: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Arial Narrow', Arial, sans-serif; background: white; }
+    .etiqueta {
+        width: 100mm; height: 50mm;
+        border: 1.5px solid #000;
+        padding: 4mm;
+        display: flex; flex-direction: column;
+        justify-content: space-between;
+        page-break-after: always;
+    }
+    .etiqueta:last-child { page-break-after: auto; }
+    .cli { font-size: 8pt; font-weight: 700; text-align: center; letter-spacing: 1px;
+           border-bottom: 1px solid #000; padding-bottom: 2mm; }
+    .prod { font-size: 15pt; font-weight: 900; text-align: center; letter-spacing: 2px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 2mm; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2mm; }
+    .campo { border: 1px solid #000; border-radius: 2px; }
+    .clabel { font-size: 6pt; font-weight: 700; padding: 1mm 1.5mm 0; color: #333; }
+    .cval   { font-size: 9pt; font-weight: 700; padding: 0 1.5mm 1mm; }
+    @media screen { 
+        body { padding: 10px; }
+        .etiqueta { border: 2px solid #333; border-radius: 4px; margin: 10px auto; display: block; }
+    }
+    </style>
+    </head><body>
+    ${Array(copias).fill(etiquetaHTML).join('')}
+    <div style="text-align:center;margin-top:12px;">
+        <button onclick="window.print()" style="background:#5b21b6;color:white;border:none;border-radius:8px;padding:10px 28px;cursor:pointer;font-weight:700;font-size:14px;">
+            🖨️ Imprimir / Guardar PDF
+        </button>
+    </div>
+    </body></html>`;
+
+    const ventana = window.open('', '_blank', 'width=420,height=380');
+    ventana.document.write(html);
+    ventana.document.close();
+    setTimeout(() => ventana.print(), 450);
 }
 
 function renderEtiquetas() {
@@ -19008,7 +19153,7 @@ function renderBodegaKPIs() {
     const stockDisp = bodegaStock.filter(s => s.estado !== 'agotado');
     const totalKg = stockDisp.reduce((s,x) => s + (x.kgDisponible||0), 0);
     const nProductos = new Set(stockDisp.map(s => s.producto)).size;
-    const nClientes = new Set(stockDisp.filter(s=>s.cliente).map(s => s.cliente)).size;
+    const nClientes = new Set(stockDisp.filter(s=>s.cliente).map(s=>s.cliente)).size;
     const ingresosHoy = bodegaValesIngreso.filter(v => v.fechaISO === new Date().toISOString().split('T')[0]).length;
     const salidasHoy = bodegaValesSalida.filter(v => v.fechaISO === new Date().toISOString().split('T')[0]).length;
 
@@ -19072,7 +19217,7 @@ function renderBodegaStock(el) {
                             <th style="padding:.65rem .75rem;text-align:center;">F.Elab / F.Venc</th>
                             <th style="padding:.65rem .75rem;text-align:center;">Ingreso</th>
                             <th style="padding:.65rem .75rem;text-align:center;">Estado</th>
-                            <th style="padding:.65rem .75rem;text-align:center;border-radius:0 8px 0 0;">Acciones</th>
+                            <th style="padding:.65rem .75rem;text-align:center;border-radius:0 8px 0 0;">Etiqueta</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -19080,9 +19225,9 @@ function renderBodegaStock(el) {
                             const pct = s.kg > 0 ? Math.round(s.kgDisponible / s.kg * 100) : 0;
                             const colorPct = pct > 60 ? '#10b981' : pct > 30 ? '#f59e0b' : '#ef4444';
                             const estadoLabel = pct === 0 ? '🔴 Agotado' : pct < 30 ? '🟡 Bajo' : '🟢 OK';
-                            const clienteColor = s.cliente ? '#1e293b' : '#94a3b8';
+                            const vencColor = s.fechaVencISO && new Date(s.fechaVencISO) < new Date() ? '#ef4444' : '#059669';
                             return `<tr style="background:${i%2===0?'white':'#f8fafc'};border-bottom:1px solid #f1f5f9;">
-                                <td style="padding:.6rem .75rem;font-weight:800;color:${clienteColor};font-size:.82rem;">${s.cliente||'—'}</td>
+                                <td style="padding:.6rem .75rem;font-weight:800;font-size:.8rem;color:${s.cliente?'#1e293b':'#94a3b8'};">${s.cliente||'—'}</td>
                                 <td style="padding:.6rem .75rem;font-weight:700;color:#0e7490;">${s.producto}</td>
                                 <td style="padding:.6rem .75rem;text-align:center;">${s.lote}</td>
                                 <td style="padding:.6rem .75rem;text-align:center;font-size:.78rem;">${s.numeroOP}</td>
@@ -19094,15 +19239,16 @@ function renderBodegaStock(el) {
                                     </div>
                                 </td>
                                 <td style="padding:.6rem .75rem;text-align:center;font-size:.75rem;color:#475569;">
-                                    ${s.fechaElab ? `<div>Elab: ${s.fechaElab}</div>` : ''}
-                                    ${s.fechaVenc ? `<div style="color:${new Date(s.fechaVenc)<new Date()?'#ef4444':'#059669'};font-weight:700;">Venc: ${s.fechaVenc}</div>` : '—'}
+                                    ${s.fechaElab ? `<div style="color:#64748b;">Elab: ${s.fechaElab}</div>` : ''}
+                                    ${s.fechaVenc ? `<div style="color:${vencColor};font-weight:700;">Venc: ${s.fechaVenc}</div>` : '<div style="color:#94a3b8;">—</div>'}
                                 </td>
                                 <td style="padding:.6rem .75rem;text-align:center;font-size:.78rem;">${s.fechaIngreso||'—'} ${s.horaIngreso||''}</td>
                                 <td style="padding:.6rem .75rem;text-align:center;font-size:.78rem;">${estadoLabel}</td>
                                 <td style="padding:.6rem .75rem;text-align:center;">
-                                    <button onclick="abrirEtiquetaBodega('${s.id}')"
-                                        style="background:#ede9fe;border:1px solid #8b5cf6;border-radius:6px;padding:.25rem .55rem;cursor:pointer;font-size:.72rem;color:#5b21b6;font-weight:700;white-space:nowrap;">
-                                        🏷️ Etiqueta
+                                    <button onclick="irAEtiquetaBodega('${s.id}')"
+                                        title="Ir al módulo de Etiquetas para imprimir"
+                                        style="background:#ede9fe;border:1px solid #8b5cf6;border-radius:6px;padding:.3rem .6rem;cursor:pointer;font-size:.75rem;color:#5b21b6;font-weight:700;white-space:nowrap;">
+                                        🏷️ Imprimir
                                     </button>
                                 </td>
                             </tr>`;
@@ -19233,8 +19379,8 @@ function renderBodegaIngresos(el) {
                             <th style="padding:.6rem .75rem;text-align:left;">Producto</th>
                             <th style="padding:.6rem .75rem;text-align:center;">Lote</th>
                             <th style="padding:.6rem .75rem;text-align:center;">OP</th>
-                            <th style="padding:.6rem .75rem;text-align:center;">Kg Ingresados</th>
-                            <th style="padding:.6rem .75rem;text-align:center;">Origen</th>
+                            <th style="padding:.6rem .75rem;text-align:center;">Kg</th>
+                            <th style="padding:.6rem .75rpm;text-align:center;">Origen</th>
                             <th style="padding:.6rem .75rpm;text-align:center;">Operador</th>
                         </tr>
                     </thead>
@@ -19248,12 +19394,12 @@ function renderBodegaIngresos(el) {
                             <td style="padding:.5rem .75rem;text-align:center;">${v.lote}</td>
                             <td style="padding:.5rem .75rem;text-align:center;font-size:.78rem;">${v.numeroOP}</td>
                             <td style="padding:.5rem .75rem;text-align:center;font-weight:700;color:#10b981;">${(v.kg||0).toFixed(1)} kg</td>
-                            <td style="padding:.5rem .75rem;text-align:center;font-size:.75rem;">
-                                <span style="background:${v.origen==='manual'?'#ede9fe':'#dbeafe'};color:${v.origen==='manual'?'#5b21b6':'#1e40af'};border-radius:4px;padding:.1rem .4rem;font-weight:700;">
+                            <td style="padding:.5rem .75rem;text-align:center;">
+                                <span style="background:${v.origen==='manual'?'#ede9fe':'#dbeafe'};color:${v.origen==='manual'?'#5b21b6':'#1e40af'};border-radius:4px;padding:.1rem .4rem;font-size:.72rem;font-weight:700;">
                                     ${v.origen==='manual'?'Manual':'Auto'}
                                 </span>
                             </td>
-                            <td style="padding:.5rem .75rem;text-align:center;font-size:.78rem;">${v.operador}</td>
+                            <td style="padding:.5rem .75rem;text-align:center;font-size:.78rem;">${v.operador||'—'}</td>
                         </tr>`).join('')}
                     </tbody>
                 </table>
@@ -19583,17 +19729,13 @@ function imprimirGuiaDespacho(valeId) {
 // ── INGRESO MANUAL ──
 function abrirIngresoManualBodega() {
     const hoy = new Date().toISOString().split('T')[0];
-    document.getElementById('imCliente').value = '';
-    document.getElementById('imProducto').value = '';
-    document.getElementById('imOP').value = '';
-    document.getElementById('imLote').value = '';
+    ['imCliente','imProducto','imOP','imLote','imNBolsas','imOperador'].forEach(id => {
+        const el = document.getElementById(id); if(el) el.value = '';
+    });
     document.getElementById('imKg').value = '';
     document.getElementById('imFElab').value = hoy;
-    // Vencimiento default: 15 días
     const venc = new Date(); venc.setDate(venc.getDate() + 15);
     document.getElementById('imFVenc').value = venc.toISOString().split('T')[0];
-    document.getElementById('imNBolsas').value = '';
-    document.getElementById('imOperador').value = '';
     document.getElementById('modalIngresoManualBodega').style.display = 'flex';
     setTimeout(() => document.getElementById('imCliente').focus(), 200);
 }
@@ -19609,20 +19751,24 @@ async function confirmarIngresoManualBodega() {
     const nBolsas  = parseInt(document.getElementById('imNBolsas').value) || 0;
     const operador = (document.getElementById('imOperador').value || '').trim();
 
-    if (!cliente)           { alert('Ingresa el cliente'); return; }
-    if (!producto)          { alert('Ingresa el nombre del producto'); return; }
-    if (!op)                { alert('Ingresa el N° OP'); return; }
-    if (!lote)              { alert('Ingresa el N° de lote'); return; }
-    if (!kg || kg <= 0)     { alert('Ingresa un peso válido'); return; }
+    if (!cliente)        { alert('Ingresa el cliente'); return; }
+    if (!producto)       { alert('Ingresa el nombre del producto'); return; }
+    if (!op)             { alert('Ingresa el N° OP'); return; }
+    if (!lote)           { alert('Ingresa el N° de lote'); return; }
+    if (!kg || kg <= 0)  { alert('Ingresa un peso válido'); return; }
+
+    // Formato fecha DD/MM/YY para etiqueta
+    const fmtFecha = f => {
+        if (!f) return '';
+        const [y, m, d] = f.split('-');
+        return `${d}/${m}/${y.slice(2)}`;
+    };
 
     const codigo = bodegaGenerarCodigo(producto, lote, kg, op);
     const now = new Date();
     const fechaISO = now.toISOString().split('T')[0];
     const hora = now.toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'});
     const fecha = now.toLocaleDateString('es-CL');
-
-    // Formato fecha display para etiqueta (DD/MM/YY)
-    const fmtFecha = f => f ? f.split('-').reverse().slice(0,3).map((v,i) => i===2 ? v.slice(2) : v).join('/') : '';
 
     const ingreso = {
         id: Date.now().toString(),
@@ -19633,8 +19779,7 @@ async function confirmarIngresoManualBodega() {
         componente: producto,
         lote, codigo, kg, kgDisponible: kg,
         numeroOP: op,
-        nBolsas,
-        operador,
+        nBolsas, operador,
         fechaElab: fmtFecha(fElab),
         fechaVenc: fmtFecha(fVenc),
         fechaElabISO: fElab,
@@ -19643,7 +19788,7 @@ async function confirmarIngresoManualBodega() {
         estado: 'disponible'
     };
 
-    // Agregar al stock
+    // Merge si mismo producto+lote+op
     const existente = bodegaStock.find(s =>
         s.producto === producto && s.lote === lote && s.numeroOP === op && s.estado !== 'agotado'
     );
@@ -19652,26 +19797,21 @@ async function confirmarIngresoManualBodega() {
         existente.kgDisponible += kg;
         existente.nBolsas = (existente.nBolsas || 0) + nBolsas;
         existente.ultimoIngreso = fecha;
-        // Actualizar fechas si estaban vacías
-        if (!existente.fechaElab && ingreso.fechaElab) existente.fechaElab = ingreso.fechaElab;
-        if (!existente.fechaVenc && ingreso.fechaVenc) existente.fechaVenc = ingreso.fechaVenc;
+        if (!existente.fechaElab  && ingreso.fechaElab)  existente.fechaElab  = ingreso.fechaElab;
+        if (!existente.fechaVenc  && ingreso.fechaVenc)  existente.fechaVenc  = ingreso.fechaVenc;
+        if (!existente.fechaElabISO) existente.fechaElabISO = fElab;
+        if (!existente.fechaVencISO) existente.fechaVencISO = fVenc;
         if (!existente.cliente && cliente) existente.cliente = cliente;
     } else {
         bodegaStock.push({
-            id: ingreso.id,
-            cliente, producto,
-            componente: producto,
-            lote, codigo, kg, kgDisponible: kg,
-            kgReservado: 0,
+            id: ingreso.id, cliente, producto,
+            componente: producto, lote, codigo,
+            kg, kgDisponible: kg, kgReservado: 0,
             nBolsas, numeroOP: op,
             fechaIngreso: fechaISO, horaIngreso: hora,
-            fechaElab: ingreso.fechaElab,
-            fechaVenc: ingreso.fechaVenc,
-            fechaElabISO: fElab,
-            fechaVencISO: fVenc,
-            operador,
-            origen: 'manual',
-            estado: 'disponible',
+            fechaElab: ingreso.fechaElab, fechaVenc: ingreso.fechaVenc,
+            fechaElabISO: fElab, fechaVencISO: fVenc,
+            operador, origen: 'manual', estado: 'disponible',
             ultimoIngreso: fecha
         });
     }
@@ -19681,104 +19821,21 @@ async function confirmarIngresoManualBodega() {
     document.getElementById('modalIngresoManualBodega').style.display = 'none';
     renderBodegaKPIs();
     renderBodegaContenido();
-    mostrarNotificacion(`✅ Ingreso registrado: ${producto} — ${kg} kg — ${cliente}`, 'success');
+    mostrarNotificacion(`✅ Ingreso: ${producto} — ${kg} kg — Cliente: ${cliente}`, 'success');
 }
 
-// ── ETIQUETA BODEGA ──
-let _etiquetaItemId = null;
-
-function abrirEtiquetaBodega(id) {
+// ── PUENTE BODEGA → MÓDULO ETIQUETAS ──
+// Al hacer clic en 🏷️ Imprimir de una fila del stock,
+// guardamos el item en window._etiquetaBodegaPendiente
+// y navegamos al tab de etiquetas, que detecta el payload y muestra el panel.
+function irAEtiquetaBodega(id) {
     const item = bodegaStock.find(s => s.id === id);
     if (!item) return;
-    _etiquetaItemId = id;
-
-    const preview = document.getElementById('previewEtiquetaBodega');
-    preview.innerHTML = generarHTMLEtiqueta(item, false);
-    document.getElementById('modalEtiquetaBodega').style.display = 'flex';
-}
-
-function generarHTMLEtiqueta(item, paraPrint) {
-    const cliente  = (item.cliente  || 'GUSTO FRESCO').toUpperCase();
-    const producto = (item.producto || '').toUpperCase();
-    const fElab    = item.fechaElab || '—';
-    const fVenc    = item.fechaVenc || '—';
-    const peso     = `${(item.kg||0).toFixed(1)} KG`;
-    const lote     = item.lote  || '—';
-    const op       = item.numeroOP || '—';
-
-    if (paraPrint) {
-        return `<!DOCTYPE html><html><head><meta charset="UTF-8">
-        <title>Etiqueta ${producto}</title>
-        <style>
-        @page { size: 90mm 60mm; margin: 0; }
-        body { margin:0; padding:0; font-family:'Arial Narrow', Arial, sans-serif; }
-        .etiqueta { width:90mm; height:60mm; border:1px solid #000; padding:4mm; box-sizing:border-box; display:flex; flex-direction:column; justify-content:space-between; }
-        .cli { font-size:9pt; font-weight:700; text-align:center; letter-spacing:1px; border-bottom:1px solid #000; padding-bottom:2mm; margin-bottom:2mm; }
-        .prod { font-size:15pt; font-weight:900; text-align:center; letter-spacing:2px; margin-bottom:3mm; }
-        .grid { display:grid; grid-template-columns:1fr 1fr; gap:2mm; }
-        .campo { border:1px solid #000; }
-        .campo-label { font-size:6pt; font-weight:700; padding:1mm 2mm 0; }
-        .campo-value { font-size:9pt; font-weight:700; padding:0 2mm 1mm; }
-        .row2 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:2mm; margin-top:2mm; }
-        </style>
-        </head><body>
-        <div class="etiqueta">
-          <div class="cli">${cliente}</div>
-          <div class="prod">${producto}</div>
-          <div class="grid">
-            <div class="campo"><div class="campo-label">F.ELAB:</div><div class="campo-value">${fElab}</div></div>
-            <div class="campo"><div class="campo-label">F.VENC:</div><div class="campo-value">${fVenc}</div></div>
-          </div>
-          <div class="row2">
-            <div class="campo"><div class="campo-label">PESO:</div><div class="campo-value">${peso}</div></div>
-            <div class="campo"><div class="campo-label">LOTE:</div><div class="campo-value">${lote}</div></div>
-            <div class="campo"><div class="campo-label">OP:</div><div class="campo-value">${op}</div></div>
-          </div>
-        </div>
-        <div style="text-align:center;margin-top:8px;"><button onclick="window.print()" style="background:#5b21b6;color:white;border:none;border-radius:8px;padding:8px 24px;cursor:pointer;font-weight:700;">🖨️ Imprimir</button></div>
-        </body></html>`;
-    }
-
-    // Preview inline
-    return `<div style="font-family:'Arial Narrow',Arial,sans-serif;border:2px solid #1e293b;border-radius:8px;padding:12px;background:white;max-width:320px;margin:0 auto;">
-        <div style="font-size:11px;font-weight:700;text-align:center;letter-spacing:1px;border-bottom:1px solid #333;padding-bottom:6px;margin-bottom:6px;">${cliente}</div>
-        <div style="font-size:20px;font-weight:900;text-align:center;letter-spacing:2px;margin-bottom:8px;">${producto}</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
-          <div style="border:1px solid #333;border-radius:4px;padding:4px 6px;">
-            <div style="font-size:9px;font-weight:700;color:#666;">F.ELAB:</div>
-            <div style="font-size:13px;font-weight:700;">${fElab}</div>
-          </div>
-          <div style="border:1px solid #333;border-radius:4px;padding:4px 6px;">
-            <div style="font-size:9px;font-weight:700;color:#666;">F.VENC:</div>
-            <div style="font-size:13px;font-weight:700;color:${item.fechaVencISO && new Date(item.fechaVencISO)<new Date()?'#ef4444':'#059669'};">${fVenc}</div>
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
-          <div style="border:1px solid #333;border-radius:4px;padding:4px 6px;">
-            <div style="font-size:9px;font-weight:700;color:#666;">PESO:</div>
-            <div style="font-size:11px;font-weight:700;">${peso}</div>
-          </div>
-          <div style="border:1px solid #333;border-radius:4px;padding:4px 6px;">
-            <div style="font-size:9px;font-weight:700;color:#666;">LOTE:</div>
-            <div style="font-size:11px;font-weight:700;">${lote}</div>
-          </div>
-          <div style="border:1px solid #333;border-radius:4px;padding:4px 6px;">
-            <div style="font-size:9px;font-weight:700;color:#666;">OP:</div>
-            <div style="font-size:11px;font-weight:700;">${op}</div>
-          </div>
-        </div>
-    </div>`;
-}
-
-function imprimirEtiquetaBodega() {
-    if (!_etiquetaItemId) return;
-    const item = bodegaStock.find(s => s.id === _etiquetaItemId);
-    if (!item) return;
-    const html = generarHTMLEtiqueta(item, true);
-    const ventana = window.open('', '_blank', 'width=400,height=350');
-    ventana.document.write(html);
-    ventana.document.close();
-    setTimeout(() => ventana.print(), 400);
+    window._etiquetaBodegaPendiente = item;
+    // Navegar al módulo Etiquetas
+    const btn = document.querySelector('.nav-tab[data-modulo="etiquetas"]');
+    if (btn) btn.click();
+    else changeTab('etiquetas');
 }
 
 // ── Inicializar módulo al entrar al tab ──
