@@ -5292,20 +5292,28 @@ function actualizarPreviewEtiqueta() {
   const op    = document.getElementById('etiqOP')?.value || '—';
   const total = document.getElementById('etiqCantidad')?.value || '?';
 
+  const codigoRaw = `GF-${prod.replace(/[^A-Z0-9]/gi,'').slice(0,12)}-${lote}-${peso.replace(/[^0-9.]/g,'').replace('.','_')}-${op}`;
+  const codigo = codigoRaw.slice(0, 48);
+
   el.innerHTML = `
-    <div style="font-family:'Arial Narrow',Arial,sans-serif;border:2px solid #333;border-radius:4px;padding:8px;background:white;width:240px;text-align:left;">
-      <div style="font-size:9px;font-weight:700;text-align:center;border-bottom:1px solid #333;padding-bottom:4px;margin-bottom:4px;letter-spacing:1px;">GUSTO FRESCO</div>
-      <div style="font-size:15px;font-weight:900;text-align:center;letter-spacing:1px;margin-bottom:5px;">${prod||'PRODUCTO'}</div>
+    <div style="font-family:'Arial Narrow',Arial,sans-serif;border:2px solid #333;border-radius:4px;padding:7px 8px;background:white;width:260px;text-align:left;">
+      <div style="font-size:9px;font-weight:700;text-align:center;border-bottom:1px solid #333;padding-bottom:3px;margin-bottom:3px;letter-spacing:1px;">GUSTO FRESCO</div>
+      <div style="font-size:15px;font-weight:900;text-align:center;letter-spacing:1px;margin-bottom:4px;">${prod||'PRODUCTO'}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:3px;">
         <div style="border:1px solid #333;padding:2px 4px;"><div style="font-size:7px;font-weight:700;color:#555;">F.ELAB:</div><div style="font-size:10px;font-weight:700;">${fElab}</div></div>
         <div style="border:1px solid #333;padding:2px 4px;"><div style="font-size:7px;font-weight:700;color:#555;">F.VENC:</div><div style="font-size:10px;font-weight:700;">${fVenc}</div></div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;margin-bottom:3px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;margin-bottom:4px;">
         <div style="border:1px solid #333;padding:2px 4px;"><div style="font-size:7px;font-weight:700;color:#555;">PESO:</div><div style="font-size:9px;font-weight:700;">${peso}</div></div>
         <div style="border:1px solid #333;padding:2px 4px;"><div style="font-size:7px;font-weight:700;color:#555;">LOTE:</div><div style="font-size:9px;font-weight:700;">${lote}</div></div>
         <div style="border:1px solid #333;padding:2px 4px;"><div style="font-size:7px;font-weight:700;color:#555;">OP:</div><div style="font-size:9px;font-weight:700;">${op}</div></div>
       </div>
-      <div style="text-align:right;font-size:9px;font-weight:800;color:#5b21b6;margin-top:2px;">1 de ${total}</div>
+      <!-- Representación visual del código de barras (simulada en preview) -->
+      <div style="text-align:center;background:#f8f8f8;border:1px solid #ddd;border-radius:2px;padding:2px 4px;margin-bottom:3px;">
+        <div style="font-family:monospace;font-size:5.5px;letter-spacing:1.5px;color:#333;overflow:hidden;white-space:nowrap;">${'█▌▐▌█▐█▌▐▌██▌█▐▌█▌▐██▌▐█▌▐▌█▌█▐▌▐█▌█▌▐█▌█▐▌▐█'.slice(0, Math.min(codigo.length+10, 48))}</div>
+        <div style="font-size:5.5px;color:#666;margin-top:1px;overflow:hidden;white-space:nowrap;">${codigo}</div>
+      </div>
+      <div style="text-align:right;font-size:8px;font-weight:800;color:#5b21b6;border-top:1px solid #ccc;padding-top:2px;">1 de ${total}</div>
     </div>`;
 }
 
@@ -5362,76 +5370,166 @@ function generarEImprimirEtiquetas({ prod, lote, fElab, fVenc, peso, op, total }
   _abrirVentanaEtiquetas(etiquetas);
 }
 
+function _generarCodigoBarras(codigo) {
+  // Limpia el código para Code128 — solo ASCII imprimible, sin espacios extremos
+  return (codigo || '').replace(/[^\x20-\x7E]/g, '').trim().slice(0, 48);
+}
+
 function _abrirVentanaEtiquetas(etiquetas) {
-  const etiqHTML = etiquetas.map(e => `
+  // Construir cada etiqueta con un <svg> para el código de barras
+  // JsBarcode se ejecutará en la ventana nueva una vez cargada
+  const etiqHTML = etiquetas.map((e, idx) => {
+    const codigo = _generarCodigoBarras(
+      `GF-${(e.prod||'').replace(/[^A-Z0-9]/gi,'').toUpperCase().slice(0,12)}-${e.lote}-${(e.peso||'').replace(/[^0-9.]/g,'').replace('.','_')}-${e.op}`
+    );
+    return `
     <div class="etiqueta">
+      <!-- Cabecera: empresa + producto -->
       <div class="cli">GUSTO FRESCO</div>
       <div class="prod">${e.prod}</div>
+
+      <!-- Fechas -->
       <div class="grid2">
         <div class="campo"><div class="clabel">F.ELAB:</div><div class="cval">${e.fElab}</div></div>
         <div class="campo"><div class="clabel">F.VENC:</div><div class="cval">${e.fVenc}</div></div>
       </div>
+
+      <!-- Datos clave -->
       <div class="grid3">
         <div class="campo"><div class="clabel">PESO:</div><div class="cval">${e.peso}</div></div>
         <div class="campo"><div class="clabel">LOTE:</div><div class="cval">${e.lote}</div></div>
         <div class="campo"><div class="clabel">OP:</div><div class="cval">${e.op}</div></div>
       </div>
-      <div class="numeracion">${e.num} de ${e.total}</div>
-    </div>`).join('');
+
+      <!-- Código de barras Code 128 -->
+      <div class="barcode-wrap">
+        <svg class="barcode" data-codigo="${codigo}" data-idx="${idx}"></svg>
+      </div>
+
+      <!-- Numeración correlativa -->
+      <div class="numeracion">${e.num}&nbsp;de&nbsp;${e.total}</div>
+    </div>`;
+  }).join('');
 
   const html = `<!DOCTYPE html><html lang="es"><head>
   <meta charset="UTF-8">
-  <title>Etiquetas Físicas — ${etiquetas[0]?.prod || ''}</title>
+  <title>Etiquetas — ${etiquetas[0]?.prod || ''}</title>
   <style>
     @page { size: 100mm 50mm; margin: 0; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Arial Narrow', Arial, sans-serif; background: white; }
+
     .etiqueta {
       width: 100mm; height: 50mm;
       border: 1.5px solid #000;
-      padding: 3.5mm 4mm;
+      padding: 2.5mm 3.5mm 2mm;
       display: flex; flex-direction: column;
       justify-content: space-between;
       page-break-after: always;
+      overflow: hidden;
     }
     .etiqueta:last-child { page-break-after: auto; }
-    .cli  { font-size: 7.5pt; font-weight: 700; text-align: center; letter-spacing: 1.5px;
-            border-bottom: 1px solid #000; padding-bottom: 1.5mm; }
-    .prod { font-size: 14pt; font-weight: 900; text-align: center; letter-spacing: 2px; }
-    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5mm; }
-    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5mm; }
-    .campo { border: 1px solid #000; border-radius: 1.5px; }
-    .clabel { font-size: 5.5pt; font-weight: 700; padding: 0.8mm 1.5mm 0; color: #333; }
-    .cval   { font-size: 8.5pt; font-weight: 700; padding: 0 1.5mm 0.8mm; }
+
+    .cli  {
+      font-size: 7pt; font-weight: 700; text-align: center;
+      letter-spacing: 1.5px; border-bottom: 1px solid #000;
+      padding-bottom: 1mm;
+    }
+    .prod {
+      font-size: 13pt; font-weight: 900; text-align: center;
+      letter-spacing: 1.5px; line-height: 1;
+    }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2mm; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.2mm; }
+    .campo { border: 1px solid #000; }
+    .clabel { font-size: 5pt; font-weight: 700; padding: 0.5mm 1.2mm 0; color: #333; }
+    .cval   { font-size: 8pt; font-weight: 700; padding: 0 1.2mm 0.5mm; }
+
+    /* Código de barras */
+    .barcode-wrap {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+    }
+    .barcode {
+      width: 88mm;
+      height: 7mm;
+      display: block;
+    }
+
+    /* Numeración */
     .numeracion {
       text-align: right;
-      font-size: 8pt; font-weight: 800;
-      color: #000; letter-spacing: .5px;
+      font-size: 7.5pt; font-weight: 800;
+      letter-spacing: .5px;
       border-top: 1px solid #ccc;
-      padding-top: 1mm;
+      padding-top: 0.8mm;
+      line-height: 1;
     }
+
+    /* Vista en pantalla */
     @media screen {
-      body { padding: 16px; background: #f1f5f9; }
+      body { padding: 20px; background: #f1f5f9; }
       .etiqueta {
-        border: 2px solid #333; border-radius: 4px;
-        margin: 12px auto; display: block;
-        box-shadow: 0 2px 8px rgba(0,0,0,.15);
+        border: 2px solid #333; border-radius: 6px;
+        margin: 16px auto; display: block;
+        box-shadow: 0 4px 12px rgba(0,0,0,.2);
       }
-      .no-print { display: block; text-align: center; margin: 16px; }
+      .no-print { display: block; text-align: center; margin-bottom: 20px; }
     }
     @media print { .no-print { display: none; } }
   </style>
   </head><body>
+
   <div class="no-print">
-    <button onclick="window.print()" style="background:#7c3aed;color:white;border:none;border-radius:8px;padding:10px 28px;cursor:pointer;font-weight:700;font-size:14px;margin-right:8px;">
+    <button id="btnImprimir" onclick="window.print()" style="display:none;background:#7c3aed;color:white;border:none;border-radius:8px;padding:10px 28px;cursor:pointer;font-weight:700;font-size:14px;margin-right:10px;">
       🖨️ Imprimir / Guardar PDF
     </button>
-    <span style="font-size:13px;color:#475569;">${etiquetas.length} etiqueta${etiquetas.length!==1?'s':''} · Formato 100×50mm</span>
+    <span id="msgCargando" style="font-size:13px;color:#7c3aed;font-weight:700;vertical-align:middle;">
+      ⏳ Generando códigos de barras...
+    </span>
+    <span id="msgListo" style="display:none;font-size:13px;color:#475569;vertical-align:middle;">
+      ${etiquetas.length} etiqueta${etiquetas.length !== 1 ? 's' : ''} · 100×50mm · Code 128 ✅
+    </span>
   </div>
+
   ${etiqHTML}
+
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\/script>
+  <script>
+    // JsBarcode ya cargado (está antes de este script)
+    // Generar códigos y mostrar botón cuando todo esté listo
+    (function() {
+      var svgs = document.querySelectorAll('.barcode');
+      svgs.forEach(function(svg) {
+        var codigo = svg.getAttribute('data-codigo');
+        if (!codigo) return;
+        try {
+          JsBarcode(svg, codigo, {
+            format:       'CODE128',
+            width:        1.6,
+            height:       28,
+            displayValue: true,
+            fontSize:     6,
+            textMargin:   1,
+            margin:       0,
+            background:   'transparent',
+            lineColor:    '#000'
+          });
+        } catch(err) {
+          svg.outerHTML = '<div style="font-size:6pt;text-align:center;color:#999;">' + codigo + '</div>';
+        }
+      });
+      // Mostrar botón y ocultar mensaje de carga
+      document.getElementById('btnImprimir').style.display = 'inline-block';
+      document.getElementById('msgCargando').style.display = 'none';
+      document.getElementById('msgListo').style.display = 'inline';
+    })();
+  <\/script>
   </body></html>`;
 
-  const ventana = window.open('', '_blank', 'width=480,height=600');
+  const ventana = window.open('', '_blank', 'width=520,height=650');
   ventana.document.write(html);
   ventana.document.close();
 }
