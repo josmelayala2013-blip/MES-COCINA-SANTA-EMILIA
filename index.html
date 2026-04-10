@@ -5299,7 +5299,7 @@ function actualizarPreviewEtiqueta() {
   const op    = document.getElementById('etiqOP')?.value || '—';
   const total = document.getElementById('etiqCantidad')?.value || '?';
 
-  const codigoRaw = `GF-${prod.replace(/[^A-Z0-9]/gi,'').slice(0,12)}-${lote}-${peso.replace(/[^0-9.]/g,'').replace('.','_')}-${op}`;
+  const codigoRaw = `GF-${prod.replace(/[^A-Z0-9]/gi,'').slice(0,12)}-${lote}-${peso.replace(/[^0-9.]/g,'').replace(/\.0$/,'').replace('.','_')}-${op}`;
   const codigo = codigoRaw.slice(0, 48);
 
   el.innerHTML = `
@@ -5389,7 +5389,7 @@ function _abrirVentanaEtiquetas(etiquetas) {
   // JsBarcode se ejecutará en la ventana nueva una vez cargada
   const etiqHTML = etiquetas.map((e, idx) => {
     const codigo = _generarCodigoBarras(
-      `GF-${(e.prod||'').replace(/[^A-Z0-9]/gi,'').toUpperCase().slice(0,12)}-${e.lote}-${(e.peso||'').replace(/[^0-9.]/g,'').replace('.','_')}-${e.op}`
+      `GF-${(e.prod||'').replace(/[^A-Z0-9]/gi,'').toUpperCase().slice(0,12)}-${e.lote}-${(e.peso||'').replace(/[^0-9.]/g,'').replace(/\.0$/,'').replace('.','_')}-${e.op}`
     );
     return `
     <div class="etiqueta">
@@ -19216,7 +19216,9 @@ async function cargarBodegaFirebase() {
 // ── Generar código QR/barras para etiqueta ──
 function bodegaGenerarCodigo(producto, lote, kg, op) {
     const prod = (producto || '').replace(/[^a-zA-Z0-9]/g,'').toUpperCase().slice(0,12);
-    const kgStr = parseFloat(kg).toFixed(1).replace('.','_');
+    // Usar el peso sin decimales innecesarios para coincidir con la etiqueta
+    const kgNum = parseFloat(kg);
+    const kgStr = Number.isInteger(kgNum) ? String(kgNum) : kgNum.toFixed(1).replace('.','_');
     return `GF-${prod}-${lote}-${kgStr}-${op||'OP000'}`;
 }
 
@@ -19620,14 +19622,11 @@ function bodegaProcesarScan(valor) {
 }
 
 function _normalizarCodigo(codigo) {
-    // Normaliza el código escaneado para tolerar diferencias de teclado:
-    // apóstrofes, acentos, espacios, etc. se convierten en guiones
-    // El guion bajo se preserva tal cual
     return (codigo || '')
         .trim()
-        .replace(/['\u00B4\u0060\u2019\u2018\u201C\u201D]/g, '-')  // apóstrofes y comillas → guión
-        .replace(/\s+/g, '-')           // espacios → guión
-        .replace(/-{2,}/g, '-')         // guiones dobles → uno solo
+        .replace(/['\u00B4\u0060\u2019\u2018\u201C\u201D]/g, '-')
+        .replace(/\s+/g, '-')
+        .replace(/-{2,}/g, '-')
         .toUpperCase();
 }
 
