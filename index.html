@@ -22245,13 +22245,11 @@ function _ptLlenarFilaConComp(tr, op, comp, receta, gramaje, lotePT, hora, esPri
     // Kg estimados del componente
     set('kgEst', comp.kgTerminados || '');
 
-    // Unidades estimadas (solo en primera fila — son por OP, no por componente)
-    if (esPrimera) {
-        const unidEst = op.platos > 0 ? op.platos :
-                        (gramaje > 0 && comp.kgTerminados > 0 ?
-                            Math.ceil((comp.kgTerminados * 1000) / gramaje) : '');
-        set('unidEst', unidEst);
-    }
+    // Unidades estimadas van en TODAS las filas (son por OP)
+    const unidEst = op.platos > 0 ? op.platos :
+                    (gramaje > 0 && comp.kgTerminados > 0 ?
+                        Math.ceil((comp.kgTerminados * 1000) / gramaje) : '');
+    set('unidEst', unidEst);
 
     // Buscar gramaje específico del componente en la receta
     const compReceta = receta?.componentes?.find(c =>
