@@ -5534,7 +5534,7 @@ function _abrirVentanaEtiquetas(etiquetas) {
     .etiqueta {
       width: 100mm; height: 50mm;
       border: 1.5px solid #000;
-      padding: 2.5mm 3.5mm 2mm;
+      padding: 2mm 3mm 1.5mm;
       display: flex; flex-direction: column;
       justify-content: space-between;
       page-break-after: always;
@@ -5543,19 +5543,19 @@ function _abrirVentanaEtiquetas(etiquetas) {
     .etiqueta:last-child { page-break-after: auto; }
 
     .cli  {
-      font-size: 7pt; font-weight: 700; text-align: center;
+      font-size: 7.5pt; font-weight: 700; text-align: center;
       letter-spacing: 1.5px; border-bottom: 1px solid #000;
-      padding-bottom: 1mm;
+      padding-bottom: 0.8mm;
     }
     .prod {
-      font-size: 13pt; font-weight: 900; text-align: center;
+      font-size: 14pt; font-weight: 900; text-align: center;
       letter-spacing: 1.5px; line-height: 1;
     }
-    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2mm; }
-    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.2mm; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1mm; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1mm; }
     .campo { border: 1px solid #000; }
-    .clabel { font-size: 5pt; font-weight: 700; padding: 0.5mm 1.2mm 0; color: #333; }
-    .cval   { font-size: 8pt; font-weight: 700; padding: 0 1.2mm 0.5mm; }
+    .clabel { font-size: 5.5pt; font-weight: 700; padding: 0.4mm 1mm 0; color: #444; text-transform: uppercase; }
+    .cval   { font-size: 10.5pt; font-weight: 800; padding: 0 1mm 0.4mm; line-height: 1.1; }
 
     /* Código de barras */
     .barcode-wrap {
@@ -5566,17 +5566,17 @@ function _abrirVentanaEtiquetas(etiquetas) {
     }
     .barcode {
       width: 88mm;
-      height: 7mm;
+      height: 6.5mm;
       display: block;
     }
 
     /* Numeración */
     .numeracion {
       text-align: right;
-      font-size: 7.5pt; font-weight: 800;
+      font-size: 8pt; font-weight: 800;
       letter-spacing: .5px;
       border-top: 1px solid #ccc;
-      padding-top: 0.8mm;
+      padding-top: 0.6mm;
       line-height: 1;
     }
 
