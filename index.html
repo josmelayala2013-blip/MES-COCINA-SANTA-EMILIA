@@ -5212,6 +5212,12 @@ function abrirModalImpresionEtiqueta(idx) {
       </div>
 
       <!-- Campos editables -->
+      <div style="margin-bottom:.75rem;">
+        <label style="font-weight:700;font-size:.82rem;color:#374151;display:block;margin-bottom:.3rem;">🏢 Cliente *</label>
+        <input type="text" id="etiqCliente" value=""
+          placeholder="Ej: DUNKIN, McDONALD'S, STARBUCKS..."
+          style="width:100%;padding:.65rem;border-radius:8px;border:2px solid #10b981;font-size:.95rem;font-weight:700;box-sizing:border-box;text-transform:uppercase;">
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem;">
         <div>
           <label style="font-weight:700;font-size:.82rem;color:#374151;display:block;margin-bottom:.3rem;">🏷️ Nombre del Producto</label>
@@ -5276,7 +5282,7 @@ function abrirModalImpresionEtiqueta(idx) {
   actualizarPreviewEtiqueta();
 
   // Actualizar preview en vivo al escribir
-  ['etiqNombreProducto','etiqLote','etiqFElab','etiqFVenc','etiqPeso','etiqOP','etiqCantidad'].forEach(id => {
+  ['etiqCliente','etiqNombreProducto','etiqLote','etiqFElab','etiqFVenc','etiqPeso','etiqOP','etiqCantidad'].forEach(id => {
     document.getElementById(id)?.addEventListener('input', actualizarPreviewEtiqueta);
   });
 }
@@ -5284,6 +5290,7 @@ function abrirModalImpresionEtiqueta(idx) {
 function actualizarPreviewEtiqueta() {
   const el = document.getElementById('etiqPreviewInline');
   if (!el) return;
+  const cliente = (document.getElementById('etiqCliente')?.value || '').toUpperCase() || 'CLIENTE';
   const prod  = (document.getElementById('etiqNombreProducto')?.value || '').toUpperCase();
   const lote  = document.getElementById('etiqLote')?.value || '—';
   const fElab = document.getElementById('etiqFElab')?.value || '—';
@@ -5297,7 +5304,7 @@ function actualizarPreviewEtiqueta() {
 
   el.innerHTML = `
     <div style="font-family:'Arial Narrow',Arial,sans-serif;border:2px solid #333;border-radius:4px;padding:7px 8px;background:white;width:260px;text-align:left;">
-      <div style="font-size:9px;font-weight:700;text-align:center;border-bottom:1px solid #333;padding-bottom:3px;margin-bottom:3px;letter-spacing:1px;">GUSTO FRESCO</div>
+      <div style="font-size:9px;font-weight:700;text-align:center;border-bottom:1px solid #333;padding-bottom:3px;margin-bottom:3px;letter-spacing:1px;">${cliente}</div>
       <div style="font-size:15px;font-weight:900;text-align:center;letter-spacing:1px;margin-bottom:4px;">${prod||'PRODUCTO'}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:3px;">
         <div style="border:1px solid #333;padding:2px 4px;"><div style="font-size:7px;font-weight:700;color:#555;">F.ELAB:</div><div style="font-size:10px;font-weight:700;">${fElab}</div></div>
@@ -5319,6 +5326,7 @@ function actualizarPreviewEtiqueta() {
 
 function confirmarImpresionEtiquetas() {
   const prod  = (document.getElementById('etiqNombreProducto')?.value || '').trim().toUpperCase();
+  const cliente = (document.getElementById('etiqCliente')?.value || '').trim().toUpperCase();
   const lote  = (document.getElementById('etiqLote')?.value || '').trim();
   const fElab = (document.getElementById('etiqFElab')?.value || '').trim();
   const fVenc = (document.getElementById('etiqFVenc')?.value || '').trim();
@@ -5327,9 +5335,10 @@ function confirmarImpresionEtiquetas() {
   const total = parseInt(document.getElementById('etiqCantidad')?.value) || 1;
 
   if (!prod) { alert('Ingresa el nombre del producto'); return; }
+  if (!cliente) { alert('Ingresa el nombre del cliente'); return; }
 
   document.getElementById('modalImpresionEtiqueta').style.display = 'none';
-  generarEImprimirEtiquetas({ prod, lote, fElab, fVenc, peso, op, total });
+  generarEImprimirEtiquetas({ prod, cliente, lote, fElab, fVenc, peso, op, total });
 }
 
 function imprimirTodasEtiquetasFisicas() {
@@ -5363,9 +5372,9 @@ function imprimirTodasEtiquetasFisicas() {
   _abrirVentanaEtiquetas(todasEtiquetas);
 }
 
-function generarEImprimirEtiquetas({ prod, lote, fElab, fVenc, peso, op, total }) {
+function generarEImprimirEtiquetas({ prod, cliente, lote, fElab, fVenc, peso, op, total }) {
   const etiquetas = Array.from({length: total}, (_, i) => ({
-    prod, lote, fElab, fVenc, peso, op, num: i + 1, total
+    prod, cliente, lote, fElab, fVenc, peso, op, num: i + 1, total
   }));
   _abrirVentanaEtiquetas(etiquetas);
 }
@@ -5385,7 +5394,7 @@ function _abrirVentanaEtiquetas(etiquetas) {
     return `
     <div class="etiqueta">
       <!-- Cabecera: empresa + producto -->
-      <div class="cli">GUSTO FRESCO</div>
+      <div class="cli">${e.cliente || 'GUSTO FRESCO'}</div>
       <div class="prod">${e.prod}</div>
 
       <!-- Fechas -->
