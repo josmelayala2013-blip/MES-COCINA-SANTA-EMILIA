@@ -687,6 +687,11 @@
                     <button class="nav-dropdown-item" onclick="changeTabCalidad('tempTransito');cerrarDropdownCalidad()">
                         🪣 Verif. Temp. Almacenamiento - C. Tránsito
                     </button>
+                    <div style="border-top:1px solid #e2e8f0;margin:.25rem 0;"></div>
+                    <div style="font-size:.7rem;color:#94a3b8;padding:.3rem 1rem .1rem;font-weight:600;text-transform:uppercase;">Producto Terminado</div>
+                    <button class="nav-dropdown-item" onclick="changeTabCalidad('controlPT');cerrarDropdownCalidad()" style="color:#7c3aed;font-weight:700;">
+                        📋 Control Envasado y PT
+                    </button>
                 </div>
             </div>
         </div>
@@ -8861,85 +8866,63 @@ function imprimirRegistroHACCP(d) {
         // ============================================
         
         // Sincroniza historial desde Firebase para TODOS los usuarios antes de renderizar
-        // ── Función unificada de merge de historial ──
-        // Usa siempre la versión con MÁS registros por fecha
-        // y también fusiona los registros por ID para no perder ninguno
-        function _mergeHistorial(local, remote) {
-            const localH  = local  || {};
-            const remoteH = remote || {};
-            const merged  = { ...localH };
-            Object.keys(remoteH).forEach(fecha => {
-                const rem = remoteH[fecha] || [];
-                const loc = localH[fecha]  || [];
-                if (rem.length === 0) return;
-                if (loc.length === 0) { merged[fecha] = rem; return; }
-                // Tomar el array más grande como base, agregar IDs que falten del otro
-                const base   = rem.length >= loc.length ? [...rem] : [...loc];
-                const otros  = rem.length >= loc.length ? loc : rem;
-                const idsBase = new Set(base.map(r => r.id).filter(Boolean));
-                otros.forEach(r => { if (r.id && !idsBase.has(r.id)) base.push(r); });
-                merged[fecha] = base;
-            });
-            return merged;
-        }
-
         async function _sincronizarHistorialYRenderizar(modulo) {
-            // ── PASO 1: Renderizar con datos locales INMEDIATAMENTE ──
-            // El usuario ve algo al instante sin esperar Firebase
-            if (modulo === 'analytics') actualizarAnalytics();
-            else if (modulo === 'ejecutivo') actualizarVistaEjecutivo();
-
-            // Mostrar indicador sutil de sincronización
+            // Mostrar indicador de carga
             if (modulo === 'analytics') {
                 const metrics = document.getElementById('analyticsMetrics');
-                if (metrics && metrics.innerHTML.includes('Sin datos')) {
-                    metrics.innerHTML += '<div style="text-align:center;font-size:.8rem;color:#94a3b8;margin-top:.5rem;">🔄 Sincronizando con Firebase...</div>';
-                }
+                if (metrics) metrics.innerHTML = '<div style="text-align:center;padding:2rem;color:#667eea;font-weight:700;">⏳ Cargando datos desde Firebase...</div>';
             }
 
-            if (!window.db || !window.firestoreLoaded) {
+            if (window.db && window.firestoreLoaded) {
+                try {
+                    const {doc, getDoc} = window.firestoreFunctions;
+                    
+                    // Sincronizar historial
+                    const snap = await getDoc(doc(window.db, 'mes-data', 'estado-actual'));
+                    if (snap.exists()) {
+                        const data = snap.data();
+                        // Historial
+                        if (data.historialPorFecha) {
+                            const remoteHist = data.historialPorFecha;
+                            const localHist = historialPorFecha || {};
+                            const merged = {...localHist};
+                            Object.keys(remoteHist).forEach(fecha => {
+                                const remotas = remoteHist[fecha] || [];
+                                const locales = localHist[fecha] || [];
+                                merged[fecha] = remotas.length >= locales.length ? remotas : locales;
+                            });
+                            historialPorFecha = merged;
+                            localStorage.setItem('mes_historialPorFecha', JSON.stringify(historialPorFecha));
+                        }
+                        // Equipos y procesos también
+                        if (data.equipos?.length > 0) {
+                            equipos = equipos.map(eqBase => {
+                                const eqFB = data.equipos.find(e => e.id === eqBase.id);
+                                return eqFB ? {...eqBase, estado: eqFB.estado, produccion: eqFB.produccion} : eqBase;
+                            });
+                        }
+                    }
+                    
+                    // Sincronizar OPs
+                    const snapOPs = await getDoc(doc(window.db, 'mes-data', 'ordenes-produccion'));
+                    if (snapOPs.exists() && Array.isArray(snapOPs.data().ops)) {
+                        const remoteOPs = snapOPs.data().ops;
+                        if (remoteOPs.length >= ordenesProduccion.length) {
+                            ordenesProduccion = remoteOPs;
+                            localStorage.setItem('mes_ops', JSON.stringify(ordenesProduccion));
+                        }
+                    }
+
+                    // Log diagnóstico
+                    const totalRegistros = Object.values(historialPorFecha).flat().length;
+                    const fechasConDatos = Object.keys(historialPorFecha).filter(f => historialPorFecha[f].length > 0);
+                    console.log('📊 Analytics — Historial cargado:', totalRegistros, 'registros en', fechasConDatos.length, 'fechas:', fechasConDatos);
+
+                } catch(e) { console.error('Error sync historial:', e); }
+            } else {
                 console.warn('⚠️ Firebase no disponible — usando datos locales');
-                return;
             }
 
-            try {
-                const {doc, getDoc} = window.firestoreFunctions;
-
-                // ── PASO 2: Sincronizar historial desde Firebase ──
-                const snap = await getDoc(doc(window.db, 'mes-data', 'estado-actual'));
-                if (snap.exists()) {
-                    const data = snap.data();
-                    if (data.historialPorFecha) {
-                        historialPorFecha = _mergeHistorial(historialPorFecha, data.historialPorFecha);
-                        localStorage.setItem('mes_historialPorFecha', JSON.stringify(historialPorFecha));
-                    }
-                    if (data.equipos?.length > 0) {
-                        equipos = equipos.map(eqBase => {
-                            const eqFB = data.equipos.find(e => e.id === eqBase.id);
-                            return eqFB ? {...eqBase, estado: eqFB.estado, produccion: eqFB.produccion} : eqBase;
-                        });
-                    }
-                }
-
-                // ── Sincronizar OPs ──
-                const snapOPs = await getDoc(doc(window.db, 'mes-data', 'ordenes-produccion'));
-                if (snapOPs.exists() && Array.isArray(snapOPs.data().ops)) {
-                    const remoteOPs = snapOPs.data().ops;
-                    if (remoteOPs.length >= ordenesProduccion.length) {
-                        ordenesProduccion = remoteOPs;
-                        localStorage.setItem('mes_ops', JSON.stringify(ordenesProduccion));
-                    }
-                }
-
-                const totalRegistros = Object.values(historialPorFecha).flat().length;
-                const fechasConDatos = Object.keys(historialPorFecha).filter(f => historialPorFecha[f].length > 0);
-                console.log('📊 Analytics — Historial cargado:', totalRegistros, 'registros en', fechasConDatos.length, 'fechas:', fechasConDatos);
-
-            } catch(e) {
-                console.error('Error sync historial:', e);
-            }
-
-            // ── PASO 3: Re-renderizar con datos de Firebase (más completos) ──
             if (modulo === 'analytics') actualizarAnalytics();
             else if (modulo === 'ejecutivo') actualizarVistaEjecutivo();
         }
@@ -8962,30 +8945,23 @@ function imprimirRegistroHACCP(d) {
         function calcularMetricasAnalytics(fechas) {
             let totalProducido = 0, totalProgramado = 0;
             let totalProducciones = 0;
-            let sumaTiempoCoccion = 0, sumaTiempoEnvasado = 0, sumaTiempoAbat = 0;
+            let sumaTiempoCoccion = 0, sumaTiempoEnvasado = 0;
 
             fechas.forEach(fecha => {
                 const historial = historialPorFecha[fecha] || [];
-                totalProducido   += historial.reduce((s, h) => s + (h.kgFinales || 0), 0);
-                totalProgramado  += historial.reduce((s, h) => s + (h.kgProgramados || 0), 0);
+                totalProducido += historial.reduce((s, h) => s + (h.kgFinales || 0), 0);
+                totalProgramado += historial.reduce((s, h) => s + (h.kgProgramados || 0), 0);
                 totalProducciones += historial.length;
-                // Campos correctos: tiempoCoccionMin, tiempoEnvasadoMin, tiempoAbatimientoMin (en minutos)
-                // También soportar tiempoCoccion/tiempoEnvasado legacy (en segundos) dividiendo por 60
-                historial.forEach(h => {
-                    if (h.tiempoCoccionMin > 0)       sumaTiempoCoccion  += h.tiempoCoccionMin * 60;
-                    else if (h.tiempoCoccion > 0)      sumaTiempoCoccion  += h.tiempoCoccion;
-                    if (h.tiempoEnvasadoMin > 0)       sumaTiempoEnvasado += h.tiempoEnvasadoMin * 60;
-                    else if (h.tiempoEnvasado > 0)     sumaTiempoEnvasado += h.tiempoEnvasado;
-                    if (h.tiempoAbatimientoMin > 0)    sumaTiempoAbat     += h.tiempoAbatimientoMin * 60;
-                    else if (h.tiempoAbatimiento > 0)  sumaTiempoAbat     += h.tiempoAbatimiento;
-                });
+                sumaTiempoCoccion += historial.reduce((s, h) => s + (h.tiempoCoccion || 0), 0);
+                sumaTiempoEnvasado += historial.reduce((s, h) => s + (h.tiempoEnvasado || 0), 0);
             });
 
-            const promCoccion   = totalProducciones > 0 ? sumaTiempoCoccion  / totalProducciones : 0;
-            const promEnvasado  = totalProducciones > 0 ? sumaTiempoEnvasado / totalProducciones : 0;
-            const promDiario    = fechas.length > 0 ? totalProducido / fechas.length : 0;
-            const eficiencia    = totalProgramado > 0 ? (totalProducido / totalProgramado * 100) : 0;
+            const promCoccion = totalProducciones > 0 ? sumaTiempoCoccion / totalProducciones : 0;
+            const promEnvasado = totalProducciones > 0 ? sumaTiempoEnvasado / totalProducciones : 0;
+            const promDiario = fechas.length > 0 ? totalProducido / fechas.length : 0;
+            const eficiencia = totalProgramado > 0 ? (totalProducido / totalProgramado * 100) : 0;
 
+            // Verificar si hay datos reales
             const hayDatos = totalProducciones > 0 || totalProducido > 0;
             if (!hayDatos) {
                 document.getElementById('analyticsMetrics').innerHTML = `
@@ -9024,12 +9000,12 @@ function imprimirRegistroHACCP(d) {
                 </div>
                 <div class="metric-card">
                     <h4>T. Cocción Prom.</h4>
-                    <div class="metric-value">${promCoccion > 0 ? formatTime(Math.floor(promCoccion)) : '—'}</div>
+                    <div class="metric-value">${formatTime(Math.floor(promCoccion))}</div>
                     <div class="metric-sub">Por producción</div>
                 </div>
                 <div class="metric-card">
                     <h4>T. Envasado Prom.</h4>
-                    <div class="metric-value">${promEnvasado > 0 ? formatTime(Math.floor(promEnvasado)) : '—'}</div>
+                    <div class="metric-value">${formatTime(Math.floor(promEnvasado))}</div>
                     <div class="metric-sub">Por producción</div>
                 </div>
             `;
@@ -9647,6 +9623,7 @@ function imprimirRegistroHACCP(d) {
             }
             else if (tabName === 'planificador') { initPlanificador(); renderSelectorPlanProductos(); renderPlanVisual(); setTimeout(() => { cargarSelectorOPs(); initFechaPlan(); renderListaOPs(); }, 1500); }
             else if (tabName === 'etiquetas') { initModuloEtiquetas(); }
+            else if (tabName === 'controlPT') { initControlPT(); }
             else if (tabName === 'gantt') { renderGanttGrid(); iniciarLineaHora(); renderGanttBloques(); iniciarCronometroGantt(); }
             else if (tabName === 'ejecutivo') { _sincronizarHistorialYRenderizar('ejecutivo'); }
             // Sincronización al cambiar de tab
@@ -9738,8 +9715,17 @@ function imprimirRegistroHACCP(d) {
                     if (snapActual.exists()) {
                         const dataActual = snapActual.data();
                         const histFirebase = dataActual.historialPorFecha || {};
-                        const merged = _mergeHistorial(historialParaGuardar, histFirebase);
+                        // Merge: para cada fecha usar el que tenga MÁS registros
+                        const merged = { ...historialParaGuardar };
+                        Object.keys(histFirebase).forEach(fecha => {
+                            const remotas = histFirebase[fecha] || [];
+                            const locales = merged[fecha] || [];
+                            if (remotas.length > locales.length) {
+                                merged[fecha] = remotas;
+                            }
+                        });
                         historialParaGuardar = merged;
+                        // Actualizar memoria local con el merge
                         if (JSON.stringify(merged) !== JSON.stringify(historialPorFecha)) {
                             historialPorFecha = merged;
                             localStorage.setItem('mes_historialPorFecha', JSON.stringify(historialPorFecha));
@@ -10148,18 +10134,15 @@ function limpiarComponentesFriosDeEquipos() {
 
                     // Historial: SIEMPRE mergear independiente del dispositivo
                     if (data.historialPorFecha) {
-                        const merged = _mergeHistorial(historialPorFecha, data.historialPorFecha);
-                        historialPorFecha = merged;
+                        Object.keys(data.historialPorFecha).forEach(fecha => {
+                            const remotas = data.historialPorFecha[fecha] || [];
+                            const locales = historialPorFecha[fecha] || [];
+                            if (remotas.length > locales.length) {
+                                historialPorFecha[fecha] = remotas;
+                            }
+                        });
                         localStorage.setItem('mes_historialPorFecha', JSON.stringify(historialPorFecha));
                         updateStats();
-                        // Refrescar Analytics si está visible
-                        if (document.getElementById('analytics')?.classList.contains('active')) {
-                            actualizarAnalytics();
-                        }
-                        // Refrescar Ejecutivo si está visible
-                        if (document.getElementById('ejecutivo')?.classList.contains('active')) {
-                            actualizarVistaEjecutivo();
-                        }
                     }
 
                     if (!esOtroDispositivo) return;
@@ -18611,9 +18594,9 @@ ${d._ingredientes.map(ing => `<tr>
         };
 
         const PERMISOS = {
-            gerencia:    ['dashboard','gantt','ejecutivo','acondicionamiento','carnes','vegetales','envasado','abatimiento','planificador','asistente','historial','analytics','productos','recetas','personal','administracion','etiquetas','bodega'],
-            jefatura:    ['dashboard','gantt','ejecutivo','acondicionamiento','carnes','vegetales','envasado','abatimiento','planificador','asistente','historial','analytics','productos','recetas','personal','calidad','administracion','pcc1','tempCoccionEnvasado','tempTunel','tempTransito','etiquetas','bodega'],
-            calidad:     ['dashboard','gantt','ejecutivo','acondicionamiento','carnes','vegetales','envasado','abatimiento','planificador','asistente','historial','analytics','productos','recetas','personal','calidad','pcc1','tempCoccionEnvasado','tempTunel','tempTransito','etiquetas','bodega'],
+            gerencia:    ['dashboard','gantt','ejecutivo','acondicionamiento','carnes','vegetales','envasado','abatimiento','planificador','asistente','historial','analytics','productos','recetas','personal','administracion','etiquetas','bodega','controlPT'],
+            jefatura:    ['dashboard','gantt','ejecutivo','acondicionamiento','carnes','vegetales','envasado','abatimiento','planificador','asistente','historial','analytics','productos','recetas','personal','calidad','administracion','pcc1','tempCoccionEnvasado','tempTunel','tempTransito','etiquetas','bodega','controlPT'],
+            calidad:     ['dashboard','gantt','ejecutivo','acondicionamiento','carnes','vegetales','envasado','abatimiento','planificador','asistente','historial','analytics','productos','recetas','personal','calidad','pcc1','tempCoccionEnvasado','tempTunel','tempTransito','etiquetas','bodega','controlPT'],
             cocina:      ['dashboard','gantt','acondicionamiento','carnes','vegetales','envasado','abatimiento','planificador','recetas','asistente','historial','etiquetas','bodega'],
             envasado:    ['dashboard','envasado','asistente','historial'],
             abatimiento: ['dashboard','abatimiento','asistente','historial','bodega'],
@@ -21761,8 +21744,935 @@ ${mons.map((mon,mi) => `
 </body></html>`);
 }
 
+// ============================================================
+// MÓDULO CONTROL DE ENVASADO Y PRODUCTO TERMINADO
+// R-POE-03-GF-11
+// ============================================================
+
+// ── Estado global ──
+let ptRegistros = {};           // { 'YYYY-MM-DD': [ ...filas ] }
+let ptFilaActual = null;        // índice de fila para modal lote empaque
+let _ptLoteEmpaqueCallback = null;
+
+// ── Helpers ──
+function ptGetFecha() {
+    return document.getElementById('ptFecha')?.value || getHoy();
+}
+
+function ptFmtHora() {
+    return new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+}
+
+// ── Inicializar ──
+async function initControlPT() {
+    // Fecha por defecto = hoy
+    const fi = document.getElementById('ptFecha');
+    if (fi && !fi.value) fi.value = getHoy();
+    document.getElementById('ptFechaDisplay').textContent =
+        new Date().toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+
+    await ptCargarDesdeFirebase();
+    ptRenderTabla();
+}
+
+// ── Cambiar fecha ──
+function ptCambiarFecha() {
+    ptRenderTabla();
+}
+
+// ── Cargar desde Firebase ──
+async function ptCargarDesdeFirebase() {
+    if (!window.db || !window.firestoreLoaded) {
+        const ls = localStorage.getItem('mes_controlPT');
+        if (ls) ptRegistros = JSON.parse(ls);
+        return;
+    }
+    try {
+        const { doc, getDoc } = window.firestoreFunctions;
+        const snap = await getDoc(doc(window.db, 'mes-data', 'control-pt'));
+        if (snap.exists()) {
+            const data = snap.data();
+            ptRegistros = data.registros || {};
+            localStorage.setItem('mes_controlPT', JSON.stringify(ptRegistros));
+        } else {
+            const ls = localStorage.getItem('mes_controlPT');
+            if (ls) ptRegistros = JSON.parse(ls);
+        }
+    } catch(e) {
+        console.error('Error cargando Control PT:', e);
+        const ls = localStorage.getItem('mes_controlPT');
+        if (ls) ptRegistros = JSON.parse(ls);
+    }
+}
+
+// ── Guardar ──
+async function ptGuardar() {
+    const fecha = ptGetFecha();
+    // Leer todos los valores de la tabla antes de guardar
+    ptLeerTablaAMemoria(fecha);
+    // Recoger observaciones y firmas
+    if (!ptRegistros[fecha]) ptRegistros[fecha] = { filas: [], obs: '', monitor: '', verificador: '' };
+    ptRegistros[fecha].obs        = document.getElementById('ptObservaciones')?.value || '';
+    ptRegistros[fecha].monitor    = document.getElementById('ptMonitor')?.value || '';
+    ptRegistros[fecha].verificador= document.getElementById('ptVerificador')?.value || '';
+
+    localStorage.setItem('mes_controlPT', JSON.stringify(ptRegistros));
+
+    if (window.db && window.firestoreLoaded) {
+        try {
+            const { doc, setDoc } = window.firestoreFunctions;
+            await setDoc(doc(window.db, 'mes-data', 'control-pt'), {
+                registros: ptRegistros,
+                ts: new Date().toISOString()
+            });
+            mostrarNotificacion('✅ Control PT guardado', 'success');
+        } catch(e) {
+            console.error('Error guardando PT:', e);
+            mostrarNotificacion('⚠️ Guardado local OK — error Firebase', 'warning');
+        }
+    } else {
+        mostrarNotificacion('✅ Control PT guardado localmente', 'success');
+    }
+    ptActualizarAlertasResumen(fecha);
+}
+
+// ── Leer tabla a memoria ──
+function ptLeerTablaAMemoria(fecha) {
+    const tbody = document.getElementById('ptTbody');
+    if (!tbody) return;
+    const rows = tbody.querySelectorAll('tr.pt-fila');
+    const filas = [];
+    rows.forEach(tr => {
+        const fila = {};
+        tr.querySelectorAll('[data-campo]').forEach(el => {
+            fila[el.getAttribute('data-campo')] = el.value !== undefined ? el.value : el.textContent;
+        });
+        fila._loteEmpaqueData = tr._loteEmpaqueData || null;
+        filas.push(fila);
+    });
+    if (!ptRegistros[fecha]) ptRegistros[fecha] = {};
+    ptRegistros[fecha].filas = filas;
+}
+
+// ── Render tabla ──
+function ptRenderTabla() {
+    const fecha  = ptGetFecha();
+    const tbody  = document.getElementById('ptTbody');
+    if (!tbody) return;
+
+    const data = ptRegistros[fecha] || {};
+    const filas = data.filas || [];
+
+    // Observaciones y firmas
+    if (document.getElementById('ptObservaciones')) document.getElementById('ptObservaciones').value = data.obs || '';
+    if (document.getElementById('ptMonitor'))       document.getElementById('ptMonitor').value       = data.monitor || '';
+    if (document.getElementById('ptVerificador'))   document.getElementById('ptVerificador').value   = data.verificador || '';
+
+    tbody.innerHTML = '';
+    if (filas.length === 0) {
+        tbody.innerHTML = `<tr id="ptEmptyRow"><td colspan="37" style="text-align:center;padding:3rem;color:#94a3b8;">
+            <div style="font-size:2.5rem;margin-bottom:.5rem;">📋</div>
+            <div style="font-weight:700;color:#7c3aed;">Sin registros para este día</div>
+            <div style="font-size:.85rem;margin-top:.3rem;">Haz clic en "Agregar Línea" para iniciar el registro</div>
+        </td></tr>`;
+        return;
+    }
+    filas.forEach((f, idx) => ptRenderFila(tbody, f, idx));
+    ptActualizarAlertasResumen(fecha);
+}
+
+// ── Agregar fila nueva ──
+function ptAgregarFila() {
+    document.getElementById('ptEmptyRow')?.remove();
+    const tbody = document.getElementById('ptTbody');
+    const idx   = tbody.querySelectorAll('tr.pt-fila').length;
+    ptRenderFila(tbody, {}, idx, true);
+}
+
+// ── Render de una fila ──
+function ptRenderFila(tbody, datos, idx, autoHora) {
+    const tr = document.createElement('tr');
+    tr.className = 'pt-fila';
+    tr.dataset.idx = idx;
+    tr._loteEmpaqueData = datos._loteEmpaqueData || null;
+    const bg = idx % 2 === 0 ? '#ffffff' : '#faf5ff';
+    tr.style.background = bg;
+
+    const hora  = datos.hora     || (autoHora ? ptFmtHora() : '');
+    const est   = datos.estatus  || '';
+
+    // Colores estatus
+    const colorEst = est === 'Liberado' ? '#10b981' : est === 'Bloqueado' ? '#ef4444' : '#94a3b8';
+
+    tr.innerHTML = `
+        <!-- # -->
+        <td style="padding:.4rem .3rem;text-align:center;font-size:.8rem;color:#94a3b8;font-weight:700;">${idx+1}</td>
+
+        <!-- Cliente (editable, viene de OP) -->
+        <td style="padding:.3rem .4rem;">
+            <input data-campo="cliente" value="${datos.cliente||''}" placeholder="Cliente..."
+                style="${_ptInputStyle('purple')}" oninput="ptMarcarEdicion(this)">
+        </td>
+
+        <!-- OP — al escribir autollena -->
+        <td style="padding:.3rem .4rem;">
+            <input data-campo="op" value="${datos.op||''}" placeholder="N° OP"
+                style="${_ptInputStyle('purple','center')}"
+                onblur="ptAutoLlenarDesdeOP(this)"
+                onkeydown="if(event.key==='Enter'||event.key==='Tab'){ptAutoLlenarDesdeOP(this);}">
+        </td>
+
+        <!-- Hora (auto) -->
+        <td style="padding:.3rem .4rem;">
+            <input data-campo="hora" value="${hora}" placeholder="HH:MM"
+                style="${_ptInputStyle('gray','center')}">
+        </td>
+
+        <!-- Preparación (auto desde OP) -->
+        <td style="padding:.3rem .4rem;">
+            <input data-campo="preparacion" value="${datos.preparacion||''}" placeholder="Auto desde OP..."
+                style="${_ptInputStyle('gray')}">
+        </td>
+
+        <!-- Lote PT (calidad lo escribe) -->
+        <td style="padding:.3rem .4rem;">
+            <input data-campo="lotePT" value="${datos.lotePT||''}" placeholder="Lote PT..."
+                style="${_ptInputStyle('blue')}">
+        </td>
+
+        <!-- Componente PT (auto desde OP) -->
+        <td style="padding:.3rem .4rem;">
+            <input data-campo="componentePT" value="${datos.componentePT||''}" placeholder="Auto desde OP..."
+                style="${_ptInputStyle('gray')}">
+        </td>
+
+        <!-- Lote Componente (calidad) -->
+        <td style="padding:.3rem .4rem;">
+            <input data-campo="loteComp" value="${datos.loteComp||''}" placeholder="Lote..."
+                style="${_ptInputStyle('blue','center')}">
+        </td>
+
+        <!-- Unid. Estimadas (auto desde OP) -->
+        <td style="padding:.3rem .4rem;">
+            <input data-campo="unidEst" value="${datos.unidEst||''}" placeholder="Auto..."
+                style="${_ptInputStyle('gray','center')}" readonly>
+        </td>
+
+        <!-- Kg Estimados (auto desde OP) -->
+        <td style="padding:.3rem .4rem;">
+            <input data-campo="kgEst" value="${datos.kgEst||''}" placeholder="Auto..."
+                style="${_ptInputStyle('gray','center')}" readonly>
+        </td>
+
+        <!-- Unid. Real (calidad — dispara cálculo kg real) -->
+        <td style="padding:.3rem .4rem;background:#faf5ff;">
+            <input data-campo="unidReal" value="${datos.unidReal||''}" placeholder="Real..." type="number" min="0"
+                style="${_ptInputStyle('blue','center')}"
+                oninput="ptCalcularKgReal(this)">
+        </td>
+
+        <!-- Kg Real (calculado automáticamente) -->
+        <td style="padding:.3rem .4rem;background:#faf5ff;">
+            <input data-campo="kgReal" value="${datos.kgReal||''}" placeholder="Calc..."
+                style="${_ptInputStyle('gray','center')}" readonly>
+        </td>
+
+        <!-- Merma (calidad) -->
+        <td style="padding:.3rem .4rem;">
+            <input data-campo="merma" value="${datos.merma||''}" placeholder="Merma" type="number" min="0" step="0.1"
+                style="${_ptInputStyle('blue','center')}"
+                oninput="ptValidarMerma(this)">
+        </td>
+
+        <!-- Formato de envasado -->
+        <td style="padding:.3rem .4rem;">
+            <select data-campo="formatoEnv" style="${_ptSelectStyle()}">
+                <option value="">—</option>
+                <option value="Bolsa" ${datos.formatoEnv==='Bolsa'?'selected':''}>Bolsa</option>
+                <option value="Plato" ${datos.formatoEnv==='Plato'?'selected':''}>Plato</option>
+            </select>
+        </td>
+
+        <!-- Tipo envasado -->
+        <td style="padding:.3rem .4rem;">
+            <select data-campo="tipoEnv" style="${_ptSelectStyle()}">
+                <option value="">—</option>
+                <option value="Unidad" ${datos.tipoEnv==='Unidad'?'selected':''}>Unidad</option>
+                <option value="400 gr" ${datos.tipoEnv==='400 gr'?'selected':''}>400 gr</option>
+                <option value="500 gr" ${datos.tipoEnv==='500 gr'?'selected':''}>500 gr</option>
+                <option value="550 gr" ${datos.tipoEnv==='550 gr'?'selected':''}>550 gr</option>
+                <option value="1 Kg"   ${datos.tipoEnv==='1 Kg'  ?'selected':''}>1 Kg</option>
+                <option value="3 Kg"   ${datos.tipoEnv==='3 Kg'  ?'selected':''}>3 Kg</option>
+            </select>
+        </td>
+
+        <!-- Lote Empaque Primario (abre modal) -->
+        <td style="padding:.3rem .4rem;">
+            <button onclick="ptAbrirLoteEmpaque(this.closest('tr'))"
+                style="width:100%;padding:.35rem .5rem;border-radius:6px;border:1.5px solid #8b5cf6;background:#faf5ff;color:#5b21b6;font-size:.78rem;font-weight:600;cursor:pointer;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                ${tr._loteEmpaqueData ? ptFormatLoteEmpaque(tr._loteEmpaqueData) : '📦 Configurar...'}
+            </button>
+            <input data-campo="loteEmpaque" type="hidden" value="${datos.loteEmpaque||''}">
+        </td>
+
+        <!-- Área envasado -->
+        <td style="padding:.3rem .4rem;">
+            <select data-campo="areaEnv" style="${_ptSelectStyle()}">
+                <option value="">—</option>
+                <option value="Platos"       ${datos.areaEnv==='Platos'      ?'selected':''}>Platos</option>
+                <option value="Sandwich"     ${datos.areaEnv==='Sandwich'    ?'selected':''}>Sandwich</option>
+                <option value="Env. Granel"  ${datos.areaEnv==='Env. Granel' ?'selected':''}>Env. Granel</option>
+            </select>
+        </td>
+
+        <!-- Temperatura -->
+        <td style="padding:.3rem .4rem;">
+            <input data-campo="temp" value="${datos.temp||''}" placeholder="°C" type="number" step="0.1"
+                style="${_ptInputStyle('blue','center')}"
+                oninput="ptValidarTemp(this)">
+        </td>
+
+        <!-- Organolépticas C/NC -->
+        ${['aroma','sabor','color','textura','peso','ausExt','rotulacion'].map(campo => `
+        <td style="padding:.3rem .25rem;background:#faf5ff;">
+            <select data-campo="${campo}" style="width:100%;padding:.3rem .2rem;border-radius:5px;border:1px solid #e2e8f0;font-size:.75rem;background:white;text-align:center;cursor:pointer;">
+                <option value="">—</option>
+                <option value="C"  ${datos[campo]==='C' ?'selected':''} style="color:#10b981;font-weight:700;">C</option>
+                <option value="NC" ${datos[campo]==='NC'?'selected':''} style="color:#ef4444;font-weight:700;">NC</option>
+            </select>
+        </td>`).join('')}
+
+        <!-- Cantidad inspeccionada -->
+        <td style="padding:.3rem .25rem;background:#f0fdf4;">
+            <input data-campo="cantInsp" value="${datos.cantInsp||''}" placeholder="N" type="number" min="0"
+                style="${_ptInputStyle('green','center')}">
+        </td>
+
+        <!-- Muestras M1-M8 -->
+        ${[1,2,3,4,5,6,7,8].map(n => `
+        <td style="padding:.3rem .25rem;background:#f0fdf4;">
+            <input data-campo="m${n}" value="${datos['m'+n]||''}" placeholder="gr" type="number" min="0" step="0.1"
+                style="${_ptInputStyle('green','center')}"
+                oninput="ptValidarMuestra(this)">
+        </td>`).join('')}
+
+        <!-- Estatus liberación -->
+        <td style="padding:.3rem .4rem;">
+            <select data-campo="estatus" style="width:100%;padding:.35rem .4rem;border-radius:6px;border:2px solid ${colorEst};font-size:.8rem;font-weight:700;color:${colorEst};background:white;cursor:pointer;"
+                onchange="ptCambiarEstatus(this)">
+                <option value="">— Seleccionar —</option>
+                <option value="Liberado"  ${est==='Liberado' ?'selected':''} style="color:#10b981;">✅ Liberado</option>
+                <option value="Bloqueado" ${est==='Bloqueado'?'selected':''} style="color:#ef4444;">🔴 Bloqueado</option>
+            </select>
+        </td>
+
+        <!-- Eliminar -->
+        <td style="padding:.3rem .25rem;text-align:center;">
+            <button onclick="ptEliminarFila(this.closest('tr'))"
+                style="background:#fee2e2;border:none;border-radius:6px;padding:.3rem .5rem;cursor:pointer;color:#ef4444;font-size:.9rem;">🗑️</button>
+        </td>
+    `;
+
+    // Guardar loteEmpaqueData en el tr
+    if (datos._loteEmpaqueData) tr._loteEmpaqueData = datos._loteEmpaqueData;
+    tbody.appendChild(tr);
+}
+
+// ── Helpers de estilo ──
+function _ptInputStyle(color, align) {
+    const colors = {
+        purple: '#8b5cf6', blue: '#3b82f6', gray: '#94a3b8', green: '#10b981'
+    };
+    const c = colors[color] || colors.gray;
+    return `width:100%;padding:.35rem .4rem;border-radius:5px;border:1.5px solid ${c};font-size:.78rem;box-sizing:border-box;${align?'text-align:'+align+';':''}${color==='gray'?'background:#f8fafc;color:#64748b;':'background:white;'}`;
+}
+function _ptSelectStyle() {
+    return 'width:100%;padding:.35rem .4rem;border-radius:5px;border:1.5px solid #8b5cf6;font-size:.78rem;background:white;cursor:pointer;';
+}
+
+// ── Auto-llenar desde OP ──
+function ptAutoLlenarDesdeOP(input) {
+    const tr      = input.closest('tr');
+    if (!tr) return;
+    const opNum   = (input.value || '').trim();
+    if (!opNum) return;
+
+    // Buscar OP por número
+    const op = ordenesProduccion.find(o =>
+        String(o.numeroOp).trim() === opNum ||
+        String(o.numeroOp).trim().toLowerCase() === opNum.toLowerCase()
+    );
+
+    if (!op) {
+        document.getElementById('modalOPnoEncontradaMsg').textContent =
+            `No se encontró la OP "${opNum}". Verifica el número o ingrésala manualmente.`;
+        document.getElementById('modalOPnoEncontrada').style.display = 'flex';
+        return;
+    }
+
+    // Buscar receta vinculada para gramaje
+    const receta = recetas.find(r => r.id === op.recetaId) ||
+                   recetas.find(r => r.sku === op.sku)     ||
+                   recetas.find(r => op.nombre?.toLowerCase().includes(r.nombre?.toLowerCase()));
+
+    // Cliente = nombre de la OP (a quien se produce)
+    const clienteInput = tr.querySelector('[data-campo="cliente"]');
+    if (clienteInput && !clienteInput.value) {
+        // Intentar extraer cliente del nombre si tiene patrón "CLIENTE - Producto"
+        clienteInput.value = op.nombre || '';
+    }
+
+    // Preparación
+    const prepInput = tr.querySelector('[data-campo="preparacion"]');
+    if (prepInput) prepInput.value = op.nombre || '';
+
+    // Hora automática si está vacía
+    const horaInput = tr.querySelector('[data-campo="hora"]');
+    if (horaInput && !horaInput.value) horaInput.value = ptFmtHora();
+
+    // Componentes (primer componente no insumo)
+    const componentes = (op.componentes || []).filter(c => !c.esInsumo);
+    if (componentes.length > 0) {
+        const comp = componentes[0];
+        const compInput = tr.querySelector('[data-campo="componentePT"]');
+        if (compInput) compInput.value = comp.nombre || '';
+
+        // Kg estimados
+        const kgEstInput = tr.querySelector('[data-campo="kgEst"]');
+        if (kgEstInput) kgEstInput.value = comp.kgTerminados || '';
+
+        // Gramaje para calcular unid estimadas
+        const gramaje = receta ? (receta.gramaje || 0) : 0;
+        const unidEstInput = tr.querySelector('[data-campo="unidEst"]');
+        if (unidEstInput) {
+            if (op.platos > 0) {
+                unidEstInput.value = op.platos;
+            } else if (gramaje > 0 && comp.kgTerminados > 0) {
+                unidEstInput.value = Math.ceil((comp.kgTerminados * 1000) / gramaje);
+            }
+        }
+
+        // Guardar gramaje en el tr para cálculos posteriores
+        tr._gramaje = gramaje || (receta?.gramaje) || 0;
+        tr._kgComp  = comp.kgTerminados || 0;
+    }
+
+    // Lote PT sugerido (usando lote juliano)
+    const lotePTInput = tr.querySelector('[data-campo="lotePT"]');
+    if (lotePTInput && !lotePTInput.value && typeof getDiaJuliano === 'function') {
+        const sku   = op.sku || '';
+        const julian = getDiaJuliano();
+        lotePTInput.value = sku ? `GF/${sku}-${julian}` : `GF/OP${opNum}-${julian}`;
+    }
+
+    // Feedback visual
+    tr.style.background = '#f5f3ff';
+    setTimeout(() => { tr.style.background = tr.dataset.idx % 2 === 0 ? '#ffffff' : '#faf5ff'; }, 1500);
+    mostrarNotificacion(`✅ OP ${opNum} — ${op.nombre} cargada`, 'success');
+}
+
+// ── Calcular kg real desde unid real ──
+function ptCalcularKgReal(input) {
+    const tr = input.closest('tr');
+    if (!tr) return;
+    const unidReal = parseFloat(input.value) || 0;
+    const gramaje  = parseFloat(tr._gramaje) || 0;
+    const kgRealInput = tr.querySelector('[data-campo="kgReal"]');
+    if (kgRealInput && gramaje > 0 && unidReal > 0) {
+        kgRealInput.value = ((unidReal * gramaje) / 1000).toFixed(2);
+    }
+}
+
+// ── Validaciones con alertas visuales ──
+function ptValidarTemp(input) {
+    const val = parseFloat(input.value);
+    if (!isNaN(val) && val > 10) {
+        input.style.borderColor = '#ef4444';
+        input.style.background  = '#fef2f2';
+        input.title = '⚠️ Temperatura fuera de rango (>10°C)';
+    } else {
+        input.style.borderColor = '#3b82f6';
+        input.style.background  = 'white';
+        input.title = '';
+    }
+}
+
+function ptValidarMerma(input) {
+    const val = parseFloat(input.value) || 0;
+    if (val < 0) { input.value = 0; return; }
+    // Merma > 20% del kg estimado → alerta
+    const tr = input.closest('tr');
+    const kgEst = parseFloat(tr?.querySelector('[data-campo="kgEst"]')?.value) || 0;
+    if (kgEst > 0 && (val / kgEst) > 0.2) {
+        input.style.borderColor = '#f59e0b';
+        input.style.background  = '#fffbeb';
+        input.title = '⚠️ Merma supera el 20% del kg estimado';
+    } else {
+        input.style.borderColor = '#3b82f6';
+        input.style.background  = 'white';
+        input.title = '';
+    }
+}
+
+function ptValidarMuestra(input) {
+    const val = parseFloat(input.value);
+    if (isNaN(val)) return;
+    const tr     = input.closest('tr');
+    const tipoEnv = tr?.querySelector('[data-campo="tipoEnv"]')?.value || '';
+    // Rango esperado según tipo envasado
+    const rangos = {
+        '400 gr': [380, 420], '500 gr': [480, 520],
+        '550 gr': [530, 570], '1 Kg':   [970, 1030],
+        '3 Kg':   [2950, 3050], 'Unidad': [0, 99999]
+    };
+    const rango = rangos[tipoEnv];
+    if (rango && (val < rango[0] || val > rango[1])) {
+        input.style.borderColor = '#ef4444';
+        input.style.background  = '#fef2f2';
+        input.title = `⚠️ Peso fuera de rango (${rango[0]}–${rango[1]}g)`;
+    } else {
+        input.style.borderColor = '#10b981';
+        input.style.background  = 'white';
+        input.title = '';
+    }
+}
+
+function ptCambiarEstatus(select) {
+    const color = select.value === 'Liberado' ? '#10b981' : select.value === 'Bloqueado' ? '#ef4444' : '#94a3b8';
+    select.style.borderColor = color;
+    select.style.color       = color;
+    if (select.value === 'Bloqueado') {
+        mostrarNotificacion('🔴 Producto BLOQUEADO — Notificar a Jefatura de Producción', 'warning');
+    }
+}
+
+function ptMarcarEdicion(input) {
+    input.style.background = '#fffbeb'; // amarillo suave = editado manualmente
+}
+
+// ── Modal Lote Empaque Primario ──
+function ptAbrirLoteEmpaque(tr) {
+    _ptLoteEmpaqueCallback = tr;
+    const existente = tr._loteEmpaqueData || {};
+
+    document.getElementById('modalLoteEmpaqueContent').innerHTML = `
+        <div style="margin-bottom:1rem;">
+            <label style="font-weight:700;font-size:.82rem;color:#374151;display:block;margin-bottom:.4rem;">Tipo de empaque:</label>
+            <select id="leTipo" onchange="ptRenderCamposEmpaque()" style="width:100%;padding:.65rem;border-radius:8px;border:2px solid #8b5cf6;font-size:.95rem;box-sizing:border-box;">
+                <option value="">— Seleccionar tipo —</option>
+                <option value="plato_film" ${existente.tipo==='plato_film'?'selected':''}>🍽️ Plato + Film</option>
+                <option value="film"       ${existente.tipo==='film'      ?'selected':''}>📄 Film</option>
+                <option value="bolsa"      ${existente.tipo==='bolsa'     ?'selected':''}>🛍️ Bolsa</option>
+            </select>
+        </div>
+        <div id="leCamposDinamicos"></div>
+    `;
+    // Pre-llenar si ya había datos
+    if (existente.tipo) {
+        ptRenderCamposEmpaque(existente);
+    }
+    document.getElementById('modalLoteEmpaque').style.display = 'flex';
+}
+
+function ptRenderCamposEmpaque(existente) {
+    const tipo = document.getElementById('leTipo')?.value;
+    const cont = document.getElementById('leCamposDinamicos');
+    if (!cont || !tipo) return;
+    const ex = existente || {};
+
+    if (tipo === 'plato_film') {
+        cont.innerHTML = `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
+                <div>
+                    <label style="font-weight:700;font-size:.82rem;color:#374151;display:block;margin-bottom:.3rem;">Lote Plato:</label>
+                    <input type="text" id="lePlato" value="${ex.lotePlato||''}" placeholder="Lote plato..."
+                        style="width:100%;padding:.6rem;border-radius:8px;border:1.5px solid #8b5cf6;font-size:.9rem;box-sizing:border-box;">
+                </div>
+                <div>
+                    <label style="font-weight:700;font-size:.82rem;color:#374151;display:block;margin-bottom:.3rem;">Lote Film:</label>
+                    <input type="text" id="leFilm" value="${ex.loteFilm||''}" placeholder="Lote film..."
+                        style="width:100%;padding:.6rem;border-radius:8px;border:1.5px solid #8b5cf6;font-size:.9rem;box-sizing:border-box;">
+                </div>
+            </div>`;
+    } else if (tipo === 'film') {
+        cont.innerHTML = `
+            <div>
+                <label style="font-weight:700;font-size:.82rem;color:#374151;display:block;margin-bottom:.3rem;">Lote Film:</label>
+                <input type="text" id="leFilm" value="${ex.loteFilm||''}" placeholder="Lote film..."
+                    style="width:100%;padding:.6rem;border-radius:8px;border:1.5px solid #8b5cf6;font-size:.9rem;box-sizing:border-box;">
+            </div>`;
+    } else if (tipo === 'bolsa') {
+        cont.innerHTML = `
+            <div>
+                <label style="font-weight:700;font-size:.82rem;color:#374151;display:block;margin-bottom:.3rem;">Lote Bolsa:</label>
+                <input type="text" id="leBolsa" value="${ex.loteBolsa||''}" placeholder="Lote bolsa..."
+                    style="width:100%;padding:.6rem;border-radius:8px;border:1.5px solid #8b5cf6;font-size:.9rem;box-sizing:border-box;">
+            </div>`;
+    }
+}
+
+function ptConfirmarLoteEmpaque() {
+    const tipo = document.getElementById('leTipo')?.value;
+    if (!tipo) { alert('Selecciona el tipo de empaque'); return; }
+
+    const data = { tipo };
+    if (tipo === 'plato_film') {
+        data.lotePlato = document.getElementById('lePlato')?.value || '';
+        data.loteFilm  = document.getElementById('leFilm')?.value  || '';
+    } else if (tipo === 'film') {
+        data.loteFilm  = document.getElementById('leFilm')?.value  || '';
+    } else if (tipo === 'bolsa') {
+        data.loteBolsa = document.getElementById('leBolsa')?.value || '';
+    }
+
+    const tr = _ptLoteEmpaqueCallback;
+    if (tr) {
+        tr._loteEmpaqueData = data;
+        const btn = tr.querySelector('button[onclick*="ptAbrirLoteEmpaque"]');
+        if (btn) btn.textContent = ptFormatLoteEmpaque(data);
+        const hidden = tr.querySelector('[data-campo="loteEmpaque"]');
+        if (hidden) hidden.value = JSON.stringify(data);
+    }
+    document.getElementById('modalLoteEmpaque').style.display = 'none';
+}
+
+function ptFormatLoteEmpaque(data) {
+    if (!data || !data.tipo) return '📦 Configurar...';
+    if (data.tipo === 'plato_film') return `🍽️ Plato:${data.lotePlato||'—'} Film:${data.loteFilm||'—'}`;
+    if (data.tipo === 'film')       return `📄 Film:${data.loteFilm||'—'}`;
+    if (data.tipo === 'bolsa')      return `🛍️ Bolsa:${data.loteBolsa||'—'}`;
+    return '📦 Configurado';
+}
+
+// ── Eliminar fila ──
+function ptEliminarFila(tr) {
+    if (!confirm('¿Eliminar esta línea?')) return;
+    tr.remove();
+    // Re-numerar
+    document.querySelectorAll('#ptTbody tr.pt-fila').forEach((r, i) => {
+        r.querySelector('td:first-child').textContent = i + 1;
+        r.dataset.idx = i;
+    });
+    if (document.querySelectorAll('#ptTbody tr.pt-fila').length === 0) {
+        document.getElementById('ptTbody').innerHTML = `<tr id="ptEmptyRow">
+            <td colspan="37" style="text-align:center;padding:3rem;color:#94a3b8;">
+                <div style="font-size:2.5rem;margin-bottom:.5rem;">📋</div>
+                <div style="font-weight:700;color:#7c3aed;">Sin registros para este día</div>
+                <div style="font-size:.85rem;margin-top:.3rem;">Haz clic en "Agregar Línea" para iniciar el registro</div>
+            </td></tr>`;
+    }
+}
+
+// ── Alertas resumen ──
+function ptActualizarAlertasResumen(fecha) {
+    const data = ptRegistros[fecha] || {};
+    const filas = data.filas || [];
+    let alertas = 0;
+    let bloqueados = 0;
+    filas.forEach(f => {
+        if (f.estatus === 'Bloqueado') bloqueados++;
+        if (parseFloat(f.temp) > 10) alertas++;
+        ['aroma','sabor','color','textura','peso','ausExt','rotulacion'].forEach(c => {
+            if (f[c] === 'NC') alertas++;
+        });
+    });
+    const el = document.getElementById('ptAlertasResumen');
+    if (!el) return;
+    if (alertas === 0 && bloqueados === 0) { el.style.display = 'none'; return; }
+    el.style.display = 'block';
+    el.innerHTML = `${bloqueados > 0 ? `🔴 ${bloqueados} bloqueado(s) ` : ''}${alertas > 0 ? `⚠️ ${alertas} desviación(es)` : ''}`;
+}
+
+// ── Imprimir ──
+function ptImprimir() {
+    const fecha  = ptGetFecha();
+    ptLeerTablaAMemoria(fecha);
+    const data   = ptRegistros[fecha] || {};
+    const filas  = data.filas || [];
+    const monitor    = document.getElementById('ptMonitor')?.value || '___________';
+    const verificador= document.getElementById('ptVerificador')?.value || '___________';
+    const obs        = document.getElementById('ptObservaciones')?.value || '';
+
+    const camposOrg = ['aroma','sabor','color','textura','peso','ausExt','rotulacion'];
+    const labelsOrg = ['Aroma','Sabor','Color','Textura','Peso','Aus. Ext.','Rotulación'];
+
+    const filasHTML = filas.map((f, i) => {
+        const colorEst = f.estatus === 'Liberado' ? '#10b981' : f.estatus === 'Bloqueado' ? '#ef4444' : '#666';
+        const loteEmpLabel = f._loteEmpaqueData ? ptFormatLoteEmpaque(f._loteEmpaqueData) :
+                             (f.loteEmpaque ? ptFormatLoteEmpaque(JSON.parse(f.loteEmpaque||'{}')) : '—');
+        return `<tr style="background:${i%2===0?'white':'#faf5ff'}">
+            <td style="text-align:center;">${i+1}</td>
+            <td>${f.cliente||'—'}</td>
+            <td style="text-align:center;">${f.op||'—'}</td>
+            <td style="text-align:center;">${f.hora||'—'}</td>
+            <td>${f.preparacion||'—'}</td>
+            <td style="font-size:8pt;">${f.lotePT||'—'}</td>
+            <td>${f.componentePT||'—'}</td>
+            <td style="text-align:center;">${f.loteComp||'—'}</td>
+            <td style="text-align:center;">${f.unidEst||'—'}</td>
+            <td style="text-align:center;">${f.kgEst||'—'}</td>
+            <td style="text-align:center;font-weight:700;">${f.unidReal||'—'}</td>
+            <td style="text-align:center;font-weight:700;">${f.kgReal||'—'}</td>
+            <td style="text-align:center;">${f.merma||'—'}</td>
+            <td style="text-align:center;">${f.formatoEnv||'—'}</td>
+            <td style="text-align:center;">${f.tipoEnv||'—'}</td>
+            <td style="font-size:8pt;">${loteEmpLabel}</td>
+            <td style="text-align:center;">${f.areaEnv||'—'}</td>
+            <td style="text-align:center;${parseFloat(f.temp)>10?'color:#ef4444;font-weight:700;':''}">${f.temp||'—'}${f.temp?'°C':''}</td>
+            ${camposOrg.map(c => `<td style="text-align:center;color:${f[c]==='NC'?'#ef4444':f[c]==='C'?'#10b981':'#666'};font-weight:700;">${f[c]||'—'}</td>`).join('')}
+            <td style="text-align:center;">${f.cantInsp||'—'}</td>
+            ${[1,2,3,4,5,6,7,8].map(n => `<td style="text-align:center;">${f['m'+n]||'—'}</td>`).join('')}
+            <td style="text-align:center;font-weight:800;color:${colorEst};">${f.estatus||'—'}</td>
+        </tr>`;
+    }).join('');
+
+    const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+    <title>Control PT — ${fecha}</title>
+    <style>
+        @page { size: A3 landscape; margin: 10mm; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; font-size: 8pt; color: #1e293b; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 2px solid #5b21b6; }
+        .titulo { font-size: 13pt; font-weight: 900; color: #5b21b6; }
+        .subtitulo { font-size: 8pt; color: #64748b; margin-top: 2px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+        thead tr { background: #5b21b6; color: white; }
+        th { padding: 4px 3px; text-align: center; font-size: 7pt; font-weight: 700; border: 1px solid #4c1d95; }
+        td { padding: 3px; border: 1px solid #e2e8f0; vertical-align: middle; }
+        .org-head { background: #ede9fe; color: #5b21b6; }
+        .peso-head { background: #d1fae5; color: #065f46; }
+        .firmas { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 12px; }
+        .firma-box { border-top: 1.5px solid #1e293b; padding-top: 5px; font-size: 8pt; color: #475569; }
+        .obs-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 10px; margin-bottom: 10px; font-size: 8pt; }
+        @media print { body { margin: 0; } .no-print { display: none; } }
+    </style>
+    </head><body>
+    <div class="header">
+        <div>
+            <div class="titulo">📋 Control de Envasado y Producto Terminado</div>
+            <div class="subtitulo">R-POE-03-GF-11 · Alimentos Santa Emilia · Fecha: ${new Date(fecha+'T12:00:00').toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div>
+        </div>
+        <div style="text-align:right;font-size:8pt;color:#64748b;">
+            Generado: ${new Date().toLocaleString('es-CL')}<br>
+            Monitoreado por: <strong>${monitor}</strong><br>
+            Verificado por: <strong>${verificador}</strong>
+        </div>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th rowspan="2">#</th>
+                <th rowspan="2">Cliente</th>
+                <th rowspan="2">OP</th>
+                <th rowspan="2">Hora</th>
+                <th rowspan="2">Preparación</th>
+                <th rowspan="2">Lote PT</th>
+                <th rowspan="2">Componente PT</th>
+                <th rowspan="2">Lote Comp.</th>
+                <th rowspan="2">Unid. Est.</th>
+                <th rowspan="2">Kg Est.</th>
+                <th rowspan="2">Unid. Real</th>
+                <th rowspan="2">Kg Real</th>
+                <th rowspan="2">Merma</th>
+                <th rowspan="2">Formato</th>
+                <th rowspan="2">Tipo Env.</th>
+                <th rowspan="2">Lote Empaque</th>
+                <th rowspan="2">Área Env.</th>
+                <th rowspan="2">Temp °C</th>
+                <th colspan="7" class="org-head">Características Organolépticas</th>
+                <th rowspan="2" class="peso-head">Cant. Insp.</th>
+                <th colspan="8" class="peso-head">Control de Pesos (gr)</th>
+                <th rowspan="2">Estatus</th>
+            </tr>
+            <tr>
+                ${labelsOrg.map(l => `<th class="org-head" style="font-size:6.5pt;">${l}</th>`).join('')}
+                ${[1,2,3,4,5,6,7,8].map(n => `<th class="peso-head">M${n}</th>`).join('')}
+            </tr>
+        </thead>
+        <tbody>${filasHTML || '<tr><td colspan="36" style="text-align:center;padding:1rem;color:#94a3b8;">Sin registros</td></tr>'}</tbody>
+    </table>
+    ${obs ? `<div class="obs-box"><strong>Observaciones:</strong> ${obs}</div>` : ''}
+    <div class="firmas">
+        <div class="firma-box">Monitoreado por:<br><br>_________________________________<br><strong>${monitor}</strong></div>
+        <div class="firma-box">Verificado por:<br><br>_________________________________<br><strong>${verificador}</strong></div>
+    </div>
+    <div class="no-print" style="text-align:center;margin-top:15px;">
+        <button onclick="window.print()" style="background:#5b21b6;color:white;border:none;border-radius:8px;padding:10px 28px;cursor:pointer;font-weight:700;font-size:13px;">🖨️ Imprimir / Guardar PDF</button>
+    </div>
+    </body></html>`;
+
+    const ventana = window.open('', '_blank', 'width=1200,height=700');
+    ventana.document.write(html);
+    ventana.document.close();
+}
+
     </script>
 
+
+<!-- ============================================================ -->
+<!-- TAB: CONTROL ENVASADO Y PRODUCTO TERMINADO                   -->
+<!-- R-POE-03-GF-11                                               -->
+<!-- ============================================================ -->
+<div id="controlPT" class="tab-content">
+  <div style="max-width:1400px;margin:0 auto;padding:1rem;">
+
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#5b21b6,#7c3aed);border-radius:16px;padding:1.5rem 2rem;margin-bottom:1.5rem;color:white;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
+      <div>
+        <h2 style="margin:0;font-size:1.4rem;font-weight:800;">📋 Control de Envasado y Producto Terminado</h2>
+        <div style="font-size:.85rem;opacity:.85;margin-top:.3rem;">R-POE-03-GF-11 · Inspección y Liberación de PT</div>
+      </div>
+      <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;">
+        <div style="background:rgba(255,255,255,.15);border-radius:10px;padding:.5rem 1rem;font-size:.85rem;">
+          📅 <span id="ptFechaDisplay"></span>
+        </div>
+        <button onclick="ptAgregarFila()" style="background:white;color:#5b21b6;border:none;border-radius:10px;padding:.6rem 1.25rem;font-weight:700;cursor:pointer;font-size:.9rem;">
+          ➕ Agregar Línea
+        </button>
+        <button onclick="ptGuardar()" style="background:#10b981;color:white;border:none;border-radius:10px;padding:.6rem 1.25rem;font-weight:700;cursor:pointer;font-size:.9rem;">
+          💾 Guardar Registro
+        </button>
+        <button onclick="ptImprimir()" style="background:rgba(255,255,255,.2);color:white;border:2px solid rgba(255,255,255,.5);border-radius:10px;padding:.6rem 1.25rem;font-weight:700;cursor:pointer;font-size:.9rem;">
+          🖨️ Imprimir
+        </button>
+      </div>
+    </div>
+
+    <!-- Selector de fecha -->
+    <div style="background:white;border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.25rem;box-shadow:0 2px 8px rgba(0,0,0,.06);display:flex;gap:1rem;align-items:center;flex-wrap:wrap;">
+      <label style="font-weight:700;color:#5b21b6;font-size:.9rem;">📅 Fecha del Registro:</label>
+      <input type="date" id="ptFecha" onchange="ptCambiarFecha()" style="padding:.5rem .85rem;border-radius:8px;border:2px solid #8b5cf6;font-size:.95rem;font-weight:600;">
+      <div style="margin-left:auto;display:flex;gap:.5rem;">
+        <div id="ptAlertasResumen" style="display:none;background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:.4rem .85rem;font-size:.82rem;color:#dc2626;font-weight:700;"></div>
+      </div>
+    </div>
+
+    <!-- Tabla principal scrollable -->
+    <div style="background:white;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,.08);overflow:hidden;">
+      <div style="overflow-x:auto;">
+        <table id="ptTabla" style="width:100%;border-collapse:collapse;min-width:1800px;font-size:.82rem;">
+          <thead>
+            <tr style="background:#5b21b6;color:white;">
+              <th style="padding:.6rem .5rem;text-align:center;min-width:30px;">#</th>
+              <th style="padding:.6rem .75rem;text-align:left;min-width:100px;">🏢 Cliente</th>
+              <th style="padding:.6rem .75rem;text-align:center;min-width:80px;">📋 OP</th>
+              <th style="padding:.6rem .75rem;text-align:center;min-width:75px;">🕐 Hora</th>
+              <th style="padding:.6rem .75rem;text-align:left;min-width:180px;">🍽️ Preparación</th>
+              <th style="padding:.6rem .75rem;text-align:left;min-width:140px;">🏷️ Lote PT</th>
+              <th style="padding:.6rem .75rem;text-align:left;min-width:150px;">📦 Componente PT</th>
+              <th style="padding:.6rem .75rem;text-align:center;min-width:80px;">Lote Comp.</th>
+              <th style="padding:.6rem .75rem;text-align:center;min-width:80px;">Unid. Est.</th>
+              <th style="padding:.6rem .75rem;text-align:center;min-width:80px;">Kg Est.</th>
+              <th style="padding:.6rem .75rem;text-align:center;min-width:80px;background:rgba(255,255,255,.15);">Unid. Real</th>
+              <th style="padding:.6rem .75rem;text-align:center;min-width:80px;background:rgba(255,255,255,.15);">Kg Real</th>
+              <th style="padding:.6rem .75rem;text-align:center;min-width:70px;">Merma</th>
+              <th style="padding:.6rem .75rem;text-align:center;min-width:100px;">Formato</th>
+              <th style="padding:.6rem .75rem;text-align:center;min-width:100px;">Tipo Env.</th>
+              <th style="padding:.6rem .75rem;text-align:left;min-width:140px;">Lote Empaque</th>
+              <th style="padding:.6rem .75rem;text-align:center;min-width:110px;">Área Env.</th>
+              <th style="padding:.6rem .75rem;text-align:center;min-width:75px;">Temp °C</th>
+              <!-- Organolépticas -->
+              <th style="padding:.6rem .4rem;text-align:center;min-width:55px;background:rgba(255,255,255,.1);">Aroma</th>
+              <th style="padding:.6rem .4rem;text-align:center;min-width:55px;background:rgba(255,255,255,.1);">Sabor</th>
+              <th style="padding:.6rem .4rem;text-align:center;min-width:55px;background:rgba(255,255,255,.1);">Color</th>
+              <th style="padding:.6rem .4rem;text-align:center;min-width:55px;background:rgba(255,255,255,.1);">Textura</th>
+              <th style="padding:.6rem .4rem;text-align:center;min-width:55px;background:rgba(255,255,255,.1);">Peso</th>
+              <th style="padding:.6rem .4rem;text-align:center;min-width:65px;background:rgba(255,255,255,.1);">Aus. Ext.</th>
+              <th style="padding:.6rem .4rem;text-align:center;min-width:65px;background:rgba(255,255,255,.1);">Rotul.</th>
+              <!-- Control pesos -->
+              <th style="padding:.6rem .5rem;text-align:center;min-width:60px;background:rgba(16,185,129,.3);">Insp.</th>
+              <th style="padding:.6rem .4rem;text-align:center;min-width:55px;background:rgba(16,185,129,.2);">M1</th>
+              <th style="padding:.6rem .4rem;text-align:center;min-width:55px;background:rgba(16,185,129,.2);">M2</th>
+              <th style="padding:.6rem .4rem;text-align:center;min-width:55px;background:rgba(16,185,129,.2);">M3</th>
+              <th style="padding:.6rem .4rem;text-align:center;min-width:55px;background:rgba(16,185,129,.2);">M4</th>
+              <th style="padding:.6rem .4rem;text-align:center;min-width:55px;background:rgba(16,185,129,.2);">M5</th>
+              <th style="padding:.6rem .4rem;text-align:center;min-width:55px;background:rgba(16,185,129,.2);">M6</th>
+              <th style="padding:.6rem .4rem;text-align:center;min-width:55px;background:rgba(16,185,129,.2);">M7</th>
+              <th style="padding:.6rem .4rem;text-align:center;min-width:55px;background:rgba(16,185,129,.2);">M8</th>
+              <!-- Estatus -->
+              <th style="padding:.6rem .75rem;text-align:center;min-width:110px;">🔓 Estatus</th>
+              <th style="padding:.6rem .5rem;text-align:center;min-width:40px;">🗑️</th>
+            </tr>
+          </thead>
+          <tbody id="ptTbody">
+            <tr id="ptEmptyRow">
+              <td colspan="37" style="text-align:center;padding:3rem;color:#94a3b8;">
+                <div style="font-size:2.5rem;margin-bottom:.5rem;">📋</div>
+                <div style="font-weight:700;color:#7c3aed;">Sin registros para este día</div>
+                <div style="font-size:.85rem;margin-top:.3rem;">Haz clic en "Agregar Línea" para iniciar el registro</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Observaciones y firmas -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem;">
+      <div style="background:white;border-radius:12px;padding:1.25rem;box-shadow:0 2px 8px rgba(0,0,0,.06);">
+        <label style="font-weight:700;font-size:.85rem;color:#5b21b6;display:block;margin-bottom:.5rem;">📝 Observaciones</label>
+        <textarea id="ptObservaciones" rows="3" placeholder="Observaciones del registro..."
+          style="width:100%;border:1.5px solid #e2e8f0;border-radius:8px;padding:.65rem;font-size:.9rem;resize:none;box-sizing:border-box;"></textarea>
+      </div>
+      <div style="background:white;border-radius:12px;padding:1.25rem;box-shadow:0 2px 8px rgba(0,0,0,.06);display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
+        <div>
+          <label style="font-weight:700;font-size:.85rem;color:#374151;display:block;margin-bottom:.5rem;">👤 Monitoreado por:</label>
+          <input type="text" id="ptMonitor" placeholder="Nombre monitor calidad"
+            style="width:100%;border:1.5px solid #e2e8f0;border-radius:8px;padding:.6rem;font-size:.9rem;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-weight:700;font-size:.85rem;color:#374151;display:block;margin-bottom:.5rem;">✅ Verificado por:</label>
+          <input type="text" id="ptVerificador" placeholder="Nombre verificador"
+            style="width:100%;border:1.5px solid #e2e8f0;border-radius:8px;padding:.6rem;font-size:.9rem;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-weight:700;font-size:.85rem;color:#374151;display:block;margin-bottom:.5rem;">Código documento:</label>
+          <input type="text" value="R-POE-03-GF-11" readonly
+            style="width:100%;border:1.5px solid #e2e8f0;border-radius:8px;padding:.6rem;font-size:.85rem;box-sizing:border-box;background:#f8fafc;color:#64748b;">
+        </div>
+        <div>
+          <label style="font-weight:700;font-size:.85rem;color:#374151;display:block;margin-bottom:.5rem;">Versión:</label>
+          <input type="text" value="01 · Vigencia: 2025" readonly
+            style="width:100%;border:1.5px solid #e2e8f0;border-radius:8px;padding:.6rem;font-size:.85rem;box-sizing:border-box;background:#f8fafc;color:#64748b;">
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal para lote de empaque primario -->
+<div id="modalLoteEmpaque" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:16px;padding:2rem;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3);border-top:5px solid #5b21b6;">
+    <h3 style="color:#5b21b6;margin:0 0 1.25rem;font-size:1.05rem;">📦 Lote de Empaque Primario</h3>
+    <div id="modalLoteEmpaqueContent"></div>
+    <div style="display:flex;gap:.75rem;margin-top:1.25rem;">
+      <button onclick="ptConfirmarLoteEmpaque()" style="flex:1;padding:.8rem;background:linear-gradient(135deg,#5b21b6,#7c3aed);color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;">✅ Confirmar</button>
+      <button onclick="document.getElementById('modalLoteEmpaque').style.display='none'" style="padding:.8rem 1.25rem;background:#f1f5f9;color:#64748b;border:none;border-radius:10px;font-weight:600;cursor:pointer;">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal OP no encontrada -->
+<div id="modalOPnoEncontrada" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:16px;padding:2rem;max-width:360px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3);border-top:5px solid #f59e0b;text-align:center;">
+    <div style="font-size:2.5rem;margin-bottom:.75rem;">⚠️</div>
+    <h3 style="color:#d97706;margin:0 0 .5rem;">OP no encontrada</h3>
+    <p style="color:#64748b;font-size:.9rem;" id="modalOPnoEncontradaMsg"></p>
+    <button onclick="document.getElementById('modalOPnoEncontrada').style.display='none'" style="margin-top:1rem;padding:.75rem 2rem;background:#f59e0b;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;">Entendido</button>
+  </div>
+</div>
+
+<!-- Modal detalle desvíos PT -->
+<div id="modalDesviosPT" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:9999;overflow-y:auto;">
+  <div style="background:white;border-radius:16px;padding:2rem;max-width:600px;width:90%;margin:2rem auto;box-shadow:0 20px 60px rgba(0,0,0,.3);border-top:5px solid #ef4444;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+      <h3 style="color:#dc2626;margin:0;font-size:1.05rem;">🚨 Desvíos Detectados</h3>
+      <button onclick="document.getElementById('modalDesviosPT').style.display='none'" style="background:#f1f5f9;border:none;border-radius:8px;padding:.4rem .7rem;cursor:pointer;font-size:1.1rem;">✕</button>
+    </div>
+    <div id="modalDesviosPTContent"></div>
+  </div>
+</div>
 
 <!-- Modal Detalle Receta -->
 <div id="modalDetalleReceta" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;overflow-y:auto;">
