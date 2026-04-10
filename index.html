@@ -22111,6 +22111,9 @@ function ptAutoLlenarDesdeOP(input) {
     const opNum   = (input.value || '').trim();
     if (!opNum) return;
 
+    // ── Guard: si ya fue auto-llenada esta fila, no repetir ──
+    if (input.dataset.autollenado === '1') return;
+
     // Buscar OP por número
     const op = ordenesProduccion.find(o =>
         String(o.numeroOp).trim() === opNum ||
@@ -22142,22 +22145,31 @@ function ptAutoLlenarDesdeOP(input) {
         return;
     }
 
-    const tbody = tr.closest('tbody');
+    const tbody   = tr.closest('tbody');
     const idxBase = parseInt(tr.dataset.idx || 0);
+
+    // Marcar la fila actual como ya procesada ANTES de crear nuevas
+    input.dataset.autollenado = '1';
 
     // Llenar la fila actual con el PRIMER componente
     const comp0 = componentes[0];
     _ptLlenarFilaConComp(tr, op, comp0, receta, gramaje, lotePT, hora, true);
 
     // Agregar una fila nueva por cada componente adicional
+    let insertRef = tr;
     componentes.slice(1).forEach((comp, i) => {
-        const nuevoIdx = idxBase + 1 + i;
-        const nuevaTr  = document.createElement('tr');
-        nuevaTr.className  = 'pt-fila';
+        const nuevoIdx  = idxBase + 1 + i;
+        const nuevaTr   = document.createElement('tr');
+        nuevaTr.className   = 'pt-fila';
         nuevaTr.dataset.idx = nuevoIdx;
         nuevaTr.style.background = nuevoIdx % 2 === 0 ? '#ffffff' : '#faf5ff';
-        tbody.insertBefore(nuevaTr, tr.nextSibling);
+        // Insertar después de la última fila creada
+        insertRef.insertAdjacentElement('afterend', nuevaTr);
+        insertRef = nuevaTr;
         ptRenderFilaVacia(nuevaTr, nuevoIdx);
+        // Marcar el campo OP de la nueva fila como ya procesado
+        const opInput = nuevaTr.querySelector('[data-campo="op"]');
+        if (opInput) opInput.dataset.autollenado = '1';
         _ptLlenarFilaConComp(nuevaTr, op, comp, receta, gramaje, lotePT, hora, false);
     });
 
@@ -22168,13 +22180,13 @@ function ptAutoLlenarDesdeOP(input) {
         r.dataset.idx = i;
     });
 
-    // Feedback visual
-    tr.style.background = '#f5f3ff';
+    // Feedback visual breve
+    tbody.querySelectorAll('tr.pt-fila').forEach(r => r.style.background = '#f5f3ff');
     setTimeout(() => {
         tbody.querySelectorAll('tr.pt-fila').forEach((r, i) => {
             r.style.background = i % 2 === 0 ? '#ffffff' : '#faf5ff';
         });
-    }, 1500);
+    }, 1000);
 
     mostrarNotificacion(`✅ OP ${opNum} — ${componentes.length} componente(s) cargados`, 'success');
 }
@@ -22216,29 +22228,32 @@ function _ptLlenarFilaConComp(tr, op, comp, receta, gramaje, lotePT, hora, esPri
         if (el) el.value = val;
     };
 
-    // Datos de cabecera solo en primera fila
-    if (esPrimera) {
-        // Cliente = campo cliente de la OP (guardado al crearla en el Planificador)
-        set('cliente', op.cliente || op.nombre || '');
-        set('hora',    hora);
-        set('lotePT',  lotePT);
-    }
-
     // OP siempre
     set('op', String(op.numeroOp));
 
-    // Preparación = nombre del COMPONENTE
+    // Datos de cabecera solo en primera fila
+    if (esPrimera) {
+        set('cliente', op.cliente || op.nombre || '');
+        set('hora',    hora);
+    }
+
+    // Lote PT va en TODAS las filas (mismo lote para todos los componentes de la OP)
+    set('lotePT', lotePT);
+
+    // Preparación y componente = nombre del componente
     set('preparacion',   comp.nombre || '');
     set('componentePT',  comp.nombre || '');
 
     // Kg estimados del componente
     set('kgEst', comp.kgTerminados || '');
 
-    // Unidades estimadas
-    const unidEst = op.platos > 0 ? op.platos :
-                    (gramaje > 0 && comp.kgTerminados > 0 ?
-                        Math.ceil((comp.kgTerminados * 1000) / gramaje) : '');
-    set('unidEst', unidEst);
+    // Unidades estimadas (solo en primera fila — son por OP, no por componente)
+    if (esPrimera) {
+        const unidEst = op.platos > 0 ? op.platos :
+                        (gramaje > 0 && comp.kgTerminados > 0 ?
+                            Math.ceil((comp.kgTerminados * 1000) / gramaje) : '');
+        set('unidEst', unidEst);
+    }
 
     // Buscar gramaje específico del componente en la receta
     const compReceta = receta?.componentes?.find(c =>
