@@ -22231,13 +22231,11 @@ function _ptLlenarFilaConComp(tr, op, comp, receta, gramaje, lotePT, hora, esPri
     // OP siempre
     set('op', String(op.numeroOp));
 
-    // Datos de cabecera solo en primera fila
-    if (esPrimera) {
-        set('cliente', op.cliente || op.nombre || '');
-        set('hora',    hora);
-    }
+    // Cliente y hora van en TODAS las filas
+    set('cliente', op.cliente || op.nombre || '');
+    set('hora',    hora);
 
-    // Lote PT va en TODAS las filas (mismo lote para todos los componentes de la OP)
+    // Lote PT va en TODAS las filas
     set('lotePT', lotePT);
 
     // Preparación y componente = nombre del componente
