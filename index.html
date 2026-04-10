@@ -19619,13 +19619,26 @@ function bodegaProcesarScan(valor) {
     }, 300);
 }
 
+function _normalizarCodigo(codigo) {
+    // Normaliza el código escaneado para tolerar diferencias de teclado:
+    // apóstrofes, acentos, espacios, etc. se convierten en guiones
+    // El guion bajo se preserva tal cual
+    return (codigo || '')
+        .trim()
+        .replace(/['\u00B4\u0060\u2019\u2018\u201C\u201D]/g, '-')  // apóstrofes y comillas → guión
+        .replace(/\s+/g, '-')           // espacios → guión
+        .replace(/-{2,}/g, '-')         // guiones dobles → uno solo
+        .toUpperCase();
+}
+
 function bodegaBuscarPorCodigo(codigo) {
-    // Buscar en stock disponible
-    return bodegaStock.find(s =>
-        s.codigo === codigo &&
-        s.estado !== 'agotado' &&
-        (s.kgDisponible || 0) > 0
-    ) || null;
+    const codigoNorm = _normalizarCodigo(codigo);
+    return bodegaStock.find(s => {
+        const stockNorm = _normalizarCodigo(s.codigo);
+        return stockNorm === codigoNorm &&
+               s.estado !== 'agotado' &&
+               (s.kgDisponible || 0) > 0;
+    }) || null;
 }
 
 function mostrarProductoDetectado(s) {
