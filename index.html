@@ -12863,11 +12863,21 @@ function confirmarActivacionAuto() {
   if (overlay) overlay.style.display = 'none';
 
   if (activados > 0) {
-    guardarDatos();
-    renderEquipos();
-    renderGanttBloques();
-    updateStats();
-    mostrarNotificacion(`🚀 ${activados} equipo(s) iniciados automáticamente`, 'success');
+    // Usar referencias globales expuestas desde el scope local
+    if (window._guardarDatos)       window._guardarDatos();
+    if (window._renderEquipos)      window._renderEquipos();
+    if (window._renderGanttBloques) window._renderGanttBloques();
+    if (window._updateStats)        window._updateStats();
+
+    const msg = `🚀 ${activados} equipo(s) iniciados correctamente`;
+    if (window._mostrarNotificacion) window._mostrarNotificacion(msg, 'success');
+    else mostrarNotificacion(msg, 'success');
+
+    // Navegar al Dashboard para que se vea el estado actualizado
+    setTimeout(() => {
+      const btnDash = document.querySelector('.nav-tab[data-modulo="dashboard"]');
+      if (btnDash) btnDash.click();
+    }, 300);
   }
 }
 
@@ -19268,6 +19278,15 @@ ${d._ingredientes.map(ing => `<tr>
         }, 60000);
 
         window.onload = init;
+
+        // ── Exponer funciones locales al scope global ──
+        // Necesario para que confirmarActivacionAuto (scope global) pueda llamarlas
+        window._renderEquipos       = renderEquipos;
+        window._guardarDatos        = guardarDatos;
+        window._updateStats         = updateStats;
+        window._renderGanttBloques  = renderGanttBloques;
+        window._renderProcesosActivos = typeof renderProcesosActivos === 'function' ? renderProcesosActivos : null;
+        window._mostrarNotificacion = typeof mostrarNotificacion === 'function' ? mostrarNotificacion : null;
 
 // ============================================================
 // MÓDULO BODEGA — CÁMARA DE TRÁNSITO
