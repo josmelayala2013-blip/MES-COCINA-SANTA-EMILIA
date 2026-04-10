@@ -1453,43 +1453,23 @@
 
         <!-- MODAL: REGISTRAR SALIDA BODEGA -->
         <div id="modalSalidaBodega" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:9999;overflow-y:auto;">
-          <div style="background:white;border-radius:20px;padding:2rem;max-width:560px;width:90%;margin:2rem auto;box-shadow:0 25px 60px rgba(0,0,0,.4);border-top:6px solid #f59e0b;">
+          <div style="background:white;border-radius:20px;padding:2rem;max-width:580px;width:90%;margin:2rem auto;box-shadow:0 25px 60px rgba(0,0,0,.4);border-top:6px solid #f59e0b;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
               <h2 style="color:#d97706;margin:0;font-size:1.15rem;">🔫 Registrar Salida de Bodega</h2>
-              <button onclick="document.getElementById('modalSalidaBodega').style.display='none'"
+              <button onclick="cerrarModalSalidaBodega()"
                 style="background:#f1f5f9;border:none;border-radius:8px;padding:.4rem .7rem;cursor:pointer;font-size:1.1rem;">✕</button>
             </div>
 
-            <!-- Scanner -->
-            <div style="background:#fffbeb;border-radius:12px;padding:1rem;margin-bottom:1rem;border:2px dashed #f59e0b;">
-              <label style="font-weight:700;font-size:.85rem;color:#92400e;display:block;margin-bottom:.5rem;">🔫 Pistoleer etiqueta del producto</label>
-              <input type="text" id="bodegaScanInput" placeholder="Pistoleer aquí o ingresar código manualmente..."
-                autofocus autocomplete="off"
-                oninput="bodegaProcesarScan(this.value)"
-                style="width:100%;padding:.75rem;border-radius:8px;border:2px solid #f59e0b;font-size:1rem;box-sizing:border-box;background:white;">
-              <div id="bodegaScanFeedback" style="margin-top:.5rem;font-size:.82rem;color:#92400e;"></div>
-            </div>
-
-            <!-- Producto detectado -->
-            <div id="bodegaProductoDetectado" style="display:none;background:#f0fdfe;border-radius:12px;padding:1rem;margin-bottom:1rem;border-left:4px solid #06b6d4;">
-              <div id="bodegaProductoInfo"></div>
-            </div>
-
-            <!-- Formulario salida -->
-            <div id="bodegaFormSalida" style="display:none;">
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1rem;">
-                <div>
-                  <label style="font-weight:700;font-size:.82rem;color:#374151;display:block;margin-bottom:.3rem;">Kg a retirar *</label>
-                  <input type="number" id="bodegaKgSalida" step="0.1" min="0.1" placeholder="Ej: 45.0"
-                    oninput="bodegaValidarKg()"
-                    style="width:100%;padding:.65rem;border-radius:8px;border:2px solid #06b6d4;font-size:1rem;font-weight:700;box-sizing:border-box;color:#0e7490;">
-                  <div id="bodegaKgAlert" style="font-size:.75rem;color:#dc2626;margin-top:.25rem;"></div>
-                </div>
+            <!-- PASO 1: Datos de la salida (línea destino + operador) -->
+            <div id="bodegaSalidaPaso1">
+              <div style="background:#fffbeb;border-radius:10px;padding:.85rem;margin-bottom:1rem;border-left:4px solid #f59e0b;font-size:.85rem;color:#92400e;">
+                <strong>Paso 1 de 2</strong> — Completa los datos de la salida
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem;">
                 <div>
                   <label style="font-weight:700;font-size:.82rem;color:#374151;display:block;margin-bottom:.3rem;">Línea Destino *</label>
                   <select id="bodegaLineaDestino"
-                    onchange="bodegaCalcularUnidades()"
-                    style="width:100%;padding:.65rem;border-radius:8px;border:2px solid #06b6d4;font-size:.9rem;box-sizing:border-box;">
+                    style="width:100%;padding:.65rem;border-radius:8px;border:2px solid #f59e0b;font-size:.9rem;box-sizing:border-box;">
                     <option value="">— Seleccionar —</option>
                     <option value="sandwiches">🥪 Línea Sándwiches</option>
                     <option value="platos">🍽️ Línea Platos</option>
@@ -1497,40 +1477,163 @@
                     <option value="otro">📦 Otro / Reserva</option>
                   </select>
                 </div>
+                <div>
+                  <label style="font-weight:700;font-size:.82rem;color:#374151;display:block;margin-bottom:.3rem;">👤 Operario Abatimiento *</label>
+                  <select id="bodegaOperadorSalida"
+                    style="width:100%;padding:.65rem;border-radius:8px;border:2px solid #f59e0b;font-size:.9rem;box-sizing:border-box;">
+                    <option value="">— Seleccionar —</option>
+                  </select>
+                </div>
               </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1rem;">
-                <div>
-                  <label style="font-weight:700;font-size:.82rem;color:#374151;display:block;margin-bottom:.3rem;">N° OP Destino</label>
-                  <input type="text" id="bodegaOPDestino" placeholder="Ej: OP-938"
-                    style="width:100%;padding:.65rem;border-radius:8px;border:1px solid #ddd;font-size:.9rem;box-sizing:border-box;">
-                </div>
-                <div>
-                  <label style="font-weight:700;font-size:.82rem;color:#374151;display:block;margin-bottom:.3rem;">Operador</label>
-                  <input type="text" id="bodegaOperadorSalida" placeholder="Nombre operador"
-                    style="width:100%;padding:.65rem;border-radius:8px;border:1px solid #ddd;font-size:.9rem;box-sizing:border-box;">
-                </div>
+              <div style="margin-bottom:.75rem;">
+                <label style="font-weight:700;font-size:.82rem;color:#374151;display:block;margin-bottom:.3rem;">N° OP Destino</label>
+                <input type="text" id="bodegaOPDestino" placeholder="Ej: OP-938"
+                  style="width:100%;padding:.65rem;border-radius:8px;border:1px solid #ddd;font-size:.9rem;box-sizing:border-box;">
+              </div>
+              <button onclick="bodegaIrAPaso2()"
+                style="width:100%;padding:.85rem;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:12px;font-weight:700;cursor:pointer;font-size:.95rem;">
+                Continuar → Escanear Bolsas
+              </button>
+            </div>
+
+            <!-- PASO 2: Pistoleo de bolsas -->
+            <div id="bodegaSalidaPaso2" style="display:none;">
+              <div style="background:#f0fdf4;border-radius:10px;padding:.85rem;margin-bottom:1rem;border-left:4px solid #10b981;font-size:.85rem;color:#065f46;">
+                <strong>Paso 2 de 2</strong> — Pistolera cada bolsa una por una
               </div>
 
-              <!-- Unidades calculadas -->
-              <div id="bodegaUnidadesCalc" style="display:none;background:#f0fdf4;border-radius:8px;padding:.75rem;margin-bottom:1rem;border-left:4px solid #10b981;">
-                <div id="bodegaUnidadesInfo" style="font-size:.88rem;color:#065f46;font-weight:600;"></div>
+              <!-- Scanner -->
+              <div style="background:#fffbeb;border-radius:12px;padding:1rem;margin-bottom:1rem;border:2px dashed #f59e0b;">
+                <label style="font-weight:700;font-size:.85rem;color:#92400e;display:block;margin-bottom:.5rem;">🔫 Pistoleer bolsa</label>
+                <input type="text" id="bodegaScanInput" placeholder="Pistoleer aquí..."
+                  autofocus autocomplete="off"
+                  oninput="bodegaProcesarScan(this.value)"
+                  style="width:100%;padding:.75rem;border-radius:8px;border:2px solid #f59e0b;font-size:1rem;box-sizing:border-box;background:white;">
+                <div id="bodegaScanFeedback" style="margin-top:.5rem;font-size:.82rem;color:#92400e;"></div>
+              </div>
+
+              <!-- Contador de bolsas escaneadas -->
+              <div id="bodegaContadorBolsas" style="display:none;background:#f0fdf4;border-radius:12px;padding:1.25rem;margin-bottom:1rem;border:2px solid #10b981;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
+                  <div>
+                    <div style="font-size:.78rem;font-weight:700;color:#065f46;">PRODUCTO</div>
+                    <div id="bodegaContProd" style="font-weight:800;color:#0e7490;font-size:1rem;"></div>
+                  </div>
+                  <div style="text-align:right;">
+                    <div style="font-size:.78rem;font-weight:700;color:#065f46;">DISPONIBLE</div>
+                    <div id="bodegaContDisp" style="font-weight:800;color:#10b981;font-size:1rem;"></div>
+                  </div>
+                </div>
+                <!-- Bolsas escaneadas -->
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;text-align:center;">
+                  <div style="background:white;border-radius:10px;padding:.75rem;border:2px solid #10b981;">
+                    <div style="font-size:.72rem;font-weight:700;color:#065f46;">BOLSAS</div>
+                    <div id="bodegaContBolsas" style="font-size:2rem;font-weight:900;color:#10b981;">0</div>
+                  </div>
+                  <div style="background:white;border-radius:10px;padding:.75rem;border:2px solid #0e7490;">
+                    <div style="font-size:.72rem;font-weight:700;color:#0e7490;">KG POR BOLSA</div>
+                    <div id="bodegaContKgBolsa" style="font-size:2rem;font-weight:900;color:#0e7490;">—</div>
+                  </div>
+                  <div style="background:white;border-radius:10px;padding:.75rem;border:2px solid #7c3aed;">
+                    <div style="font-size:.72rem;font-weight:700;color:#5b21b6;">TOTAL KG</div>
+                    <div id="bodegaContTotalKg" style="font-size:2rem;font-weight:900;color:#7c3aed;">0</div>
+                  </div>
+                </div>
+                <!-- Alerta stock insuficiente -->
+                <div id="bodegaAlertaStock" style="display:none;background:#fee2e2;border-radius:8px;padding:.6rem .85rem;margin-top:.75rem;font-size:.82rem;color:#dc2626;font-weight:700;"></div>
+                <!-- Lista de bolsas escaneadas -->
+                <div id="bodegaListaBolsas" style="margin-top:.75rem;max-height:120px;overflow-y:auto;"></div>
               </div>
 
               <div style="display:flex;gap:.75rem;">
-                <button onclick="confirmarSalidaBodega()"
-                  style="flex:1;padding:.85rem;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:12px;font-weight:700;cursor:pointer;font-size:.95rem;">
-                  ✅ Confirmar Salida y Generar Vale
-                </button>
-                <button onclick="document.getElementById('modalSalidaBodega').style.display='none'"
+                <button onclick="bodegaVolverPaso1()"
                   style="padding:.85rem 1.25rem;background:#f1f5f9;color:#64748b;border:none;border-radius:12px;font-weight:600;cursor:pointer;">
-                  Cancelar
+                  ← Atrás
+                </button>
+                <button onclick="confirmarSalidaBodega()" id="btnConfirmarSalida" disabled
+                  style="flex:1;padding:.85rem;background:#cbd5e1;color:white;border:none;border-radius:12px;font-weight:700;cursor:not-allowed;font-size:.95rem;">
+                  ✅ Confirmar Salida y Generar Vale
                 </button>
               </div>
             </div>
+
           </div>
         </div>
 
-        <!-- TAB: PRODUCTOS -->
+        <!-- MODAL: REVISIÓN EDITABLE ANTES DE GENERAR VALE -->
+        <div id="modalRevisionVale" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.75);z-index:10000;overflow-y:auto;">
+          <div style="background:white;border-radius:20px;padding:2rem;max-width:560px;width:90%;margin:2rem auto;box-shadow:0 25px 60px rgba(0,0,0,.5);border-top:6px solid #10b981;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+              <div>
+                <h2 style="color:#065f46;margin:0;font-size:1.1rem;">📋 Revisar antes de confirmar</h2>
+                <div style="font-size:.8rem;color:#64748b;margin-top:.2rem;">Verifica y corrige si hay algún error</div>
+              </div>
+              <button onclick="document.getElementById('modalRevisionVale').style.display='none'"
+                style="background:#f1f5f9;border:none;border-radius:8px;padding:.4rem .7rem;cursor:pointer;font-size:1.1rem;">✕</button>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem;">
+              <div>
+                <label style="font-weight:700;font-size:.8rem;color:#374151;display:block;margin-bottom:.3rem;">🏷️ Producto</label>
+                <input type="text" id="revProducto" style="width:100%;padding:.6rem;border-radius:8px;border:2px solid #10b981;font-size:.9rem;font-weight:700;box-sizing:border-box;text-transform:uppercase;">
+              </div>
+              <div>
+                <label style="font-weight:700;font-size:.8rem;color:#374151;display:block;margin-bottom:.3rem;">🏢 Cliente</label>
+                <input type="text" id="revCliente" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;font-size:.9rem;font-weight:700;box-sizing:border-box;text-transform:uppercase;">
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;margin-bottom:.75rem;">
+              <div>
+                <label style="font-weight:700;font-size:.8rem;color:#374151;display:block;margin-bottom:.3rem;">🔢 Lote</label>
+                <input type="text" id="revLote" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;font-size:.9rem;font-weight:700;box-sizing:border-box;text-align:center;">
+              </div>
+              <div>
+                <label style="font-weight:700;font-size:.8rem;color:#374151;display:block;margin-bottom:.3rem;">📦 N° Bolsas</label>
+                <input type="number" id="revNBolsas" min="1" style="width:100%;padding:.6rem;border-radius:8px;border:2px solid #f59e0b;font-size:.9rem;font-weight:800;box-sizing:border-box;text-align:center;color:#d97706;" oninput="revRecalcularKg()">
+              </div>
+              <div>
+                <label style="font-weight:700;font-size:.8rem;color:#374151;display:block;margin-bottom:.3rem;">⚖️ Kg por bolsa</label>
+                <input type="number" id="revKgBolsa" step="0.1" min="0.1" style="width:100%;padding:.6rem;border-radius:8px;border:2px solid #f59e0b;font-size:.9rem;font-weight:800;box-sizing:border-box;text-align:center;color:#d97706;" oninput="revRecalcularKg()">
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem;">
+              <div>
+                <label style="font-weight:700;font-size:.8rem;color:#374151;display:block;margin-bottom:.3rem;">🎯 Línea Destino</label>
+                <select id="revLineaDestino" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;font-size:.9rem;box-sizing:border-box;">
+                  <option value="sandwiches">🥪 Línea Sándwiches</option>
+                  <option value="platos">🍽️ Línea Platos</option>
+                  <option value="avemayo">🥗 Línea Ave Mayo</option>
+                  <option value="otro">📦 Otro / Reserva</option>
+                </select>
+              </div>
+              <div>
+                <label style="font-weight:700;font-size:.8rem;color:#374151;display:block;margin-bottom:.3rem;">N° OP Destino</label>
+                <input type="text" id="revOPDestino" placeholder="Ej: OP-938" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;font-size:.9rem;box-sizing:border-box;">
+              </div>
+            </div>
+            <div style="margin-bottom:1.25rem;">
+              <label style="font-weight:700;font-size:.8rem;color:#374151;display:block;margin-bottom:.3rem;">👤 Operario Abatimiento</label>
+              <input type="text" id="revOperador" style="width:100%;padding:.6rem;border-radius:8px;border:2px solid #10b981;font-size:.9rem;font-weight:700;box-sizing:border-box;">
+            </div>
+
+            <!-- Resumen total kg -->
+            <div style="background:#f0fdf4;border-radius:10px;padding:1rem;margin-bottom:1.25rem;display:flex;justify-content:space-between;align-items:center;border:2px solid #10b981;">
+              <div style="font-size:.85rem;color:#065f46;font-weight:700;">TOTAL A DESPACHAR</div>
+              <div id="revTotalKg" style="font-size:1.8rem;font-weight:900;color:#10b981;"></div>
+            </div>
+
+            <div style="display:flex;gap:.75rem;">
+              <button onclick="document.getElementById('modalRevisionVale').style.display='none'"
+                style="padding:.85rem 1.25rem;background:#f1f5f9;color:#64748b;border:none;border-radius:12px;font-weight:600;cursor:pointer;">
+                ← Volver
+              </button>
+              <button onclick="generarValeDefinitivo()"
+                style="flex:1;padding:.85rem;background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;border-radius:12px;font-weight:700;cursor:pointer;font-size:.95rem;">
+                ✅ Confirmar y Generar Vale
+              </button>
+            </div>
+          </div>
+        </div>
         <div id="productos" class="tab-content">
             <div class="analytics-section">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
@@ -19599,26 +19702,88 @@ function renderBodegaSalidas(el) {
         </div>`;
 }
 
-// ── SCANNER ──
 let _bodegaScanBuffer = '';
 let _bodegaScanTimer = null;
 
 function bodegaProcesarScan(valor) {
     clearTimeout(_bodegaScanTimer);
     _bodegaScanTimer = setTimeout(() => {
-        if (!valor || valor.length < 5) return;
-        const resultado = bodegaBuscarPorCodigo(valor.trim());
+        if (!valor || valor.length < 3) return;
+        const codigo = valor.trim();
         document.getElementById('bodegaScanInput').value = '';
-        if (resultado) {
-            _bodegaProductoActual = resultado;
-            mostrarProductoDetectado(resultado);
-        } else {
+
+        const resultado = bodegaBuscarPorCodigo(codigo);
+        if (!resultado) {
             document.getElementById('bodegaScanFeedback').innerHTML =
-                `<span style="color:#ef4444;">❌ Código no encontrado: ${valor}. Verifica que el producto esté en stock.</span>`;
-            document.getElementById('bodegaProductoDetectado').style.display = 'none';
-            document.getElementById('bodegaFormSalida').style.display = 'none';
+                `<span style="color:#ef4444;">❌ Código no encontrado: ${codigo}</span>`;
+            return;
         }
-    }, 300);
+
+        // Primera bolsa escaneada — inicializa la sesión
+        if (!_bodegaSesionSalida.item) {
+            _bodegaSesionSalida.item = resultado;
+            // Determinar kg por bolsa desde el formato guardado
+            const fmtNum = parseFloat(resultado.formato);
+            _bodegaSesionSalida.kgPorBolsa = (!isNaN(fmtNum) && fmtNum > 0) ? fmtNum : parseFloat(resultado.kg) || 3;
+            document.getElementById('bodegaContadorBolsas').style.display = 'block';
+            document.getElementById('bodegaContProd').textContent = resultado.producto;
+            document.getElementById('bodegaContKgBolsa').textContent = _bodegaSesionSalida.kgPorBolsa + ' kg';
+        }
+
+        // Verificar que es el mismo producto
+        if (_bodegaSesionSalida.item.id !== resultado.id) {
+            document.getElementById('bodegaScanFeedback').innerHTML =
+                `<span style="color:#ef4444;">⚠️ Bolsa de producto distinto. Esta sesión es solo para <strong>${_bodegaSesionSalida.item.producto}</strong></span>`;
+            return;
+        }
+
+        // Verificar que no supera el stock disponible
+        const kgAcum = _bodegaSesionSalida.bolsas.length * _bodegaSesionSalida.kgPorBolsa;
+        const kgSiguiente = kgAcum + _bodegaSesionSalida.kgPorBolsa;
+        const disponible = resultado.kgDisponible || 0;
+
+        if (kgSiguiente > disponible + 0.01) {
+            document.getElementById('bodegaAlertaStock').style.display = 'block';
+            document.getElementById('bodegaAlertaStock').textContent =
+                `⛔ BLOQUEADO — Solo hay ${disponible.toFixed(1)} kg disponibles. No puedes escanear más bolsas.`;
+            document.getElementById('bodegaScanFeedback').innerHTML =
+                `<span style="color:#ef4444;">⛔ Stock insuficiente para otra bolsa</span>`;
+            return;
+        }
+
+        // Registrar bolsa
+        const nBolsa = _bodegaSesionSalida.bolsas.length + 1;
+        _bodegaSesionSalida.bolsas.push({ codigo, kg: _bodegaSesionSalida.kgPorBolsa, n: nBolsa });
+
+        // Actualizar contadores
+        const totalBolsas = _bodegaSesionSalida.bolsas.length;
+        const totalKg = totalBolsas * _bodegaSesionSalida.kgPorBolsa;
+        document.getElementById('bodegaContBolsas').textContent = totalBolsas;
+        document.getElementById('bodegaContTotalKg').textContent = totalKg.toFixed(1);
+        document.getElementById('bodegaContDisp').textContent = `${(disponible - totalKg).toFixed(1)} kg restantes`;
+        document.getElementById('bodegaScanFeedback').innerHTML =
+            `<span style="color:#10b981;">✅ Bolsa ${nBolsa} registrada — ${_bodegaSesionSalida.kgPorBolsa} kg</span>`;
+
+        // Lista de bolsas
+        document.getElementById('bodegaListaBolsas').innerHTML = _bodegaSesionSalida.bolsas.map(b =>
+            `<div style="display:flex;justify-content:space-between;padding:.3rem .5rem;border-radius:6px;background:${b.n%2===0?'#f0fdf4':'white'};font-size:.78rem;">
+                <span style="color:#065f46;font-weight:700;">Bolsa ${b.n}</span>
+                <span style="color:#0e7490;font-weight:700;">${b.kg} kg</span>
+                <span style="color:#94a3b8;font-size:.72rem;">${b.codigo.slice(0,20)}…</span>
+            </div>`
+        ).join('');
+
+        // Habilitar botón confirmar
+        document.getElementById('btnConfirmarSalida').disabled = false;
+        document.getElementById('btnConfirmarSalida').style.background = 'linear-gradient(135deg,#f59e0b,#d97706)';
+        document.getElementById('btnConfirmarSalida').style.cursor = 'pointer';
+
+        // Ocultar alerta de stock si existía
+        document.getElementById('bodegaAlertaStock').style.display = 'none';
+
+        // Re-enfocar el campo para la siguiente bolsa
+        setTimeout(() => document.getElementById('bodegaScanInput').focus(), 100);
+    }, 250);
 }
 
 function _normalizarCodigo(codigo) {
@@ -19712,168 +19877,325 @@ function bodegaCalcularUnidades() {
         : `📊 Con <strong>${kg} kg</strong> para ${lineas[linea]} — sin gramaje configurado en receta`;
 }
 
-// ── Abrir modal salida ──
-function abrirSalidaBodega() {
-    _bodegaProductoActual = null;
+// ── Estado global de la sesión de salida ──
+let _bodegaSesionSalida = {
+    item: null,        // item del stock
+    bolsas: [],        // lista de bolsas escaneadas [{codigo, kg}]
+    kgPorBolsa: 0      // kg del formato de bolsa
+};
+
+function cerrarModalSalidaBodega() {
+    document.getElementById('modalSalidaBodega').style.display = 'none';
+    _bodegaSesionSalida = { item: null, bolsas: [], kgPorBolsa: 0 };
+}
+
+function bodegaIrAPaso2() {
+    const linea    = document.getElementById('bodegaLineaDestino').value;
+    const operador = document.getElementById('bodegaOperadorSalida').value.trim();
+    if (!linea)    { alert('Selecciona la línea destino'); return; }
+    if (!operador) { alert('Ingresa el nombre del operador'); return; }
+
+    document.getElementById('bodegaSalidaPaso1').style.display = 'none';
+    document.getElementById('bodegaSalidaPaso2').style.display = 'block';
+    _bodegaSesionSalida = { item: null, bolsas: [], kgPorBolsa: 0 };
     document.getElementById('bodegaScanInput').value = '';
     document.getElementById('bodegaScanFeedback').innerHTML = '';
-    document.getElementById('bodegaProductoDetectado').style.display = 'none';
-    document.getElementById('bodegaFormSalida').style.display = 'none';
-    document.getElementById('bodegaKgSalida').value = '';
-    document.getElementById('bodegaLineaDestino').value = '';
-    document.getElementById('bodegaOPDestino').value = '';
-    document.getElementById('bodegaOperadorSalida').value = '';
-    document.getElementById('bodegaKgAlert').textContent = '';
-    document.getElementById('bodegaUnidadesCalc').style.display = 'none';
-    document.getElementById('modalSalidaBodega').style.display = 'flex';
+    document.getElementById('bodegaContadorBolsas').style.display = 'none';
+    document.getElementById('btnConfirmarSalida').disabled = true;
+    document.getElementById('btnConfirmarSalida').style.background = '#cbd5e1';
+    document.getElementById('btnConfirmarSalida').style.cursor = 'not-allowed';
     setTimeout(() => document.getElementById('bodegaScanInput').focus(), 200);
 }
 
-// ── Confirmar salida ──
-async function confirmarSalidaBodega() {
-    if (!_bodegaProductoActual) { alert('Pistoleer primero un producto'); return; }
-    const kg = parseFloat(document.getElementById('bodegaKgSalida').value);
-    const linea = document.getElementById('bodegaLineaDestino').value;
-    const opDestino = document.getElementById('bodegaOPDestino').value.trim();
-    const operador = document.getElementById('bodegaOperadorSalida').value.trim();
+function bodegaVolverPaso1() {
+    document.getElementById('bodegaSalidaPaso2').style.display = 'none';
+    document.getElementById('bodegaSalidaPaso1').style.display = 'block';
+    _bodegaSesionSalida = { item: null, bolsas: [], kgPorBolsa: 0 };
+}
 
-    if (!kg || kg <= 0) { alert('Ingresa los kg a retirar'); return; }
-    if (!linea) { alert('Selecciona la línea destino'); return; }
-    if (!operador) { alert('Ingresa el nombre del operador'); return; }
-    if (kg > (_bodegaProductoActual.kgDisponible || 0)) {
-        alert(`⛔ BLOQUEADO — Solo hay ${_bodegaProductoActual.kgDisponible.toFixed(1)} kg disponibles`);
+function abrirSalidaBodega() {
+    _bodegaSesionSalida = { item: null, bolsas: [], kgPorBolsa: 0 };
+    document.getElementById('bodegaLineaDestino').value = '';
+    document.getElementById('bodegaOPDestino').value = '';
+    document.getElementById('bodegaSalidaPaso1').style.display = 'block';
+    document.getElementById('bodegaSalidaPaso2').style.display = 'none';
+
+    // Cargar operarios de abatimiento desde personal
+    const sel = document.getElementById('bodegaOperadorSalida');
+    sel.innerHTML = '<option value="">— Seleccionar —</option>';
+    const lista = (personal.abatimiento || []).map(p => typeof p === 'string' ? p : p.nombre).filter(Boolean);
+    lista.forEach(nombre => {
+        const opt = document.createElement('option');
+        opt.value = nombre;
+        opt.textContent = nombre;
+        sel.appendChild(opt);
+    });
+
+    document.getElementById('modalSalidaBodega').style.display = 'flex';
+}
+
+// ── Confirmar salida — abre revisión editable ──
+function confirmarSalidaBodega() {
+    const sesion  = _bodegaSesionSalida;
+    if (!sesion.item || sesion.bolsas.length === 0) { alert('Pistolera al menos una bolsa'); return; }
+
+    const linea    = document.getElementById('bodegaLineaDestino').value;
+    const opDest   = document.getElementById('bodegaOPDestino').value.trim();
+    const operador = document.getElementById('bodegaOperadorSalida').value.trim();
+    const totalKg  = sesion.bolsas.length * sesion.kgPorBolsa;
+
+    // Llenar modal de revisión
+    document.getElementById('revProducto').value    = sesion.item.producto || '';
+    document.getElementById('revCliente').value     = sesion.item.cliente  || '';
+    document.getElementById('revLote').value        = sesion.item.lote     || '';
+    document.getElementById('revNBolsas').value     = sesion.bolsas.length;
+    document.getElementById('revKgBolsa').value     = sesion.kgPorBolsa;
+    document.getElementById('revLineaDestino').value = linea;
+    document.getElementById('revOPDestino').value   = opDest;
+    document.getElementById('revOperador').value    = operador;
+    document.getElementById('revTotalKg').textContent = totalKg.toFixed(1) + ' kg';
+
+    document.getElementById('modalRevisionVale').style.display = 'flex';
+}
+
+function revRecalcularKg() {
+    const n  = parseFloat(document.getElementById('revNBolsas').value)  || 0;
+    const kg = parseFloat(document.getElementById('revKgBolsa').value)  || 0;
+    document.getElementById('revTotalKg').textContent = (n * kg).toFixed(1) + ' kg';
+}
+
+// ── Generar vale definitivo con datos revisados ──
+async function generarValeDefinitivo() {
+    const sesion   = _bodegaSesionSalida;
+    if (!sesion.item) return;
+
+    const producto  = document.getElementById('revProducto').value.trim().toUpperCase();
+    const cliente   = document.getElementById('revCliente').value.trim().toUpperCase();
+    const lote      = document.getElementById('revLote').value.trim();
+    const nBolsas   = parseInt(document.getElementById('revNBolsas').value) || sesion.bolsas.length;
+    const kgBolsa   = parseFloat(document.getElementById('revKgBolsa').value) || sesion.kgPorBolsa;
+    const linea     = document.getElementById('revLineaDestino').value;
+    const opDest    = document.getElementById('revOPDestino').value.trim();
+    const operador  = document.getElementById('revOperador').value.trim();
+    const totalKg   = nBolsas * kgBolsa;
+
+    if (!operador) { alert('Ingresa el operario'); return; }
+    if (!linea)    { alert('Selecciona la línea destino'); return; }
+    if (totalKg > (sesion.item.kgDisponible || 0) + 0.01) {
+        alert(`⛔ BLOQUEADO — Solo hay ${sesion.item.kgDisponible.toFixed(1)} kg disponibles`);
         return;
     }
 
-    // Calcular unidades
-    let gramaje = 0;
-    const nombreProd = (_bodegaProductoActual.producto || '').toLowerCase();
-    for (const rec of recetas) {
-        const comp = (rec.componentes||[]).find(c =>
-            (c.nombre||'').toLowerCase().includes(nombreProd) ||
-            nombreProd.includes((c.nombre||'').toLowerCase())
-        );
-        if (comp && comp.gramajePorcion > 0) { gramaje = comp.gramajePorcion; break; }
-        if (comp && comp.gramajePorUnidad > 0) { gramaje = comp.gramajePorUnidad; break; }
-    }
-    const unidadesEst = gramaje > 0 ? Math.floor((kg * 1000) / gramaje) : null;
-
-    // Crear vale salida
     const vale = {
-        id: Date.now().toString(),
-        nVale: 'VS-' + Date.now().toString().slice(-6),
-        nGuia: 'GD-' + new Date().toISOString().split('T')[0].replace(/-/g,'') + '-' + Date.now().toString().slice(-4),
-        fecha: new Date().toLocaleDateString('es-CL'),
-        fechaISO: new Date().toISOString().split('T')[0],
-        hora: new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'}),
-        producto: _bodegaProductoActual.producto,
-        componente: _bodegaProductoActual.componente,
-        lote: _bodegaProductoActual.lote,
-        codigo: _bodegaProductoActual.codigo,
-        kg,
+        id:         Date.now().toString(),
+        nVale:      'VS-' + Date.now().toString().slice(-6),
+        nGuia:      'GD-' + new Date().toISOString().split('T')[0].replace(/-/g,'') + '-' + Date.now().toString().slice(-4),
+        fecha:      new Date().toLocaleDateString('es-CL'),
+        fechaISO:   new Date().toISOString().split('T')[0],
+        hora:       new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'}),
+        producto, cliente, lote,
+        codigo:     sesion.item.codigo,
+        kg:         totalKg,
+        nBolsas,
+        kgPorBolsa: kgBolsa,
         lineaDestino: linea,
-        opOrigen: _bodegaProductoActual.numeroOP,
-        opDestino,
+        opOrigen:   sesion.item.numeroOP,
+        opDestino:  opDest,
         operador,
-        unidadesEst,
-        gramaje,
-        stockIdOrigen: _bodegaProductoActual.id
+        stockIdOrigen: sesion.item.id
     };
 
     // Descontar del stock
-    const idx = bodegaStock.findIndex(s => s.id === _bodegaProductoActual.id);
+    const idx = bodegaStock.findIndex(s => s.id === sesion.item.id);
     if (idx !== -1) {
-        bodegaStock[idx].kgDisponible -= kg;
-        if (bodegaStock[idx].kgDisponible <= 0) {
-            bodegaStock[idx].kgDisponible = 0;
-            bodegaStock[idx].estado = 'agotado';
-        }
+        bodegaStock[idx].kgDisponible = Math.max(0, bodegaStock[idx].kgDisponible - totalKg);
+        if (bodegaStock[idx].kgDisponible <= 0) bodegaStock[idx].estado = 'agotado';
+        bodegaStock[idx].nBolsas = Math.max(0, (bodegaStock[idx].nBolsas || 0) - nBolsas);
     }
 
     bodegaValesSalida.unshift(vale);
     await guardarBodega();
-    document.getElementById('modalSalidaBodega').style.display = 'none';
-    mostrarNotificacion(`✅ Salida registrada — ${kg} kg de ${vale.producto} → ${vale.lineaDestino} · Vale: ${vale.nVale}`, 'success');
-
-    // Generar PDF automáticamente
-    imprimirGuiaDespacho(vale.id);
-
-    // Actualizar vista
+    document.getElementById('modalRevisionVale').style.display = 'none';
+    cerrarModalSalidaBodega();
     renderBodegaKPIs();
     renderBodegaContenido();
+    mostrarNotificacion(`✅ Vale generado — ${nBolsas} bolsas · ${totalKg.toFixed(1)} kg · ${producto}`, 'success');
+    imprimirGuiaDespacho(vale.id);
 }
 
 // ── IMPRIMIR GUÍA DE DESPACHO ──
+const _LOGO_ASE = "data:image/jpeg;base64,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AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAf/9k=";
+
 function imprimirGuiaDespacho(valeId) {
     const vale = bodegaValesSalida.find(v => v.id === valeId);
     if (!vale) return;
     const lineas = {sandwiches:'Línea Sándwiches', platos:'Línea Platos', avemayo:'Línea Ave Mayo', otro:'Otro / Reserva'};
-    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
-    <title>Guía Despacho ${vale.nGuia}</title>
+    const lineaLabel = lineas[vale.lineaDestino] || vale.lineaDestino || '—';
+
+    const html = `<!DOCTYPE html><html lang="es"><head>
+    <meta charset="UTF-8">
+    <title>Guía de Despacho ${vale.nGuia}</title>
     <style>
-        body{font-family:Arial,sans-serif;margin:0;padding:20px;font-size:12px;color:#1e293b;}
-        .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:15px;border-bottom:3px solid #0e7490;}
-        .logo{font-size:20px;font-weight:900;color:#0e7490;}.logo span{color:#f59e0b;}
-        .titulo{font-size:16px;font-weight:800;color:#0e7490;text-align:center;margin:15px 0 10px;}
-        .badge{background:#0e7490;color:white;border-radius:8px;padding:4px 12px;font-size:13px;font-weight:700;}
-        .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px;}
-        .campo{background:#f8fafc;border-radius:6px;padding:8px 12px;border-left:3px solid #0e7490;}
-        .campo label{font-size:10px;color:#64748b;font-weight:700;display:block;margin-bottom:2px;}
-        .campo span{font-size:13px;font-weight:700;color:#1e293b;}
-        .destacado{background:#fef3c7;border-left:3px solid #f59e0b;border-radius:6px;padding:12px;margin:15px 0;}
-        .firma{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:30px;}
-        .firma-box{border-top:2px solid #1e293b;padding-top:8px;text-align:center;font-size:11px;color:#64748b;}
-        .bloqueo{background:#fee2e2;border:2px solid #ef4444;border-radius:8px;padding:10px;margin:10px 0;color:#dc2626;font-weight:700;font-size:11px;}
-        @media print{body{margin:0;}button{display:none!important;}}
-    </style></head><body>
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { font-family:Arial,sans-serif; font-size:11px; color:#1e293b; padding:22px; background:white; }
+        .header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; padding-bottom:12px; border-bottom:3px solid #e2590a; }
+        .logo-wrap img { width:130px; }
+        .doc-info { text-align:right; }
+        .doc-title { font-size:22px; font-weight:900; color:#e2590a; letter-spacing:1px; margin-bottom:4px; }
+        .doc-sub { font-size:11px; color:#475569; font-weight:700; line-height:1.6; }
+        .section { margin-bottom:12px; }
+        .section-title { font-size:9.5px; font-weight:800; text-transform:uppercase; letter-spacing:1px; color:#e2590a; border-bottom:2px solid #e2590a; padding-bottom:3px; margin-bottom:7px; }
+        .datos-grid { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+        .datos-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; }
+        .campo { background:#f8fafc; border-radius:5px; padding:6px 9px; border-left:3px solid #cbd5e1; }
+        .campo.hl { border-left-color:#e2590a; background:#fff7f5; }
+        .campo.gr { border-left-color:#10b981; background:#f0fdf4; }
+        .campo label { font-size:8.5px; font-weight:700; text-transform:uppercase; color:#64748b; display:block; margin-bottom:2px; letter-spacing:.4px; }
+        .campo span { font-size:12px; font-weight:700; color:#1e293b; }
+        .cliente-box { background:linear-gradient(135deg,#fef3ee,#fff7f5); border:2px solid #e2590a; border-radius:7px; padding:9px 13px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; }
+        .cliente-box .lbl { font-size:8.5px; font-weight:700; text-transform:uppercase; color:#9a3412; letter-spacing:.5px; }
+        .cliente-box .val { font-size:16px; font-weight:900; color:#7c2d12; }
+        table { width:100%; border-collapse:collapse; margin-bottom:12px; }
+        table thead tr { background:#1e293b; color:white; }
+        table thead th { padding:6px 9px; text-align:left; font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; }
+        table thead th:nth-child(4),table thead th:nth-child(5) { text-align:right; }
+        table tbody tr:nth-child(even) { background:#f8fafc; }
+        table tbody td { padding:6px 9px; font-size:11px; border-bottom:1px solid #e2e8f0; }
+        table tbody td:nth-child(4),table tbody td:nth-child(5) { text-align:right; font-weight:700; }
+        table tfoot tr { background:#e2590a; color:white; }
+        table tfoot td { padding:7px 9px; font-weight:800; font-size:11px; }
+        table tfoot td:nth-child(4),table tfoot td:nth-child(5) { text-align:right; font-size:14px; }
+        .aviso { background:#fef2f2; border:1.5px solid #fca5a5; border-radius:5px; padding:7px 11px; margin-bottom:12px; font-size:9.5px; color:#dc2626; font-weight:700; }
+        .firmas { display:grid; grid-template-columns:1fr 1fr; gap:30px; margin-top:22px; }
+        .firma-box { text-align:center; }
+        .firma-line { border-top:2px solid #1e293b; padding-top:5px; margin-top:38px; }
+        .firma-nombre { font-weight:700; color:#1e293b; font-size:11px; margin-top:2px; }
+        .firma-cargo { font-size:9.5px; color:#94a3b8; }
+        .footer { margin-top:18px; padding-top:8px; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; font-size:8.5px; color:#94a3b8; }
+        .editable { outline:none; border:none; background:transparent; font:inherit; color:inherit; font-weight:inherit; font-size:inherit; width:100%; cursor:text; min-width:30px; display:inline-block; }
+        .editable:hover { background:#fef9c3; border-radius:2px; }
+        .editable:focus { background:#fef3c7; outline:2px solid #f59e0b; border-radius:2px; }
+        .edit-hint { font-size:9px; color:#d97706; font-weight:700; text-align:center; margin-bottom:12px; display:block; background:#fffbeb; border:1px solid #fde68a; border-radius:5px; padding:5px; }
+        @media print {
+            body { padding:10px; }
+            .edit-hint,.btn-wrap { display:none !important; }
+            .editable:hover,.editable:focus { background:transparent !important; outline:none !important; }
+        }
+    </style>
+    </head><body>
+
+    <span class="edit-hint">✏️ Haz clic en cualquier campo para editarlo antes de imprimir</span>
+
     <div class="header">
-        <div class="logo">GUSTO<span>FRESCO</span><div style="font-size:10px;color:#64748b;font-weight:400;">MES — Sistema de Producción</div></div>
-        <div style="text-align:right;">
-            <div class="badge">GUÍA DE DESPACHO INTERNA</div>
-            <div style="font-size:11px;color:#64748b;margin-top:4px;">${vale.nGuia}</div>
-            <div style="font-size:11px;color:#64748b;">Vale: ${vale.nVale}</div>
+        <div class="logo-wrap">
+            <img src="${_LOGO_ASE}" alt="Alimentos Santa Emilia">
+            <div style="font-size:8.5px;color:#64748b;margin-top:3px;">Elaboración, desarrollo y tecnología</div>
         </div>
-    </div>
-    <div class="titulo">📦 VALE DE SALIDA — CÁMARA DE TRÁNSITO</div>
-    <div class="grid2">
-        <div class="campo"><label>PRODUCTO</label><span>${vale.producto}</span></div>
-        <div class="campo"><label>LOTE JULIANO</label><span>${vale.lote}</span></div>
-        <div class="campo"><label>FECHA EMISIÓN</label><span>${vale.fecha} · ${vale.hora}</span></div>
-        <div class="campo"><label>OP ORIGEN</label><span>${vale.opOrigen||'—'}</span></div>
-        <div class="campo"><label>OP DESTINO</label><span>${vale.opDestino||'—'}</span></div>
-        <div class="campo"><label>LÍNEA DESTINO</label><span>${lineas[vale.lineaDestino]||vale.lineaDestino}</span></div>
-    </div>
-    <div class="destacado">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-            <div>
-                <div style="font-size:10px;color:#92400e;font-weight:700;">KG DESPACHADOS</div>
-                <div style="font-size:28px;font-weight:900;color:#d97706;">${vale.kg.toFixed(1)} kg</div>
+        <div class="doc-info">
+            <div class="doc-title">GUÍA DE DESPACHO</div>
+            <div class="doc-sub">
+                N° <span class="editable" contenteditable="true">${vale.nGuia}</span><br>
+                Vale: <span class="editable" contenteditable="true">${vale.nVale}</span><br>
+                Fecha: <span class="editable" contenteditable="true">${vale.fecha} · ${vale.hora}</span>
             </div>
-            ${vale.unidadesEst ? `<div style="text-align:right;">
-                <div style="font-size:10px;color:#92400e;font-weight:700;">UNIDADES ESTIMADAS</div>
-                <div style="font-size:28px;font-weight:900;color:#d97706;">${vale.unidadesEst} un.</div>
-                <div style="font-size:10px;color:#92400e;">(gramaje: ${vale.gramaje}g/u)</div>
-            </div>` : ''}
         </div>
     </div>
-    <div class="campo" style="margin-bottom:10px;"><label>OPERADOR DESPACHO</label><span>${vale.operador}</span></div>
-    <div class="bloqueo">⚠️ AVISO DE CONTROL: Esta guía es un documento interno de trazabilidad. El stock fue descontado automáticamente del sistema. Cualquier diferencia debe reportarse al jefe de planta.</div>
-    <div class="firma">
-        <div class="firma-box">Entregado por:<br><br><br>_________________________<br>${vale.operador}<br>Operador Abatimiento</div>
-        <div class="firma-box">Recibido por:<br><br><br>_________________________<br>Nombre / Firma<br>Operario Línea ${lineas[vale.lineaDestino]||''}</div>
+
+    ${vale.cliente ? `<div class="cliente-box">
+        <div>
+            <div class="lbl">Producido para</div>
+            <div class="val"><span class="editable" contenteditable="true">${vale.cliente}</span></div>
+        </div>
+        <div style="font-size:26px;">🏢</div>
+    </div>` : ''}
+
+    <div class="section">
+        <div class="section-title">📦 Detalle del Producto</div>
+        <div class="datos-grid" style="margin-bottom:7px;">
+            <div class="campo hl"><label>Producto</label><span><span class="editable" contenteditable="true">${vale.producto}</span></span></div>
+            <div class="campo"><label>Lote Juliano</label><span><span class="editable" contenteditable="true">${vale.lote || '—'}</span></span></div>
+        </div>
+        <div class="datos-grid-3">
+            <div class="campo hl"><label>OP Origen</label><span><span class="editable" contenteditable="true">${vale.opOrigen || '—'}</span></span></div>
+            <div class="campo"><label>OP Destino</label><span><span class="editable" contenteditable="true">${vale.opDestino || '—'}</span></span></div>
+            <div class="campo"><label>Línea Destino</label><span><span class="editable" contenteditable="true">${lineaLabel}</span></span></div>
+        </div>
     </div>
-    <div style="margin-top:20px;text-align:center;font-size:9px;color:#94a3b8;">
-        Generado automáticamente por MES Gusto Fresco · ${new Date().toLocaleString('es-CL')} · ${vale.nGuia}
+
+    <div class="section">
+        <div class="section-title">📋 Resumen de Despacho</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Descripción</th>
+                    <th>Formato</th>
+                    <th>Cantidad</th>
+                    <th>Total Kg</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td><span class="editable" contenteditable="true">${vale.producto}</span></td>
+                    <td><span class="editable" contenteditable="true">Bolsa ${vale.kgPorBolsa} kg</span></td>
+                    <td><span class="editable" contenteditable="true">${vale.nBolsas} bolsas</span></td>
+                    <td><span class="editable" contenteditable="true">${vale.kg.toFixed(1)} kg</span></td>
+                </tr>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="3">TOTAL DESPACHADO</td>
+                    <td><span class="editable" contenteditable="true">${vale.nBolsas} bolsas</span></td>
+                    <td><span class="editable" contenteditable="true">${vale.kg.toFixed(1)} kg</span></td>
+                </tr>
+            </tfoot>
+        </table>
     </div>
-    <div style="text-align:center;margin-top:15px;">
-        <button onclick="window.print()" style="background:#0e7490;color:white;border:none;border-radius:8px;padding:10px 25px;cursor:pointer;font-weight:700;font-size:13px;">🖨️ Imprimir / Guardar PDF</button>
+
+    <div class="section">
+        <div class="section-title">👤 Operario Responsable</div>
+        <div class="datos-grid">
+            <div class="campo gr"><label>Operario Abatimiento</label><span><span class="editable" contenteditable="true">${vale.operador}</span></span></div>
+            <div class="campo"><label>Observaciones</label><span><span class="editable" contenteditable="true" style="font-size:11px;font-weight:400;">Sin observaciones</span></span></div>
+        </div>
     </div>
+
+    <div class="aviso">⚠️ DOCUMENTO INTERNO DE TRAZABILIDAD — El stock fue descontado automáticamente del sistema. Cualquier diferencia debe reportarse al Jefe de Planta de inmediato.</div>
+
+    <div class="firmas">
+        <div class="firma-box">
+            <div class="firma-line">
+                <div class="firma-nombre"><span class="editable" contenteditable="true">${vale.operador}</span></div>
+                <div class="firma-cargo">Operario Abatimiento — Entrega</div>
+            </div>
+        </div>
+        <div class="firma-box">
+            <div class="firma-line">
+                <div class="firma-nombre"><span class="editable" contenteditable="true">______________________</span></div>
+                <div class="firma-cargo"><span class="editable" contenteditable="true">${lineaLabel}</span> — Recibe</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <span>Alimentos Santa Emilia · MES Sistema de Producción</span>
+        <span>Generado: ${new Date().toLocaleString('es-CL')} · ${vale.nGuia}</span>
+    </div>
+
+    <div class="btn-wrap" style="text-align:center;margin-top:18px;">
+        <button onclick="window.print()"
+            style="background:#e2590a;color:white;border:none;border-radius:8px;padding:10px 30px;cursor:pointer;font-weight:700;font-size:13px;margin-right:8px;">
+            🖨️ Imprimir / Guardar PDF
+        </button>
+        <span style="font-size:10px;color:#64748b;">Los cambios que hagas en los campos se imprimen tal como aparecen</span>
+    </div>
+
     </body></html>`;
 
-    const ventana = window.open('', '_blank', 'width=800,height:650');
+    const ventana = window.open('', '_blank', 'width=860,height=750');
     ventana.document.write(html);
     ventana.document.close();
-    setTimeout(() => ventana.print(), 500);
 }
 
 // ── Inicializar módulo al entrar al tab ──
