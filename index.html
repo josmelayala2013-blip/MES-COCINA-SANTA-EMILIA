@@ -1728,10 +1728,14 @@
                 </div>
             </div>
             <!-- Fila 2: Formulario OP -->
-            <div style="display:grid;grid-template-columns:1fr 2fr 1fr auto;gap:1rem;align-items:end;margin-bottom:1rem;">
+            <div style="display:grid;grid-template-columns:1fr 1fr 2fr 1fr auto;gap:1rem;align-items:end;margin-bottom:1rem;">
                 <div>
                     <label style="font-weight:600;display:block;margin-bottom:.4rem;color:#4f46e5;">N° OP:</label>
                     <input type="text" id="opNumero" placeholder="Ej: OP-2025-001" style="width:100%;padding:.75rem;border:2px solid #c7d2fe;border-radius:8px;font-size:1rem;">
+                </div>
+                <div>
+                    <label style="font-weight:600;display:block;margin-bottom:.4rem;color:#4f46e5;">🏢 Cliente:</label>
+                    <input type="text" id="opCliente" placeholder="Ej: DUNKIN, SODEXO..." style="width:100%;padding:.75rem;border:2px solid #10b981;border-radius:8px;font-size:1rem;font-weight:600;text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()">
                 </div>
                 <div>
                     <label style="font-weight:600;display:block;margin-bottom:.4rem;color:#4f46e5;">SKU / Receta:</label>
@@ -3581,7 +3585,7 @@
                     </div>
                     ${d.ops.slice(0,5).map(op => `
                         <div style="display:flex;justify-content:space-between;align-items:center;padding:.4rem .6rem;background:#f8fafc;border-radius:6px;margin-bottom:.3rem;font-size:.8rem;">
-                            <span style="font-weight:600;color:#374151;">${op.numeroOp} — ${op.nombre}</span>
+                            <span style="font-weight:600;color:#374151;">${op.numeroOp} — ${op.cliente ? `<span style="color:#10b981;font-size:.75rem;">${op.cliente}</span> · ` : ''}${op.nombre}</span>
                             <span style="padding:.15rem .5rem;border-radius:20px;font-weight:700;font-size:.72rem;background:${op.estado==='completada'?'#d1fae5':op.estado==='en-produccion'?'#fef3c7':'#e8edff'};color:${op.estado==='completada'?'#065f46':op.estado==='en-produccion'?'#92400e':'#4338ca'};">
                                 ${op.estado==='completada'?'✅ Completada':op.estado==='en-produccion'?'🔄 En Producción':'⏳ Pendiente'}
                             </span>
@@ -7851,6 +7855,8 @@ function imprimirRegistroHACCP(d) {
 
             // ── INGRESO AUTOMÁTICO A BODEGA ──
             if (typeof bodegaRegistrarIngreso === 'function') {
+                const opRef2 = proceso.opVinculadaId ? ordenesProduccion.find(o => o.id === proceso.opVinculadaId) : null;
+                proceso.cliente = opRef2?.cliente || proceso.cliente || '';
                 bodegaRegistrarIngreso(proceso);
             }
             
@@ -13938,7 +13944,8 @@ function actualizarContadorOPs() {
 function agregarOP() {
   const numeroOp = document.getElementById('opNumero').value.trim();
   const recetaId = document.getElementById('opSkuSelect').value;
-  const platos = parseInt(document.getElementById('opPlatos').value) || 0;
+  const platos   = parseInt(document.getElementById('opPlatos').value) || 0;
+  const cliente  = (document.getElementById('opCliente')?.value || '').trim().toUpperCase();
 
   if (!numeroOp) { alert('Ingresa el N° de OP'); return; }
   if (!recetaId || !platos) { alert('Selecciona una receta e ingresa la cantidad de unidades'); return; }
@@ -13961,6 +13968,7 @@ function agregarOP() {
   const op = {
     id: Date.now().toString(),
     numeroOp,
+    cliente,
     fecha,
     recetaId,
     sku: r.sku || '',
@@ -13982,6 +13990,7 @@ function agregarOP() {
 
   // Limpiar formulario
   document.getElementById('opNumero').value = '';
+  if (document.getElementById('opCliente')) document.getElementById('opCliente').value = '';
   document.getElementById('opSkuSelect').value = '';
   document.getElementById('opPlatos').value = '';
   document.getElementById('previewCalculoOP').style.display = 'none';
@@ -19228,8 +19237,13 @@ ${d._ingredientes.map(ing => `<tr>
 
             // ── INGRESO AUTOMÁTICO A BODEGA ──
             if (typeof bodegaRegistrarIngreso === 'function') {
+                // Priorizar cliente de la OP si existe, si no del campo manual
+                const opRefAbat = asig.opVinculadaId ?
+                    ordenesProduccion.find(o => o.id === asig.opVinculadaId) : null;
+                const clienteAbat = opRefAbat?.cliente ||
+                    (document.getElementById('abatClienteSalida')?.value || '').trim().toUpperCase();
                 const proceso = {
-                    cliente:    (document.getElementById('abatClienteSalida')?.value || '').trim().toUpperCase(),
+                    cliente:    clienteAbat,
                     producto:   asig.producto,
                     componente: asig.producto,
                     numeroOP:   asig.numeroOP,
@@ -22115,60 +22129,126 @@ function ptAutoLlenarDesdeOP(input) {
                    recetas.find(r => r.sku === op.sku)     ||
                    recetas.find(r => op.nombre?.toLowerCase().includes(r.nombre?.toLowerCase()));
 
-    // Cliente = nombre de la OP (a quien se produce)
-    const clienteInput = tr.querySelector('[data-campo="cliente"]');
-    if (clienteInput && !clienteInput.value) {
-        // Intentar extraer cliente del nombre si tiene patrón "CLIENTE - Producto"
-        clienteInput.value = op.nombre || '';
-    }
+    const gramaje  = receta?.gramaje || 0;
+    const sku      = op.sku || '';
+    const julian   = typeof getDiaJuliano === 'function' ? getDiaJuliano() : '';
+    const lotePT   = sku ? `GF/${sku}-${julian}` : `GF/OP${opNum}-${julian}`;
+    const hora     = ptFmtHora();
 
-    // Preparación
-    const prepInput = tr.querySelector('[data-campo="preparacion"]');
-    if (prepInput) prepInput.value = op.nombre || '';
-
-    // Hora automática si está vacía
-    const horaInput = tr.querySelector('[data-campo="hora"]');
-    if (horaInput && !horaInput.value) horaInput.value = ptFmtHora();
-
-    // Componentes (primer componente no insumo)
+    // Filtrar componentes no-insumo
     const componentes = (op.componentes || []).filter(c => !c.esInsumo);
-    if (componentes.length > 0) {
-        const comp = componentes[0];
-        const compInput = tr.querySelector('[data-campo="componentePT"]');
-        if (compInput) compInput.value = comp.nombre || '';
-
-        // Kg estimados
-        const kgEstInput = tr.querySelector('[data-campo="kgEst"]');
-        if (kgEstInput) kgEstInput.value = comp.kgTerminados || '';
-
-        // Gramaje para calcular unid estimadas
-        const gramaje = receta ? (receta.gramaje || 0) : 0;
-        const unidEstInput = tr.querySelector('[data-campo="unidEst"]');
-        if (unidEstInput) {
-            if (op.platos > 0) {
-                unidEstInput.value = op.platos;
-            } else if (gramaje > 0 && comp.kgTerminados > 0) {
-                unidEstInput.value = Math.ceil((comp.kgTerminados * 1000) / gramaje);
-            }
-        }
-
-        // Guardar gramaje en el tr para cálculos posteriores
-        tr._gramaje = gramaje || (receta?.gramaje) || 0;
-        tr._kgComp  = comp.kgTerminados || 0;
+    if (componentes.length === 0) {
+        mostrarNotificacion(`⚠️ La OP ${opNum} no tiene componentes registrados`, 'warning');
+        return;
     }
 
-    // Lote PT sugerido (usando lote juliano)
-    const lotePTInput = tr.querySelector('[data-campo="lotePT"]');
-    if (lotePTInput && !lotePTInput.value && typeof getDiaJuliano === 'function') {
-        const sku   = op.sku || '';
-        const julian = getDiaJuliano();
-        lotePTInput.value = sku ? `GF/${sku}-${julian}` : `GF/OP${opNum}-${julian}`;
-    }
+    const tbody = tr.closest('tbody');
+    const idxBase = parseInt(tr.dataset.idx || 0);
+
+    // Llenar la fila actual con el PRIMER componente
+    const comp0 = componentes[0];
+    _ptLlenarFilaConComp(tr, op, comp0, receta, gramaje, lotePT, hora, true);
+
+    // Agregar una fila nueva por cada componente adicional
+    componentes.slice(1).forEach((comp, i) => {
+        const nuevoIdx = idxBase + 1 + i;
+        const nuevaTr  = document.createElement('tr');
+        nuevaTr.className  = 'pt-fila';
+        nuevaTr.dataset.idx = nuevoIdx;
+        nuevaTr.style.background = nuevoIdx % 2 === 0 ? '#ffffff' : '#faf5ff';
+        tbody.insertBefore(nuevaTr, tr.nextSibling);
+        ptRenderFilaVacia(nuevaTr, nuevoIdx);
+        _ptLlenarFilaConComp(nuevaTr, op, comp, receta, gramaje, lotePT, hora, false);
+    });
+
+    // Re-numerar todas las filas
+    tbody.querySelectorAll('tr.pt-fila').forEach((r, i) => {
+        const numCell = r.querySelector('td:first-child');
+        if (numCell) numCell.textContent = i + 1;
+        r.dataset.idx = i;
+    });
 
     // Feedback visual
     tr.style.background = '#f5f3ff';
-    setTimeout(() => { tr.style.background = tr.dataset.idx % 2 === 0 ? '#ffffff' : '#faf5ff'; }, 1500);
-    mostrarNotificacion(`✅ OP ${opNum} — ${op.nombre} cargada`, 'success');
+    setTimeout(() => {
+        tbody.querySelectorAll('tr.pt-fila').forEach((r, i) => {
+            r.style.background = i % 2 === 0 ? '#ffffff' : '#faf5ff';
+        });
+    }, 1500);
+
+    mostrarNotificacion(`✅ OP ${opNum} — ${componentes.length} componente(s) cargados`, 'success');
+}
+
+// ── Render fila vacía en el DOM (para componentes adicionales) ──
+function ptRenderFilaVacia(tr, idx) {
+    const bg = idx % 2 === 0 ? '#ffffff' : '#faf5ff';
+    tr.innerHTML = `
+        <td style="padding:.4rem .3rem;text-align:center;font-size:.8rem;color:#94a3b8;font-weight:700;">${idx+1}</td>
+        <td style="padding:.3rem .4rem;"><input data-campo="cliente" value="" style="${_ptInputStyle('purple')}" oninput="ptMarcarEdicion(this)"></td>
+        <td style="padding:.3rem .4rem;"><input data-campo="op" value="" style="${_ptInputStyle('purple','center')}" onblur="ptAutoLlenarDesdeOP(this)" onkeydown="if(event.key==='Enter'||event.key==='Tab'){ptAutoLlenarDesdeOP(this);}"></td>
+        <td style="padding:.3rem .4rem;"><input data-campo="hora" value="" style="${_ptInputStyle('gray','center')}"></td>
+        <td style="padding:.3rem .4rem;"><input data-campo="preparacion" value="" style="${_ptInputStyle('gray')}"></td>
+        <td style="padding:.3rem .4rem;"><input data-campo="lotePT" value="" style="${_ptInputStyle('blue')}"></td>
+        <td style="padding:.3rem .4rem;"><input data-campo="componentePT" value="" style="${_ptInputStyle('gray')}"></td>
+        <td style="padding:.3rem .4rem;"><input data-campo="loteComp" value="" style="${_ptInputStyle('blue','center')}"></td>
+        <td style="padding:.3rem .4rem;"><input data-campo="unidEst" value="" readonly style="${_ptInputStyle('gray','center')}"></td>
+        <td style="padding:.3rem .4rem;"><input data-campo="kgEst" value="" readonly style="${_ptInputStyle('gray','center')}"></td>
+        <td style="padding:.3rem .4rem;background:#faf5ff;"><input data-campo="unidReal" value="" type="number" min="0" style="${_ptInputStyle('blue','center')}" oninput="ptCalcularKgReal(this)"></td>
+        <td style="padding:.3rem .4rem;background:#faf5ff;"><input data-campo="kgReal" value="" readonly style="${_ptInputStyle('gray','center')}"></td>
+        <td style="padding:.3rem .4rem;"><input data-campo="merma" value="" type="number" min="0" step="0.1" style="${_ptInputStyle('blue','center')}" oninput="ptValidarMerma(this)"></td>
+        <td style="padding:.3rem .4rem;"><select data-campo="formatoEnv" style="${_ptSelectStyle()}"><option value="">—</option><option value="Bolsa">Bolsa</option><option value="Plato">Plato</option></select></td>
+        <td style="padding:.3rem .4rem;"><select data-campo="tipoEnv" style="${_ptSelectStyle()}"><option value="">—</option><option value="Unidad">Unidad</option><option value="400 gr">400 gr</option><option value="500 gr">500 gr</option><option value="550 gr">550 gr</option><option value="1 Kg">1 Kg</option><option value="3 Kg">3 Kg</option></select></td>
+        <td style="padding:.3rem .4rem;"><button onclick="ptAbrirLoteEmpaque(this.closest('tr'))" style="width:100%;padding:.35rem .5rem;border-radius:6px;border:1.5px solid #8b5cf6;background:#faf5ff;color:#5b21b6;font-size:.78rem;font-weight:600;cursor:pointer;">📦 Configurar...</button><input data-campo="loteEmpaque" type="hidden" value=""></td>
+        <td style="padding:.3rem .4rem;"><select data-campo="areaEnv" style="${_ptSelectStyle()}"><option value="">—</option><option value="Platos">Platos</option><option value="Sandwich">Sandwich</option><option value="Env. Granel">Env. Granel</option></select></td>
+        <td style="padding:.3rem .4rem;"><input data-campo="temp" value="" type="number" step="0.1" style="${_ptInputStyle('blue','center')}" oninput="ptValidarTemp(this)"></td>
+        ${['aroma','sabor','color','textura','peso','ausExt','rotulacion'].map(c => `<td style="padding:.3rem .25rem;background:#faf5ff;"><select data-campo="${c}" style="width:100%;padding:.3rem .2rem;border-radius:5px;border:1px solid #e2e8f0;font-size:.75rem;background:white;text-align:center;cursor:pointer;"><option value="">—</option><option value="C" style="color:#10b981;font-weight:700;">C</option><option value="NC" style="color:#ef4444;font-weight:700;">NC</option></select></td>`).join('')}
+        <td style="padding:.3rem .25rem;background:#f0fdf4;"><input data-campo="cantInsp" value="" type="number" min="0" style="${_ptInputStyle('green','center')}"></td>
+        ${[1,2,3,4,5,6,7,8].map(n => `<td style="padding:.3rem .25rem;background:#f0fdf4;"><input data-campo="m${n}" value="" type="number" min="0" step="0.1" style="${_ptInputStyle('green','center')}" oninput="ptValidarMuestra(this)"></td>`).join('')}
+        <td style="padding:.3rem .4rem;"><select data-campo="estatus" style="width:100%;padding:.35rem .4rem;border-radius:6px;border:2px solid #94a3b8;font-size:.8rem;font-weight:700;color:#94a3b8;background:white;cursor:pointer;" onchange="ptCambiarEstatus(this)"><option value="">— Seleccionar —</option><option value="Liberado" style="color:#10b981;">✅ Liberado</option><option value="Bloqueado" style="color:#ef4444;">🔴 Bloqueado</option></select></td>
+        <td style="padding:.3rem .25rem;text-align:center;"><button onclick="ptEliminarFila(this.closest('tr'))" style="background:#fee2e2;border:none;border-radius:6px;padding:.3rem .5rem;cursor:pointer;color:#ef4444;font-size:.9rem;">🗑️</button></td>
+    `;
+}
+
+// ── Llenar una fila con los datos de un componente ──
+function _ptLlenarFilaConComp(tr, op, comp, receta, gramaje, lotePT, hora, esPrimera) {
+    const set = (campo, val) => {
+        const el = tr.querySelector(`[data-campo="${campo}"]`);
+        if (el) el.value = val;
+    };
+
+    // Datos de cabecera solo en primera fila
+    if (esPrimera) {
+        // Cliente = campo cliente de la OP (guardado al crearla en el Planificador)
+        set('cliente', op.cliente || op.nombre || '');
+        set('hora',    hora);
+        set('lotePT',  lotePT);
+    }
+
+    // OP siempre
+    set('op', String(op.numeroOp));
+
+    // Preparación = nombre del COMPONENTE
+    set('preparacion',   comp.nombre || '');
+    set('componentePT',  comp.nombre || '');
+
+    // Kg estimados del componente
+    set('kgEst', comp.kgTerminados || '');
+
+    // Unidades estimadas
+    const unidEst = op.platos > 0 ? op.platos :
+                    (gramaje > 0 && comp.kgTerminados > 0 ?
+                        Math.ceil((comp.kgTerminados * 1000) / gramaje) : '');
+    set('unidEst', unidEst);
+
+    // Buscar gramaje específico del componente en la receta
+    const compReceta = receta?.componentes?.find(c =>
+        c.nombre?.toLowerCase().trim() === comp.nombre?.toLowerCase().trim()
+    );
+    const gramajePorcion = compReceta?.gramajePorcion || compReceta?.gramajePorUnidad || 0;
+
+    // Guardar para cálculos de kg real
+    tr._gramaje = gramajePorcion || gramaje || 0;
+    tr._kgComp  = comp.kgTerminados || 0;
 }
 
 // ── Calcular kg real desde unid real ──
