@@ -8861,63 +8861,85 @@ function imprimirRegistroHACCP(d) {
         // ============================================
         
         // Sincroniza historial desde Firebase para TODOS los usuarios antes de renderizar
+        // ── Función unificada de merge de historial ──
+        // Usa siempre la versión con MÁS registros por fecha
+        // y también fusiona los registros por ID para no perder ninguno
+        function _mergeHistorial(local, remote) {
+            const localH  = local  || {};
+            const remoteH = remote || {};
+            const merged  = { ...localH };
+            Object.keys(remoteH).forEach(fecha => {
+                const rem = remoteH[fecha] || [];
+                const loc = localH[fecha]  || [];
+                if (rem.length === 0) return;
+                if (loc.length === 0) { merged[fecha] = rem; return; }
+                // Tomar el array más grande como base, agregar IDs que falten del otro
+                const base   = rem.length >= loc.length ? [...rem] : [...loc];
+                const otros  = rem.length >= loc.length ? loc : rem;
+                const idsBase = new Set(base.map(r => r.id).filter(Boolean));
+                otros.forEach(r => { if (r.id && !idsBase.has(r.id)) base.push(r); });
+                merged[fecha] = base;
+            });
+            return merged;
+        }
+
         async function _sincronizarHistorialYRenderizar(modulo) {
-            // Mostrar indicador de carga
+            // ── PASO 1: Renderizar con datos locales INMEDIATAMENTE ──
+            // El usuario ve algo al instante sin esperar Firebase
+            if (modulo === 'analytics') actualizarAnalytics();
+            else if (modulo === 'ejecutivo') actualizarVistaEjecutivo();
+
+            // Mostrar indicador sutil de sincronización
             if (modulo === 'analytics') {
                 const metrics = document.getElementById('analyticsMetrics');
-                if (metrics) metrics.innerHTML = '<div style="text-align:center;padding:2rem;color:#667eea;font-weight:700;">⏳ Cargando datos desde Firebase...</div>';
+                if (metrics && metrics.innerHTML.includes('Sin datos')) {
+                    metrics.innerHTML += '<div style="text-align:center;font-size:.8rem;color:#94a3b8;margin-top:.5rem;">🔄 Sincronizando con Firebase...</div>';
+                }
             }
 
-            if (window.db && window.firestoreLoaded) {
-                try {
-                    const {doc, getDoc} = window.firestoreFunctions;
-                    
-                    // Sincronizar historial
-                    const snap = await getDoc(doc(window.db, 'mes-data', 'estado-actual'));
-                    if (snap.exists()) {
-                        const data = snap.data();
-                        // Historial
-                        if (data.historialPorFecha) {
-                            const remoteHist = data.historialPorFecha;
-                            const localHist = historialPorFecha || {};
-                            const merged = {...localHist};
-                            Object.keys(remoteHist).forEach(fecha => {
-                                const remotas = remoteHist[fecha] || [];
-                                const locales = localHist[fecha] || [];
-                                merged[fecha] = remotas.length >= locales.length ? remotas : locales;
-                            });
-                            historialPorFecha = merged;
-                            localStorage.setItem('mes_historialPorFecha', JSON.stringify(historialPorFecha));
-                        }
-                        // Equipos y procesos también
-                        if (data.equipos?.length > 0) {
-                            equipos = equipos.map(eqBase => {
-                                const eqFB = data.equipos.find(e => e.id === eqBase.id);
-                                return eqFB ? {...eqBase, estado: eqFB.estado, produccion: eqFB.produccion} : eqBase;
-                            });
-                        }
-                    }
-                    
-                    // Sincronizar OPs
-                    const snapOPs = await getDoc(doc(window.db, 'mes-data', 'ordenes-produccion'));
-                    if (snapOPs.exists() && Array.isArray(snapOPs.data().ops)) {
-                        const remoteOPs = snapOPs.data().ops;
-                        if (remoteOPs.length >= ordenesProduccion.length) {
-                            ordenesProduccion = remoteOPs;
-                            localStorage.setItem('mes_ops', JSON.stringify(ordenesProduccion));
-                        }
-                    }
-
-                    // Log diagnóstico
-                    const totalRegistros = Object.values(historialPorFecha).flat().length;
-                    const fechasConDatos = Object.keys(historialPorFecha).filter(f => historialPorFecha[f].length > 0);
-                    console.log('📊 Analytics — Historial cargado:', totalRegistros, 'registros en', fechasConDatos.length, 'fechas:', fechasConDatos);
-
-                } catch(e) { console.error('Error sync historial:', e); }
-            } else {
+            if (!window.db || !window.firestoreLoaded) {
                 console.warn('⚠️ Firebase no disponible — usando datos locales');
+                return;
             }
 
+            try {
+                const {doc, getDoc} = window.firestoreFunctions;
+
+                // ── PASO 2: Sincronizar historial desde Firebase ──
+                const snap = await getDoc(doc(window.db, 'mes-data', 'estado-actual'));
+                if (snap.exists()) {
+                    const data = snap.data();
+                    if (data.historialPorFecha) {
+                        historialPorFecha = _mergeHistorial(historialPorFecha, data.historialPorFecha);
+                        localStorage.setItem('mes_historialPorFecha', JSON.stringify(historialPorFecha));
+                    }
+                    if (data.equipos?.length > 0) {
+                        equipos = equipos.map(eqBase => {
+                            const eqFB = data.equipos.find(e => e.id === eqBase.id);
+                            return eqFB ? {...eqBase, estado: eqFB.estado, produccion: eqFB.produccion} : eqBase;
+                        });
+                    }
+                }
+
+                // ── Sincronizar OPs ──
+                const snapOPs = await getDoc(doc(window.db, 'mes-data', 'ordenes-produccion'));
+                if (snapOPs.exists() && Array.isArray(snapOPs.data().ops)) {
+                    const remoteOPs = snapOPs.data().ops;
+                    if (remoteOPs.length >= ordenesProduccion.length) {
+                        ordenesProduccion = remoteOPs;
+                        localStorage.setItem('mes_ops', JSON.stringify(ordenesProduccion));
+                    }
+                }
+
+                const totalRegistros = Object.values(historialPorFecha).flat().length;
+                const fechasConDatos = Object.keys(historialPorFecha).filter(f => historialPorFecha[f].length > 0);
+                console.log('📊 Analytics — Historial cargado:', totalRegistros, 'registros en', fechasConDatos.length, 'fechas:', fechasConDatos);
+
+            } catch(e) {
+                console.error('Error sync historial:', e);
+            }
+
+            // ── PASO 3: Re-renderizar con datos de Firebase (más completos) ──
             if (modulo === 'analytics') actualizarAnalytics();
             else if (modulo === 'ejecutivo') actualizarVistaEjecutivo();
         }
@@ -8940,23 +8962,30 @@ function imprimirRegistroHACCP(d) {
         function calcularMetricasAnalytics(fechas) {
             let totalProducido = 0, totalProgramado = 0;
             let totalProducciones = 0;
-            let sumaTiempoCoccion = 0, sumaTiempoEnvasado = 0;
+            let sumaTiempoCoccion = 0, sumaTiempoEnvasado = 0, sumaTiempoAbat = 0;
 
             fechas.forEach(fecha => {
                 const historial = historialPorFecha[fecha] || [];
-                totalProducido += historial.reduce((s, h) => s + (h.kgFinales || 0), 0);
-                totalProgramado += historial.reduce((s, h) => s + (h.kgProgramados || 0), 0);
+                totalProducido   += historial.reduce((s, h) => s + (h.kgFinales || 0), 0);
+                totalProgramado  += historial.reduce((s, h) => s + (h.kgProgramados || 0), 0);
                 totalProducciones += historial.length;
-                sumaTiempoCoccion += historial.reduce((s, h) => s + (h.tiempoCoccion || 0), 0);
-                sumaTiempoEnvasado += historial.reduce((s, h) => s + (h.tiempoEnvasado || 0), 0);
+                // Campos correctos: tiempoCoccionMin, tiempoEnvasadoMin, tiempoAbatimientoMin (en minutos)
+                // También soportar tiempoCoccion/tiempoEnvasado legacy (en segundos) dividiendo por 60
+                historial.forEach(h => {
+                    if (h.tiempoCoccionMin > 0)       sumaTiempoCoccion  += h.tiempoCoccionMin * 60;
+                    else if (h.tiempoCoccion > 0)      sumaTiempoCoccion  += h.tiempoCoccion;
+                    if (h.tiempoEnvasadoMin > 0)       sumaTiempoEnvasado += h.tiempoEnvasadoMin * 60;
+                    else if (h.tiempoEnvasado > 0)     sumaTiempoEnvasado += h.tiempoEnvasado;
+                    if (h.tiempoAbatimientoMin > 0)    sumaTiempoAbat     += h.tiempoAbatimientoMin * 60;
+                    else if (h.tiempoAbatimiento > 0)  sumaTiempoAbat     += h.tiempoAbatimiento;
+                });
             });
 
-            const promCoccion = totalProducciones > 0 ? sumaTiempoCoccion / totalProducciones : 0;
-            const promEnvasado = totalProducciones > 0 ? sumaTiempoEnvasado / totalProducciones : 0;
-            const promDiario = fechas.length > 0 ? totalProducido / fechas.length : 0;
-            const eficiencia = totalProgramado > 0 ? (totalProducido / totalProgramado * 100) : 0;
+            const promCoccion   = totalProducciones > 0 ? sumaTiempoCoccion  / totalProducciones : 0;
+            const promEnvasado  = totalProducciones > 0 ? sumaTiempoEnvasado / totalProducciones : 0;
+            const promDiario    = fechas.length > 0 ? totalProducido / fechas.length : 0;
+            const eficiencia    = totalProgramado > 0 ? (totalProducido / totalProgramado * 100) : 0;
 
-            // Verificar si hay datos reales
             const hayDatos = totalProducciones > 0 || totalProducido > 0;
             if (!hayDatos) {
                 document.getElementById('analyticsMetrics').innerHTML = `
@@ -8995,12 +9024,12 @@ function imprimirRegistroHACCP(d) {
                 </div>
                 <div class="metric-card">
                     <h4>T. Cocción Prom.</h4>
-                    <div class="metric-value">${formatTime(Math.floor(promCoccion))}</div>
+                    <div class="metric-value">${promCoccion > 0 ? formatTime(Math.floor(promCoccion)) : '—'}</div>
                     <div class="metric-sub">Por producción</div>
                 </div>
                 <div class="metric-card">
                     <h4>T. Envasado Prom.</h4>
-                    <div class="metric-value">${formatTime(Math.floor(promEnvasado))}</div>
+                    <div class="metric-value">${promEnvasado > 0 ? formatTime(Math.floor(promEnvasado)) : '—'}</div>
                     <div class="metric-sub">Por producción</div>
                 </div>
             `;
@@ -9709,17 +9738,8 @@ function imprimirRegistroHACCP(d) {
                     if (snapActual.exists()) {
                         const dataActual = snapActual.data();
                         const histFirebase = dataActual.historialPorFecha || {};
-                        // Merge: para cada fecha usar el que tenga MÁS registros
-                        const merged = { ...historialParaGuardar };
-                        Object.keys(histFirebase).forEach(fecha => {
-                            const remotas = histFirebase[fecha] || [];
-                            const locales = merged[fecha] || [];
-                            if (remotas.length > locales.length) {
-                                merged[fecha] = remotas;
-                            }
-                        });
+                        const merged = _mergeHistorial(historialParaGuardar, histFirebase);
                         historialParaGuardar = merged;
-                        // Actualizar memoria local con el merge
                         if (JSON.stringify(merged) !== JSON.stringify(historialPorFecha)) {
                             historialPorFecha = merged;
                             localStorage.setItem('mes_historialPorFecha', JSON.stringify(historialPorFecha));
@@ -10128,15 +10148,18 @@ function limpiarComponentesFriosDeEquipos() {
 
                     // Historial: SIEMPRE mergear independiente del dispositivo
                     if (data.historialPorFecha) {
-                        Object.keys(data.historialPorFecha).forEach(fecha => {
-                            const remotas = data.historialPorFecha[fecha] || [];
-                            const locales = historialPorFecha[fecha] || [];
-                            if (remotas.length > locales.length) {
-                                historialPorFecha[fecha] = remotas;
-                            }
-                        });
+                        const merged = _mergeHistorial(historialPorFecha, data.historialPorFecha);
+                        historialPorFecha = merged;
                         localStorage.setItem('mes_historialPorFecha', JSON.stringify(historialPorFecha));
                         updateStats();
+                        // Refrescar Analytics si está visible
+                        if (document.getElementById('analytics')?.classList.contains('active')) {
+                            actualizarAnalytics();
+                        }
+                        // Refrescar Ejecutivo si está visible
+                        if (document.getElementById('ejecutivo')?.classList.contains('active')) {
+                            actualizarVistaEjecutivo();
+                        }
                     }
 
                     if (!esOtroDispositivo) return;
