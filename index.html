@@ -2459,12 +2459,6 @@
             </div>
             <div id="abatimientoInfo"></div>
             <div class="form-group">
-                <label>🏢 Cliente (a quien se produce):</label>
-                <input type="text" id="clienteAbatimiento" placeholder="Ej: DUNKIN, McDONALD'S..."
-                    style="width:100%;padding:.6rem;border-radius:8px;border:2px solid #10b981;font-size:.95rem;font-weight:700;text-transform:uppercase;"
-                    oninput="this.value=this.value.toUpperCase()">
-            </div>
-            <div class="form-group">
                 <label>Operario Abatimiento:</label>
                 <select id="operadorAbatimiento" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;">
                     <option value="">Selecciona operario...</option>
@@ -7749,7 +7743,6 @@ function imprimirRegistroHACCP(d) {
 
             // ── INGRESO AUTOMÁTICO A BODEGA ──
             if (typeof bodegaRegistrarIngreso === 'function') {
-                proceso.cliente = (document.getElementById('clienteAbatimiento')?.value || '').trim().toUpperCase();
                 bodegaRegistrarIngreso(proceso);
             }
             
@@ -7768,7 +7761,6 @@ function imprimirRegistroHACCP(d) {
             document.getElementById('kgFinales').value = '';
             document.getElementById('temperatura').value = '';
             document.getElementById('observacionesAbatimiento').value = '';
-            document.getElementById('clienteAbatimiento').value = '';
         }
         
         // ============================================
@@ -19051,6 +19043,12 @@ ${d._ingredientes.map(ing => `<tr>
                       min > 90  ? '<br><span style="color:#f59e0b;font-weight:700;">⚠️ Superó el ideal de 90 min</span>' : ''}
                 </div>
                 <div style="margin-bottom:1rem;">
+                    <label style="font-size:.82rem;font-weight:700;color:#065f46;display:block;margin-bottom:.4rem;">🏢 Cliente (a quien se produce)</label>
+                    <input type="text" id="abatClienteSalida" placeholder="Ej: DUNKIN, McDONALD'S..."
+                        style="width:100%;padding:.65rem;border-radius:8px;border:2px solid #10b981;font-size:.95rem;font-weight:700;box-sizing:border-box;text-transform:uppercase;"
+                        oninput="this.value=this.value.toUpperCase()">
+                </div>
+                <div style="margin-bottom:1rem;">
                     <label style="font-size:.82rem;font-weight:700;color:#065f46;display:block;margin-bottom:.4rem;">⚖️ Kg retirados</label>
                     <input type="number" id="abatKgSalida" step="0.1" min="0.1" placeholder="Ej: 30.5"
                         style="width:100%;padding:.65rem;border-radius:8px;border:2px solid #86efac;font-size:1.1rem;font-weight:700;box-sizing:border-box;color:#065f46;">
@@ -19108,6 +19106,23 @@ ${d._ingredientes.map(ing => `<tr>
 
             // Crear pendiente HACCP
             crearHACCPPendienteAbatItemModulo(asig);
+
+            // ── INGRESO AUTOMÁTICO A BODEGA ──
+            if (typeof bodegaRegistrarIngreso === 'function') {
+                const proceso = {
+                    cliente:    (document.getElementById('abatClienteSalida')?.value || '').trim().toUpperCase(),
+                    producto:   asig.producto,
+                    componente: asig.producto,
+                    numeroOP:   asig.numeroOP,
+                    kgFinales:  asig.kgReales || asig.kg,
+                    nBolsas:    asig.nBolsas,
+                    formato:    asig.formato,
+                    operador:   asig.operador,
+                    tempSalida: asig.tempSalida,
+                    opVinculadaId: asig.opVinculadaId || null
+                };
+                bodegaRegistrarIngreso(proceso);
+            }
 
             guardarAbat();
             cerrarModalFinalizarAbatItem();
