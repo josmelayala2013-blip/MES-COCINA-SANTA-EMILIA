@@ -22138,8 +22138,23 @@ function ptAutoLlenarDesdeOP(input) {
     const lotePT   = sku ? `GF/${sku}-${julian}` : `GF/OP${opNum}-${julian}`;
     const hora     = ptFmtHora();
 
-    // Filtrar componentes no-insumo
-    const componentes = (op.componentes || []).filter(c => !c.esInsumo);
+    // Para Control PT incluir TODOS los componentes relevantes:
+    // - Componentes de producción (carnes, preparaciones)
+    // - Insumos de envasado (pan, queso, salsas, rellenos)
+    // Excluir solo condimentos/insumos de cocina genéricos (sal, aceite, especias, agua, etc.)
+    const _INSUMOS_COCINA = [
+        'sal','aceite','agua','azucar','azúcar','harina','vinagre','vino',
+        'pimienta','oregano','orégano','ajo en polvo','cebolla en polvo',
+        'comino','paprika','pimentón','merkén','merken','curry',
+        'esencia','aroma','condimento','mix','polvo de hornear',
+        'bicarbonato','levadura','maicena','almidón'
+    ];
+    const componentes = (op.componentes || []).filter(c => {
+        const n = (c.nombre || '').toLowerCase().trim();
+        // Excluir solo si coincide exactamente con un insumo de cocina genérico
+        const esCondimento = _INSUMOS_COCINA.some(ins => n === ins || n.startsWith(ins + ' '));
+        return !esCondimento;
+    });
     if (componentes.length === 0) {
         mostrarNotificacion(`⚠️ La OP ${opNum} no tiene componentes registrados`, 'warning');
         return;
@@ -22245,11 +22260,13 @@ function _ptLlenarFilaConComp(tr, op, comp, receta, gramaje, lotePT, hora, esPri
     // Kg estimados del componente
     set('kgEst', comp.kgTerminados || '');
 
-    // Unidades estimadas van en TODAS las filas (son por OP)
-    const unidEst = op.platos > 0 ? op.platos :
-                    (gramaje > 0 && comp.kgTerminados > 0 ?
-                        Math.ceil((comp.kgTerminados * 1000) / gramaje) : '');
-    set('unidEst', unidEst);
+    // Unidades estimadas (solo en primera fila — son por OP, no por componente)
+    if (esPrimera) {
+        const unidEst = op.platos > 0 ? op.platos :
+                        (gramaje > 0 && comp.kgTerminados > 0 ?
+                            Math.ceil((comp.kgTerminados * 1000) / gramaje) : '');
+        set('unidEst', unidEst);
+    }
 
     // Buscar gramaje específico del componente en la receta
     const compReceta = receta?.componentes?.find(c =>
