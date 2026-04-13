@@ -22138,10 +22138,8 @@ function ptAutoLlenarDesdeOP(input) {
     const lotePT   = sku ? `GF/${sku}-${julian}` : `GF/OP${opNum}-${julian}`;
     const hora     = ptFmtHora();
 
-    // Para Control PT incluir TODOS los componentes relevantes:
-    // - Componentes de producción (carnes, preparaciones)
-    // - Insumos de envasado (pan, queso, salsas, rellenos)
-    // Excluir solo condimentos/insumos de cocina genéricos (sal, aceite, especias, agua, etc.)
+    // Para Control PT: incluir TODOS los componentes relevantes del envasado
+    // Solo excluir condimentos/insumos de cocina genéricos (sal, aceite, especias, agua)
     const _INSUMOS_COCINA = [
         'sal','aceite','agua','azucar','azúcar','harina','vinagre','vino',
         'pimienta','oregano','orégano','ajo en polvo','cebolla en polvo',
@@ -22149,11 +22147,29 @@ function ptAutoLlenarDesdeOP(input) {
         'esencia','aroma','condimento','mix','polvo de hornear',
         'bicarbonato','levadura','maicena','almidón'
     ];
+
     const componentes = (op.componentes || []).filter(c => {
         const n = (c.nombre || '').toLowerCase().trim();
-        // Excluir solo si coincide exactamente con un insumo de cocina genérico
-        const esCondimento = _INSUMOS_COCINA.some(ins => n === ins || n.startsWith(ins + ' '));
-        return !esCondimento;
+        return !_INSUMOS_COCINA.some(ins => n === ins || n.startsWith(ins + ' '));
+    }).map(c => {
+        // Si el componente no tiene kgTerminados calculados (caso insumos como queso, pan)
+        // recalcular desde la receta usando gramajePorcion o gramajePorUnidad
+        if (!c.kgTerminados || c.kgTerminados === 0) {
+            const compR = receta?.componentes?.find(r =>
+                r.nombre?.toLowerCase().trim() === c.nombre?.toLowerCase().trim()
+            );
+            const gPorcion = compR?.gramajePorcion || compR?.gramajePorUnidad || c.gramajePorcion || 0;
+            const unidad   = compR?.unidadComponente || c.unidadComponente || 'gr';
+            if (gPorcion > 0 && op.platos > 0) {
+                // Para unidades (pan): kgTerminados = platos (unidades)
+                // Para gramos: kgTerminados = platos * gramaje / 1000
+                const kg = unidad === 'un'
+                    ? op.platos
+                    : Math.round((op.platos * gPorcion / 1000) * 10) / 10;
+                return { ...c, kgTerminados: kg, unidadComponente: unidad, gramajePorcion: gPorcion };
+            }
+        }
+        return c;
     });
     if (componentes.length === 0) {
         mostrarNotificacion(`⚠️ La OP ${opNum} no tiene componentes registrados`, 'warning');
@@ -22243,40 +22259,47 @@ function _ptLlenarFilaConComp(tr, op, comp, receta, gramaje, lotePT, hora, esPri
         if (el) el.value = val;
     };
 
-    // OP siempre
-    set('op', String(op.numeroOp));
-
-    // Cliente y hora van en TODAS las filas
+    // OP, cliente, hora y lote PT van en TODAS las filas
+    set('op',      String(op.numeroOp));
     set('cliente', op.cliente || op.nombre || '');
     set('hora',    hora);
-
-    // Lote PT va en TODAS las filas
-    set('lotePT', lotePT);
+    set('lotePT',  lotePT);
 
     // Preparación y componente = nombre del componente
-    set('preparacion',   comp.nombre || '');
-    set('componentePT',  comp.nombre || '');
+    set('preparacion',  comp.nombre || '');
+    set('componentePT', comp.nombre || '');
 
-    // Kg estimados del componente
-    set('kgEst', comp.kgTerminados || '');
-
-    // Unidades estimadas (solo en primera fila — son por OP, no por componente)
-    if (esPrimera) {
-        const unidEst = op.platos > 0 ? op.platos :
-                        (gramaje > 0 && comp.kgTerminados > 0 ?
-                            Math.ceil((comp.kgTerminados * 1000) / gramaje) : '');
-        set('unidEst', unidEst);
-    }
-
-    // Buscar gramaje específico del componente en la receta
+    // Buscar datos del componente en la receta
     const compReceta = receta?.componentes?.find(c =>
         c.nombre?.toLowerCase().trim() === comp.nombre?.toLowerCase().trim()
     );
-    const gramajePorcion = compReceta?.gramajePorcion || compReceta?.gramajePorUnidad || 0;
+    const unidad         = compReceta?.unidadComponente || comp.unidadComponente || 'gr';
+    const gramajePorcion = compReceta?.gramajePorcion   || compReceta?.gramajePorUnidad ||
+                           comp.gramajePorcion          || comp.gramajePorUnidad        || 0;
 
-    // Guardar para cálculos de kg real
-    tr._gramaje = gramajePorcion || gramaje || 0;
-    tr._kgComp  = comp.kgTerminados || 0;
+    // Unidades estimadas — en TODAS las filas (son de la OP)
+    const unidEst = op.platos > 0 ? op.platos :
+                    (gramaje > 0 && comp.kgTerminados > 0 ?
+                        Math.ceil((comp.kgTerminados * 1000) / gramaje) : '');
+    set('unidEst', unidEst);
+
+    // Kg estimados — si componente es en unidades (pan) mostrar cant. unidades, si no kg
+    if (unidad === 'un') {
+        // Pan u otros en unidades → cantidad = platos (1 pan por sándwich)
+        set('kgEst', op.platos > 0 ? `${op.platos} un` : comp.kgTerminados || '');
+    } else {
+        // En gramos/kg → calcular kg totales
+        let kgComp = comp.kgTerminados || 0;
+        if (!kgComp && gramajePorcion > 0 && op.platos > 0) {
+            kgComp = Math.round((op.platos * gramajePorcion / 1000) * 10) / 10;
+        }
+        set('kgEst', kgComp || '');
+    }
+
+    // Guardar para cálculo de kg real
+    tr._gramaje    = gramajePorcion || gramaje || 0;
+    tr._unidadComp = unidad;
+    tr._kgComp     = comp.kgTerminados || 0;
 }
 
 // ── Calcular kg real desde unid real ──
