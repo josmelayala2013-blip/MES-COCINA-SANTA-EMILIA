@@ -161,6 +161,7 @@
     </style>
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -2188,8 +2189,10 @@
             <p style="margin:.2rem 0 0;font-size:.85rem;color:#64748b;">Stock en tiempo real · Multi-bodega · Auditoría completa · FEFO automático</p>
           </div>
           <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
-            <button onclick="mpAbrirIngreso()" style="background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">+ Ingreso MP</button>
-            <button onclick="mpAbrirAjuste()" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">⚖️ Ajuste / Conteo</button>
+            <button onclick="mpAbrirRecepcionQR()" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:700;cursor:pointer;font-size:.85rem;">📷 Recepción MP</button>
+            <button onclick="mpAbrirIngreso()" style="background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">+ Ingreso Manual</button>
+            <button onclick="mpAbrirCatalogo()" style="background:linear-gradient(135deg,#0891b2,#0e7490);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">📚 Catálogo</button>
+            <button onclick="mpAbrirAjuste()" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">⚖️ Ajuste</button>
             <button onclick="mpVerMovimientos()" style="background:linear-gradient(135deg,#6366f1,#4f46e5);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">📋 Movimientos</button>
             <button onclick="mpVerMermas()" style="background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">📊 Mermas</button>
             <button onclick="mpVerAuditoria()" style="background:linear-gradient(135deg,#374151,#4b5563);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">🔍 Auditoría</button>
@@ -2396,6 +2399,196 @@
               <button onclick="mpCerrarAjuste()" style="padding:.6rem 1.4rem;border-radius:10px;border:1.5px solid #e2e8f0;background:white;cursor:pointer;font-weight:600;">Cancelar</button>
               <button onclick="mpGuardarAjuste()" style="padding:.6rem 1.4rem;border-radius:10px;border:none;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;cursor:pointer;font-weight:700;">Guardar Ajuste</button>
             </div>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- MODAL CATÁLOGO DE PROVEEDORES Y MP                 -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <div id="mpModalCatalogo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9100;align-items:center;justify-content:center;">
+          <div style="background:white;border-radius:18px;padding:2rem;width:min(900px,97vw);max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.4rem;">
+              <div>
+                <h3 style="margin:0;font-size:1.1rem;font-weight:800;color:#0e7490;">📚 Catálogo de Materias Primas</h3>
+                <div style="font-size:.78rem;color:#64748b;margin-top:.2rem;">Registra cada MP una vez · El sistema genera su QR automáticamente · Se usa para la recepción rápida con pistola</div>
+              </div>
+              <button onclick="document.getElementById('mpModalCatalogo').style.display='none'" style="background:#f1f5f9;border:none;border-radius:8px;padding:.4rem .7rem;cursor:pointer;font-size:1rem;">✕</button>
+            </div>
+
+            <!-- Formulario nueva entrada catálogo -->
+            <div style="background:#f0f9ff;border-radius:12px;padding:1.25rem;margin-bottom:1.4rem;border:1.5px solid #bae6fd;">
+              <div style="font-weight:700;font-size:.88rem;color:#0e7490;margin-bottom:1rem;">➕ Nueva entrada en catálogo</div>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.85rem;">
+                <div style="grid-column:1/-1;">
+                  <label style="font-size:.78rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">Nombre de la Materia Prima *</label>
+                  <input id="catNombre" type="text" placeholder="Ej: Pechuga de Pollo, Queso Gouda Laminado..." style="width:100%;padding:.6rem .9rem;border-radius:8px;border:1.5px solid #bae6fd;font-size:.9rem;box-sizing:border-box;">
+                </div>
+                <div>
+                  <label style="font-size:.78rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">Proveedor *</label>
+                  <input id="catProveedor" type="text" list="catListaProvs" placeholder="Nombre del proveedor" style="width:100%;padding:.6rem .9rem;border-radius:8px;border:1.5px solid #bae6fd;font-size:.9rem;box-sizing:border-box;">
+                  <datalist id="catListaProvs"></datalist>
+                </div>
+                <div>
+                  <label style="font-size:.78rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">Categoría</label>
+                  <select id="catCategoria" style="width:100%;padding:.6rem .9rem;border-radius:8px;border:1.5px solid #bae6fd;font-size:.85rem;background:white;box-sizing:border-box;">
+                    <option>Proteína Animal</option><option>Proteína Vegetal</option><option>Lácteos</option>
+                    <option>Vegetales</option><option>Cereales / Harinas</option><option>Aceites / Grasas</option>
+                    <option>Condimentos</option><option>Empaques</option><option>Otro</option>
+                  </select>
+                </div>
+                <div>
+                  <label style="font-size:.78rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">🏠 Bodega habitual</label>
+                  <select id="catBodega" style="width:100%;padding:.6rem .9rem;border-radius:8px;border:1.5px solid #bae6fd;font-size:.85rem;background:white;box-sizing:border-box;">
+                    <option value="camara_carnes">🥩 Cámara Carnes</option>
+                    <option value="camara_vegetales">🥦 Cámara Vegetales</option>
+                    <option value="despensa">🗄️ Despensa</option>
+                    <option value="congelados">❄️ Congelados</option>
+                  </select>
+                </div>
+                <div>
+                  <label style="font-size:.78rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">💰 Precio unitario ($/kg)</label>
+                  <input id="catPrecio" type="number" min="0" step="1" placeholder="0" style="width:100%;padding:.6rem .9rem;border-radius:8px;border:1.5px solid #bae6fd;font-size:.9rem;box-sizing:border-box;">
+                </div>
+                <div>
+                  <label style="font-size:.78rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">⚠️ Stock mínimo (kg)</label>
+                  <input id="catStockMin" type="number" min="0" step="0.1" placeholder="0.0" style="width:100%;padding:.6rem .9rem;border-radius:8px;border:1.5px solid #bae6fd;font-size:.9rem;box-sizing:border-box;">
+                </div>
+                <div>
+                  <label style="font-size:.78rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">Código barras proveedor (opcional)</label>
+                  <input id="catCodigoBarras" type="text" placeholder="Escanea o escribe el código" style="width:100%;padding:.6rem .9rem;border-radius:8px;border:1.5px solid #bae6fd;font-size:.9rem;box-sizing:border-box;">
+                </div>
+                <div>
+                  <label style="font-size:.78rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">Días de vencimiento típico</label>
+                  <input id="catDiasVenc" type="number" min="1" placeholder="Ej: 30" style="width:100%;padding:.6rem .9rem;border-radius:8px;border:1.5px solid #bae6fd;font-size:.9rem;box-sizing:border-box;">
+                </div>
+                <div>
+                  <label style="font-size:.78rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">Notas</label>
+                  <input id="catNotas" type="text" placeholder="Condición de almacenamiento, etc." style="width:100%;padding:.6rem .9rem;border-radius:8px;border:1.5px solid #bae6fd;font-size:.9rem;box-sizing:border-box;">
+                </div>
+              </div>
+              <div style="text-align:right;margin-top:1rem;">
+                <button onclick="mpGuardarCatalogo()" style="background:linear-gradient(135deg,#0891b2,#0e7490);color:white;border:none;border-radius:10px;padding:.6rem 1.4rem;font-weight:700;cursor:pointer;">✅ Guardar en Catálogo</button>
+              </div>
+            </div>
+
+            <!-- Lista del catálogo -->
+            <div id="mpTablaCatalogo"></div>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- MODAL RECEPCIÓN RÁPIDA CON QR / PISTOLA            -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <div id="mpModalRecepcion" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9200;align-items:center;justify-content:center;">
+          <div style="background:white;border-radius:18px;padding:2rem;width:min(560px,95vw);max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);border-top:5px solid #7c3aed;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+              <div>
+                <h3 style="margin:0;font-size:1.1rem;font-weight:800;color:#5b21b6;">📷 Recepción de Materia Prima</h3>
+                <div style="font-size:.78rem;color:#64748b;margin-top:.2rem;">Escanea el QR del catálogo o el código del proveedor con la pistola Netum</div>
+              </div>
+              <button onclick="mpCerrarRecepcion()" style="background:#f1f5f9;border:none;border-radius:8px;padding:.4rem .7rem;cursor:pointer;font-size:1rem;">✕</button>
+            </div>
+
+            <!-- Campo de escaneo -->
+            <div style="background:#faf5ff;border-radius:12px;padding:1.1rem;margin-bottom:1.25rem;border:2px dashed #8b5cf6;">
+              <label style="font-size:.82rem;font-weight:700;color:#5b21b6;display:block;margin-bottom:.5rem;">🔫 Campo de escaneo — enfoca aquí y usa la pistola:</label>
+              <input id="mpScanInput" type="text" placeholder="Escanea el QR o código de barras..."
+                autofocus autocomplete="off"
+                onkeydown="if(event.key==='Enter'){mpProcesarScan();}"
+                oninput="mpProcesarScanLive(this.value)"
+                style="width:100%;padding:.75rem 1rem;border-radius:10px;border:2px solid #7c3aed;font-size:1rem;box-sizing:border-box;font-weight:600;letter-spacing:1px;">
+              <div style="font-size:.75rem;color:#94a3b8;margin-top:.4rem;">💡 La pistola Netum envía Enter automáticamente al terminar de escanear</div>
+            </div>
+
+            <!-- Resultado del escaneo -->
+            <div id="mpScanResultado" style="display:none;"></div>
+
+            <!-- Formulario de recepción (se llena automático tras escanear) -->
+            <div id="mpFormRecepcion" style="display:none;">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem;margin-bottom:1rem;">
+                <div style="grid-column:1/-1;">
+                  <label style="font-size:.78rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">📦 Materia Prima</label>
+                  <input id="recNombre" type="text" readonly style="width:100%;padding:.6rem .9rem;border-radius:8px;border:1.5px solid #10b981;font-size:.95rem;font-weight:700;background:#f0fdf4;box-sizing:border-box;">
+                </div>
+                <div>
+                  <label style="font-size:.78rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">🏠 Bodega</label>
+                  <select id="recBodega" style="width:100%;padding:.6rem .9rem;border-radius:8px;border:1.5px solid #e2e8f0;font-size:.85rem;background:white;box-sizing:border-box;">
+                    <option value="camara_carnes">🥩 Cámara Carnes</option>
+                    <option value="camara_vegetales">🥦 Cámara Vegetales</option>
+                    <option value="despensa">🗄️ Despensa</option>
+                    <option value="congelados">❄️ Congelados</option>
+                  </select>
+                </div>
+                <div>
+                  <label style="font-size:.78rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">🏭 Proveedor</label>
+                  <input id="recProveedor" type="text" style="width:100%;padding:.6rem .9rem;border-radius:8px;border:1.5px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
+                </div>
+                <div>
+                  <label style="font-size:.78rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">📦 Cantidad recibida (kg) *</label>
+                  <input id="recCantidad" type="number" min="0.1" step="0.1" placeholder="0.0"
+                    oninput="mpActualizarCostoRecepcion()"
+                    style="width:100%;padding:.6rem .9rem;border-radius:8px;border:2px solid #7c3aed;font-size:1rem;font-weight:700;box-sizing:border-box;"
+                    autofocus>
+                </div>
+                <div>
+                  <label style="font-size:.78rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">💰 Precio/kg</label>
+                  <input id="recPrecio" type="number" min="0" step="1" placeholder="0"
+                    oninput="mpActualizarCostoRecepcion()"
+                    style="width:100%;padding:.6rem .9rem;border-radius:8px;border:1.5px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
+                </div>
+                <div>
+                  <label style="font-size:.78rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">🏷️ N° Lote</label>
+                  <input id="recLote" type="text" placeholder="Lote del proveedor" style="width:100%;padding:.6rem .9rem;border-radius:8px;border:1.5px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
+                </div>
+                <div>
+                  <label style="font-size:.78rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">📅 Fecha vencimiento</label>
+                  <input id="recVencimiento" type="date" style="width:100%;padding:.6rem .9rem;border-radius:8px;border:1.5px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
+                </div>
+                <div>
+                  <label style="font-size:.78rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">📋 N° Factura / Guía</label>
+                  <input id="recFactura" type="text" placeholder="FAC-001234" style="width:100%;padding:.6rem .9rem;border-radius:8px;border:1.5px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
+                </div>
+                <div>
+                  <label style="font-size:.78rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">👤 Recibido por</label>
+                  <select id="recReceptor" style="width:100%;padding:.6rem .9rem;border-radius:8px;border:1.5px solid #667eea;font-size:.85rem;background:white;box-sizing:border-box;">
+                    <option value="">— Seleccionar —</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Preview costo -->
+              <div id="recCostoPreview" style="display:none;background:#f0fdf4;border-radius:10px;padding:.75rem 1rem;margin-bottom:1rem;font-size:.88rem;color:#065f46;font-weight:700;"></div>
+
+              <!-- Notas -->
+              <textarea id="recNotas" rows="2" placeholder="Condición de llegada, temperatura, observaciones..."
+                style="width:100%;padding:.6rem .9rem;border-radius:8px;border:1.5px solid #e2e8f0;font-size:.9rem;resize:none;box-sizing:border-box;margin-bottom:1rem;"></textarea>
+
+              <div style="display:flex;gap:.75rem;justify-content:flex-end;">
+                <button onclick="mpCerrarRecepcion()" style="padding:.7rem 1.4rem;border-radius:10px;border:1.5px solid #e2e8f0;background:white;cursor:pointer;font-weight:600;">Cancelar</button>
+                <button onclick="mpConfirmarRecepcion()" style="padding:.7rem 1.6rem;border-radius:10px;border:none;background:linear-gradient(135deg,#7c3aed,#5b21b6);color:white;cursor:pointer;font-weight:800;font-size:.95rem;">✅ Confirmar Ingreso</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- MODAL RECALL / TRAZABILIDAD HACIA PROVEEDOR        -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <div id="mpModalRecall" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9300;align-items:center;justify-content:center;">
+          <div style="background:white;border-radius:18px;padding:2rem;width:min(860px,97vw);max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);border-top:5px solid #ef4444;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+              <div>
+                <h3 style="margin:0;font-size:1.1rem;font-weight:800;color:#dc2626;">🚨 Trazabilidad de Lote — Informe de Recall</h3>
+                <div style="font-size:.78rem;color:#64748b;margin-top:.2rem;">Para uso de Jefe de Planta y Calidad · Rastrea un lote desde el proveedor hasta los productos terminados</div>
+              </div>
+              <button onclick="document.getElementById('mpModalRecall').style.display='none'" style="background:#f1f5f9;border:none;border-radius:8px;padding:.4rem .7rem;cursor:pointer;font-size:1rem;">✕</button>
+            </div>
+            <div style="display:flex;gap:.75rem;margin-bottom:1.25rem;">
+              <input id="recallBusqueda" type="text" placeholder="N° lote, nombre MP o proveedor..."
+                style="flex:1;padding:.65rem 1rem;border-radius:10px;border:2px solid #fca5a5;font-size:.95rem;outline:none;">
+              <button onclick="mpGenerarRecall()" style="background:#ef4444;color:white;border:none;border-radius:10px;padding:.65rem 1.4rem;font-weight:700;cursor:pointer;">🔍 Rastrear</button>
+            </div>
+            <div id="mpRecallResultado"></div>
           </div>
         </div>
 
@@ -9967,7 +10160,7 @@ function imprimirRegistroHACCP(d) {
             else if (tabName === 'acondicionamiento') { sincronizarHACCPPreDesdeFirebase(); }
             else if (tabName === 'analytics') { _sincronizarHistorialYRenderizar('analytics'); }
             else if (tabName === 'bodega') { initBodega(); }
-            else if (tabName === 'materiasprimas') { mpCargarDesdeFirebase().then(() => { mpRenderStock(); mpRenderKpis(); mpActualizarProyeccion(); }); }
+            else if (tabName === 'materiasprimas') { mpCargarDesdeFirebase().then(() => { mpCargarCatalogoFirebase().then(() => { mpRenderStock(); mpRenderKpis(); mpActualizarProyeccion(); }); }); }
             else if (tabName === 'personal') { 
                 renderListaPersonal('cocina'); 
                 renderListaPersonal('envasado'); 
@@ -23246,7 +23439,8 @@ function mpRenderStock() {
               </td>
               <td style="padding:.7rem 1rem;text-align:center;">
                 <button onclick="mpEditarStockMin(this.dataset.n)" data-n="${item.nombre.replace(/"/g,'&quot;')}" title="Editar stock mínimo" style="background:#eff6ff;border:none;border-radius:6px;padding:.3rem .5rem;cursor:pointer;margin-right:.3rem;">✏️</button>
-                <button onclick="mpVerMermaItem(this.dataset.n)" data-n="${item.nombre.replace(/"/g,'&quot;')}" title="Ver merma" style="background:#fef2f2;border:none;border-radius:6px;padding:.3rem .5rem;cursor:pointer;">📊</button>
+                <button onclick="mpVerMermaItem(this.dataset.n)" data-n="${item.nombre.replace(/"/g,'&quot;')}" title="Ver merma" style="background:#fef2f2;border:none;border-radius:6px;padding:.3rem .5rem;cursor:pointer;margin-right:.3rem;">📊</button>
+                <button onclick="mpAbrirRecallRapido(this.dataset.n)" data-n="${item.nombre.replace(/"/g,'&quot;')}" title="Trazabilidad / Recall" style="background:#fef2f2;border:none;border-radius:6px;padding:.3rem .5rem;cursor:pointer;color:#dc2626;">🚨</button>
               </td>
             </tr>`;
         }).join('')}
@@ -23823,9 +24017,494 @@ function mpRenderAuditoria() {
     </table></div>`;
 }
 
+// ================================================================
+// ETAPA 2 — CATÁLOGO, RECEPCIÓN QR Y TRAZABILIDAD / RECALL
+// ================================================================
 
+let mpCatalogo = JSON.parse(localStorage.getItem('mes_mp_catalogo') || '[]');
 
-    </script>
+async function mpGuardarCatalogoStorage() {
+    localStorage.setItem('mes_mp_catalogo', JSON.stringify(mpCatalogo));
+    if (window.db && window.firestoreLoaded) {
+        try {
+            const { doc, setDoc } = window.firestoreFunctions;
+            await setDoc(doc(window.db, 'mes-data', 'mp-catalogo'), { catalogo: mpCatalogo, ts: new Date().toISOString() });
+        } catch(e) { console.error('Error guardando catálogo MP:', e); }
+    }
+}
+
+async function mpCargarCatalogoFirebase() {
+    if (!window.db || !window.firestoreLoaded) return;
+    try {
+        const { doc, getDoc } = window.firestoreFunctions;
+        const snap = await getDoc(doc(window.db, 'mes-data', 'mp-catalogo'));
+        if (snap.exists()) {
+            const remote = snap.data().catalogo || [];
+            if (remote.length >= mpCatalogo.length) {
+                mpCatalogo = remote;
+                localStorage.setItem('mes_mp_catalogo', JSON.stringify(mpCatalogo));
+            }
+        }
+    } catch(e) { console.error('Error cargando catálogo:', e); }
+}
+
+// ── CATÁLOGO ──────────────────────────────────────────────────
+async function mpAbrirCatalogo() {
+    await mpCargarCatalogoFirebase();
+    // Poblar proveedores
+    const provs = [...new Set(mpCatalogo.map(c => c.proveedor).filter(Boolean))].sort();
+    const dl = document.getElementById('catListaProvs');
+    if (dl) dl.innerHTML = provs.map(p => `<option value="${p}">`).join('');
+    mpRenderCatalogo();
+    document.getElementById('mpModalCatalogo').style.display = 'flex';
+}
+
+function mpRenderCatalogo() {
+    const cont = document.getElementById('mpTablaCatalogo');
+    if (!cont) return;
+    if (!mpCatalogo.length) {
+        cont.innerHTML = `<div style="text-align:center;padding:2rem;color:#94a3b8;">
+            <div style="font-size:2rem;margin-bottom:.5rem;">📚</div>
+            <div style="font-weight:600;">Catálogo vacío</div>
+            <div style="font-size:.82rem;margin-top:.3rem;">Agrega tus materias primas para poder usar la recepción rápida</div>
+        </div>`; return;
+    }
+    cont.innerHTML = `
+    <div style="font-weight:700;font-size:.88rem;color:#374151;margin-bottom:.75rem;">${mpCatalogo.length} producto(s) en catálogo</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:.85rem;">
+    ${mpCatalogo.map((item, i) => `
+        <div style="background:#f8fafc;border-radius:12px;padding:1rem;border:1.5px solid #e2e8f0;position:relative;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem;">
+                <div>
+                    <div style="font-weight:800;color:#1e293b;font-size:.92rem;">${item.nombre}</div>
+                    <div style="font-size:.75rem;color:#64748b;">${item.proveedor} · ${item.categoria}</div>
+                </div>
+                <button onclick="mpEliminarCatalogo(${i})" style="background:#fee2e2;border:none;border-radius:6px;padding:.25rem .45rem;cursor:pointer;color:#ef4444;font-size:.8rem;">🗑️</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;font-size:.78rem;margin-bottom:.75rem;">
+                <div style="background:white;border-radius:6px;padding:.4rem .6rem;"><span style="color:#64748b;">Bodega:</span> <strong>${MP_BODEGAS[item.bodega]||item.bodega}</strong></div>
+                <div style="background:white;border-radius:6px;padding:.4rem .6rem;"><span style="color:#64748b;">Precio:</span> <strong style="color:#059669;">$${(item.precio||0).toLocaleString('es-CL')}/kg</strong></div>
+                <div style="background:white;border-radius:6px;padding:.4rem .6rem;"><span style="color:#64748b;">Stock mín:</span> <strong>${item.stockMin||0} kg</strong></div>
+                <div style="background:white;border-radius:6px;padding:.4rem .6rem;"><span style="color:#64748b;">Vence:</span> <strong>${item.diasVenc||'—'} días</strong></div>
+            </div>
+            <!-- QR Code -->
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div id="qr_cat_${i}" style="width:70px;height:70px;"></div>
+                <div style="flex:1;margin-left:.75rem;">
+                    <div style="font-size:.72rem;color:#64748b;margin-bottom:.3rem;">Código QR interno:</div>
+                    <div style="font-size:.7rem;font-family:monospace;background:#f1f5f9;border-radius:4px;padding:.25rem .4rem;color:#475569;word-break:break-all;">${item.qrCode}</div>
+                    <button onclick="mpImprimirQR(${i})" style="background:#7c3aed;color:white;border:none;border-radius:6px;padding:.3rem .7rem;cursor:pointer;font-size:.75rem;font-weight:600;margin-top:.4rem;">🖨️ Imprimir QR</button>
+                </div>
+            </div>
+        </div>`).join('')}
+    </div>`;
+    // Generar QRs
+    setTimeout(() => {
+        mpCatalogo.forEach((item, i) => {
+            const el = document.getElementById(`qr_cat_${i}`);
+            if (el && typeof QRCode !== 'undefined') {
+                el.innerHTML = '';
+                new QRCode(el, { text: item.qrCode, width: 70, height: 70, correctLevel: QRCode.CorrectLevel.M });
+            } else if (el) {
+                // Fallback: mostrar código como texto
+                el.style.cssText = 'width:70px;height:70px;background:#f1f5f9;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.6rem;color:#64748b;text-align:center;padding:4px;box-sizing:border-box;word-break:break-all;';
+                el.textContent = item.qrCode.replace('GF-MP-','');
+            }
+        });
+    }, 100);
+}
+
+function mpGuardarCatalogo() {
+    const nombre  = document.getElementById('catNombre').value.trim();
+    const proveedor = document.getElementById('catProveedor').value.trim();
+    if (!nombre)    { alert('Ingresa el nombre de la MP'); return; }
+    if (!proveedor) { alert('Ingresa el proveedor'); return; }
+
+    // Generar código QR interno único
+    const qrCode = 'GF-MP-' + nombre.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,10) +
+                   '-' + proveedor.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6) +
+                   '-' + Date.now().toString(36).toUpperCase().slice(-4);
+
+    const entrada = {
+        id:          Date.now().toString(),
+        nombre,
+        proveedor,
+        categoria:   document.getElementById('catCategoria').value,
+        bodega:      document.getElementById('catBodega').value,
+        precio:      parseFloat(document.getElementById('catPrecio').value) || 0,
+        stockMin:    parseFloat(document.getElementById('catStockMin').value) || 0,
+        codigoBarrasProveedor: document.getElementById('catCodigoBarras').value.trim(),
+        diasVenc:    parseInt(document.getElementById('catDiasVenc').value) || null,
+        notas:       document.getElementById('catNotas').value.trim(),
+        qrCode,
+        creadoEn:    new Date().toISOString(),
+        creadoPor:   mpGetUsuarioActual()
+    };
+
+    mpCatalogo.push(entrada);
+    mpGuardarCatalogoStorage();
+    mpRenderCatalogo();
+
+    // Limpiar form
+    ['catNombre','catProveedor','catPrecio','catStockMin','catCodigoBarras','catDiasVenc','catNotas'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.value = '';
+    });
+    mostrarNotificacion(`✅ "${nombre}" agregado al catálogo con QR interno`, 'success');
+}
+
+function mpEliminarCatalogo(i) {
+    if (!confirm(`¿Eliminar "${mpCatalogo[i]?.nombre}" del catálogo?`)) return;
+    mpCatalogo.splice(i, 1);
+    mpGuardarCatalogoStorage();
+    mpRenderCatalogo();
+}
+
+function mpImprimirQR(i) {
+    const item = mpCatalogo[i];
+    if (!item) return;
+    const ventana = window.open('', '_blank', 'width=400,height=500');
+    ventana.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>QR ${item.nombre}</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
+    <style>
+        body{font-family:Arial,sans-serif;text-align:center;padding:20px;}
+        .card{border:2px solid #333;border-radius:10px;padding:15px;display:inline-block;max-width:280px;}
+        h3{margin:0 0 5px;font-size:14px;color:#1e293b;}
+        p{margin:3px 0;font-size:11px;color:#64748b;}
+        #qr{margin:10px auto;}
+        .code{font-size:9px;font-family:monospace;color:#94a3b8;margin-top:5px;word-break:break-all;}
+        @media print{button{display:none;}}
+    </style></head><body>
+    <div class="card">
+        <h3>${item.nombre}</h3>
+        <p>${item.proveedor}</p>
+        <p>${MP_BODEGAS[item.bodega]||item.bodega} · $${(item.precio||0).toLocaleString('es-CL')}/kg</p>
+        <div id="qr"></div>
+        <div class="code">${item.qrCode}</div>
+    </div>
+    <br><button onclick="window.print()" style="margin-top:10px;padding:8px 20px;background:#7c3aed;color:white;border:none;border-radius:8px;cursor:pointer;font-weight:700;">🖨️ Imprimir</button>
+    <script>new QRCode(document.getElementById('qr'),{text:'${item.qrCode}',width:160,height:160,correctLevel:QRCode.CorrectLevel.M});<\/script>
+    </body></html>`);
+    ventana.document.close();
+}
+
+// ── RECEPCIÓN RÁPIDA CON QR / PISTOLA ────────────────────────
+let _mpCatalogoItemActual = null;
+
+async function mpAbrirRecepcionQR() {
+    await mpCargarCatalogoFirebase();
+    // Cargar receptores
+    const selR = document.getElementById('recReceptor');
+    if (selR) {
+        const todos = [...(personal.cocina||[]),...(personal.envasado||[]),...(personal.abatimiento||[]),...(personal.preelaborado||[])]
+            .map(p => typeof p === 'string' ? p : p.nombre).filter(Boolean);
+        const unicos = [...new Set(todos)].sort();
+        selR.innerHTML = '<option value="">— Seleccionar —</option>' + unicos.map(n => `<option value="${n}">${n}</option>`).join('');
+        if (window._emailActual) selR.innerHTML += `<option value="${window._emailActual}" selected>${window._emailActual}</option>`;
+    }
+    // Reset
+    _mpCatalogoItemActual = null;
+    document.getElementById('mpScanInput').value = '';
+    document.getElementById('mpScanResultado').style.display = 'none';
+    document.getElementById('mpFormRecepcion').style.display = 'none';
+    document.getElementById('mpModalRecepcion').style.display = 'flex';
+    setTimeout(() => document.getElementById('mpScanInput')?.focus(), 200);
+}
+
+function mpCerrarRecepcion() { document.getElementById('mpModalRecepcion').style.display = 'none'; }
+
+function mpProcesarScanLive(val) {
+    // Si el valor tiene longitud suficiente y parece completo, procesar
+    if (val.length > 8) {
+        clearTimeout(window._mpScanTimer);
+        window._mpScanTimer = setTimeout(() => mpProcesarScan(), 300);
+    }
+}
+
+function mpProcesarScan() {
+    const codigo = (document.getElementById('mpScanInput')?.value || '').trim();
+    if (!codigo) return;
+
+    const res = document.getElementById('mpScanResultado');
+    const form = document.getElementById('mpFormRecepcion');
+
+    // Buscar en catálogo — primero por QR interno, luego por código de barras del proveedor
+    let found = mpCatalogo.find(c => c.qrCode === codigo);
+    if (!found) found = mpCatalogo.find(c => c.codigoBarrasProveedor && c.codigoBarrasProveedor === codigo);
+    // También buscar por nombre parcial si no hay coincidencia exacta
+    if (!found && codigo.startsWith('GF-MP-')) {
+        const parte = codigo.replace('GF-MP-','').split('-')[0];
+        found = mpCatalogo.find(c => c.nombre.toUpperCase().replace(/[^A-Z0-9]/g,'').startsWith(parte));
+    }
+
+    if (found) {
+        _mpCatalogoItemActual = found;
+        // Llenar formulario automáticamente
+        document.getElementById('recNombre').value    = found.nombre;
+        document.getElementById('recProveedor').value = found.proveedor;
+        document.getElementById('recBodega').value    = found.bodega || 'despensa';
+        document.getElementById('recPrecio').value    = found.precio || '';
+        // Fecha de vencimiento sugerida
+        if (found.diasVenc > 0) {
+            const venc = new Date(); venc.setDate(venc.getDate() + found.diasVenc);
+            document.getElementById('recVencimiento').value = venc.toISOString().split('T')[0];
+        }
+        document.getElementById('recCantidad').value = '';
+
+        res.style.display = 'block';
+        res.innerHTML = `<div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:.85rem 1rem;margin-bottom:1rem;display:flex;align-items:center;gap:.75rem;">
+            <div style="font-size:1.8rem;">✅</div>
+            <div>
+                <div style="font-weight:800;color:#065f46;font-size:.95rem;">${found.nombre}</div>
+                <div style="font-size:.8rem;color:#059669;">${found.proveedor} · ${MP_BODEGAS[found.bodega]||found.bodega} · $${(found.precio||0).toLocaleString('es-CL')}/kg</div>
+            </div>
+        </div>`;
+        form.style.display = 'block';
+        setTimeout(() => document.getElementById('recCantidad')?.focus(), 100);
+    } else {
+        res.style.display = 'block';
+        res.innerHTML = `<div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:.85rem 1rem;margin-bottom:1rem;">
+            <div style="font-weight:700;color:#dc2626;">⚠️ Código no encontrado en catálogo</div>
+            <div style="font-size:.82rem;color:#64748b;margin-top:.3rem;">Código leído: <code>${codigo}</code></div>
+            <div style="font-size:.82rem;color:#64748b;margin-top:.2rem;">
+                ¿Es una MP nueva? <button onclick="mpAgregarDesdeEscaneo('${codigo}')" 
+                style="background:#7c3aed;color:white;border:none;border-radius:6px;padding:.25rem .7rem;cursor:pointer;font-size:.8rem;font-weight:600;margin-left:.4rem;">
+                ➕ Agregar al catálogo
+                </button>
+            </div>
+        </div>`;
+        form.style.display = 'none';
+    }
+}
+
+function mpAgregarDesdeEscaneo(codigo) {
+    document.getElementById('mpModalRecepcion').style.display = 'none';
+    document.getElementById('catCodigoBarras').value = codigo;
+    mpAbrirCatalogo();
+    setTimeout(() => document.getElementById('catNombre')?.focus(), 300);
+}
+
+function mpActualizarCostoRecepcion() {
+    const cant   = parseFloat(document.getElementById('recCantidad')?.value) || 0;
+    const precio = parseFloat(document.getElementById('recPrecio')?.value)   || 0;
+    const prev   = document.getElementById('recCostoPreview');
+    if (!prev) return;
+    if (cant > 0 && precio > 0) {
+        prev.style.display = 'block';
+        prev.innerHTML = `💰 Costo total: <strong>$${Math.round(cant * precio).toLocaleString('es-CL')}</strong> (${cant} kg × $${precio.toLocaleString('es-CL')}/kg)`;
+    } else { prev.style.display = 'none'; }
+}
+
+function mpConfirmarRecepcion() {
+    const nombre   = document.getElementById('recNombre')?.value.trim();
+    const cantidad = parseFloat(document.getElementById('recCantidad')?.value) || 0;
+    const receptor = document.getElementById('recReceptor')?.value || mpGetUsuarioActual();
+    if (!nombre)       { alert('Sin MP seleccionada'); return; }
+    if (cantidad <= 0) { alert('Ingresa la cantidad recibida'); return; }
+
+    const ahora   = new Date();
+    const bodega  = document.getElementById('recBodega')?.value || 'despensa';
+    const precio  = parseFloat(document.getElementById('recPrecio')?.value) || 0;
+    const loteId  = 'MP-' + ahora.getFullYear() + String(ahora.getMonth()+1).padStart(2,'0') + String(ahora.getDate()).padStart(2,'0') + '-' + Math.random().toString(36).substr(2,4).toUpperCase();
+
+    const item = {
+        id:              loteId,
+        nombre,
+        categoria:       _mpCatalogoItemActual?.categoria || 'Otro',
+        proveedor:       document.getElementById('recProveedor')?.value.trim() || '',
+        lote:            document.getElementById('recLote')?.value.trim() || loteId,
+        factura:         document.getElementById('recFactura')?.value.trim() || '',
+        bodega,
+        bodegaLabel:     MP_BODEGAS[bodega] || bodega,
+        stockActual:     cantidad,
+        stockInicial:    cantidad,
+        stockMinimo:     _mpCatalogoItemActual?.stockMin || 0,
+        precioUnitario:  precio,
+        costoTotal:      Math.round(cantidad * precio),
+        fechaVencimiento: document.getElementById('recVencimiento')?.value || null,
+        fechaIngreso:    ahora.toISOString(),
+        notas:           document.getElementById('recNotas')?.value.trim() || '',
+        origenRecepcion: 'qr_scan',
+        qrCode:          _mpCatalogoItemActual?.qrCode || '',
+        creadoPor:       receptor,
+        creadoEn:        ahora.toISOString(),
+        dispositivo:     window._dispositivoId || 'unknown'
+    };
+
+    mpStock.push(item);
+    mpMovimientos.unshift({
+        id:              'MOV-' + Date.now() + '-' + Math.random().toString(36).substr(2,4),
+        tipo:            'ingreso',
+        nombre,
+        lote:            item.lote,
+        bodega,
+        bodegaLabel:     item.bodegaLabel,
+        cantidad,
+        precioUnitario:  precio,
+        costoTotal:      item.costoTotal,
+        fecha:           ahora.toISOString(),
+        motivo:          'Recepción QR',
+        factura:         item.factura,
+        usuario:         receptor,
+        stockResultante: cantidad,
+        dispositivo:     window._dispositivoId || 'unknown'
+    });
+
+    // Actualizar precio en catálogo si cambió
+    if (_mpCatalogoItemActual && precio > 0 && precio !== _mpCatalogoItemActual.precio) {
+        _mpCatalogoItemActual.precio = precio;
+        mpGuardarCatalogoStorage();
+    }
+
+    mpGuardar();
+    mpCerrarRecepcion();
+    mpRenderStock();
+    mpRenderKpis();
+    mostrarNotificacion(`✅ ${nombre} — ${cantidad} kg recibidos en ${item.bodegaLabel}`, 'success');
+}
+
+// ── TRAZABILIDAD / RECALL ─────────────────────────────────────
+function mpAbrirRecall() {
+    document.getElementById('mpModalRecall').style.display = 'flex';
+    document.getElementById('recallBusqueda').value = '';
+    document.getElementById('mpRecallResultado').innerHTML = '';
+    setTimeout(() => document.getElementById('recallBusqueda')?.focus(), 200);
+}
+
+function mpGenerarRecall() {
+    const busq = (document.getElementById('recallBusqueda')?.value || '').trim().toLowerCase();
+    if (!busq) { alert('Ingresa el lote, nombre de MP o proveedor a rastrear'); return; }
+
+    const cont = document.getElementById('mpRecallResultado');
+
+    // 1. Buscar en stock
+    const lotesAfectados = mpStock.filter(i =>
+        (i.lote||'').toLowerCase().includes(busq) ||
+        (i.nombre||'').toLowerCase().includes(busq) ||
+        (i.proveedor||'').toLowerCase().includes(busq)
+    );
+
+    // 2. Buscar en movimientos
+    const movsAfectados = mpMovimientos.filter(m =>
+        (m.lote||'').toLowerCase().includes(busq) ||
+        (m.nombre||'').toLowerCase().includes(busq)
+    );
+
+    // 3. Cruzar con OPs producidas (historial)
+    const opsAfectadas = [];
+    Object.entries(historialPorFecha || {}).forEach(([fecha, registros]) => {
+        (registros || []).forEach(reg => {
+            const receta = recetas.find(r => r.id === reg.recetaId || r.nombre === reg.producto?.split('—')[0]?.trim());
+            if (!receta) return;
+            const usaMP = (receta.componentes || []).some(comp =>
+                (comp.ingredientes || []).some(ing =>
+                    (ing.nombre||'').toLowerCase().includes(busq)
+                )
+            );
+            if (usaMP) opsAfectadas.push({ fecha, reg });
+        });
+    });
+
+    if (!lotesAfectados.length && !movsAfectados.length) {
+        cont.innerHTML = `<div style="text-align:center;padding:2rem;color:#94a3b8;">
+            <div style="font-size:2rem;margin-bottom:.5rem;">✅</div>
+            <div style="font-weight:700;color:#059669;">Sin resultados para "${busq}"</div>
+            <div style="font-size:.85rem;margin-top:.3rem;">No se encontraron lotes, movimientos ni OPs afectadas</div>
+        </div>`; return;
+    }
+
+    const ahora = new Date().toLocaleString('es-CL');
+    cont.innerHTML = `
+    <div style="background:#fef2f2;border:2px solid #fca5a5;border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.25rem;">
+        <div style="font-weight:800;color:#dc2626;font-size:.95rem;">🚨 INFORME DE TRAZABILIDAD — "${busq.toUpperCase()}"</div>
+        <div style="font-size:.78rem;color:#64748b;margin-top:.2rem;">Generado: ${ahora} · Para uso de Jefe de Planta y Calidad</div>
+    </div>
+
+    <!-- Lotes en stock -->
+    ${lotesAfectados.length ? `
+    <div style="margin-bottom:1.25rem;">
+        <div style="font-weight:700;font-size:.9rem;color:#374151;margin-bottom:.6rem;">📦 Lotes en stock actual (${lotesAfectados.length})</div>
+        <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+            <thead><tr style="background:#fef2f2;">
+                <th style="padding:.55rem .75rem;text-align:left;">Lote</th>
+                <th style="padding:.55rem .75rem;text-align:left;">MP</th>
+                <th style="padding:.55rem .75rem;text-align:left;">Proveedor</th>
+                <th style="padding:.55rem .75rem;text-align:left;">Bodega</th>
+                <th style="padding:.55rem .75rem;text-align:right;">Stock</th>
+                <th style="padding:.55rem .75rem;text-align:center;">Ingreso</th>
+                <th style="padding:.55rem .75rem;text-align:center;">Vencimiento</th>
+                <th style="padding:.55rem .75rem;text-align:left;">Recibido por</th>
+            </tr></thead>
+            <tbody>${lotesAfectados.map(l => `
+                <tr style="border-bottom:1px solid #fee2e2;">
+                    <td style="padding:.5rem .75rem;font-weight:700;color:#dc2626;">${l.lote}</td>
+                    <td style="padding:.5rem .75rem;font-weight:600;">${l.nombre}</td>
+                    <td style="padding:.5rem .75rem;color:#64748b;">${l.proveedor||'—'}</td>
+                    <td style="padding:.5rem .75rem;">${l.bodegaLabel||'—'}</td>
+                    <td style="padding:.5rem .75rem;text-align:right;font-weight:700;">${(l.stockActual||0).toFixed(1)} kg</td>
+                    <td style="padding:.5rem .75rem;text-align:center;font-size:.75rem;">${l.fechaIngreso ? new Date(l.fechaIngreso).toLocaleDateString('es-CL') : '—'}</td>
+                    <td style="padding:.5rem .75rem;text-align:center;font-size:.75rem;">${l.fechaVencimiento ? new Date(l.fechaVencimiento+'T00:00:00').toLocaleDateString('es-CL') : '—'}</td>
+                    <td style="padding:.5rem .75rem;font-size:.75rem;">${l.creadoPor||'—'}</td>
+                </tr>`).join('')}
+            </tbody>
+        </table>
+    </div>` : ''}
+
+    <!-- Historial de movimientos -->
+    ${movsAfectados.length ? `
+    <div style="margin-bottom:1.25rem;">
+        <div style="font-weight:700;font-size:.9rem;color:#374151;margin-bottom:.6rem;">📋 Historial de movimientos (${movsAfectados.length})</div>
+        <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+            <thead><tr style="background:#f8fafc;">
+                <th style="padding:.55rem .75rem;text-align:left;">Fecha</th>
+                <th style="padding:.55rem .75rem;text-align:left;">Tipo</th>
+                <th style="padding:.55rem .75rem;text-align:left;">MP</th>
+                <th style="padding:.55rem .75rem;text-align:left;">Lote</th>
+                <th style="padding:.55rem .75rem;text-align:right;">Cantidad</th>
+                <th style="padding:.55rem .75rem;text-align:left;">Motivo / OP</th>
+                <th style="padding:.55rem .75rem;text-align:left;">Usuario</th>
+            </tr></thead>
+            <tbody>${movsAfectados.slice(0,50).map(m => `
+                <tr style="border-bottom:1px solid #f1f5f9;">
+                    <td style="padding:.5rem .75rem;font-size:.75rem;">${new Date(m.fecha).toLocaleString('es-CL',{dateStyle:'short',timeStyle:'short'})}</td>
+                    <td style="padding:.5rem .75rem;font-size:.78rem;">${m.tipo.replace(/_/g,' ')}</td>
+                    <td style="padding:.5rem .75rem;font-weight:600;">${m.nombre}</td>
+                    <td style="padding:.5rem .75rem;color:#64748b;">${m.lote||'—'}</td>
+                    <td style="padding:.5rem .75rem;text-align:right;font-weight:700;">${(m.cantidad||0).toFixed(1)} kg</td>
+                    <td style="padding:.5rem .75rem;color:#64748b;">${m.motivo||'—'}</td>
+                    <td style="padding:.5rem .75rem;font-size:.75rem;">${m.usuario||'—'}</td>
+                </tr>`).join('')}
+            </tbody>
+        </table>
+    </div>` : ''}
+
+    <!-- OPs afectadas -->
+    ${opsAfectadas.length ? `
+    <div style="margin-bottom:1.25rem;">
+        <div style="font-weight:700;font-size:.9rem;color:#374151;margin-bottom:.6rem;">🍽️ Producciones que usaron esta MP (${opsAfectadas.length})</div>
+        <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:.75rem 1rem;font-size:.82rem;color:#92400e;">
+            ${opsAfectadas.map(({fecha, reg}) => `
+                <div style="padding:.3rem 0;border-bottom:1px solid #fde68a;">
+                    📅 ${fecha} · ${reg.producto||reg.componente||'—'} · OP ${reg.numeroOP||'—'} · ${(reg.kgFinales||0).toFixed(1)} kg
+                </div>`).join('')}
+        </div>
+    </div>` : ''}
+
+    <!-- Botón imprimir -->
+    <div style="text-align:center;margin-top:1rem;">
+        <button onclick="window.print()" style="background:#ef4444;color:white;border:none;border-radius:10px;padding:.7rem 2rem;font-weight:700;cursor:pointer;font-size:.9rem;">🖨️ Imprimir Informe de Recall</button>
+    </div>`;
+}
+// ── Acceso rápido al recall desde menú ──
+function mpAbrirRecallRapido(lote) {
+    mpAbrirRecall();
+    if (lote) {
+        setTimeout(() => {
+            document.getElementById('recallBusqueda').value = lote;
+            mpGenerarRecall();
+        }, 200);
+    }
+}
 
 
 <!-- ============================================================ -->
