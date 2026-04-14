@@ -2200,6 +2200,8 @@
             <button onclick="mpAbrirRecepcionQR()" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:700;cursor:pointer;font-size:.85rem;">📷 Recepción MP</button>
             <button onclick="mpAbrirIngreso()" style="background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">+ Ingreso Manual</button>
             <button onclick="mpAbrirCatalogo()" style="background:linear-gradient(135deg,#0891b2,#0e7490);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">📚 Catálogo</button>
+            <button onclick="ocAbrirProveedores()" style="background:linear-gradient(135deg,#0891b2,#0369a1);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">🏭 Proveedores</button>
+            <button onclick="ocAbrirBandeja()" id="btnBandejaOC" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:700;cursor:pointer;font-size:.85rem;">📋 OC Pendientes <span id="badgeBandejaOC" style="display:none;background:white;color:#d97706;border-radius:20px;padding:.05rem .45rem;font-size:.75rem;font-weight:800;margin-left:.3rem;"></span></button>
             <button onclick="mpAbrirCostosProduccion()" style="background:linear-gradient(135deg,#059669,#047857);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">💰 Costos</button>
             <button onclick="mpAbrirAjuste()" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">⚖️ Ajuste</button>
             <button onclick="mpVerMovimientos()" style="background:linear-gradient(135deg,#6366f1,#4f46e5);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">📋 Movimientos</button>
@@ -2636,6 +2638,95 @@
               <button onclick="document.getElementById('mpModalCostoOP').style.display='none'" style="background:#f1f5f9;border:none;border-radius:8px;padding:.4rem .7rem;cursor:pointer;font-size:1rem;">✕</button>
             </div>
             <div id="mpCostoOPContenido"></div>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- MODAL GESTIÓN DE PROVEEDORES                        -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <div id="mpModalProveedores" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9100;align-items:center;justify-content:center;">
+          <div style="background:white;border-radius:18px;padding:2rem;width:min(900px,97vw);max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);border-top:5px solid #0891b2;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+              <div>
+                <h3 style="margin:0;font-size:1.1rem;font-weight:800;color:#0e7490;">🏭 Gestión de Proveedores</h3>
+                <div style="font-size:.78rem;color:#64748b;margin-top:.2rem;">Registra un proveedor por materia prima · Email y WhatsApp para envío de OC</div>
+              </div>
+              <button onclick="document.getElementById('mpModalProveedores').style.display='none'" style="background:#f1f5f9;border:none;border-radius:8px;padding:.4rem .7rem;cursor:pointer;font-size:1rem;">✕</button>
+            </div>
+            <!-- Form nuevo proveedor -->
+            <div style="background:#f0f9ff;border-radius:12px;padding:1.1rem;margin-bottom:1.25rem;border:1.5px solid #bae6fd;">
+              <div style="font-weight:700;font-size:.85rem;color:#0e7490;margin-bottom:.85rem;">➕ Agregar / Editar Proveedor</div>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;">
+                <div>
+                  <label style="font-size:.75rem;font-weight:600;color:#374151;display:block;margin-bottom:.25rem;">Nombre Proveedor *</label>
+                  <input id="provNombre" type="text" placeholder="Ej: VEGAFRESH SPA" style="width:100%;padding:.55rem .8rem;border-radius:8px;border:1.5px solid #bae6fd;font-size:.88rem;box-sizing:border-box;text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()">
+                </div>
+                <div>
+                  <label style="font-size:.75rem;font-weight:600;color:#374151;display:block;margin-bottom:.25rem;">RUT</label>
+                  <input id="provRut" type="text" placeholder="Ej: 77.131.259-4" style="width:100%;padding:.55rem .8rem;border-radius:8px;border:1.5px solid #bae6fd;font-size:.88rem;box-sizing:border-box;">
+                </div>
+                <div>
+                  <label style="font-size:.75rem;font-weight:600;color:#374151;display:block;margin-bottom:.25rem;">📧 Email</label>
+                  <input id="provEmail" type="email" placeholder="ventas@proveedor.cl" style="width:100%;padding:.55rem .8rem;border-radius:8px;border:1.5px solid #bae6fd;font-size:.88rem;box-sizing:border-box;">
+                </div>
+                <div>
+                  <label style="font-size:.75rem;font-weight:600;color:#374151;display:block;margin-bottom:.25rem;">📱 WhatsApp (con código país)</label>
+                  <input id="provWhatsapp" type="text" placeholder="+56912345678" style="width:100%;padding:.55rem .8rem;border-radius:8px;border:1.5px solid #bae6fd;font-size:.88rem;box-sizing:border-box;">
+                </div>
+                <div>
+                  <label style="font-size:.75rem;font-weight:600;color:#374151;display:block;margin-bottom:.25rem;">📍 Dirección</label>
+                  <input id="provDireccion" type="text" placeholder="Calle, ciudad" style="width:100%;padding:.55rem .8rem;border-radius:8px;border:1.5px solid #bae6fd;font-size:.88rem;box-sizing:border-box;">
+                </div>
+                <div>
+                  <label style="font-size:.75rem;font-weight:600;color:#374151;display:block;margin-bottom:.25rem;">💳 Forma de pago</label>
+                  <select id="provFormaPago" style="width:100%;padding:.55rem .8rem;border-radius:8px;border:1.5px solid #bae6fd;font-size:.85rem;background:white;box-sizing:border-box;">
+                    <option value="Contado">Contado</option>
+                    <option value="30 días" selected>30 días</option>
+                    <option value="60 días">60 días</option>
+                    <option value="Otro">Otro</option>
+                  </select>
+                </div>
+                <div style="grid-column:1/-1;">
+                  <label style="font-size:.75rem;font-weight:600;color:#374151;display:block;margin-bottom:.25rem;">🌾 Materias primas que provee (separa con coma)</label>
+                  <input id="provMPs" type="text" list="provMPsDatalist" placeholder="Ej: Cebolla, Papa, Zanahoria, Ajo..." style="width:100%;padding:.55rem .8rem;border-radius:8px;border:1.5px solid #bae6fd;font-size:.88rem;box-sizing:border-box;">
+                  <datalist id="provMPsDatalist"></datalist>
+                </div>
+              </div>
+              <div style="text-align:right;margin-top:.85rem;">
+                <button onclick="ocGuardarProveedor()" style="background:linear-gradient(135deg,#0891b2,#0e7490);color:white;border:none;border-radius:10px;padding:.55rem 1.25rem;font-weight:700;cursor:pointer;">✅ Guardar Proveedor</button>
+              </div>
+            </div>
+            <div id="ocTablaProveedores"></div>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- MODAL BANDEJA DE OCs PENDIENTES                     -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <div id="mpModalBandejaOC" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9100;align-items:center;justify-content:center;">
+          <div style="background:white;border-radius:18px;padding:2rem;width:min(1000px,97vw);max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);border-top:5px solid #f59e0b;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+              <div>
+                <h3 style="margin:0;font-size:1.1rem;font-weight:800;color:#92400e;">📋 Bandeja de Órdenes de Compra</h3>
+                <div style="font-size:.78rem;color:#64748b;margin-top:.2rem;">OCs generadas automáticamente · Requieren aprobación de <strong>fmunoz@gustofresco.cl</strong></div>
+              </div>
+              <button onclick="document.getElementById('mpModalBandejaOC').style.display='none'" style="background:#f1f5f9;border:none;border-radius:8px;padding:.4rem .7rem;cursor:pointer;font-size:1rem;">✕</button>
+            </div>
+            <div id="ocBandejaContenido"></div>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- MODAL PREVISUALIZAR / APROBAR OC                    -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <div id="mpModalVerOC" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9300;align-items:center;justify-content:center;">
+          <div style="background:white;border-radius:18px;padding:2rem;width:min(860px,97vw);max-height:93vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+              <h3 style="margin:0;font-size:1.1rem;font-weight:800;color:#1e293b;" id="tituloModalOC">Orden de Compra</h3>
+              <button onclick="document.getElementById('mpModalVerOC').style.display='none'" style="background:#f1f5f9;border:none;border-radius:8px;padding:.4rem .7rem;cursor:pointer;font-size:1rem;">✕</button>
+            </div>
+            <div id="ocVistaPrevia"></div>
+            <div id="ocBotonesAccion" style="display:flex;gap:.75rem;margin-top:1.25rem;justify-content:flex-end;"></div>
           </div>
         </div>
 
@@ -14600,6 +14691,11 @@ function agregarOP() {
   renderListaOPs();
   renderVistaSemanal();
 
+  // ── GENERAR ÓRDENES DE COMPRA AUTOMÁTICAS ──
+  if (typeof ocGenerarDesdeOP === 'function') {
+      setTimeout(() => ocGenerarDesdeOP(op, r), 500);
+  }
+
   // Limpiar formulario
   document.getElementById('opNumero').value = '';
   if (document.getElementById('opCliente')) document.getElementById('opCliente').value = '';
@@ -24903,6 +24999,260 @@ function mpExportarReporteContable() {
 
     const ventana = window.open('', '_blank', 'width=900,height=700');
     ventana.document.write(html);
+    ventana.document.close();
+}
+
+// ================================================================
+// ETAPA 4 — ÓRDENES DE COMPRA AUTOMÁTICAS
+// ================================================================
+
+let ocProveedores = JSON.parse(localStorage.getItem('mes_oc_proveedores') || '[]');
+let ocPendientes  = JSON.parse(localStorage.getItem('mes_oc_pendientes')  || '[]');
+let ocHistorial   = JSON.parse(localStorage.getItem('mes_oc_historial')   || '[]');
+let _ocNumeroSec  = parseInt(localStorage.getItem('mes_oc_numero') || '480');
+
+async function ocGuardar() {
+    localStorage.setItem('mes_oc_proveedores', JSON.stringify(ocProveedores));
+    localStorage.setItem('mes_oc_pendientes',  JSON.stringify(ocPendientes));
+    localStorage.setItem('mes_oc_historial',   JSON.stringify(ocHistorial));
+    localStorage.setItem('mes_oc_numero',      String(_ocNumeroSec));
+    if (window.db && window.firestoreLoaded) {
+        try {
+            const { doc, setDoc } = window.firestoreFunctions;
+            await setDoc(doc(window.db, 'mes-data', 'oc-data'), {
+                proveedores: ocProveedores, pendientes: ocPendientes,
+                historial: ocHistorial, numeroSec: _ocNumeroSec,
+                ts: new Date().toISOString()
+            });
+        } catch(e) { console.error('Error guardando OC:', e); }
+    }
+    ocActualizarBadge();
+}
+
+async function ocCargarDesdeFirebase() {
+    if (!window.db || !window.firestoreLoaded) return;
+    try {
+        const { doc, getDoc } = window.firestoreFunctions;
+        const snap = await getDoc(doc(window.db, 'mes-data', 'oc-data'));
+        if (snap.exists()) {
+            const d = snap.data();
+            if ((d.proveedores||[]).length >= ocProveedores.length) { ocProveedores = d.proveedores||[]; localStorage.setItem('mes_oc_proveedores', JSON.stringify(ocProveedores)); }
+            if ((d.pendientes||[]).length  >= ocPendientes.length)  { ocPendientes  = d.pendientes||[];  localStorage.setItem('mes_oc_pendientes',  JSON.stringify(ocPendientes)); }
+            if ((d.historial||[]).length   >= ocHistorial.length)   { ocHistorial   = d.historial||[];   localStorage.setItem('mes_oc_historial',   JSON.stringify(ocHistorial)); }
+            if ((d.numeroSec||0) > _ocNumeroSec) { _ocNumeroSec = d.numeroSec; localStorage.setItem('mes_oc_numero', String(_ocNumeroSec)); }
+        }
+    } catch(e) { console.error('Error cargando OC:', e); }
+    ocActualizarBadge();
+}
+
+function ocActualizarBadge() {
+    const n     = ocPendientes.filter(o => o.estado === 'borrador').length;
+    const badge = document.getElementById('badgeBandejaOC');
+    if (!badge) return;
+    badge.style.display = n > 0 ? 'inline' : 'none';
+    if (n > 0) badge.textContent = n;
+}
+
+function ocBuscarProveedor(nombreMP) {
+    const n = nombreMP.toLowerCase().trim();
+    return ocProveedores.find(p =>
+        (p.mps||[]).some(mp => {
+            const m = mp.toLowerCase().trim();
+            return m === n || n.includes(m) || m.includes(n);
+        })
+    ) || null;
+}
+
+function ocGenerarDesdeOP(op, receta) {
+    if (!receta) receta = recetas.find(r => r.id === op.recetaId) || recetas.find(r => r.sku === op.sku);
+    if (!receta) return;
+    const ingredientes = [];
+    (receta.componentes||[]).forEach(comp => {
+        (comp.ingredientes||[]).forEach(ing => {
+            if (!ing.nombre || !ing.cantidadBruta) return;
+            let cantKg = 0;
+            if (ing.unidad === 'gr')      cantKg = (op.platos * ing.cantidadBruta) / 1000;
+            else if (ing.unidad === 'kg') cantKg = op.platos * ing.cantidadBruta;
+            else                          cantKg = op.platos * ing.cantidadBruta;
+            if (cantKg <= 0) return;
+            const stockDisp = mpStock.filter(i => i.nombre.toLowerCase().trim() === ing.nombre.toLowerCase().trim()).reduce((s, l) => s + (l.stockActual||0), 0);
+            const aComprar  = Math.max(0, Math.round((cantKg - stockDisp) * 100) / 100);
+            ingredientes.push({ nombre: ing.nombre, cantTotal: Math.round(cantKg*100)/100, stockActual: Math.round(stockDisp*100)/100, aComprar, precio: mpPrecioFIFO(ing.nombre) || mpPrecioPPP(ing.nombre) || 0 });
+        });
+    });
+    const aComprar = ingredientes.filter(i => i.aComprar > 0);
+    if (!aComprar.length) { mostrarNotificacion(`✅ OP ${op.numeroOp} — stock suficiente, no se requieren compras`, 'success'); return; }
+    const porProveedor = {};
+    aComprar.forEach(ing => {
+        const prov = ocBuscarProveedor(ing.nombre);
+        const key  = prov ? prov.id : '__sin_proveedor__';
+        if (!porProveedor[key]) porProveedor[key] = { prov, items: [] };
+        porProveedor[key].items.push(ing);
+    });
+    let nuevas = 0;
+    Object.values(porProveedor).forEach(({ prov, items }) => {
+        _ocNumeroSec++;
+        const total = items.reduce((s, i) => s + (i.aComprar * i.precio), 0);
+        ocPendientes.unshift({ id:'OC-'+Date.now()+'-'+Math.random().toString(36).substr(2,4), numero:_ocNumeroSec, estado:'borrador', opId:op.id, opNumero:op.numeroOp, opNombre:op.nombre, opFecha:op.fecha, proveedor:prov||null, items, total:Math.round(total), fechaOC:new Date().toISOString().split('T')[0], fechaEntrega:op.fecha, creadaEn:new Date().toISOString(), creadaPor:mpGetUsuarioActual(), aprobadaPor:null, aprobadaEn:null, enviada:false, notas:'' });
+        nuevas++;
+    });
+    ocGuardar();
+    const sinProv = porProveedor['__sin_proveedor__'];
+    mostrarNotificacion(`📋 ${nuevas} OC(s) generadas para OP ${op.numeroOp}${sinProv ? ` · ⚠️ ${sinProv.items.length} ítem(s) sin proveedor` : ''}`, 'success');
+    setTimeout(() => mostrarNotificacion('🔔 OCs requieren aprobación de fmunoz@gustofresco.cl', 'info'), 1800);
+}
+
+function ocAbrirProveedores() {
+    ocCargarDesdeFirebase().then(() => {
+        const dl = document.getElementById('provMPsDatalist');
+        if (dl) { const mps=[...(new Set(mpStock.map(i=>i.nombre).concat(mpCatalogo.map(c=>c.nombre))))].sort(); dl.innerHTML=mps.map(m=>`<option value="${m}">`).join(''); }
+        ocRenderProveedores();
+        document.getElementById('mpModalProveedores').style.display='flex';
+    });
+}
+
+function ocRenderProveedores() {
+    const cont = document.getElementById('ocTablaProveedores');
+    if (!cont) return;
+    if (!ocProveedores.length) { cont.innerHTML=`<div style="text-align:center;padding:2rem;color:#94a3b8;"><div style="font-size:2rem;">🏭</div><div style="font-weight:600;margin-top:.5rem;">Sin proveedores registrados</div></div>`; return; }
+    const colorRow = (i) => i%2===0?'':'background:#f8fafc';
+    cont.innerHTML = `<div style="font-weight:700;font-size:.85rem;color:#374151;margin-bottom:.75rem;">${ocProveedores.length} proveedor(es)</div><div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:.83rem;"><thead><tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0;"><th style="padding:.6rem .85rem;text-align:left;">Proveedor</th><th style="padding:.6rem .85rem;text-align:left;">RUT</th><th style="padding:.6rem .85rem;text-align:left;">Email</th><th style="padding:.6rem .85rem;text-align:left;">WhatsApp</th><th style="padding:.6rem .85rem;text-align:left;">Pago</th><th style="padding:.6rem .85rem;text-align:left;">MPs que provee</th><th style="padding:.6rem .85rem;text-align:center;">⚙️</th></tr></thead><tbody>${ocProveedores.map((p,i)=>`<tr style="border-bottom:1px solid #f1f5f9;${colorRow(i)}"><td style="padding:.55rem .85rem;font-weight:700;">${p.nombre}</td><td style="padding:.55rem .85rem;color:#64748b;">${p.rut||'—'}</td><td style="padding:.55rem .85rem;">${p.email?`<a href="mailto:${p.email}" style="color:#2563eb;">${p.email}</a>`:'—'}</td><td style="padding:.55rem .85rem;">${p.whatsapp?`<a href="https://wa.me/${p.whatsapp.replace(/\D/g,'')}" target="_blank" style="color:#059669;">📱 ${p.whatsapp}</a>`:'—'}</td><td style="padding:.55rem .85rem;">${p.formaPago||'—'}</td><td style="padding:.55rem .85rem;font-size:.78rem;">${(p.mps||[]).join(', ')||'—'}</td><td style="padding:.55rem .85rem;text-align:center;"><button onclick="ocEliminarProveedor(${i})" style="background:#fee2e2;border:none;border-radius:6px;padding:.3rem .5rem;cursor:pointer;color:#ef4444;">🗑️</button></td></tr>`).join('')}</tbody></table></div>`;
+}
+
+function ocGuardarProveedor() {
+    const nombre = document.getElementById('provNombre').value.trim();
+    if (!nombre) { alert('Ingresa el nombre del proveedor'); return; }
+    const mps  = document.getElementById('provMPs').value.split(',').map(m=>m.trim()).filter(Boolean);
+    const prov = { id:'PROV-'+Date.now(), nombre, rut:document.getElementById('provRut').value.trim(), email:document.getElementById('provEmail').value.trim(), whatsapp:document.getElementById('provWhatsapp').value.trim(), direccion:document.getElementById('provDireccion').value.trim(), formaPago:document.getElementById('provFormaPago').value, mps, creadoEn:new Date().toISOString() };
+    const idx = ocProveedores.findIndex(p=>p.nombre===nombre);
+    if (idx>=0) ocProveedores[idx]={...ocProveedores[idx],...prov}; else ocProveedores.push(prov);
+    ocGuardar(); ocRenderProveedores();
+    ['provNombre','provRut','provEmail','provWhatsapp','provDireccion','provMPs'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    mostrarNotificacion(`✅ Proveedor "${nombre}" guardado`,'success');
+}
+
+function ocEliminarProveedor(i) {
+    if (!confirm(`¿Eliminar "${ocProveedores[i]?.nombre}"?`)) return;
+    ocProveedores.splice(i,1); ocGuardar(); ocRenderProveedores();
+}
+
+function ocAbrirBandeja() {
+    ocCargarDesdeFirebase().then(()=>{ ocRenderBandeja(); document.getElementById('mpModalBandejaOC').style.display='flex'; });
+}
+
+function ocRenderBandeja() {
+    const cont = document.getElementById('ocBandejaContenido');
+    if (!cont) return;
+    const todos = [...ocPendientes,...ocHistorial].sort((a,b)=>(b.creadaEn||'')>(a.creadaEn||'')?1:-1);
+    if (!todos.length) { cont.innerHTML=`<div style="text-align:center;padding:2rem;color:#94a3b8;"><div style="font-size:2rem;">📋</div><div style="font-weight:600;margin-top:.5rem;">Sin OCs aún</div></div>`; return; }
+    const cE={borrador:'#d97706',aprobada:'#2563eb',enviada:'#7c3aed',recibida:'#059669',rechazada:'#dc2626'};
+    const bE={borrador:'#fffbeb',aprobada:'#eff6ff',enviada:'#faf5ff',recibida:'#f0fdf4',rechazada:'#fef2f2'};
+    cont.innerHTML=`<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:.83rem;"><thead><tr style="background:#1e293b;color:white;"><th style="padding:.6rem .85rem;">N° OC</th><th style="padding:.6rem .85rem;">OP</th><th style="padding:.6rem .85rem;">Proveedor</th><th style="padding:.6rem .85rem;text-align:right;">Total</th><th style="padding:.6rem .85rem;">Fecha OC</th><th style="padding:.6rem .85rem;">Entrega</th><th style="padding:.6rem .85rem;text-align:center;">Estado</th><th style="padding:.6rem .85rem;text-align:center;">Acciones</th></tr></thead><tbody>${todos.map(oc=>{const c=cE[oc.estado]||'#64748b';const b=bE[oc.estado]||'#f8fafc';return`<tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:.55rem .85rem;font-weight:800;color:#5b21b6;">N°${oc.numero}</td><td style="padding:.55rem .85rem;font-weight:600;">OP ${oc.opNumero}<br><span style="font-size:.72rem;color:#64748b;">${oc.opNombre||''}</span></td><td style="padding:.55rem .85rem;">${oc.proveedor?.nombre||'⚠️ Sin proveedor'}</td><td style="padding:.55rem .85rem;text-align:right;font-weight:700;">$${(oc.total||0).toLocaleString('es-CL')}</td><td style="padding:.55rem .85rem;color:#64748b;">${oc.fechaOC||'—'}</td><td style="padding:.55rem .85rem;color:#64748b;">${oc.fechaEntrega||'—'}</td><td style="padding:.55rem .85rem;text-align:center;"><span style="background:${b};color:${c};border-radius:8px;padding:.25rem .65rem;font-weight:700;font-size:.75rem;">${oc.estado}</span></td><td style="padding:.55rem .85rem;text-align:center;"><button onclick="ocVerOC('${oc.id}')" style="background:#eff6ff;color:#2563eb;border:none;border-radius:6px;padding:.3rem .55rem;cursor:pointer;font-size:.75rem;font-weight:600;margin-right:.2rem;">Ver</button>${oc.estado==='borrador'?`<button onclick="ocAprobarOC('${oc.id}')" style="background:#f0fdf4;color:#059669;border:none;border-radius:6px;padding:.3rem .55rem;cursor:pointer;font-size:.75rem;font-weight:600;margin-right:.2rem;">✅</button>`:''}${oc.estado==='aprobada'?`<button onclick="ocEnviarOC('${oc.id}')" style="background:#faf5ff;color:#7c3aed;border:none;border-radius:6px;padding:.3rem .55rem;cursor:pointer;font-size:.75rem;font-weight:600;">📤</button>`:''}</td></tr>`}).join('')}</tbody></table></div>`;
+}
+
+function ocVerOC(ocId) {
+    const oc=[...ocPendientes,...ocHistorial].find(o=>o.id===ocId);
+    if (!oc) return;
+    document.getElementById('tituloModalOC').textContent=`Orden de Compra N° ${oc.numero}`;
+    document.getElementById('ocVistaPrevia').innerHTML=ocHTMLDocumento(oc);
+    const btns=document.getElementById('ocBotonesAccion'); btns.innerHTML='';
+    if (oc.estado==='borrador') { btns.innerHTML+=`<button onclick="ocAprobarOC('${oc.id}')" style="background:#10b981;color:white;border:none;border-radius:10px;padding:.65rem 1.4rem;font-weight:700;cursor:pointer;">✅ Aprobar OC</button>`; btns.innerHTML+=`<button onclick="ocRechazarOC('${oc.id}')" style="background:#ef4444;color:white;border:none;border-radius:10px;padding:.65rem 1.2rem;font-weight:700;cursor:pointer;">❌ Rechazar</button>`; }
+    if (oc.estado==='aprobada') { if(oc.proveedor?.email) btns.innerHTML+=`<button onclick="ocEnviarEmail('${oc.id}')" style="background:#2563eb;color:white;border:none;border-radius:10px;padding:.65rem 1.4rem;font-weight:700;cursor:pointer;">📧 Enviar Email</button>`; if(oc.proveedor?.whatsapp) btns.innerHTML+=`<button onclick="ocEnviarWhatsApp('${oc.id}')" style="background:#059669;color:white;border:none;border-radius:10px;padding:.65rem 1.4rem;font-weight:700;cursor:pointer;">📱 WhatsApp</button>`; }
+    btns.innerHTML+=`<button onclick="ocImprimirOC('${oc.id}')" style="background:#374151;color:white;border:none;border-radius:10px;padding:.65rem 1.2rem;font-weight:700;cursor:pointer;">🖨️ Imprimir</button>`;
+    btns.innerHTML+=`<button onclick="document.getElementById('mpModalVerOC').style.display='none'" style="background:#f1f5f9;color:#64748b;border:none;border-radius:10px;padding:.65rem 1.2rem;font-weight:600;cursor:pointer;">Cerrar</button>`;
+    document.getElementById('mpModalVerOC').style.display='flex';
+}
+
+function ocAprobarOC(ocId) {
+    const user=window._emailActual||'';
+    if (user && user!=='fmunoz@gustofresco.cl' && !['gerencia','jefatura','administracion'].some(r=>user.includes(r))) { mostrarNotificacion('⚠️ Solo fmunoz@gustofresco.cl puede aprobar OCs','warning'); return; }
+    const oc=ocPendientes.find(o=>o.id===ocId); if(!oc) return;
+    oc.estado='aprobada'; oc.aprobadaPor=user||'fmunoz@gustofresco.cl'; oc.aprobadaEn=new Date().toISOString();
+    ocGuardar(); ocRenderBandeja(); mostrarNotificacion(`✅ OC N°${oc.numero} aprobada — lista para enviar`,'success');
+    if (document.getElementById('mpModalVerOC').style.display==='flex') ocVerOC(ocId);
+}
+
+function ocRechazarOC(ocId) {
+    const motivo=prompt('Motivo del rechazo (opcional):')||'';
+    const oc=ocPendientes.find(o=>o.id===ocId); if(!oc) return;
+    oc.estado='rechazada'; oc.rechazo=motivo;
+    ocPendientes=ocPendientes.filter(o=>o.id!==ocId); ocHistorial.unshift(oc);
+    ocGuardar(); ocRenderBandeja(); document.getElementById('mpModalVerOC').style.display='none';
+    mostrarNotificacion(`OC N°${oc.numero} rechazada`,'warning');
+}
+
+function ocEnviarOC(ocId) {
+    const oc=[...ocPendientes,...ocHistorial].find(o=>o.id===ocId); if(!oc) return;
+    if (oc.proveedor?.email)    { ocEnviarEmail(ocId); return; }
+    if (oc.proveedor?.whatsapp) { ocEnviarWhatsApp(ocId); return; }
+    alert('Proveedor sin email ni WhatsApp. Imprime la OC.'); ocImprimirOC(ocId);
+}
+
+function ocEnviarEmail(ocId) {
+    const oc=[...ocPendientes,...ocHistorial].find(o=>o.id===ocId); if(!oc||!oc.proveedor?.email) return;
+    oc.estado='enviada'; oc.enviadaEn=new Date().toISOString(); oc.medioComunicacion='email';
+    ocGuardar(); ocRenderBandeja();
+    const asunto=encodeURIComponent(`Orden de Compra N°${oc.numero} — Alimentos Santa Emilia`);
+    const items=oc.items.map((it,i)=>`${i+1}. ${it.nombre}: ${it.aComprar} kg — $${Math.round(it.precio).toLocaleString('es-CL')}/kg`).join('\n');
+    const cuerpo=encodeURIComponent(`Estimados ${oc.proveedor.nombre},\n\nPor medio del presente, les hacemos llegar nuestra Orden de Compra N°${oc.numero}.\n\nDetalle:\n${items}\n\nTotal: $${(oc.total||0).toLocaleString('es-CL')}\nFecha de entrega requerida: ${oc.fechaEntrega}\nForma de pago: ${oc.proveedor?.formaPago||'30 días'}\nDirección de entrega: Maipo 523, Recoleta, Santiago\n\nSaludos,\nAlimentos Santa Emilia SPA\nTeléfono: +56 2 2886 2546`);
+    window.open(`mailto:${oc.proveedor.email}?subject=${asunto}&body=${cuerpo}`,'_blank');
+    mostrarNotificacion(`📧 Email preparado para ${oc.proveedor.email}`,'success');
+    document.getElementById('mpModalVerOC').style.display='none';
+}
+
+function ocEnviarWhatsApp(ocId) {
+    const oc=[...ocPendientes,...ocHistorial].find(o=>o.id===ocId); if(!oc||!oc.proveedor?.whatsapp) return;
+    oc.estado='enviada'; oc.enviadaEn=new Date().toISOString(); oc.medioComunicacion='whatsapp';
+    ocGuardar(); ocRenderBandeja();
+    const numero=oc.proveedor.whatsapp.replace(/\D/g,'');
+    const items=oc.items.map((it,i)=>`${i+1}. ${it.nombre}: *${it.aComprar} kg*`).join('\n');
+    const msg=encodeURIComponent(`*Orden de Compra N°${oc.numero}*\n*Alimentos Santa Emilia SPA*\n\nEstimados ${oc.proveedor.nombre},\n\n${items}\n\n*Fecha entrega:* ${oc.fechaEntrega}\n*Forma de pago:* ${oc.proveedor?.formaPago||'30 días'}\n*Dirección:* Maipo 523, Recoleta, Santiago\n\n_Gracias_`);
+    window.open(`https://wa.me/${numero}?text=${msg}`,'_blank');
+    mostrarNotificacion(`📱 WhatsApp abierto para ${oc.proveedor.nombre}`,'success');
+    document.getElementById('mpModalVerOC').style.display='none';
+}
+
+function ocHTMLDocumento(oc) {
+    const hoy=new Date((oc.fechaOC||new Date().toISOString().split('T')[0])+'T12:00:00').toLocaleDateString('es-CL');
+    const entrega=oc.fechaEntrega?new Date(oc.fechaEntrega+'T12:00:00').toLocaleDateString('es-CL'):'—';
+    const items=oc.items||[];
+    return `<div style="font-family:Arial,sans-serif;font-size:10pt;color:#1e293b;border:1px solid #e2e8f0;border-radius:8px;padding:1.5rem;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:2px solid #e2e8f0;">
+            <div><div style="font-weight:800;font-size:10pt;">ALIMENTOS SANTA EMILIA SPA</div><div style="font-size:9pt;color:#64748b;">Maipo 523  Recoleta</div><div style="font-size:9pt;color:#64748b;">Teléfono +56 2 2886 2546</div></div>
+            <img src="${_LOGO_ASE}" alt="Alimentos Santa Emilia" style="height:55px;object-fit:contain;">
+        </div>
+        <div style="font-size:14pt;font-weight:900;margin-bottom:1rem;">Orden de Compra &nbsp;N° ${oc.numero}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;font-size:9.5pt;">
+            <div>
+                <div><strong>Señores</strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${oc.proveedor?.nombre||'Sin proveedor asignado'}</div>
+                <div><strong>Teléfono</strong>&nbsp;&nbsp;&nbsp;&nbsp;</div>
+                <div style="margin-top:.4rem;"><strong>Dirección</strong>&nbsp;&nbsp;&nbsp;&nbsp;${oc.proveedor?.direccion||'—'}</div>
+                <div><strong>Despachar A</strong>&nbsp;&nbsp;Maipo 523 Recoleta Santiago</div>
+            </div>
+            <div>
+                <div><strong>Fecha O/C</strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${hoy}</div>
+                <div><strong>Fecha Entrega</strong>&nbsp;&nbsp;&nbsp;${entrega}</div>
+                <div><strong>Rut</strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${oc.proveedor?.rut||'—'}</div>
+                <div style="margin-top:.4rem;"><strong>Forma de Pago</strong>&nbsp;&nbsp;${oc.proveedor?.formaPago||'30 días'}</div>
+                <div style="margin-top:.3rem;font-size:.78rem;color:#64748b;">OP: ${oc.opNumero} — ${oc.opNombre}</div>
+            </div>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:9.5pt;margin-bottom:1rem;">
+            <thead><tr style="border-bottom:2px solid #1e293b;"><th style="padding:.4rem .6rem;text-align:left;">Item</th><th style="padding:.4rem .6rem;text-align:left;">Descripción</th><th style="padding:.4rem .6rem;text-align:right;">Cantidad</th><th style="padding:.4rem .6rem;text-align:right;">Precio Unitario</th><th style="padding:.4rem .6rem;text-align:right;">Descto.</th><th style="padding:.4rem .6rem;text-align:right;">Total</th></tr></thead>
+            <tbody>${items.map((it,i)=>{const p=Math.round(it.precio||0);const t=Math.round(it.aComprar*p);return`<tr style="border-bottom:1px dotted #e2e8f0;"><td style="padding:.5rem .6rem;">${i+1}</td><td style="padding:.5rem .6rem;font-weight:600;">${it.nombre.toUpperCase()}</td><td style="padding:.5rem .6rem;text-align:right;">${it.aComprar} kg</td><td style="padding:.5rem .6rem;text-align:right;">${p>0?p.toLocaleString('es-CL'):'—'}</td><td style="padding:.5rem .6rem;text-align:right;">—</td><td style="padding:.5rem .6rem;text-align:right;font-weight:700;">${p>0?t.toLocaleString('es-CL'):'—'}</td></tr>`;}).join('')}</tbody>
+        </table>
+        <div style="text-align:right;margin-bottom:1rem;"><span style="font-weight:800;font-size:11pt;">TOTAL: $${(oc.total||0).toLocaleString('es-CL')}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:9pt;color:#64748b;margin-top:1.25rem;padding-top:.75rem;border-top:1px solid #e2e8f0;">
+            <div>Estado: <strong style="color:${oc.estado==='aprobada'?'#059669':oc.estado==='enviada'?'#7c3aed':'#d97706'}">${(oc.estado||'').toUpperCase()}</strong>${oc.aprobadaPor?`<br>Aprobada por: ${oc.aprobadaPor}`:''}</div>
+            <div>Generada por MES — Alimentos Santa Emilia</div>
+        </div>
+    </div>`;
+}
+
+function ocImprimirOC(ocId) {
+    const oc=[...ocPendientes,...ocHistorial].find(o=>o.id===ocId); if(!oc) return;
+    const ventana=window.open('','_blank','width=800,height=650');
+    ventana.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>OC N°${oc.numero}</title><style>@page{size:A4;margin:15mm;}*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Arial,sans-serif;font-size:10pt;color:#1e293b;}@media print{button{display:none!important;}}</style></head><body>${ocHTMLDocumento(oc)}<div style="text-align:center;margin-top:20px;"><button onclick="window.print()" style="background:#1e293b;color:white;border:none;border-radius:8px;padding:8px 24px;cursor:pointer;font-weight:700;">🖨️ Imprimir</button></div></body></html>`);
     ventana.document.close();
 }
 
