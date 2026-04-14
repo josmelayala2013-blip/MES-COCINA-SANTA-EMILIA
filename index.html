@@ -22688,6 +22688,10 @@ function ptLeerTablaAMemoria(fecha) {
             fila[el.getAttribute('data-campo')] = val;
         });
         fila._loteEmpaqueData = tr._loteEmpaqueData || null;
+        // Guardar datos de cálculo para restaurar al re-renderizar
+        fila._gramaje    = tr._gramaje    || 0;
+        fila._unidadComp = tr._unidadComp || '';
+        fila._kgComp     = tr._kgComp     || 0;
         filas.push(fila);
     });
     if (!ptRegistros[fecha]) ptRegistros[fecha] = {};
@@ -22737,6 +22741,10 @@ function ptRenderFila(tbody, datos, idx, autoHora) {
     tr.className = 'pt-fila';
     tr.dataset.idx = idx;
     tr._loteEmpaqueData = datos._loteEmpaqueData || null;
+    // Restaurar datos de cálculo guardados
+    tr._gramaje    = datos._gramaje    || 0;
+    tr._unidadComp = datos._unidadComp || '';
+    tr._kgComp     = datos._kgComp     || 0;
     const bg = idx % 2 === 0 ? '#ffffff' : '#faf5ff';
     tr.style.background = bg;
 
@@ -23134,11 +23142,25 @@ function _ptLlenarFilaConComp(tr, op, comp, receta, gramaje, lotePT, hora, esPri
 function ptCalcularKgReal(input) {
     const tr = input.closest('tr');
     if (!tr) return;
-    const unidReal = parseFloat(input.value) || 0;
-    const gramaje  = parseFloat(tr._gramaje) || 0;
+    const unidReal    = parseFloat(input.value) || 0;
     const kgRealInput = tr.querySelector('[data-campo="kgReal"]');
-    if (kgRealInput && gramaje > 0 && unidReal > 0) {
+    if (!kgRealInput || unidReal <= 0) return;
+
+    // Opción 1: usar _gramaje guardado en el tr
+    let gramaje = parseFloat(tr._gramaje) || 0;
+
+    // Opción 2 (fallback): calcular gramaje desde kgEst / unidEst
+    if (gramaje <= 0) {
+        const kgEst   = parseFloat(tr.querySelector('[data-campo="kgEst"]')?.value)   || 0;
+        const unidEst = parseFloat(tr.querySelector('[data-campo="unidEst"]')?.value) || 0;
+        if (kgEst > 0 && unidEst > 0) {
+            gramaje = (kgEst * 1000) / unidEst; // gramaje en gramos
+        }
+    }
+
+    if (gramaje > 0) {
         kgRealInput.value = ((unidReal * gramaje) / 1000).toFixed(2);
+        ptMarcarEdicion(kgRealInput);
     }
 }
 
