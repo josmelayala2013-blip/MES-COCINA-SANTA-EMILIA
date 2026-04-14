@@ -2168,6 +2168,14 @@
         <!-- TABLA STOCK -->
         <div id="mpTablaStock" style="background:white;border-radius:14px;border:1px solid #e2e8f0;overflow:hidden;"></div>
 
+        <!-- PROYECCIÓN DE CONSUMO -->
+        <div style="margin-top:1.2rem;">
+          <div style="font-weight:700;font-size:.95rem;color:#1e293b;margin-bottom:.6rem;">🔮 Proyección de Consumo — OPs de Hoy</div>
+          <div id="mpProyeccionContainer" style="background:white;border-radius:14px;border:1px solid #e2e8f0;overflow:hidden;">
+            <div style="text-align:center;padding:1rem;color:#94a3b8;font-size:.85rem;">Cargando proyección...</div>
+          </div>
+        </div>
+
         </div><!-- /analytics-section -->
         </div><!-- /tab materiasprimas -->
 
@@ -8022,6 +8030,19 @@ function imprimirRegistroHACCP(d) {
             }
             historialPorFecha[fecha].push(proceso);
 
+            // ── DESCUENTO AUTOMÁTICO DE MATERIAS PRIMAS ──
+            if (typeof mpDescontarConsumoPorOP === 'function') {
+                const opParaMP = proceso.opVinculadaId
+                    ? ordenesProduccion.find(o => o.id === proceso.opVinculadaId)
+                    : ordenesProduccion.find(o => String(o.numeroOp) === String(proceso.numeroOP));
+                if (opParaMP) {
+                    mpDescontarConsumoPorOP({
+                        ...opParaMP,
+                        kgProgramados: proceso.kgFinales || proceso.kgProgramados || 0
+                    });
+                }
+            }
+
             // Crear pendiente HACCP abatimiento
             crearHACCPPendienteModulo('abatimiento', proceso);
 
@@ -9793,7 +9814,7 @@ function imprimirRegistroHACCP(d) {
             else if (tabName === 'acondicionamiento') { sincronizarHACCPPreDesdeFirebase(); }
             else if (tabName === 'analytics') { _sincronizarHistorialYRenderizar('analytics'); }
             else if (tabName === 'bodega') { initBodega(); }
-            else if (tabName === 'materiasprimas') { mpRenderStock(); }
+            else if (tabName === 'materiasprimas') { mpCargarDesdeFirebase().then(() => { mpRenderStock(); mpRenderKpis(); mpActualizarProyeccion(); }); }
             else if (tabName === 'personal') { 
                 renderListaPersonal('cocina'); 
                 renderListaPersonal('envasado'); 
@@ -10505,6 +10526,28 @@ function limpiarComponentesFriosDeEquipos() {
                         if (document.getElementById('historial')?.classList.contains('active')) {
                             mostrarHistorialDia(fechaSeleccionada);
                         }
+                    }
+                });
+
+                // ── LISTENER 10: mp-inventario (Materias Primas) ──
+                onSnapshot(doc(window.db, 'mes-data', 'mp-inventario'), (snap) => {
+                    if (!snap.exists()) return;
+                    const data = snap.data();
+                    const remoteStock = data.stock || [];
+                    const remoteMov   = data.movimientos || [];
+                    if (remoteStock.length >= mpStock.length) {
+                        mpStock = remoteStock;
+                        localStorage.setItem('mes_mp_stock', JSON.stringify(mpStock));
+                    }
+                    if (remoteMov.length >= mpMovimientos.length) {
+                        mpMovimientos = remoteMov;
+                        localStorage.setItem('mes_mp_movimientos', JSON.stringify(mpMovimientos));
+                    }
+                    // Refrescar módulo MP si está visible
+                    if (document.getElementById('materiasprimas')?.classList.contains('active')) {
+                        mpRenderStock();
+                        mpRenderKpis();
+                        mpActualizarProyeccion();
                     }
                 });
 
@@ -13041,6 +13084,12 @@ function confirmarActivacionAuto() {
     };
     plan.estado = 'activo';
     activados++;
+
+    // ── Alerta de stock insuficiente al iniciar ──
+    const opRef = ordenesProduccion.find(o => o.id === plan.opId);
+    if (opRef && typeof mpAlertasStockAlIniciar === 'function') {
+        setTimeout(() => mpAlertasStockAlIniciar(opRef), 800);
+    }
   });
 
   // Cerrar popup
@@ -22817,9 +22866,43 @@ function ptImprimir() {
 let mpStock = JSON.parse(localStorage.getItem('mes_mp_stock') || '[]');
 let mpMovimientos = JSON.parse(localStorage.getItem('mes_mp_movimientos') || '[]');
 
-function mpGuardar() {
+// ── Guardar en localStorage + Firebase ──
+async function mpGuardar() {
     localStorage.setItem('mes_mp_stock', JSON.stringify(mpStock));
     localStorage.setItem('mes_mp_movimientos', JSON.stringify(mpMovimientos));
+    if (window.db && window.firestoreLoaded) {
+        try {
+            const { doc, setDoc } = window.firestoreFunctions;
+            await setDoc(doc(window.db, 'mes-data', 'mp-inventario'), {
+                stock: mpStock,
+                movimientos: mpMovimientos,
+                ts: new Date().toISOString()
+            });
+        } catch(e) { console.error('Error guardando MP en Firebase:', e); }
+    }
+}
+
+// ── Cargar desde Firebase al iniciar el módulo ──
+async function mpCargarDesdeFirebase() {
+    if (!window.db || !window.firestoreLoaded) return;
+    try {
+        const { doc, getDoc } = window.firestoreFunctions;
+        const snap = await getDoc(doc(window.db, 'mes-data', 'mp-inventario'));
+        if (snap.exists()) {
+            const data = snap.data();
+            // Merge: usar el que tenga más registros
+            const remoteStock = data.stock || [];
+            const remoteMov   = data.movimientos || [];
+            if (remoteStock.length >= mpStock.length) {
+                mpStock = remoteStock;
+                localStorage.setItem('mes_mp_stock', JSON.stringify(mpStock));
+            }
+            if (remoteMov.length >= mpMovimientos.length) {
+                mpMovimientos = remoteMov;
+                localStorage.setItem('mes_mp_movimientos', JSON.stringify(mpMovimientos));
+            }
+        }
+    } catch(e) { console.error('Error cargando MP desde Firebase:', e); }
 }
 
 // — Calcular estado semáforo de un item —
@@ -23224,41 +23307,163 @@ function mpEditarStockMin(nombre) {
 }
 
 // — Consumo automático desde OP (llamado al completar producción) —
+// ── Descuento automático de MP al finalizar producción (FEFO) ──
 function mpDescontarConsumoPorOP(op) {
-    if (!op || !op.receta) return;
-    const receta = recetas.find(r => r.nombre === op.receta || r.id === op.recetaId);
+    if (!op) return;
+    // Buscar receta vinculada
+    const receta = recetas.find(r => r.id === op.recetaId) ||
+                   recetas.find(r => r.sku === op.sku) ||
+                   recetas.find(r => r.nombre === op.nombre);
     if (!receta) return;
+
+    // Recolectar todos los ingredientes de todos los componentes
     const ingredientes = [];
     (receta.componentes || []).forEach(comp => {
         (comp.ingredientes || []).forEach(ing => {
-            if (ing.nombre && ing.cantidadBruta > 0) {
-                ingredientes.push({ nombre: ing.nombre, cantidad: ing.cantidadBruta * (op.kgProgramados || 1) });
-            }
+            if (!ing.nombre || !ing.cantidadBruta) return;
+            // Calcular cantidad real usada según platos de la OP
+            let cantKg = 0;
+            if (ing.unidad === 'gr') cantKg = (op.platos * ing.cantidadBruta) / 1000;
+            else if (ing.unidad === 'kg') cantKg = op.platos * ing.cantidadBruta;
+            else cantKg = op.platos * ing.cantidadBruta; // unidades u otros
+            if (cantKg > 0) ingredientes.push({ nombre: ing.nombre, cantidad: Math.round(cantKg * 100) / 100 });
         });
     });
+    if (ingredientes.length === 0) return;
+
     ingredientes.forEach(ing => {
         // FEFO: usar el lote que vence primero
-        const lotes = mpStock.filter(i => i.nombre === ing.nombre && i.stockActual > 0)
+        const lotes = mpStock
+            .filter(i => i.nombre.toLowerCase().trim() === ing.nombre.toLowerCase().trim() && i.stockActual > 0)
             .sort((a, b) => (a.fechaVencimiento || '9999') < (b.fechaVencimiento || '9999') ? -1 : 1);
+
         let restante = ing.cantidad;
         lotes.forEach(lote => {
             if (restante <= 0) return;
             const descontar = Math.min(lote.stockActual, restante);
-            lote.stockActual -= descontar;
-            restante -= descontar;
+            lote.stockActual = Math.round((lote.stockActual - descontar) * 1000) / 1000;
+            restante = Math.round((restante - descontar) * 1000) / 1000;
             mpMovimientos.unshift({
-                id: 'MOV-' + Date.now() + Math.random(),
+                id: 'MOV-' + Date.now() + '-' + Math.random().toString(36).substr(2,5),
                 tipo: 'consumo_op',
                 nombre: ing.nombre,
                 lote: lote.lote,
                 cantidad: descontar,
                 fecha: new Date().toISOString(),
-                motivo: `OP: ${op.numeroOP || op.id}`,
+                motivo: `OP ${op.numeroOp || op.id} — ${op.nombre}`,
                 stockResultante: lote.stockActual
             });
         });
+
+        // Alerta si quedó stock bajo mínimo
+        const itemActualizado = mpStock.find(i => i.nombre.toLowerCase().trim() === ing.nombre.toLowerCase().trim());
+        if (itemActualizado && itemActualizado.stockMin > 0 && itemActualizado.stockActual <= itemActualizado.stockMin) {
+            setTimeout(() => mostrarNotificacion(
+                `⚠️ Stock bajo: ${itemActualizado.nombre} — ${itemActualizado.stockActual.toFixed(1)} kg (mín: ${itemActualizado.stockMin} kg)`,
+                'warning'
+            ), 500);
+        }
     });
+
     mpGuardar();
+    // Refrescar si el módulo está visible
+    if (document.getElementById('materiasprimas')?.classList.contains('active')) {
+        mpRenderStock(); mpRenderKpis(); mpActualizarProyeccion();
+    }
+}
+
+// ── Proyección de consumo: OPs planificadas vs stock disponible ──
+function mpActualizarProyeccion() {
+    const contenedor = document.getElementById('mpProyeccionContainer');
+    if (!contenedor) return;
+
+    const hoy = getHoy();
+    const opsHoy = ordenesProduccion.filter(op =>
+        op.fecha === hoy && op.estado !== 'completada'
+    );
+
+    if (opsHoy.length === 0) {
+        contenedor.innerHTML = '<div style="text-align:center;padding:1rem;color:#94a3b8;font-size:.85rem;">Sin OPs pendientes para hoy</div>';
+        return;
+    }
+
+    // Calcular consumo total estimado por ingrediente
+    const consumoEstimado = {};
+    opsHoy.forEach(op => {
+        const receta = recetas.find(r => r.id === op.recetaId) || recetas.find(r => r.sku === op.sku);
+        if (!receta) return;
+        (receta.componentes || []).forEach(comp => {
+            (comp.ingredientes || []).forEach(ing => {
+                if (!ing.nombre || !ing.cantidadBruta) return;
+                let cant = 0;
+                if (ing.unidad === 'gr') cant = (op.platos * ing.cantidadBruta) / 1000;
+                else if (ing.unidad === 'kg') cant = op.platos * ing.cantidadBruta;
+                else cant = op.platos * ing.cantidadBruta;
+                consumoEstimado[ing.nombre] = (consumoEstimado[ing.nombre] || 0) + cant;
+            });
+        });
+    });
+
+    if (Object.keys(consumoEstimado).length === 0) {
+        contenedor.innerHTML = '<div style="text-align:center;padding:1rem;color:#94a3b8;font-size:.85rem;">Las recetas no tienen ingredientes detallados</div>';
+        return;
+    }
+
+    const filas = Object.entries(consumoEstimado).map(([nombre, necesario]) => {
+        const stockDisp = mpStock
+            .filter(i => i.nombre.toLowerCase().trim() === nombre.toLowerCase().trim())
+            .reduce((s, i) => s + (i.stockActual || 0), 0);
+        const suficiente = stockDisp >= necesario;
+        const pct = necesario > 0 ? Math.min(100, Math.round((stockDisp / necesario) * 100)) : 100;
+        const colorBar = suficiente ? '#10b981' : stockDisp > 0 ? '#f59e0b' : '#ef4444';
+        return `
+        <div style="padding:.6rem .8rem;border-bottom:1px solid #f1f5f9;display:grid;grid-template-columns:1fr auto auto auto;gap:.6rem;align-items:center;font-size:.82rem;">
+            <div style="font-weight:600;color:#1e293b;">${nombre}</div>
+            <div style="color:#64748b;text-align:right;white-space:nowrap;">Necesario: <strong>${necesario.toFixed(1)} kg</strong></div>
+            <div style="color:${colorBar};font-weight:700;text-align:right;white-space:nowrap;">Stock: ${stockDisp.toFixed(1)} kg</div>
+            <div style="background:${suficiente?'#d1fae5':stockDisp>0?'#fef3c7':'#fee2e2'};color:${colorBar};border-radius:20px;padding:.15rem .6rem;font-weight:700;font-size:.75rem;white-space:nowrap;">
+                ${suficiente ? '✅ OK' : stockDisp > 0 ? '⚠️ Bajo' : '❌ Sin stock'}
+            </div>
+        </div>`;
+    }).join('');
+
+    const sinStock = Object.entries(consumoEstimado).filter(([n, nec]) => {
+        const disp = mpStock.filter(i => i.nombre.toLowerCase() === n.toLowerCase())
+            .reduce((s, i) => s + (i.stockActual || 0), 0);
+        return disp < nec;
+    }).length;
+
+    contenedor.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:.6rem .8rem;background:#f8fafc;border-bottom:2px solid #e2e8f0;">
+            <span style="font-weight:700;font-size:.85rem;color:#374151;">📊 Proyección para hoy (${opsHoy.length} OP${opsHoy.length>1?'s':''})</span>
+            ${sinStock > 0 ? `<span style="background:#fef2f2;color:#dc2626;border-radius:8px;padding:.25rem .7rem;font-size:.78rem;font-weight:700;">⚠️ ${sinStock} ingrediente(s) insuficiente(s)</span>` : '<span style="background:#d1fae5;color:#065f46;border-radius:8px;padding:.25rem .7rem;font-size:.78rem;font-weight:700;">✅ Stock suficiente</span>'}
+        </div>
+        ${filas}`;
+}
+
+// ── Alertas proactivas al iniciar producción ──
+function mpAlertasStockAlIniciar(op) {
+    const receta = recetas.find(r => r.id === op.recetaId) || recetas.find(r => r.sku === op.sku);
+    if (!receta) return;
+    const alertas = [];
+    (receta.componentes || []).forEach(comp => {
+        (comp.ingredientes || []).forEach(ing => {
+            if (!ing.nombre || !ing.cantidadBruta) return;
+            let necesario = 0;
+            if (ing.unidad === 'gr') necesario = (op.platos * ing.cantidadBruta) / 1000;
+            else if (ing.unidad === 'kg') necesario = op.platos * ing.cantidadBruta;
+            else necesario = op.platos * ing.cantidadBruta;
+            const stockDisp = mpStock
+                .filter(i => i.nombre.toLowerCase().trim() === ing.nombre.toLowerCase().trim())
+                .reduce((s, i) => s + (i.stockActual || 0), 0);
+            if (stockDisp < necesario) {
+                alertas.push(`${ing.nombre}: necesitas ${necesario.toFixed(1)}kg, tienes ${stockDisp.toFixed(1)}kg`);
+            }
+        });
+    });
+    if (alertas.length > 0) {
+        mostrarNotificacion(`⚠️ Stock insuficiente para OP ${op.numeroOp}:\n${alertas.slice(0,3).join(' · ')}`, 'warning');
+    }
 }
 
 
