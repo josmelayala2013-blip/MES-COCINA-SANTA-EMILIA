@@ -162,6 +162,15 @@
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
+    // Cargar SheetJS de forma no bloqueante para importación Excel
+    (function() {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+        s.onerror = () => console.warn('SheetJS no disponible');
+        document.head.appendChild(s);
+    })();
+    </script>
+    <script>
     // Cargar QRCode de forma no bloqueante — si falla no afecta el resto del sistema
     (function() {
         const s = document.createElement('script');
@@ -2423,7 +2432,12 @@
                 <h3 style="margin:0;font-size:1.1rem;font-weight:800;color:#0e7490;">📚 Catálogo de Materias Primas</h3>
                 <div style="font-size:.78rem;color:#64748b;margin-top:.2rem;">Registra cada MP una vez · El sistema genera su QR automáticamente · Se usa para la recepción rápida con pistola</div>
               </div>
-              <button onclick="document.getElementById('mpModalCatalogo').style.display='none'" style="background:#f1f5f9;border:none;border-radius:8px;padding:.4rem .7rem;cursor:pointer;font-size:1rem;">✕</button>
+              <div style="display:flex;gap:.5rem;align-items:center;">
+                <button onclick="mpDescargarPlantillaExcel()" title="Descargar plantilla Excel vacía" style="background:linear-gradient(135deg,#059669,#047857);color:white;border:none;border-radius:8px;padding:.45rem .9rem;font-weight:700;cursor:pointer;font-size:.82rem;">⬇️ Plantilla Excel</button>
+                <button onclick="document.getElementById('mpImportarExcelInput').click()" title="Importar desde Excel" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:white;border:none;border-radius:8px;padding:.45rem .9rem;font-weight:700;cursor:pointer;font-size:.82rem;">⬆️ Importar Excel</button>
+                <input id="mpImportarExcelInput" type="file" accept=".xlsx,.xls" style="display:none" onchange="mpImportarDesdeExcel(this)">
+                <button onclick="document.getElementById('mpModalCatalogo').style.display='none'" style="background:#f1f5f9;border:none;border-radius:8px;padding:.4rem .7rem;cursor:pointer;font-size:1rem;">✕</button>
+              </div>
             </div>
 
             <!-- Formulario nueva entrada catálogo -->
@@ -2651,7 +2665,12 @@
                 <h3 style="margin:0;font-size:1.1rem;font-weight:800;color:#0e7490;">🏭 Gestión de Proveedores</h3>
                 <div style="font-size:.78rem;color:#64748b;margin-top:.2rem;">Registra un proveedor por materia prima · Email y WhatsApp para envío de OC</div>
               </div>
-              <button onclick="document.getElementById('mpModalProveedores').style.display='none'" style="background:#f1f5f9;border:none;border-radius:8px;padding:.4rem .7rem;cursor:pointer;font-size:1rem;">✕</button>
+              <div style="display:flex;gap:.5rem;align-items:center;">
+                <button onclick="mpDescargarPlantillaExcel()" title="Descargar plantilla Excel" style="background:linear-gradient(135deg,#059669,#047857);color:white;border:none;border-radius:8px;padding:.45rem .9rem;font-weight:700;cursor:pointer;font-size:.82rem;">⬇️ Plantilla Excel</button>
+                <button onclick="document.getElementById('ocImportarExcelInput').click()" title="Importar proveedores desde Excel" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:white;border:none;border-radius:8px;padding:.45rem .9rem;font-weight:700;cursor:pointer;font-size:.82rem;">⬆️ Importar Excel</button>
+                <input id="ocImportarExcelInput" type="file" accept=".xlsx,.xls" style="display:none" onchange="ocImportarDesdeExcel(this)">
+                <button onclick="document.getElementById('mpModalProveedores').style.display='none'" style="background:#f1f5f9;border:none;border-radius:8px;padding:.4rem .7rem;cursor:pointer;font-size:1rem;">✕</button>
+              </div>
             </div>
             <!-- Form nuevo proveedor -->
             <div style="background:#f0f9ff;border-radius:12px;padding:1.1rem;margin-bottom:1.25rem;border:1.5px solid #bae6fd;">
@@ -25347,6 +25366,184 @@ function ocImprimirOC(ocId) {
     const ventana=window.open('','_blank','width=800,height=650');
     ventana.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>OC N°${oc.numero}</title><style>@page{size:A4;margin:15mm;}*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Arial,sans-serif;font-size:10pt;color:#1e293b;}@media print{button{display:none!important;}}</style></head><body>${ocHTMLDocumento(oc)}<div style="text-align:center;margin-top:20px;"><button onclick="window.print()" style="background:#1e293b;color:white;border:none;border-radius:8px;padding:8px 24px;cursor:pointer;font-weight:700;">🖨️ Imprimir</button></div></body></html>`);
     ventana.document.close();
+}
+
+// ================================================================
+// IMPORTACIÓN / EXPORTACIÓN EXCEL — CATÁLOGO MP Y PROVEEDORES
+// ================================================================
+
+// ── Descargar plantilla Excel (usa el archivo embebido en base64) ─
+function mpDescargarPlantillaExcel() {
+    // El Excel está disponible vía URL externa — lo descargamos directamente
+    const link = document.createElement('a');
+    link.href = 'https://josmelayala2013-blip.github.io/MES-COCINA-SANTA-EMILIA/Plantilla_MP_Proveedores_GustoFresco.xlsx';
+    link.download = 'Plantilla_MP_Proveedores_GustoFresco.xlsx';
+    link.click();
+    mostrarNotificacion('⬇️ Descargando plantilla Excel...', 'info');
+}
+
+// ── Importar Catálogo desde Excel ────────────────────────────────
+function mpImportarDesdeExcel(input) {
+    const file = input.files[0];
+    if (!file) return;
+    if (typeof XLSX === 'undefined') {
+        mostrarNotificacion('⚠️ Librería Excel no disponible aún — espera unos segundos y vuelve a intentar', 'warning');
+        input.value = ''; return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const wb      = XLSX.read(e.target.result, { type: 'array' });
+            // Buscar hoja "Catálogo MP" (o la primera si no existe)
+            const wsName  = wb.SheetNames.find(n => n.toLowerCase().includes('cat')) || wb.SheetNames[0];
+            const ws      = wb.Sheets[wsName];
+            const rows    = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+            const BODEGAS_MAP = {
+                'camara carnes':    'camara_carnes',
+                'cámara carnes':    'camara_carnes',
+                'camara vegetales': 'camara_vegetales',
+                'cámara vegetales': 'camara_vegetales',
+                'despensa':         'despensa',
+                'congelados':       'congelados'
+            };
+
+            let importados = 0, omitidos = 0;
+            rows.forEach(row => {
+                // Normalizar claves (quitar espacios, acentos, mayúsculas)
+                const get = (...keys) => {
+                    for (const k of keys) {
+                        const found = Object.keys(row).find(rk => rk.toLowerCase().trim() === k.toLowerCase().trim());
+                        if (found && row[found] !== '') return String(row[found]).trim();
+                    }
+                    return '';
+                };
+
+                const nombre    = get('Nombre Materia Prima *', 'Nombre MP', 'nombre', 'Nombre');
+                const proveedor = get('Proveedor *', 'Proveedor', 'proveedor');
+                if (!nombre || nombre.startsWith('←') || nombre.toLowerCase().includes('ejemplo')) { omitidos++; return; }
+
+                const bodegaRaw = get('Bodega Habitual', 'Bodega', 'bodega').toLowerCase().trim();
+                const bodega    = BODEGAS_MAP[bodegaRaw] || 'despensa';
+
+                // Si ya existe en catálogo, actualizar precio
+                const existIdx = mpCatalogo.findIndex(c => c.nombre.toLowerCase() === nombre.toLowerCase());
+                const precio   = parseFloat(get('Precio ($/kg)', 'Precio', 'precio').replace(/[^0-9.]/g,'')) || 0;
+
+                if (existIdx >= 0) {
+                    if (precio > 0) mpCatalogo[existIdx].precio = precio;
+                    omitidos++;
+                    return;
+                }
+
+                const qrCode = 'GF-MP-' + nombre.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,10) +
+                               '-' + (proveedor||'XX').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6) +
+                               '-' + Date.now().toString(36).toUpperCase().slice(-4) +
+                               '-' + Math.random().toString(36).substr(2,2).toUpperCase();
+
+                mpCatalogo.push({
+                    id:          Date.now().toString() + importados,
+                    nombre,
+                    proveedor,
+                    categoria:   get('Categoría', 'Categoria', 'categoria') || 'Otro',
+                    bodega,
+                    bodegaLabel: MP_BODEGAS[bodega] || bodega,
+                    precio,
+                    stockMin:    parseFloat(get('Stock Mínimo (kg)', 'Stock Minimo', 'stockMin')) || 0,
+                    codigoBarrasProveedor: get('Código Barras Proveedor', 'Codigo Barras', 'codigoBarras'),
+                    diasVenc:    parseInt(get('Días de Vencimiento', 'Dias Vencimiento', 'diasVenc')) || null,
+                    notas:       get('Notas / Almacenamiento', 'Notas', 'notas'),
+                    qrCode,
+                    creadoEn:   new Date().toISOString(),
+                    creadoPor:  mpGetUsuarioActual() + ' (Excel)'
+                });
+                importados++;
+            });
+
+            mpGuardarCatalogoStorage();
+            mpRenderCatalogo();
+            mostrarNotificacion(
+                `✅ Importación completada — ${importados} nueva(s) MP agregada(s)${omitidos > 0 ? `, ${omitidos} omitida(s)` : ''}`,
+                'success'
+            );
+        } catch(err) {
+            console.error('Error importando Excel:', err);
+            mostrarNotificacion('❌ Error al leer el Excel — verifica el formato del archivo', 'warning');
+        }
+        input.value = '';
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+// ── Importar Proveedores desde Excel ────────────────────────────
+function ocImportarDesdeExcel(input) {
+    const file = input.files[0];
+    if (!file) return;
+    if (typeof XLSX === 'undefined') {
+        mostrarNotificacion('⚠️ Librería Excel no disponible aún — espera unos segundos y vuelve a intentar', 'warning');
+        input.value = ''; return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const wb     = XLSX.read(e.target.result, { type: 'array' });
+            const wsName = wb.SheetNames.find(n => n.toLowerCase().includes('prov')) || wb.SheetNames[0];
+            const ws     = wb.Sheets[wsName];
+            const rows   = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+            let importados = 0, actualizados = 0;
+            rows.forEach(row => {
+                const get = (...keys) => {
+                    for (const k of keys) {
+                        const found = Object.keys(row).find(rk => rk.toLowerCase().trim() === k.toLowerCase().trim());
+                        if (found && row[found] !== '') return String(row[found]).trim();
+                    }
+                    return '';
+                };
+
+                const nombre = get('Nombre Proveedor *', 'Nombre Proveedor', 'nombre', 'Nombre');
+                if (!nombre || nombre.startsWith('←') || nombre.toLowerCase().includes('ejemplo')) return;
+
+                const mpsRaw = get('Materias Primas que Provee (separar con comas)', 'Materias Primas', 'mps', 'MPs');
+                const mps    = mpsRaw ? mpsRaw.split(',').map(m => m.trim()).filter(Boolean) : [];
+
+                const prov = {
+                    id:         'PROV-' + Date.now() + '-' + Math.random().toString(36).substr(2,4),
+                    nombre:     nombre.toUpperCase(),
+                    rut:        get('RUT', 'rut'),
+                    email:      get('Email de Contacto', 'Email', 'email'),
+                    whatsapp:   get('WhatsApp (con +56...)', 'WhatsApp', 'whatsapp'),
+                    direccion:  get('Dirección', 'Direccion', 'direccion'),
+                    formaPago:  get('Forma de Pago', 'Forma Pago', 'formaPago') || '30 días',
+                    mps,
+                    creadoEn:  new Date().toISOString()
+                };
+
+                const existIdx = ocProveedores.findIndex(p => p.nombre.toUpperCase() === prov.nombre);
+                if (existIdx >= 0) {
+                    ocProveedores[existIdx] = { ...ocProveedores[existIdx], ...prov };
+                    actualizados++;
+                } else {
+                    ocProveedores.push(prov);
+                    importados++;
+                }
+            });
+
+            ocGuardar();
+            ocRenderProveedores();
+            mostrarNotificacion(
+                `✅ Importación completada — ${importados} nuevo(s) proveedor(es)${actualizados > 0 ? `, ${actualizados} actualizado(s)` : ''}`,
+                'success'
+            );
+        } catch(err) {
+            console.error('Error importando proveedores:', err);
+            mostrarNotificacion('❌ Error al leer el Excel — verifica el formato del archivo', 'warning');
+        }
+        input.value = '';
+    };
+    reader.readAsArrayBuffer(file);
 }
 
     </script>
