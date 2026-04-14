@@ -635,11 +635,64 @@
         </div>
 
         <div class="nav-tabs">
+            <!-- Dashboard siempre visible -->
             <button class="nav-tab active" data-modulo="dashboard" onclick="changeTab('dashboard',this)">📊 Dashboard</button>
-            <button class="nav-tab" data-modulo="gantt" onclick="changeTab('gantt',this)">📅 Gantt</button>
-            <button class="nav-tab" data-modulo="ejecutivo" onclick="changeTab('ejecutivo',this)">👔 Vista Ejecutivo</button>
-            <!-- Acondicionamiento con submenú -->
-            <div class="nav-dropdown" id="dropdownAcondicionamiento" data-modulo="acondicionamiento">
+
+            <!-- PRODUCCIÓN -->
+            <div class="nav-dropdown" id="dropdownProduccion" data-modulo="produccion">
+                <button class="nav-tab" onclick="toggleDropdownProduccion(event)" id="btnProduccion"
+                    style="display:flex;align-items:center;gap:.4rem;">
+                    🏭 Producción <span style="font-size:.7rem;">▼</span>
+                </button>
+                <div class="nav-dropdown-menu" id="menuProduccion">
+                    <button class="nav-dropdown-item" onclick="changeTab('gantt',this);cerrarDropdownProduccion()">📅 Gantt</button>
+                    <button class="nav-dropdown-item" onclick="changeTab('ejecutivo',this);cerrarDropdownProduccion()">👔 Vista Ejecutivo</button>
+                    <div style="border-top:1px solid #e2e8f0;margin:.25rem 0;"></div>
+                    <div style="font-size:.7rem;color:#94a3b8;padding:.3rem 1rem .1rem;font-weight:600;text-transform:uppercase;">Líneas</div>
+                    <button class="nav-dropdown-item" onclick="toggleDropdownAcond(event);cerrarDropdownProduccion()">🔪 Acondicionamiento ▸</button>
+                    <button class="nav-dropdown-item" onclick="changeTab('envasado',this);cerrarDropdownProduccion()">📦 Envasado</button>
+                    <button class="nav-dropdown-item" onclick="changeTab('abatimiento',this);cerrarDropdownProduccion()">❄️ Abatimiento</button>
+                </div>
+            </div>
+
+            <!-- PLANIFICACIÓN -->
+            <div class="nav-dropdown" id="dropdownPlanificacion" data-modulo="planificacion">
+                <button class="nav-tab" onclick="toggleDropdownPlanificacion(event)" id="btnPlanificacion"
+                    style="display:flex;align-items:center;gap:.4rem;">
+                    📋 Planificación <span style="font-size:.7rem;">▼</span>
+                </button>
+                <div class="nav-dropdown-menu" id="menuPlanificacion">
+                    <button class="nav-dropdown-item" onclick="changeTab('planificador',this);cerrarDropdownPlanificacion()">📅 Planificador</button>
+                    <button class="nav-dropdown-item" onclick="changeTab('asistente',this);cerrarDropdownPlanificacion()">🧠 Asistente IA</button>
+                    <button class="nav-dropdown-item" onclick="changeTab('historial',this);cerrarDropdownPlanificacion()">🗂️ Historial</button>
+                    <button class="nav-dropdown-item" onclick="changeTab('analytics',this);cerrarDropdownPlanificacion()">📈 Analytics</button>
+                    <button class="nav-dropdown-item" onclick="changeTab('ejecutivo',this);cerrarDropdownPlanificacion()">👔 Vista Ejecutivo</button>
+                </div>
+            </div>
+
+            <!-- GESTIÓN -->
+            <div class="nav-dropdown" id="dropdownGestion" data-modulo="gestion">
+                <button class="nav-tab" onclick="toggleDropdownGestion(event)" id="btnGestion"
+                    style="display:flex;align-items:center;gap:.4rem;">
+                    🗂️ Gestión <span style="font-size:.7rem;">▼</span>
+                </button>
+                <div class="nav-dropdown-menu" id="menuGestion">
+                    <div style="font-size:.7rem;color:#94a3b8;padding:.3rem 1rem .1rem;font-weight:600;text-transform:uppercase;">Productos y Recetas</div>
+                    <button class="nav-dropdown-item" onclick="changeTab('recetas',this);cerrarDropdownGestion()">📋 Recetas</button>
+                    <button class="nav-dropdown-item" onclick="changeTab('productos',this);cerrarDropdownGestion()">🍽️ Productos</button>
+                    <div style="border-top:1px solid #e2e8f0;margin:.25rem 0;"></div>
+                    <div style="font-size:.7rem;color:#94a3b8;padding:.3rem 1rem .1rem;font-weight:600;text-transform:uppercase;">Inventario y Bodega</div>
+                    <button class="nav-dropdown-item" onclick="changeTab('bodega',this);cerrarDropdownGestion()">🏭 Bodega</button>
+                    <button class="nav-dropdown-item" onclick="changeTab('materiasprimas',this);cerrarDropdownGestion()">🌾 Control MP</button>
+                    <div style="border-top:1px solid #e2e8f0;margin:.25rem 0;"></div>
+                    <div style="font-size:.7rem;color:#94a3b8;padding:.3rem 1rem .1rem;font-weight:600;text-transform:uppercase;">Etiquetas y Personal</div>
+                    <button class="nav-dropdown-item" onclick="changeTab('etiquetas',this);cerrarDropdownGestion()">🏷️ Etiquetas</button>
+                    <button class="nav-dropdown-item" onclick="changeTab('personal',this);cerrarDropdownGestion()">👥 Personal</button>
+                </div>
+            </div>
+
+            <!-- Acondicionamiento (oculto, se abre desde Producción) -->
+            <div class="nav-dropdown" id="dropdownAcondicionamiento" data-modulo="acondicionamiento" style="display:none;">
                 <button class="nav-tab" onclick="toggleDropdownAcond(event)" id="btnAcondicionamiento"
                     style="display:flex;align-items:center;gap:.4rem;">
                     🔪 Acondicionamiento <span style="font-size:.7rem;">▼</span>
@@ -654,20 +707,10 @@
                 </div>
             </div>
 
-            <button class="nav-tab" data-modulo="envasado" onclick="changeTab('envasado',this)">📦 Envasado</button>
-            <button class="nav-tab" data-modulo="abatimiento" onclick="changeTab('abatimiento',this)">❄️ Abatimiento</button>
-            <button class="nav-tab" data-modulo="planificador" onclick="changeTab('planificador',this)">📅 Planificador</button>
-            <button class="nav-tab" data-modulo="asistente" onclick="changeTab('asistente',this)">🧠 Asistente IA</button>
-            <button class="nav-tab" data-modulo="historial" onclick="changeTab('historial',this)">🗂️ Historial</button>
-            <button class="nav-tab" data-modulo="analytics" onclick="changeTab('analytics',this)">📈 Analytics</button>
-            <button class="nav-tab" data-modulo="productos" onclick="changeTab('productos',this)">🍽️ Productos</button>
-            <button class="nav-tab" data-modulo="recetas" onclick="changeTab('recetas',this)">📋 Recetas</button>
-            <button class="nav-tab" data-modulo="etiquetas" onclick="changeTab('etiquetas',this)">🏷️ Etiquetas</button>
-            <button class="nav-tab" data-modulo="bodega" onclick="changeTab('bodega',this)">🏭 Bodega</button>
-            <button class="nav-tab" data-modulo="materiasprimas" onclick="changeTab('materiasprimas',this)">🌾 Control MP</button>
-            <button class="nav-tab" data-modulo="personal" onclick="changeTab('personal',this)">👥 Personal</button>
+            <!-- Admin -->
             <button class="nav-tab" id="btnAdmin" data-modulo="administracion" style="display:none;background:linear-gradient(135deg,#374151,#4b5563);color:white;" onclick="changeTab('administracion')">⚙️ Admin</button>
-            <!-- BOTÓN CALIDAD — acceso restringido a calidad y jefe de planta -->
+
+            <!-- CALIDAD — acceso restringido -->
             <div class="nav-dropdown" id="dropdownCalidad" style="display:none;">
                 <button class="nav-tab" onclick="toggleDropdownCalidad(event)" id="btnCalidad"
                     style="display:flex;align-items:center;gap:.4rem;background:linear-gradient(135deg,#0e7490,#0891b2);color:white;">
@@ -13130,8 +13173,8 @@ function toggleDropdownAcond(e) {
 }
 
 function changeTabAcond(tab) {
-  // Cerrar dropdown
-  document.getElementById('menuAcondicionamiento')?.classList.remove('open');
+  // Cerrar todos los dropdowns
+  document.querySelectorAll('.nav-dropdown-menu').forEach(m => m.classList.remove('open'));
   // Marcar item activo en dropdown
   document.querySelectorAll('.nav-dropdown-item').forEach(b => b.classList.remove('active'));
   const items = document.querySelectorAll('.nav-dropdown-item');
@@ -13141,9 +13184,9 @@ function changeTabAcond(tab) {
       b.classList.add('active');
     }
   });
-  // Marcar botón padre como activo
+  // Marcar botón Producción como activo
   document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
-  document.getElementById('btnAcondicionamiento')?.classList.add('active');
+  document.getElementById('btnProduccion')?.classList.add('active');
   // Cambiar tab
   changeTab(tab);
   // Inicializar módulo preelaborado
@@ -18825,12 +18868,12 @@ ${d._ingredientes.map(ing => `<tr>
         };
 
         const PERMISOS = {
-            gerencia:    ['dashboard','gantt','ejecutivo','acondicionamiento','carnes','vegetales','envasado','abatimiento','planificador','asistente','historial','analytics','productos','recetas','personal','administracion','etiquetas','bodega','controlPT'],
-            jefatura:    ['dashboard','gantt','ejecutivo','acondicionamiento','carnes','vegetales','envasado','abatimiento','planificador','asistente','historial','analytics','productos','recetas','personal','calidad','administracion','pcc1','tempCoccionEnvasado','tempTunel','tempTransito','etiquetas','bodega','controlPT'],
-            calidad:     ['dashboard','gantt','ejecutivo','acondicionamiento','carnes','vegetales','envasado','abatimiento','planificador','asistente','historial','analytics','productos','recetas','personal','calidad','pcc1','tempCoccionEnvasado','tempTunel','tempTransito','etiquetas','bodega','controlPT'],
-            cocina:      ['dashboard','gantt','acondicionamiento','carnes','vegetales','envasado','abatimiento','planificador','recetas','asistente','historial','etiquetas','bodega'],
-            envasado:    ['dashboard','envasado','asistente','historial'],
-            abatimiento: ['dashboard','abatimiento','asistente','historial','bodega'],
+            gerencia:    ['dashboard','produccion','planificacion','gestion','gantt','ejecutivo','acondicionamiento','carnes','vegetales','envasado','abatimiento','planificador','asistente','historial','analytics','productos','recetas','personal','administracion','etiquetas','bodega','materiasprimas','controlPT'],
+            jefatura:    ['dashboard','produccion','planificacion','gestion','gantt','ejecutivo','acondicionamiento','carnes','vegetales','envasado','abatimiento','planificador','asistente','historial','analytics','productos','recetas','personal','calidad','administracion','pcc1','tempCoccionEnvasado','tempTunel','tempTransito','etiquetas','bodega','materiasprimas','controlPT'],
+            calidad:     ['dashboard','produccion','planificacion','gestion','gantt','ejecutivo','acondicionamiento','carnes','vegetales','envasado','abatimiento','planificador','asistente','historial','analytics','productos','recetas','personal','calidad','pcc1','tempCoccionEnvasado','tempTunel','tempTransito','etiquetas','bodega','materiasprimas','controlPT'],
+            cocina:      ['dashboard','produccion','planificacion','gestion','gantt','acondicionamiento','carnes','vegetales','envasado','abatimiento','planificador','recetas','asistente','historial','etiquetas','bodega'],
+            envasado:    ['dashboard','produccion','planificacion','envasado','asistente','historial'],
+            abatimiento: ['dashboard','produccion','planificacion','abatimiento','asistente','historial','bodega'],
         };
 
         function getRol(email) {
@@ -20490,7 +20533,45 @@ function toggleDropdownCalidad(e) {
 function cerrarDropdownCalidad() {
   document.getElementById('menuCalidad')?.classList.remove('open');
 }
-document.addEventListener('click', () => cerrarDropdownCalidad());
+document.addEventListener('click', () => {
+  document.querySelectorAll('.nav-dropdown-menu').forEach(m => m.classList.remove('open'));
+});
+
+// ── Dropdown Producción ──
+function toggleDropdownProduccion(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('menuProduccion');
+  const isOpen = menu.classList.contains('open');
+  document.querySelectorAll('.nav-dropdown-menu').forEach(m => m.classList.remove('open'));
+  if (!isOpen) menu.classList.add('open');
+}
+function cerrarDropdownProduccion() {
+  document.getElementById('menuProduccion')?.classList.remove('open');
+}
+
+// ── Dropdown Planificación ──
+function toggleDropdownPlanificacion(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('menuPlanificacion');
+  const isOpen = menu.classList.contains('open');
+  document.querySelectorAll('.nav-dropdown-menu').forEach(m => m.classList.remove('open'));
+  if (!isOpen) menu.classList.add('open');
+}
+function cerrarDropdownPlanificacion() {
+  document.getElementById('menuPlanificacion')?.classList.remove('open');
+}
+
+// ── Dropdown Gestión ──
+function toggleDropdownGestion(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('menuGestion');
+  const isOpen = menu.classList.contains('open');
+  document.querySelectorAll('.nav-dropdown-menu').forEach(m => m.classList.remove('open'));
+  if (!isOpen) menu.classList.add('open');
+}
+function cerrarDropdownGestion() {
+  document.getElementById('menuGestion')?.classList.remove('open');
+}
 
 // Cambiar tab Calidad
 function changeTabCalidad(tab) {
