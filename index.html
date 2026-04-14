@@ -2708,7 +2708,7 @@
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
               <div>
                 <h3 style="margin:0;font-size:1.1rem;font-weight:800;color:#92400e;">📋 Bandeja de Órdenes de Compra</h3>
-                <div style="font-size:.78rem;color:#64748b;margin-top:.2rem;">OCs generadas automáticamente · Requieren aprobación de <strong>fmunoz@gustofresco.cl</strong></div>
+                <div style="font-size:.78rem;color:#64748b;margin-top:.2rem;">OCs generadas automáticamente · Requieren aprobación de <strong><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="e48289918a8b9ea4839197908b82968197878bca8788">[email&#160;protected]</a></strong></div>
               </div>
               <button onclick="document.getElementById('mpModalBandejaOC').style.display='none'" style="background:#f1f5f9;border:none;border-radius:8px;padding:.4rem .7rem;cursor:pointer;font-size:1rem;">✕</button>
             </div>
@@ -3338,7 +3338,7 @@
         </div>
     </div>
 
-    <script>
+    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js" defer></script><script>
         // ============================================
         // Manufacturing Execution System v3.0 - JAVASCRIPT COMPLETO
         // ============================================
@@ -22550,6 +22550,35 @@ async function initControlPT() {
 
     await ptCargarDesdeFirebase();
     ptRenderTabla();
+
+    // ── Listener tiempo real (igual que cocina/abatimiento) ──
+    if (window.db && window.firestoreLoaded && !window._ptListenerActivo) {
+        try {
+            const { doc, onSnapshot } = window.firestoreFunctions;
+            window._ptListenerActivo = true;
+            onSnapshot(doc(window.db, 'mes-data', 'control-pt'), (snap) => {
+                if (!snap.exists()) return;
+                const data = snap.data();
+                const remoto = data.registros || {};
+                // Merge por fecha: ganael que tiene más filas
+                const merged = { ...ptRegistros };
+                Object.keys(remoto).forEach(fecha => {
+                    const rFilas = (remoto[fecha]?.filas || []).length;
+                    const lFilas = (merged[fecha]?.filas  || []).length;
+                    if (rFilas > lFilas) merged[fecha] = remoto[fecha];
+                });
+                // Solo actualizar si hay cambios reales
+                if (JSON.stringify(merged) !== JSON.stringify(ptRegistros)) {
+                    ptRegistros = merged;
+                    localStorage.setItem('mes_controlPT', JSON.stringify(ptRegistros));
+                    ptRenderTabla(); // re-render con datos nuevos
+                    console.log('🔄 Control PT actualizado desde Firebase');
+                }
+            });
+        } catch(e) {
+            console.warn('No se pudo iniciar listener PT:', e.message);
+        }
+    }
 }
 
 // ── Cambiar fecha ──
@@ -22557,59 +22586,91 @@ function ptCambiarFecha() {
     ptRenderTabla();
 }
 
-// ── Cargar desde Firebase ──
+// ── Cargar desde Firebase (carga inicial) ──
 async function ptCargarDesdeFirebase() {
-    if (!window.db || !window.firestoreLoaded) {
-        const ls = localStorage.getItem('mes_controlPT');
-        if (ls) ptRegistros = JSON.parse(ls);
-        return;
+    // 1. Cargar localStorage primero (respuesta inmediata)
+    const ls = localStorage.getItem('mes_controlPT');
+    if (ls) {
+        try { ptRegistros = JSON.parse(ls); } catch(e) {}
     }
+    // 2. Luego buscar en Firebase y mergear
+    if (!window.db || !window.firestoreLoaded) return;
     try {
         const { doc, getDoc } = window.firestoreFunctions;
         const snap = await getDoc(doc(window.db, 'mes-data', 'control-pt'));
         if (snap.exists()) {
-            const data = snap.data();
-            ptRegistros = data.registros || {};
+            const data    = snap.data();
+            const remoto  = data.registros || {};
+            const merged  = { ...ptRegistros };
+            // Merge: por cada fecha, usar el que tiene más filas
+            Object.keys(remoto).forEach(fecha => {
+                const rFilas = (remoto[fecha]?.filas || []).length;
+                const lFilas = (merged[fecha]?.filas  || []).length;
+                if (rFilas > lFilas) merged[fecha] = remoto[fecha];
+            });
+            ptRegistros = merged;
             localStorage.setItem('mes_controlPT', JSON.stringify(ptRegistros));
-        } else {
-            const ls = localStorage.getItem('mes_controlPT');
-            if (ls) ptRegistros = JSON.parse(ls);
         }
     } catch(e) {
         console.error('Error cargando Control PT:', e);
-        const ls = localStorage.getItem('mes_controlPT');
-        if (ls) ptRegistros = JSON.parse(ls);
     }
 }
 
 // ── Guardar ──
 async function ptGuardar() {
     const fecha = ptGetFecha();
-    // Leer todos los valores de la tabla antes de guardar
-    ptLeerTablaAMemoria(fecha);
-    // Recoger observaciones y firmas
-    if (!ptRegistros[fecha]) ptRegistros[fecha] = { filas: [], obs: '', monitor: '', verificador: '' };
-    ptRegistros[fecha].obs        = document.getElementById('ptObservaciones')?.value || '';
-    ptRegistros[fecha].monitor    = document.getElementById('ptMonitor')?.value || '';
-    ptRegistros[fecha].verificador= document.getElementById('ptVerificador')?.value || '';
 
+    // 1. Leer tabla a memoria ANTES de todo
+    ptLeerTablaAMemoria(fecha);
+
+    // 2. Recoger observaciones y firmas
+    if (!ptRegistros[fecha]) ptRegistros[fecha] = { filas: [], obs: '', monitor: '', verificador: '' };
+    ptRegistros[fecha].obs         = document.getElementById('ptObservaciones')?.value || '';
+    ptRegistros[fecha].monitor     = document.getElementById('ptMonitor')?.value       || '';
+    ptRegistros[fecha].verificador = document.getElementById('ptVerificador')?.value   || '';
+    ptRegistros[fecha].ts          = new Date().toISOString();
+
+    // 3. Guardar localStorage PRIMERO (backup inmediato)
     localStorage.setItem('mes_controlPT', JSON.stringify(ptRegistros));
 
+    // 4. Sincronizar Firebase con merge protegido
     if (window.db && window.firestoreLoaded) {
         try {
-            const { doc, setDoc } = window.firestoreFunctions;
+            const { doc, setDoc, getDoc } = window.firestoreFunctions;
+
+            // Merge protegido: leer Firebase antes de escribir
+            let registrosParaGuardar = { ...ptRegistros };
+            try {
+                const snapActual = await getDoc(doc(window.db, 'mes-data', 'control-pt'));
+                if (snapActual.exists()) {
+                    const dataActual = snapActual.data().registros || {};
+                    Object.keys(dataActual).forEach(f => {
+                        const rFilas = (dataActual[f]?.filas || []).length;
+                        const lFilas = (registrosParaGuardar[f]?.filas || []).length;
+                        if (rFilas > lFilas) registrosParaGuardar[f] = dataActual[f];
+                    });
+                    // Actualizar memoria local con el merge
+                    ptRegistros = registrosParaGuardar;
+                    localStorage.setItem('mes_controlPT', JSON.stringify(ptRegistros));
+                }
+            } catch(mergeErr) {
+                console.warn('No se pudo mergear PT, guardando local:', mergeErr.message);
+            }
+
             await setDoc(doc(window.db, 'mes-data', 'control-pt'), {
-                registros: ptRegistros,
-                ts: new Date().toISOString()
+                registros: registrosParaGuardar,
+                ts: new Date().toISOString(),
+                ultimoDispositivo: window._dispositivoId || 'unknown'
             });
             mostrarNotificacion('✅ Control PT guardado', 'success');
         } catch(e) {
-            console.error('Error guardando PT:', e);
-            mostrarNotificacion('⚠️ Guardado local OK — error Firebase', 'warning');
+            console.error('Error guardando PT en Firebase:', e);
+            mostrarNotificacion('⚠️ Guardado local OK — revisa conexión', 'warning');
         }
     } else {
         mostrarNotificacion('✅ Control PT guardado localmente', 'success');
     }
+
     ptActualizarAlertasResumen(fecha);
 }
 
@@ -22618,17 +22679,21 @@ function ptLeerTablaAMemoria(fecha) {
     const tbody = document.getElementById('ptTbody');
     if (!tbody) return;
     const rows = tbody.querySelectorAll('tr.pt-fila');
+    if (rows.length === 0) return; // No borrar datos si la tabla está vacía
     const filas = [];
     rows.forEach(tr => {
         const fila = {};
         tr.querySelectorAll('[data-campo]').forEach(el => {
-            fila[el.getAttribute('data-campo')] = el.value !== undefined ? el.value : el.textContent;
+            const val = el.value !== undefined ? el.value : el.textContent;
+            fila[el.getAttribute('data-campo')] = val;
         });
         fila._loteEmpaqueData = tr._loteEmpaqueData || null;
         filas.push(fila);
     });
     if (!ptRegistros[fecha]) ptRegistros[fecha] = {};
     ptRegistros[fecha].filas = filas;
+    // Guardar localStorage inmediatamente cada vez que se lee
+    localStorage.setItem('mes_controlPT', JSON.stringify(ptRegistros));
 }
 
 // ── Render tabla ──
@@ -23142,6 +23207,12 @@ function ptCambiarEstatus(select) {
 
 function ptMarcarEdicion(input) {
     input.style.background = '#fffbeb'; // amarillo suave = editado manualmente
+    // Autoguardar en localStorage al instante (sin Firebase para no saturar)
+    clearTimeout(window._ptAutoSaveTimer);
+    window._ptAutoSaveTimer = setTimeout(() => {
+        const fecha = ptGetFecha();
+        ptLeerTablaAMemoria(fecha);
+    }, 800);
 }
 
 // ── Modal Lote Empaque Primario ──
@@ -25537,12 +25608,4 @@ function ocImprimirOC(ocId) {
           <div style="color:white;font-weight:800;font-size:1.1rem;">📋 Registro HACCP — Preelaborado de Vegetales</div>
           <div style="color:rgba(255,255,255,.75);font-size:.8rem;margin-top:.2rem;">R-POE-03-GF-02 · Versión 02 · Vigencia: 15-12-2025</div>
         </div>
-        <button onclick="cerrarHACCPPreVegetales()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
-      </div>
-      <div style="padding:1.5rem;" id="contenidoHACCPPreVegetales"></div>
-    </div>
-  </div>
-
-    </div> <!-- /appContent -->
-</body>
-</html>
+        <button onclick="cerrarHACCPPreVegetales()" style="background:rgba(255,255,255,.2);border:none;color:white;bo
