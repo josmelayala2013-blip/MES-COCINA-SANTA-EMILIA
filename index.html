@@ -22821,10 +22821,10 @@ function ptRenderFila(tbody, datos, idx, autoHora) {
                 oninput="ptCalcularKgReal(this)">
         </td>
 
-        <!-- Kg Real (calculado automáticamente) -->
+        <!-- Kg Real (calculado automáticamente, editable manualmente) -->
         <td style="padding:.3rem .4rem;background:#faf5ff;">
             <input data-campo="kgReal" value="${datos.kgReal||''}" placeholder="Calc..."
-                style="${_ptInputStyle('gray','center')}" readonly>
+                style="${_ptInputStyle('blue','center')}" oninput="ptMarcarEdicion(this)">
         </td>
 
         <!-- Merma (calidad) -->
@@ -23073,7 +23073,7 @@ function ptRenderFilaVacia(tr, idx) {
         <td style="padding:.3rem .4rem;"><input data-campo="unidEst" value="" readonly style="${_ptInputStyle('gray','center')}"></td>
         <td style="padding:.3rem .4rem;"><input data-campo="kgEst" value="" readonly style="${_ptInputStyle('gray','center')}"></td>
         <td style="padding:.3rem .4rem;background:#faf5ff;"><input data-campo="unidReal" value="" type="number" min="0" style="${_ptInputStyle('blue','center')}" oninput="ptCalcularKgReal(this)"></td>
-        <td style="padding:.3rem .4rem;background:#faf5ff;"><input data-campo="kgReal" value="" readonly style="${_ptInputStyle('gray','center')}"></td>
+        <td style="padding:.3rem .4rem;background:#faf5ff;"><input data-campo="kgReal" value="" placeholder="Calc..." oninput="ptMarcarEdicion(this)" style="${_ptInputStyle('blue','center')}"></td>
         <td style="padding:.3rem .4rem;"><input data-campo="merma" value="" type="number" min="0" step="0.1" style="${_ptInputStyle('blue','center')}" oninput="ptValidarMerma(this)"></td>
         <td style="padding:.3rem .4rem;"><select data-campo="formatoEnv" style="${_ptSelectStyle()}"><option value="">—</option><option value="Bolsa">Bolsa</option><option value="Plato">Plato</option></select></td>
         <td style="padding:.3rem .4rem;"><select data-campo="tipoEnv" style="${_ptSelectStyle()}"><option value="">—</option><option value="Unidad">Unidad</option><option value="400 gr">400 gr</option><option value="500 gr">500 gr</option><option value="550 gr">550 gr</option><option value="1 Kg">1 Kg</option><option value="3 Kg">3 Kg</option></select></td>
