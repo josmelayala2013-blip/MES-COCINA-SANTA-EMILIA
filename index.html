@@ -161,7 +161,15 @@
     </style>
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+    // Cargar QRCode de forma no bloqueante — si falla no afecta el resto del sistema
+    (function() {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+        s.onerror = () => console.warn('QRCode lib no disponible — QRs se mostrarán como texto');
+        document.head.appendChild(s);
+    })();
+    </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
