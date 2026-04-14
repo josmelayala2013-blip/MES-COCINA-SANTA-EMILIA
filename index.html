@@ -2200,6 +2200,7 @@
             <button onclick="mpAbrirRecepcionQR()" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:700;cursor:pointer;font-size:.85rem;">📷 Recepción MP</button>
             <button onclick="mpAbrirIngreso()" style="background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">+ Ingreso Manual</button>
             <button onclick="mpAbrirCatalogo()" style="background:linear-gradient(135deg,#0891b2,#0e7490);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">📚 Catálogo</button>
+            <button onclick="mpAbrirCostosProduccion()" style="background:linear-gradient(135deg,#059669,#047857);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">💰 Costos</button>
             <button onclick="mpAbrirAjuste()" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">⚖️ Ajuste</button>
             <button onclick="mpVerMovimientos()" style="background:linear-gradient(135deg,#6366f1,#4f46e5);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">📋 Movimientos</button>
             <button onclick="mpVerMermas()" style="background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">📊 Mermas</button>
@@ -2597,6 +2598,44 @@
               <button onclick="mpGenerarRecall()" style="background:#ef4444;color:white;border:none;border-radius:10px;padding:.65rem 1.4rem;font-weight:700;cursor:pointer;">🔍 Rastrear</button>
             </div>
             <div id="mpRecallResultado"></div>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- MODAL COSTOS DE PRODUCCIÓN                          -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <div id="mpModalCostosProduccion" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9100;align-items:center;justify-content:center;">
+          <div style="background:white;border-radius:18px;padding:2rem;width:min(1000px,97vw);max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);border-top:5px solid #059669;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+              <div>
+                <h3 style="margin:0;font-size:1.1rem;font-weight:800;color:#065f46;">💰 Costos de Producción por OP</h3>
+                <div style="font-size:.78rem;color:#64748b;margin-top:.2rem;">Valorización FIFO · Costo real de materias primas por orden de producción</div>
+              </div>
+              <div style="display:flex;gap:.6rem;align-items:center;">
+                <select id="mpCostoRango" onchange="mpRenderCostosProduccion()" style="padding:.5rem .8rem;border-radius:8px;border:1.5px solid #e2e8f0;font-size:.85rem;background:white;">
+                  <option value="7">Últimos 7 días</option>
+                  <option value="30" selected>Últimos 30 días</option>
+                  <option value="60">Últimos 60 días</option>
+                  <option value="90">Últimos 90 días</option>
+                </select>
+                <button onclick="mpExportarReporteContable()" style="background:#059669;color:white;border:none;border-radius:8px;padding:.5rem 1rem;font-weight:700;cursor:pointer;font-size:.82rem;">🖨️ Reporte PDF</button>
+                <button onclick="document.getElementById('mpModalCostosProduccion').style.display='none'" style="background:#f1f5f9;border:none;border-radius:8px;padding:.4rem .7rem;cursor:pointer;font-size:1rem;">✕</button>
+              </div>
+            </div>
+            <div id="mpCostosProduccionContenido"></div>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- MODAL COSTO DETALLE POR OP                          -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <div id="mpModalCostoOP" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9200;align-items:center;justify-content:center;">
+          <div style="background:white;border-radius:18px;padding:2rem;width:min(760px,95vw);max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);border-top:5px solid #0891b2;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+              <h3 style="margin:0;font-size:1.1rem;font-weight:800;color:#0e7490;">💰 Desglose de Costo por OP</h3>
+              <button onclick="document.getElementById('mpModalCostoOP').style.display='none'" style="background:#f1f5f9;border:none;border-radius:8px;padding:.4rem .7rem;cursor:pointer;font-size:1rem;">✕</button>
+            </div>
+            <div id="mpCostoOPContenido"></div>
           </div>
         </div>
 
@@ -24514,6 +24553,358 @@ function mpAbrirRecallRapido(lote) {
     }
 }
 
+// ================================================================
+// ETAPA 3 — VALORIZACIÓN CONTABLE FIFO + COSTO REAL POR OP
+// ================================================================
+
+// ── Precio unitario FIFO de una MP ──────────────────────────────
+// Retorna el precio del lote más antiguo disponible (FIFO)
+function mpPrecioFIFO(nombre) {
+    const lotes = mpStock
+        .filter(i => i.nombre.toLowerCase().trim() === nombre.toLowerCase().trim() && i.stockActual > 0)
+        .sort((a, b) => (a.fechaIngreso || '') < (b.fechaIngreso || '') ? -1 : 1);
+    return lotes.length > 0 ? (lotes[0].precioUnitario || 0) : 0;
+}
+
+// ── Precio promedio ponderado de una MP ─────────────────────────
+function mpPrecioPPP(nombre) {
+    const lotes = mpStock.filter(i =>
+        i.nombre.toLowerCase().trim() === nombre.toLowerCase().trim() && i.stockActual > 0
+    );
+    const totalKg   = lotes.reduce((s, l) => s + (l.stockActual || 0), 0);
+    const totalCost = lotes.reduce((s, l) => s + ((l.stockActual || 0) * (l.precioUnitario || 0)), 0);
+    return totalKg > 0 ? totalCost / totalKg : 0;
+}
+
+// ── Calcular costo MP de una OP (FIFO) ──────────────────────────
+function mpCalcularCostoOP(op) {
+    const receta = recetas.find(r => r.id === op.recetaId) ||
+                   recetas.find(r => r.sku === op.sku)     ||
+                   recetas.find(r => r.nombre === op.nombre);
+    if (!receta) return { costoTotal: 0, detalle: [], sinPrecio: [] };
+
+    let costoTotal = 0;
+    const detalle   = [];
+    const sinPrecio = [];
+
+    (receta.componentes || []).forEach(comp => {
+        (comp.ingredientes || []).forEach(ing => {
+            if (!ing.nombre || !ing.cantidadBruta) return;
+            let cantKg = 0;
+            if (ing.unidad === 'gr')      cantKg = (op.platos * ing.cantidadBruta) / 1000;
+            else if (ing.unidad === 'kg') cantKg = op.platos * ing.cantidadBruta;
+            else                          cantKg = op.platos * ing.cantidadBruta;
+            if (cantKg <= 0) return;
+
+            const precioFIFO = mpPrecioFIFO(ing.nombre);
+            const precioPPP  = mpPrecioPPP(ing.nombre);
+            const precio     = precioFIFO || precioPPP || 0;
+            const costo      = Math.round(cantKg * precio);
+            costoTotal += costo;
+
+            if (precio === 0) {
+                sinPrecio.push(ing.nombre);
+            }
+            detalle.push({
+                ingrediente: ing.nombre,
+                cantKg:      Math.round(cantKg * 100) / 100,
+                precio,
+                costo,
+                metodo:      precioFIFO > 0 ? 'FIFO' : precioPPP > 0 ? 'PPP' : 'Sin precio'
+            });
+        });
+    });
+
+    const costoUnitario = op.platos > 0 ? costoTotal / op.platos : 0;
+    return { costoTotal, costoUnitario, detalle, sinPrecio };
+}
+
+// ── Ver costo de una OP específica ──────────────────────────────
+function mpVerCostoOP(opId) {
+    const op = ordenesProduccion.find(o => o.id === opId || o.numeroOp === opId);
+    if (!op) { mostrarNotificacion('OP no encontrada', 'warning'); return; }
+    const costo = mpCalcularCostoOP(op);
+    mpMostrarModalCosto(op, costo);
+}
+
+function mpMostrarModalCosto(op, costo) {
+    const modal = document.getElementById('mpModalCostoOP');
+    const cont  = document.getElementById('mpCostoOPContenido');
+    if (!modal || !cont) return;
+
+    const colorEfic = costo.sinPrecio.length === 0 ? '#059669' : '#d97706';
+    cont.innerHTML = `
+    <div style="background:#f8fafc;border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.25rem;">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;">
+            <div>
+                <div style="font-size:.75rem;color:#64748b;font-weight:600;text-transform:uppercase;margin-bottom:.3rem;">OP</div>
+                <div style="font-weight:800;color:#1e293b;font-size:1.1rem;">${op.numeroOp}</div>
+                <div style="font-size:.8rem;color:#64748b;">${op.nombre}</div>
+            </div>
+            <div>
+                <div style="font-size:.75rem;color:#64748b;font-weight:600;text-transform:uppercase;margin-bottom:.3rem;">Costo Total MP</div>
+                <div style="font-weight:800;color:#059669;font-size:1.3rem;">$${costo.costoTotal.toLocaleString('es-CL')}</div>
+                <div style="font-size:.78rem;color:#64748b;">${op.platos.toLocaleString()} unidades</div>
+            </div>
+            <div>
+                <div style="font-size:.75rem;color:#64748b;font-weight:600;text-transform:uppercase;margin-bottom:.3rem;">Costo por Unidad</div>
+                <div style="font-weight:800;color:#0891b2;font-size:1.3rem;">$${Math.round(costo.costoUnitario).toLocaleString('es-CL')}</div>
+                <div style="font-size:.78rem;color:#64748b;">en MP</div>
+            </div>
+        </div>
+        ${costo.sinPrecio.length > 0 ? `
+        <div style="margin-top:.75rem;background:#fffbeb;border-radius:8px;padding:.6rem .9rem;font-size:.78rem;color:#92400e;">
+            ⚠️ Sin precio registrado: ${costo.sinPrecio.join(', ')} — el costo está incompleto
+        </div>` : ''}
+    </div>
+    <div style="font-weight:700;font-size:.85rem;color:#374151;margin-bottom:.6rem;">Desglose por ingrediente</div>
+    <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+        <thead><tr style="background:#f1f5f9;">
+            <th style="padding:.55rem .75rem;text-align:left;">Ingrediente</th>
+            <th style="padding:.55rem .75rem;text-align:right;">Cantidad</th>
+            <th style="padding:.55rem .75rem;text-align:right;">Precio/kg</th>
+            <th style="padding:.55rem .75rem;text-align:center;">Método</th>
+            <th style="padding:.55rem .75rem;text-align:right;">Costo</th>
+            <th style="padding:.55rem .75rem;text-align:right;">% del total</th>
+        </tr></thead>
+        <tbody>
+        ${costo.detalle.map(d => {
+            const pct = costo.costoTotal > 0 ? ((d.costo / costo.costoTotal) * 100).toFixed(1) : '0.0';
+            const colorM = d.metodo === 'FIFO' ? '#059669' : d.metodo === 'PPP' ? '#0891b2' : '#dc2626';
+            return `<tr style="border-bottom:1px solid #f1f5f9;">
+                <td style="padding:.5rem .75rem;font-weight:600;">${d.ingrediente}</td>
+                <td style="padding:.5rem .75rem;text-align:right;">${d.cantKg.toFixed(2)} kg</td>
+                <td style="padding:.5rem .75rem;text-align:right;">${d.precio > 0 ? '$'+Math.round(d.precio).toLocaleString('es-CL') : '—'}</td>
+                <td style="padding:.5rem .75rem;text-align:center;">
+                    <span style="background:${colorM}18;color:${colorM};border-radius:4px;padding:.15rem .45rem;font-size:.72rem;font-weight:700;">${d.metodo}</span>
+                </td>
+                <td style="padding:.5rem .75rem;text-align:right;font-weight:700;">$${d.costo.toLocaleString('es-CL')}</td>
+                <td style="padding:.5rem .75rem;text-align:right;color:#64748b;">${pct}%</td>
+            </tr>`;
+        }).join('')}
+        <tr style="background:#f8fafc;font-weight:800;border-top:2px solid #e2e8f0;">
+            <td colspan="4" style="padding:.6rem .75rem;">TOTAL</td>
+            <td style="padding:.6rem .75rem;text-align:right;color:#059669;">$${costo.costoTotal.toLocaleString('es-CL')}</td>
+            <td style="padding:.6rem .75rem;text-align:right;">100%</td>
+        </tr>
+        </tbody>
+    </table>`;
+
+    modal.style.display = 'flex';
+}
+
+// ── Panel de costos de producción ───────────────────────────────
+function mpAbrirCostosProduccion() {
+    const modal = document.getElementById('mpModalCostosProduccion');
+    if (!modal) return;
+    mpRenderCostosProduccion();
+    modal.style.display = 'flex';
+}
+
+function mpRenderCostosProduccion() {
+    const cont = document.getElementById('mpCostosProduccionContenido');
+    if (!cont) return;
+
+    const rango  = parseInt(document.getElementById('mpCostoRango')?.value || '30');
+    const hoy    = new Date();
+    const desde  = new Date(); desde.setDate(hoy.getDate() - rango);
+    const desdeStr = desde.toISOString().split('T')[0];
+
+    // Tomar OPs del período
+    const ops = ordenesProduccion.filter(op => {
+        const fecha = op.fecha || '';
+        return fecha >= desdeStr && op.estado === 'completada';
+    });
+
+    if (ops.length === 0) {
+        cont.innerHTML = `<div style="text-align:center;padding:2rem;color:#94a3b8;">
+            <div style="font-size:2rem;margin-bottom:.5rem;">📊</div>
+            <div style="font-weight:600;">Sin OPs completadas en los últimos ${rango} días</div>
+        </div>`; return;
+    }
+
+    let totalCostoMP = 0;
+    const filas = ops.map(op => {
+        const costo = mpCalcularCostoOP(op);
+        totalCostoMP += costo.costoTotal;
+        const kgTotales = op.kgTotalesTerminados || 0;
+        const costoPorKg = kgTotales > 0 ? Math.round(costo.costoTotal / kgTotales) : 0;
+        const warn = costo.sinPrecio.length > 0 ? '⚠️' : '✅';
+        return { op, costo, kgTotales, costoPorKg, warn };
+    });
+
+    cont.innerHTML = `
+    <!-- Resumen -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.4rem;">
+        <div style="background:#f0fdf4;border-radius:12px;padding:1rem 1.25rem;border-left:4px solid #10b981;">
+            <div style="font-size:.75rem;color:#059669;font-weight:700;text-transform:uppercase;">Total Costo MP</div>
+            <div style="font-size:1.4rem;font-weight:900;color:#065f46;margin-top:.3rem;">$${totalCostoMP.toLocaleString('es-CL')}</div>
+            <div style="font-size:.78rem;color:#64748b;">Últimos ${rango} días</div>
+        </div>
+        <div style="background:#eff6ff;border-radius:12px;padding:1rem 1.25rem;border-left:4px solid #3b82f6;">
+            <div style="font-size:.75rem;color:#2563eb;font-weight:700;text-transform:uppercase;">OPs Analizadas</div>
+            <div style="font-size:1.4rem;font-weight:900;color:#1e40af;margin-top:.3rem;">${ops.length}</div>
+            <div style="font-size:.78rem;color:#64748b;">Completadas en el período</div>
+        </div>
+        <div style="background:#faf5ff;border-radius:12px;padding:1rem 1.25rem;border-left:4px solid #7c3aed;">
+            <div style="font-size:.75rem;color:#5b21b6;font-weight:700;text-transform:uppercase;">Costo Prom por OP</div>
+            <div style="font-size:1.4rem;font-weight:900;color:#4c1d95;margin-top:.3rem;">$${ops.length > 0 ? Math.round(totalCostoMP/ops.length).toLocaleString('es-CL') : 0}</div>
+            <div style="font-size:.78rem;color:#64748b;">Promedio del período</div>
+        </div>
+    </div>
+    <!-- Tabla -->
+    <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+        <thead><tr style="background:#1e293b;color:white;">
+            <th style="padding:.6rem .85rem;text-align:left;">OP</th>
+            <th style="padding:.6rem .85rem;text-align:left;">Producto</th>
+            <th style="padding:.6rem .85rem;text-align:center;">Fecha</th>
+            <th style="padding:.6rem .85rem;text-align:right;">Unidades</th>
+            <th style="padding:.6rem .85rem;text-align:right;">Kg Totales</th>
+            <th style="padding:.6rem .85rem;text-align:right;">Costo MP Total</th>
+            <th style="padding:.6rem .85rem;text-align:right;">Costo MP/kg</th>
+            <th style="padding:.6rem .85rem;text-align:right;">Costo MP/unid</th>
+            <th style="padding:.6rem .85rem;text-align:center;">Estado</th>
+            <th style="padding:.6rem .85rem;text-align:center;">Detalle</th>
+        </tr></thead>
+        <tbody>
+        ${filas.map(({op, costo, kgTotales, costoPorKg, warn}, idx) => `
+            <tr style="border-bottom:1px solid #f1f5f9;${idx%2===0?'':'background:#fafbfc'}">
+                <td style="padding:.55rem .85rem;font-weight:700;color:#5b21b6;">${op.numeroOp}</td>
+                <td style="padding:.55rem .85rem;font-weight:600;">${op.nombre}</td>
+                <td style="padding:.55rem .85rem;text-align:center;color:#64748b;">${op.fecha}</td>
+                <td style="padding:.55rem .85rem;text-align:right;">${(op.platos||0).toLocaleString()}</td>
+                <td style="padding:.55rem .85rem;text-align:right;">${kgTotales.toFixed(1)} kg</td>
+                <td style="padding:.55rem .85rem;text-align:right;font-weight:700;color:#059669;">$${costo.costoTotal.toLocaleString('es-CL')}</td>
+                <td style="padding:.55rem .85rem;text-align:right;">$${costoPorKg.toLocaleString('es-CL')}</td>
+                <td style="padding:.55rem .85rem;text-align:right;">$${Math.round(costo.costoUnitario).toLocaleString('es-CL')}</td>
+                <td style="padding:.55rem .85rem;text-align:center;">${warn}</td>
+                <td style="padding:.55rem .85rem;text-align:center;">
+                    <button onclick="mpVerCostoOP('${op.id}')" style="background:#eff6ff;color:#2563eb;border:none;border-radius:6px;padding:.3rem .6rem;cursor:pointer;font-size:.75rem;font-weight:600;">Ver</button>
+                </td>
+            </tr>`).join('')}
+        <tr style="background:#f0fdf4;font-weight:800;border-top:2px solid #10b981;">
+            <td colspan="5" style="padding:.65rem .85rem;">TOTAL PERÍODO</td>
+            <td style="padding:.65rem .85rem;text-align:right;color:#065f46;">$${totalCostoMP.toLocaleString('es-CL')}</td>
+            <td colspan="4"></td>
+        </tr>
+        </tbody>
+    </table>`;
+}
+
+// ── Reporte Contable exportable ──────────────────────────────────
+function mpExportarReporteContable() {
+    const rango  = parseInt(document.getElementById('mpCostoRango')?.value || '30');
+    const hoy    = new Date();
+    const desde  = new Date(); desde.setDate(hoy.getDate() - rango);
+    const desdeStr = desde.toISOString().split('T')[0];
+    const ops    = ordenesProduccion.filter(op => (op.fecha||'') >= desdeStr && op.estado === 'completada');
+
+    let totalCostoMP = 0;
+    const filas = ops.map(op => {
+        const c = mpCalcularCostoOP(op);
+        totalCostoMP += c.costoTotal;
+        return { op, c };
+    });
+
+    const fechaReporte = hoy.toLocaleDateString('es-CL', { day:'numeric', month:'long', year:'numeric' });
+    const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+    <title>Reporte Contable MP — ${fechaReporte}</title>
+    <style>
+        @page { size: A4; margin: 15mm; }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { font-family:Arial,sans-serif; font-size:9pt; color:#1e293b; }
+        .header { border-bottom:2px solid #1e293b; padding-bottom:8px; margin-bottom:12px; display:flex; justify-content:space-between; }
+        .titulo { font-size:14pt; font-weight:900; color:#1e293b; }
+        .sub { font-size:8pt; color:#64748b; margin-top:2px; }
+        .kpis { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px; }
+        .kpi { background:#f8fafc; border-radius:6px; padding:8px 10px; border-left:3px solid #3b82f6; }
+        .kpi-label { font-size:7pt; color:#64748b; font-weight:700; text-transform:uppercase; }
+        .kpi-val { font-size:13pt; font-weight:900; color:#1e293b; margin-top:2px; }
+        table { width:100%; border-collapse:collapse; margin-bottom:12px; }
+        thead tr { background:#1e293b; color:white; }
+        th { padding:5px 7px; text-align:left; font-size:7.5pt; font-weight:700; }
+        td { padding:4px 7px; font-size:8pt; border-bottom:1px solid #f1f5f9; }
+        .total-row { background:#f0fdf4; font-weight:800; border-top:2px solid #10b981; }
+        .footer { margin-top:15px; padding-top:8px; border-top:1px solid #e2e8f0; font-size:7pt; color:#94a3b8; display:flex; justify-content:space-between; }
+        @media print { button { display:none; } }
+    </style></head><body>
+    <div class="header">
+        <div>
+            <div class="titulo">Reporte Contable — Costo de Materias Primas</div>
+            <div class="sub">Alimentos Santa Emilia · MES Sistema de Producción · Período: últimos ${rango} días (desde ${desdeStr})</div>
+        </div>
+        <div style="text-align:right;">
+            <div style="font-size:8pt;color:#64748b;">Generado: ${fechaReporte}</div>
+            <div style="font-size:8pt;color:#64748b;margin-top:2px;">Método: FIFO / Precio Promedio Ponderado</div>
+        </div>
+    </div>
+    <div class="kpis">
+        <div class="kpi"><div class="kpi-label">Total Costo MP</div><div class="kpi-val">$${totalCostoMP.toLocaleString('es-CL')}</div></div>
+        <div class="kpi"><div class="kpi-label">OPs Analizadas</div><div class="kpi-val">${ops.length}</div></div>
+        <div class="kpi"><div class="kpi-label">Costo Prom / OP</div><div class="kpi-val">$${ops.length > 0 ? Math.round(totalCostoMP/ops.length).toLocaleString('es-CL') : 0}</div></div>
+    </div>
+    <table>
+        <thead><tr>
+            <th>N° OP</th><th>Producto</th><th>Fecha</th>
+            <th style="text-align:right;">Unidades</th><th style="text-align:right;">Kg Totales</th>
+            <th style="text-align:right;">Costo MP Total</th><th style="text-align:right;">Costo MP/kg</th>
+            <th style="text-align:right;">Costo MP/unid</th>
+        </tr></thead>
+        <tbody>
+        ${filas.map(({op, c}) => {
+            const kg = op.kgTotalesTerminados || 0;
+            return `<tr>
+                <td style="font-weight:700;">${op.numeroOp}</td>
+                <td>${op.nombre}</td>
+                <td>${op.fecha}</td>
+                <td style="text-align:right;">${(op.platos||0).toLocaleString()}</td>
+                <td style="text-align:right;">${kg.toFixed(1)}</td>
+                <td style="text-align:right;font-weight:700;">$${c.costoTotal.toLocaleString('es-CL')}</td>
+                <td style="text-align:right;">$${kg > 0 ? Math.round(c.costoTotal/kg).toLocaleString('es-CL') : 0}</td>
+                <td style="text-align:right;">$${Math.round(c.costoUnitario).toLocaleString('es-CL')}</td>
+            </tr>`;
+        }).join('')}
+        <tr class="total-row">
+            <td colspan="5" style="padding:5px 7px;">TOTAL</td>
+            <td style="text-align:right;padding:5px 7px;">$${totalCostoMP.toLocaleString('es-CL')}</td>
+            <td colspan="2"></td>
+        </tr>
+        </tbody>
+    </table>
+    <!-- Detalle por ingrediente -->
+    <div style="font-size:9pt;font-weight:700;margin-bottom:6px;">Detalle de precios utilizados (método FIFO)</div>
+    <table>
+        <thead><tr><th>Materia Prima</th><th style="text-align:right;">Stock actual</th><th style="text-align:right;">Precio FIFO</th><th style="text-align:right;">Precio PPP</th><th style="text-align:right;">Valor inventario</th></tr></thead>
+        <tbody>
+        ${[...new Set(mpStock.map(i => i.nombre))].sort().map(nombre => {
+            const lotes   = mpStock.filter(i => i.nombre === nombre);
+            const stock   = lotes.reduce((s, l) => s + (l.stockActual||0), 0);
+            const fifo    = mpPrecioFIFO(nombre);
+            const ppp     = mpPrecioPPP(nombre);
+            const valorInv = Math.round(stock * ppp);
+            return `<tr>
+                <td style="font-weight:600;">${nombre}</td>
+                <td style="text-align:right;">${stock.toFixed(1)} kg</td>
+                <td style="text-align:right;">${fifo > 0 ? '$'+Math.round(fifo).toLocaleString('es-CL') : '—'}</td>
+                <td style="text-align:right;">${ppp > 0 ? '$'+Math.round(ppp).toLocaleString('es-CL') : '—'}</td>
+                <td style="text-align:right;font-weight:700;">$${valorInv.toLocaleString('es-CL')}</td>
+            </tr>`;
+        }).join('')}
+        </tbody>
+    </table>
+    <div class="footer">
+        <span>Alimentos Santa Emilia · R-POE Control MP · Generado por MES v4.0</span>
+        <span>Documento para uso contable interno</span>
+    </div>
+    <div style="text-align:center;margin-top:15px;">
+        <button onclick="window.print()" style="background:#1e293b;color:white;border:none;border-radius:8px;padding:8px 24px;cursor:pointer;font-weight:700;">🖨️ Imprimir / Guardar PDF</button>
+    </div>
+    </body></html>`;
+
+    const ventana = window.open('', '_blank', 'width=900,height=700');
+    ventana.document.write(html);
+    ventana.document.close();
+}
 
     </script>
 
