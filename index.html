@@ -2185,14 +2185,39 @@
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem;flex-wrap:wrap;gap:.8rem;">
           <div>
             <h2 style="margin:0;font-size:1.4rem;font-weight:700;color:#1e293b;">🌾 Control de Materias Primas</h2>
-            <p style="margin:.2rem 0 0;font-size:.85rem;color:#64748b;">Stock en tiempo real · Alertas inteligentes · Trazabilidad total · Merma teórica vs real</p>
+            <p style="margin:.2rem 0 0;font-size:.85rem;color:#64748b;">Stock en tiempo real · Multi-bodega · Auditoría completa · FEFO automático</p>
           </div>
           <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
             <button onclick="mpAbrirIngreso()" style="background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">+ Ingreso MP</button>
             <button onclick="mpAbrirAjuste()" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">⚖️ Ajuste / Conteo</button>
             <button onclick="mpVerMovimientos()" style="background:linear-gradient(135deg,#6366f1,#4f46e5);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">📋 Movimientos</button>
             <button onclick="mpVerMermas()" style="background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">📊 Mermas</button>
+            <button onclick="mpVerAuditoria()" style="background:linear-gradient(135deg,#374151,#4b5563);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">🔍 Auditoría</button>
           </div>
+        </div>
+
+        <!-- TABS BODEGAS -->
+        <div style="display:flex;gap:.4rem;margin-bottom:1rem;flex-wrap:wrap;">
+          <button id="mpTabBodega_todas" onclick="mpFiltrarBodega('todas',this)"
+            style="padding:.45rem 1rem;border-radius:20px;border:2px solid #10b981;background:#10b981;color:white;font-weight:700;cursor:pointer;font-size:.82rem;">
+            🏭 Todas las Bodegas
+          </button>
+          <button id="mpTabBodega_camara_carnes" onclick="mpFiltrarBodega('camara_carnes',this)"
+            style="padding:.45rem 1rem;border-radius:20px;border:2px solid #e2e8f0;background:white;color:#374151;font-weight:600;cursor:pointer;font-size:.82rem;">
+            🥩 Cámara Carnes
+          </button>
+          <button id="mpTabBodega_camara_vegetales" onclick="mpFiltrarBodega('camara_vegetales',this)"
+            style="padding:.45rem 1rem;border-radius:20px;border:2px solid #e2e8f0;background:white;color:#374151;font-weight:600;cursor:pointer;font-size:.82rem;">
+            🥦 Cámara Vegetales
+          </button>
+          <button id="mpTabBodega_despensa" onclick="mpFiltrarBodega('despensa',this)"
+            style="padding:.45rem 1rem;border-radius:20px;border:2px solid #e2e8f0;background:white;color:#374151;font-weight:600;cursor:pointer;font-size:.82rem;">
+            🗄️ Despensa
+          </button>
+          <button id="mpTabBodega_congelados" onclick="mpFiltrarBodega('congelados',this)"
+            style="padding:.45rem 1rem;border-radius:20px;border:2px solid #e2e8f0;background:white;color:#374151;font-weight:600;cursor:pointer;font-size:.82rem;">
+            ❄️ Congelados
+          </button>
         </div>
 
         <!-- KPIs SEMÁFORO -->
@@ -2231,17 +2256,33 @@
 
         <!-- MODAL INGRESO MP -->
         <div id="mpModalIngreso" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center;">
-          <div style="background:white;border-radius:18px;padding:2rem;width:min(560px,95vw);max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);">
+          <div style="background:white;border-radius:18px;padding:2rem;width:min(600px,95vw);max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.4rem;">
-              <h3 style="margin:0;font-size:1.1rem;font-weight:700;color:#1e293b;">📦 Ingreso de Materia Prima</h3>
+              <div>
+                <h3 style="margin:0;font-size:1.1rem;font-weight:700;color:#1e293b;">📦 Ingreso de Materia Prima</h3>
+                <div style="font-size:.78rem;color:#64748b;margin-top:.2rem;">Todos los campos quedan registrados en auditoría</div>
+              </div>
               <button onclick="mpCerrarIngreso()" style="background:#f1f5f9;border:none;border-radius:8px;padding:.4rem .7rem;cursor:pointer;font-size:1rem;">✕</button>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:.9rem;">
+
+              <!-- MP + Bodega destino -->
               <div style="grid-column:1/-1;">
                 <label style="font-size:.8rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">Materia Prima *</label>
                 <input id="mpIngNombre" type="text" list="mpListaNombres" placeholder="Ej: Pechuga de pollo, Harina de trigo..." style="width:100%;padding:.6rem .9rem;border-radius:10px;border:1.5px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
                 <datalist id="mpListaNombres"></datalist>
               </div>
+
+              <div>
+                <label style="font-size:.8rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">🏠 Bodega de destino *</label>
+                <select id="mpIngBodega" style="width:100%;padding:.6rem .9rem;border-radius:10px;border:1.5px solid #10b981;font-size:.85rem;background:white;box-sizing:border-box;font-weight:600;">
+                  <option value="camara_carnes">🥩 Cámara de Carnes</option>
+                  <option value="camara_vegetales">🥦 Cámara de Vegetales</option>
+                  <option value="despensa">🗄️ Despensa</option>
+                  <option value="congelados">❄️ Congelados</option>
+                </select>
+              </div>
+
               <div>
                 <label style="font-size:.8rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">Categoría</label>
                 <select id="mpIngCategoria" style="width:100%;padding:.6rem .9rem;border-radius:10px;border:1.5px solid #e2e8f0;font-size:.85rem;background:white;box-sizing:border-box;">
@@ -2256,38 +2297,63 @@
                   <option>Otro</option>
                 </select>
               </div>
+
               <div>
                 <label style="font-size:.8rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">Proveedor</label>
-                <input id="mpIngProveedor" type="text" placeholder="Nombre proveedor" style="width:100%;padding:.6rem .9rem;border-radius:10px;border:1.5px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
+                <input id="mpIngProveedor" type="text" list="mpListaProveedores" placeholder="Nombre proveedor" style="width:100%;padding:.6rem .9rem;border-radius:10px;border:1.5px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
+                <datalist id="mpListaProveedores"></datalist>
               </div>
+
               <div>
                 <label style="font-size:.8rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">N° Lote / Guía</label>
                 <input id="mpIngLote" type="text" placeholder="Ej: LOT-2026-001" style="width:100%;padding:.6rem .9rem;border-radius:10px;border:1.5px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
               </div>
+
               <div>
-                <label style="font-size:.8rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">Cantidad recibida (kg)</label>
+                <label style="font-size:.8rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">Cantidad recibida (kg) *</label>
                 <input id="mpIngCantidad" type="number" min="0" step="0.1" placeholder="0.0" style="width:100%;padding:.6rem .9rem;border-radius:10px;border:1.5px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
               </div>
+
               <div>
                 <label style="font-size:.8rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">Precio unitario ($/kg)</label>
-                <input id="mpIngPrecio" type="number" min="0" step="1" placeholder="0" style="width:100%;padding:.6rem .9rem;border-radius:10px;border:1.5px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
+                <input id="mpIngPrecio" type="number" min="0" step="1" placeholder="0" oninput="mpActualizarCostoTotal()" style="width:100%;padding:.6rem .9rem;border-radius:10px;border:1.5px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
               </div>
+
               <div>
                 <label style="font-size:.8rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">Fecha vencimiento</label>
                 <input id="mpIngVencimiento" type="date" style="width:100%;padding:.6rem .9rem;border-radius:10px;border:1.5px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
               </div>
+
               <div>
                 <label style="font-size:.8rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">Stock mínimo (kg)</label>
                 <input id="mpIngStockMin" type="number" min="0" step="0.1" placeholder="0.0" style="width:100%;padding:.6rem .9rem;border-radius:10px;border:1.5px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
               </div>
-              <div style="grid-column:1/-1;">
-                <label style="font-size:.8rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">Notas / Observaciones</label>
-                <textarea id="mpIngNotas" rows="2" placeholder="Condición de llegada, temperatura, etc." style="width:100%;padding:.6rem .9rem;border-radius:10px;border:1.5px solid #e2e8f0;font-size:.9rem;resize:none;box-sizing:border-box;"></textarea>
+
+              <!-- Receptor (auditoría) -->
+              <div>
+                <label style="font-size:.8rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">👤 Recibido por *</label>
+                <select id="mpIngReceptor" style="width:100%;padding:.6rem .9rem;border-radius:10px;border:1.5px solid #667eea;font-size:.85rem;background:white;box-sizing:border-box;">
+                  <option value="">— Seleccionar —</option>
+                </select>
               </div>
+
+              <div>
+                <label style="font-size:.8rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">📋 N° Factura / Guía despacho</label>
+                <input id="mpIngFactura" type="text" placeholder="Ej: FAC-001234" style="width:100%;padding:.6rem .9rem;border-radius:10px;border:1.5px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
+              </div>
+
+              <div style="grid-column:1/-1;">
+                <label style="font-size:.8rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">Notas / Condición de llegada</label>
+                <textarea id="mpIngNotas" rows="2" placeholder="Temperatura al llegar, estado del embalaje, observaciones..." style="width:100%;padding:.6rem .9rem;border-radius:10px;border:1.5px solid #e2e8f0;font-size:.9rem;resize:none;box-sizing:border-box;"></textarea>
+              </div>
+
+              <!-- Costo total preview -->
+              <div id="mpIngCostoPreview" style="grid-column:1/-1;display:none;background:#f0fdf4;border-radius:10px;padding:.75rem 1rem;font-size:.88rem;color:#065f46;font-weight:600;"></div>
+
             </div>
             <div style="display:flex;gap:.8rem;margin-top:1.4rem;justify-content:flex-end;">
               <button onclick="mpCerrarIngreso()" style="padding:.6rem 1.4rem;border-radius:10px;border:1.5px solid #e2e8f0;background:white;cursor:pointer;font-weight:600;">Cancelar</button>
-              <button onclick="mpGuardarIngreso()" style="padding:.6rem 1.4rem;border-radius:10px;border:none;background:linear-gradient(135deg,#10b981,#059669);color:white;cursor:pointer;font-weight:700;">Registrar Ingreso</button>
+              <button onclick="mpGuardarIngreso()" style="padding:.6rem 1.4rem;border-radius:10px;border:none;background:linear-gradient(135deg,#10b981,#059669);color:white;cursor:pointer;font-weight:700;">✅ Registrar Ingreso</button>
             </div>
           </div>
         </div>
@@ -2330,6 +2396,41 @@
               <button onclick="mpCerrarAjuste()" style="padding:.6rem 1.4rem;border-radius:10px;border:1.5px solid #e2e8f0;background:white;cursor:pointer;font-weight:600;">Cancelar</button>
               <button onclick="mpGuardarAjuste()" style="padding:.6rem 1.4rem;border-radius:10px;border:none;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;cursor:pointer;font-weight:700;">Guardar Ajuste</button>
             </div>
+          </div>
+        </div>
+
+        <!-- MODAL AUDITORÍA -->
+        <div id="mpModalAuditoria" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center;">
+          <div style="background:white;border-radius:18px;padding:2rem;width:min(900px,97vw);max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.4rem;">
+              <div>
+                <h3 style="margin:0;font-size:1.1rem;font-weight:700;color:#1e293b;">🔍 Auditoría Completa de Movimientos</h3>
+                <div style="font-size:.78rem;color:#64748b;margin-top:.2rem;">Registro inmutable de todos los cambios con usuario, timestamp y bodega</div>
+              </div>
+              <button onclick="document.getElementById('mpModalAuditoria').style.display='none'" style="background:#f1f5f9;border:none;border-radius:8px;padding:.4rem .7rem;cursor:pointer;font-size:1rem;">✕</button>
+            </div>
+            <!-- Filtros -->
+            <div style="display:flex;gap:.6rem;margin-bottom:1rem;flex-wrap:wrap;">
+              <input id="mpAudBuscador" type="text" placeholder="🔍 Buscar MP, usuario, lote..." oninput="mpRenderAuditoria()" style="flex:1;min-width:180px;padding:.5rem .8rem;border-radius:8px;border:1.5px solid #e2e8f0;font-size:.85rem;">
+              <select id="mpAudTipo" onchange="mpRenderAuditoria()" style="padding:.5rem .8rem;border-radius:8px;border:1.5px solid #e2e8f0;font-size:.82rem;background:white;">
+                <option value="">Todos los tipos</option>
+                <option value="ingreso">📦 Ingreso</option>
+                <option value="consumo_op">🔥 Consumo OP</option>
+                <option value="ajuste_baja">⬇️ Ajuste baja</option>
+                <option value="ajuste_alza">⬆️ Ajuste alza</option>
+                <option value="traslado">🔄 Traslado bodega</option>
+              </select>
+              <select id="mpAudBodega" onchange="mpRenderAuditoria()" style="padding:.5rem .8rem;border-radius:8px;border:1.5px solid #e2e8f0;font-size:.82rem;background:white;">
+                <option value="">Todas las bodegas</option>
+                <option value="camara_carnes">🥩 Cámara Carnes</option>
+                <option value="camara_vegetales">🥦 Cámara Vegetales</option>
+                <option value="despensa">🗄️ Despensa</option>
+                <option value="congelados">❄️ Congelados</option>
+              </select>
+              <input id="mpAudFechaDesde" type="date" onchange="mpRenderAuditoria()" style="padding:.5rem .8rem;border-radius:8px;border:1.5px solid #e2e8f0;font-size:.82rem;">
+              <input id="mpAudFechaHasta" type="date" onchange="mpRenderAuditoria()" style="padding:.5rem .8rem;border-radius:8px;border:1.5px solid #e2e8f0;font-size:.82rem;">
+            </div>
+            <div id="mpTablaAuditoria"></div>
           </div>
         </div>
 
@@ -23047,9 +23148,10 @@ function mpRenderKpis() {
 // — Tabla principal de stock —
 function mpRenderStock() {
     mpRenderKpis();
-    const busq = (document.getElementById('mpBuscador')?.value || '').toLowerCase();
-    const filtEst = document.getElementById('mpFiltroEstado')?.value || 'todos';
+    const busq    = (document.getElementById('mpBuscador')?.value || '').toLowerCase();
+    const filtEst = document.getElementById('mpFiltroEstado')?.value  || 'todos';
     const filtCat = document.getElementById('mpFiltroCategoria')?.value || 'todas';
+    const filtBod = _mpBodegaFiltro || 'todas';
 
     // Poblar categorías
     const cats = [...new Set(mpStock.map(i => i.categoria).filter(Boolean))].sort();
@@ -23058,26 +23160,34 @@ function mpRenderStock() {
         cats.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; selCat.appendChild(o); });
     }
 
-    // Agrupar por nombre (consolidar lotes)
+    // Filtrar por bodega primero (a nivel de lote individual)
+    const stockFiltrado = filtBod === 'todas' ? mpStock : mpStock.filter(i => (i.bodega || 'despensa') === filtBod);
+
+    // Agrupar por nombre
     const agrupado = {};
-    mpStock.forEach(item => {
+    stockFiltrado.forEach(item => {
         const k = item.nombre;
-        if (!agrupado[k]) agrupado[k] = { ...item, lotes: [] };
+        if (!agrupado[k]) agrupado[k] = { ...item, lotes: [], bodegas: new Set() };
         agrupado[k].stockActual = (agrupado[k].stockActual || 0) + (item.stockActual || 0);
         agrupado[k].lotes.push(item);
-        // Fecha de vencimiento más próxima
+        agrupado[k].bodegas.add(item.bodegaLabel || MP_BODEGAS[item.bodega] || '🗄️ Despensa');
         if (item.fechaVencimiento) {
             if (!agrupado[k].fechaVencimiento || item.fechaVencimiento < agrupado[k].fechaVencimiento)
                 agrupado[k].fechaVencimiento = item.fechaVencimiento;
         }
+        // Precio promedio ponderado
+        if (item.precioUnitario > 0) {
+            const totalKg    = agrupado[k].lotes.reduce((s, l) => s + (l.stockActual || 0), 0);
+            const totalCosto = agrupado[k].lotes.reduce((s, l) => s + ((l.stockActual || 0) * (l.precioUnitario || 0)), 0);
+            agrupado[k].precioProm = totalKg > 0 ? totalCosto / totalKg : 0;
+        }
     });
 
     let items = Object.values(agrupado);
-    if (busq) items = items.filter(i => i.nombre.toLowerCase().includes(busq) || (i.proveedor||'').toLowerCase().includes(busq));
+    if (busq)              items = items.filter(i => i.nombre.toLowerCase().includes(busq) || (i.proveedor||'').toLowerCase().includes(busq));
     if (filtEst !== 'todos') items = items.filter(i => mpEstadoItem(i).estado === filtEst);
     if (filtCat !== 'todas') items = items.filter(i => i.categoria === filtCat);
 
-    // Ordenar: críticos primero
     const orden = { vencido: 0, critico: 1, vence_pronto: 2, bajo: 3, ok: 4 };
     items.sort((a, b) => (orden[mpEstadoItem(a).estado] || 5) - (orden[mpEstadoItem(b).estado] || 5));
 
@@ -23085,8 +23195,8 @@ function mpRenderStock() {
     if (!items.length) {
         cont.innerHTML = `<div style="padding:3rem;text-align:center;color:#94a3b8;">
             <div style="font-size:2.5rem;margin-bottom:.5rem;">🌾</div>
-            <div style="font-weight:600;">No hay materias primas registradas</div>
-            <div style="font-size:.85rem;margin-top:.4rem;">Haz clic en "+ Ingreso MP" para registrar la primera</div>
+            <div style="font-weight:600;">No hay materias primas${filtBod !== 'todas' ? ' en esta bodega' : ' registradas'}</div>
+            <div style="font-size:.85rem;margin-top:.4rem;">Haz clic en "+ Ingreso MP" para registrar</div>
         </div>`; return;
     }
 
@@ -23095,9 +23205,11 @@ function mpRenderStock() {
       <thead>
         <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0;">
           <th style="padding:.75rem 1rem;text-align:left;font-weight:700;color:#374151;">Materia Prima</th>
+          <th style="padding:.75rem 1rem;text-align:center;font-weight:700;color:#374151;">Bodega</th>
           <th style="padding:.75rem 1rem;text-align:center;font-weight:700;color:#374151;">Categoría</th>
           <th style="padding:.75rem 1rem;text-align:right;font-weight:700;color:#374151;">Stock actual</th>
-          <th style="padding:.75rem 1rem;text-align:right;font-weight:700;color:#374151;">Stock mínimo</th>
+          <th style="padding:.75rem 1rem;text-align:right;font-weight:700;color:#374151;">Stock mín.</th>
+          <th style="padding:.75rem 1rem;text-align:right;font-weight:700;color:#374151;">Precio prom.</th>
           <th style="padding:.75rem 1rem;text-align:center;font-weight:700;color:#374151;">Vencimiento</th>
           <th style="padding:.75rem 1rem;text-align:center;font-weight:700;color:#374151;">Estado</th>
           <th style="padding:.75rem 1rem;text-align:center;font-weight:700;color:#374151;">Lotes</th>
@@ -23106,21 +23218,25 @@ function mpRenderStock() {
       </thead>
       <tbody>
         ${items.map((item, idx) => {
-            const est = mpEstadoItem(item);
-            const venc = item.fechaVencimiento ? new Date(item.fechaVencimiento + 'T00:00:00').toLocaleDateString('es-CL') : '—';
-            const pct = item.stockMinimo > 0 ? Math.min(100, Math.round(item.stockActual / item.stockMinimo * 100)) : null;
+            const est      = mpEstadoItem(item);
+            const venc     = item.fechaVencimiento ? new Date(item.fechaVencimiento + 'T00:00:00').toLocaleDateString('es-CL') : '—';
+            const pct      = item.stockMinimo > 0 ? Math.min(100, Math.round(item.stockActual / item.stockMinimo * 100)) : null;
             const barColor = est.estado === 'ok' ? '#10b981' : est.estado === 'bajo' ? '#f59e0b' : '#ef4444';
+            const bodLabel = [...(item.bodegas || [])].join(', ') || '—';
+            const precio   = item.precioProm > 0 ? '$' + Math.round(item.precioProm).toLocaleString('es-CL') + '/kg' : '—';
             return `<tr style="border-bottom:1px solid #f1f5f9;${idx % 2 === 0 ? '' : 'background:#fafbfc'}">
               <td style="padding:.7rem 1rem;">
                 <div style="font-weight:700;color:#1e293b;">${item.nombre}</div>
                 <div style="font-size:.78rem;color:#94a3b8;">${item.proveedor || 'Sin proveedor'}</div>
                 ${pct !== null ? `<div style="margin-top:.3rem;background:#e2e8f0;border-radius:4px;height:5px;width:100px;"><div style="background:${barColor};height:5px;border-radius:4px;width:${pct}%;"></div></div>` : ''}
               </td>
+              <td style="padding:.7rem 1rem;text-align:center;font-size:.78rem;color:#475569;">${bodLabel}</td>
               <td style="padding:.7rem 1rem;text-align:center;">
                 <span style="background:#f1f5f9;color:#475569;border-radius:6px;padding:.25rem .6rem;font-size:.78rem;">${item.categoria || '—'}</span>
               </td>
               <td style="padding:.7rem 1rem;text-align:right;font-weight:700;font-size:.95rem;color:${est.color};">${item.stockActual.toFixed(1)} kg</td>
               <td style="padding:.7rem 1rem;text-align:right;color:#64748b;">${item.stockMinimo > 0 ? item.stockMinimo.toFixed(1) + ' kg' : '—'}</td>
+              <td style="padding:.7rem 1rem;text-align:right;color:#059669;font-weight:600;">${precio}</td>
               <td style="padding:.7rem 1rem;text-align:center;color:#475569;">${venc}</td>
               <td style="padding:.7rem 1rem;text-align:center;">
                 <span style="background:${est.bg};color:${est.color};border-radius:8px;padding:.3rem .7rem;font-size:.78rem;font-weight:700;">${est.icono} ${est.label}</span>
@@ -23139,72 +23255,121 @@ function mpRenderStock() {
 }
 
 // — Ingreso de MP —
-function mpAbrirIngreso() {
-    // Poblar datalist con nombres existentes
-    const dl = document.getElementById('mpListaNombres');
-    if (dl) {
-        const nombres = [...new Set(mpStock.map(i => i.nombre))].sort();
-        dl.innerHTML = nombres.map(n => `<option value="${n}">`).join('');
-    }
-    const modal = document.getElementById('mpModalIngreso');
-    modal.style.display = 'flex';
-    // Fecha de hoy como default vencimiento
-    const hoy = new Date();
-    hoy.setDate(hoy.getDate() + 30);
-    document.getElementById('mpIngVencimiento').value = hoy.toISOString().split('T')[0];
+// ── Constantes bodegas ──
+const MP_BODEGAS = {
+    camara_carnes:    '🥩 Cámara Carnes',
+    camara_vegetales: '🥦 Cámara Vegetales',
+    despensa:         '🗄️ Despensa',
+    congelados:       '❄️ Congelados'
+};
+let _mpBodegaFiltro = 'todas';
+
+function mpFiltrarBodega(bodega, btn) {
+    _mpBodegaFiltro = bodega;
+    document.querySelectorAll('[id^="mpTabBodega_"]').forEach(b => {
+        b.style.background = 'white'; b.style.color = '#374151'; b.style.borderColor = '#e2e8f0';
+    });
+    if (btn) { btn.style.background = '#10b981'; btn.style.color = 'white'; btn.style.borderColor = '#10b981'; }
+    mpRenderStock(); mpRenderKpis();
 }
 
-function mpCerrarIngreso() {
-    document.getElementById('mpModalIngreso').style.display = 'none';
-    ['mpIngNombre','mpIngProveedor','mpIngLote','mpIngCantidad','mpIngPrecio','mpIngStockMin','mpIngNotas'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.value = '';
-    });
+function mpGetUsuarioActual() {
+    if (window._emailActual) return window._emailActual;
+    return 'Operario';
 }
+
+function mpActualizarCostoTotal() {
+    const cant   = parseFloat(document.getElementById('mpIngCantidad')?.value) || 0;
+    const precio = parseFloat(document.getElementById('mpIngPrecio')?.value)   || 0;
+    const prev   = document.getElementById('mpIngCostoPreview');
+    if (!prev) return;
+    if (cant > 0 && precio > 0) {
+        prev.style.display = 'block';
+        prev.innerHTML = `💰 Costo total del lote: <strong>$${(cant * precio).toLocaleString('es-CL')}</strong> (${cant} kg × $${precio.toLocaleString('es-CL')}/kg)`;
+    } else { prev.style.display = 'none'; }
+}
+
+function mpAbrirIngreso() {
+    const dl = document.getElementById('mpListaNombres');
+    if (dl) { const nombres = [...new Set(mpStock.map(i => i.nombre))].sort(); dl.innerHTML = nombres.map(n => `<option value="${n}">`).join(''); }
+    const dlProv = document.getElementById('mpListaProveedores');
+    if (dlProv) { const provs = [...new Set(mpStock.map(i => i.proveedor).filter(Boolean))].sort(); dlProv.innerHTML = provs.map(p => `<option value="${p}">`).join(''); }
+
+    // Cargar selector de receptor
+    const selR = document.getElementById('mpIngReceptor');
+    if (selR) {
+        const todos = [...(personal.cocina||[]),...(personal.envasado||[]),...(personal.abatimiento||[]),...(personal.preelaborado||[])]
+            .map(p => typeof p === 'string' ? p : p.nombre).filter(Boolean);
+        const unicos = [...new Set(todos)].sort();
+        selR.innerHTML = '<option value="">— Seleccionar —</option>' + unicos.map(n => `<option value="${n}">${n}</option>`).join('');
+        if (window._emailActual) selR.innerHTML += `<option value="${window._emailActual}" selected>${window._emailActual}</option>`;
+    }
+
+    // Reset
+    ['mpIngNombre','mpIngLote','mpIngCantidad','mpIngPrecio','mpIngStockMin','mpIngNotas','mpIngFactura'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    const prev = document.getElementById('mpIngCostoPreview'); if (prev) prev.style.display = 'none';
+    const hoy = new Date(); hoy.setDate(hoy.getDate() + 30);
+    document.getElementById('mpIngVencimiento').value = hoy.toISOString().split('T')[0];
+    document.getElementById('mpModalIngreso').style.display = 'flex';
+}
+
+function mpCerrarIngreso() { document.getElementById('mpModalIngreso').style.display = 'none'; }
 
 function mpGuardarIngreso() {
-    const nombre = document.getElementById('mpIngNombre').value.trim();
+    const nombre   = document.getElementById('mpIngNombre').value.trim();
     const cantidad = parseFloat(document.getElementById('mpIngCantidad').value) || 0;
-    if (!nombre) { alert('Ingresa el nombre de la materia prima'); return; }
+    const receptor = document.getElementById('mpIngReceptor')?.value || mpGetUsuarioActual();
+    if (!nombre)       { alert('Ingresa el nombre de la materia prima'); return; }
     if (cantidad <= 0) { alert('Ingresa una cantidad mayor a 0'); return; }
+    if (!receptor)     { alert('Selecciona quién recibe la MP'); return; }
 
-    const ahora = new Date();
-    const loteId = 'MP-' + ahora.getFullYear() + '-' + String(ahora.getMonth()+1).padStart(2,'0') + String(ahora.getDate()).padStart(2,'0') + '-' + Math.random().toString(36).substr(2,4).toUpperCase();
+    const ahora   = new Date();
+    const loteId  = 'MP-' + ahora.getFullYear() + String(ahora.getMonth()+1).padStart(2,'0') + String(ahora.getDate()).padStart(2,'0') + '-' + Math.random().toString(36).substr(2,4).toUpperCase();
+    const bodega  = document.getElementById('mpIngBodega')?.value || 'despensa';
+    const precio  = parseFloat(document.getElementById('mpIngPrecio').value) || 0;
 
     const item = {
-        id: loteId,
-        nombre,
-        categoria: document.getElementById('mpIngCategoria').value,
-        proveedor: document.getElementById('mpIngProveedor').value.trim(),
-        lote: document.getElementById('mpIngLote').value.trim() || loteId,
-        stockActual: cantidad,
-        stockInicial: cantidad,
-        stockMinimo: parseFloat(document.getElementById('mpIngStockMin').value) || 0,
-        precioUnitario: parseFloat(document.getElementById('mpIngPrecio').value) || 0,
+        id: loteId, nombre,
+        categoria:        document.getElementById('mpIngCategoria').value,
+        proveedor:        document.getElementById('mpIngProveedor').value.trim(),
+        lote:             document.getElementById('mpIngLote').value.trim() || loteId,
+        factura:          document.getElementById('mpIngFactura')?.value.trim() || '',
+        bodega,
+        bodegaLabel:      MP_BODEGAS[bodega] || bodega,
+        stockActual:      cantidad,
+        stockInicial:     cantidad,
+        stockMinimo:      parseFloat(document.getElementById('mpIngStockMin').value) || 0,
+        precioUnitario:   precio,
+        costoTotal:       Math.round(cantidad * precio),
         fechaVencimiento: document.getElementById('mpIngVencimiento').value || null,
-        fechaIngreso: ahora.toISOString(),
-        notas: document.getElementById('mpIngNotas').value.trim()
+        fechaIngreso:     ahora.toISOString(),
+        notas:            document.getElementById('mpIngNotas').value.trim(),
+        creadoPor:        receptor,
+        creadoEn:         ahora.toISOString(),
+        dispositivo:      window._dispositivoId || 'unknown'
     };
 
     mpStock.push(item);
-
-    // Registrar movimiento
     mpMovimientos.unshift({
-        id: 'MOV-' + Date.now(),
-        tipo: 'ingreso',
+        id:              'MOV-' + Date.now() + '-' + Math.random().toString(36).substr(2,4),
+        tipo:            'ingreso',
         nombre,
-        lote: item.lote,
+        lote:            item.lote,
+        bodega,
+        bodegaLabel:     item.bodegaLabel,
         cantidad,
-        fecha: ahora.toISOString(),
-        motivo: 'Ingreso de mercadería',
-        usuario: typeof operadorActivo !== 'undefined' ? operadorActivo : 'Sistema',
-        stockResultante: cantidad
+        precioUnitario:  precio,
+        costoTotal:      item.costoTotal,
+        fecha:           ahora.toISOString(),
+        motivo:          'Ingreso de mercadería',
+        factura:         item.factura,
+        usuario:         receptor,
+        stockResultante: cantidad,
+        dispositivo:     window._dispositivoId || 'unknown'
     });
 
-    mpGuardar();
-    mpCerrarIngreso();
-    mpRenderStock();
-    if (typeof mostrarToast === 'function') mostrarToast('✅ Materia prima registrada correctamente');
+    mpGuardar(); mpCerrarIngreso(); mpRenderStock(); mpRenderKpis();
+    mostrarNotificacion(`✅ ${nombre} — ${cantidad} kg en ${item.bodegaLabel}`, 'success');
 }
 
 // — Ajuste / Conteo físico —
@@ -23568,6 +23733,94 @@ function mpAlertasStockAlIniciar(op) {
     if (alertas.length > 0) {
         mostrarNotificacion(`⚠️ Stock insuficiente para OP ${op.numeroOp}:\n${alertas.slice(0,3).join(' · ')}`, 'warning');
     }
+}
+
+// ── Auditoría completa ──
+function mpVerAuditoria() {
+    // Setear fechas por defecto (últimos 30 días)
+    const hoy    = new Date();
+    const hace30 = new Date(); hace30.setDate(hoy.getDate() - 30);
+    const fDesde = document.getElementById('mpAudFechaDesde');
+    const fHasta = document.getElementById('mpAudFechaHasta');
+    if (fDesde && !fDesde.value) fDesde.value = hace30.toISOString().split('T')[0];
+    if (fHasta && !fHasta.value) fHasta.value = hoy.toISOString().split('T')[0];
+    document.getElementById('mpModalAuditoria').style.display = 'flex';
+    mpRenderAuditoria();
+}
+
+function mpRenderAuditoria() {
+    const busq   = (document.getElementById('mpAudBuscador')?.value || '').toLowerCase();
+    const tipo   = document.getElementById('mpAudTipo')?.value    || '';
+    const bodega = document.getElementById('mpAudBodega')?.value  || '';
+    const desde  = document.getElementById('mpAudFechaDesde')?.value || '';
+    const hasta  = document.getElementById('mpAudFechaHasta')?.value || '';
+
+    let movs = [...mpMovimientos];
+
+    if (busq)   movs = movs.filter(m => (m.nombre||'').toLowerCase().includes(busq) || (m.usuario||'').toLowerCase().includes(busq) || (m.lote||'').toLowerCase().includes(busq));
+    if (tipo)   movs = movs.filter(m => m.tipo === tipo);
+    if (bodega) movs = movs.filter(m => (m.bodega || '') === bodega);
+    if (desde)  movs = movs.filter(m => m.fecha >= desde);
+    if (hasta)  movs = movs.filter(m => m.fecha <= hasta + 'T23:59:59');
+
+    const cont = document.getElementById('mpTablaAuditoria');
+    if (!cont) return;
+
+    if (!movs.length) {
+        cont.innerHTML = '<p style="text-align:center;color:#94a3b8;padding:2rem;">Sin movimientos para los filtros seleccionados.</p>';
+        return;
+    }
+
+    const iconos  = { ingreso: '📦', ajuste_baja: '⬇️', ajuste_alza: '⬆️', consumo_op: '🔥', traslado: '🔄' };
+    const colores = { ingreso: '#059669', ajuste_baja: '#dc2626', ajuste_alza: '#2563eb', consumo_op: '#d97706', traslado: '#7c3aed' };
+
+    cont.innerHTML = `
+    <div style="font-size:.82rem;color:#64748b;margin-bottom:.75rem;">${movs.length} registro(s) encontrado(s)</div>
+    <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+      <thead>
+        <tr style="background:#1e293b;color:white;">
+          <th style="padding:.6rem .8rem;text-align:left;">Fecha / Hora</th>
+          <th style="padding:.6rem .8rem;text-align:left;">Tipo</th>
+          <th style="padding:.6rem .8rem;text-align:left;">Materia Prima</th>
+          <th style="padding:.6rem .8rem;text-align:left;">Lote</th>
+          <th style="padding:.6rem .8rem;text-align:left;">Bodega</th>
+          <th style="padding:.6rem .8rem;text-align:right;">Cantidad</th>
+          <th style="padding:.6rem .8rem;text-align:right;">Precio/kg</th>
+          <th style="padding:.6rem .8rem;text-align:right;">Costo Total</th>
+          <th style="padding:.6rem .8rem;text-align:right;">Stock result.</th>
+          <th style="padding:.6rem .8rem;text-align:left;">Usuario</th>
+          <th style="padding:.6rem .8rem;text-align:left;">Motivo / OP</th>
+          <th style="padding:.6rem .8rem;text-align:left;">Factura</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${movs.slice(0, 500).map((m, idx) => {
+            const esEgreso = m.tipo.includes('baja') || m.tipo.includes('consumo');
+            const color    = colores[m.tipo] || '#475569';
+            const signo    = esEgreso ? '-' : '+';
+            const fecha    = new Date(m.fecha).toLocaleString('es-CL', { dateStyle:'short', timeStyle:'short' });
+            return `<tr style="border-bottom:1px solid #f1f5f9;${idx%2===0?'':'background:#fafbfc'}">
+              <td style="padding:.55rem .8rem;font-size:.78rem;color:#64748b;white-space:nowrap;">${fecha}</td>
+              <td style="padding:.55rem .8rem;">
+                <span style="background:${color}18;color:${color};border-radius:6px;padding:.2rem .55rem;font-weight:700;font-size:.75rem;white-space:nowrap;">
+                  ${iconos[m.tipo]||'📝'} ${m.tipo.replace(/_/g,' ')}
+                </span>
+              </td>
+              <td style="padding:.55rem .8rem;font-weight:700;color:#1e293b;">${m.nombre}</td>
+              <td style="padding:.55rem .8rem;color:#64748b;font-size:.78rem;">${m.lote || '—'}</td>
+              <td style="padding:.55rem .8rem;font-size:.78rem;">${m.bodegaLabel || '—'}</td>
+              <td style="padding:.55rem .8rem;text-align:right;font-weight:700;color:${color};">${signo}${(m.cantidad||0).toFixed(1)} kg</td>
+              <td style="padding:.55rem .8rem;text-align:right;color:#059669;">${m.precioUnitario > 0 ? '$'+Math.round(m.precioUnitario).toLocaleString('es-CL') : '—'}</td>
+              <td style="padding:.55rem .8rem;text-align:right;color:#059669;font-weight:600;">${m.costoTotal > 0 ? '$'+Math.round(m.costoTotal).toLocaleString('es-CL') : '—'}</td>
+              <td style="padding:.55rem .8rem;text-align:right;">${m.stockResultante != null ? (m.stockResultante).toFixed(1)+' kg' : '—'}</td>
+              <td style="padding:.55rem .8rem;font-size:.78rem;color:#475569;">${m.usuario || '—'}</td>
+              <td style="padding:.55rem .8rem;font-size:.78rem;color:#64748b;">${m.motivo || '—'}</td>
+              <td style="padding:.55rem .8rem;font-size:.78rem;color:#94a3b8;">${m.factura || '—'}</td>
+            </tr>`;
+        }).join('')}
+      </tbody>
+    </table></div>`;
 }
 
 
