@@ -1517,6 +1517,10 @@
                   style="padding:.55rem 1.1rem;border-radius:10px;border:none;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;font-weight:700;cursor:pointer;font-size:.88rem;">
                   🔫 Registrar Salida
                 </button>
+                <button onclick="bodegaAbrirIngresoManual()"
+                  style="padding:.55rem 1.1rem;border-radius:10px;border:none;background:linear-gradient(135deg,#10b981,#059669);color:white;font-weight:700;cursor:pointer;font-size:.88rem;">
+                  ➕ Ingreso Manual
+                </button>
               </div>
             </div>
 
@@ -1635,6 +1639,101 @@
               </div>
             </div>
 
+          </div>
+        </div>
+
+        <!-- MODAL: INGRESO MANUAL A CÁMARA -->
+        <div id="modalIngresoManualBodega" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10001;align-items:center;justify-content:center;overflow-y:auto;">
+          <div style="background:white;border-radius:18px;padding:2rem;width:min(580px,96vw);margin:1.5rem auto;box-shadow:0 20px 60px rgba(0,0,0,.3);border-top:5px solid #10b981;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+              <div>
+                <h3 style="margin:0;font-size:1rem;font-weight:800;color:#065f46;">➕ Ingreso Manual a Cámara</h3>
+                <div style="font-size:.75rem;color:#64748b;margin-top:.2rem;">Para registrar productos que ya estaban en cámara antes del sistema</div>
+              </div>
+              <button onclick="document.getElementById('modalIngresoManualBodega').style.display='none'"
+                style="background:#f1f5f9;border:none;border-radius:8px;padding:.4rem .7rem;cursor:pointer;font-size:1rem;">✕</button>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem;">
+              <!-- Producto -->
+              <div style="grid-column:1/-1;">
+                <label style="font-size:.78rem;font-weight:700;color:#374151;display:block;margin-bottom:.3rem;">🏷️ Producto *</label>
+                <input type="text" id="imProducto" list="imListaProductos" placeholder="Ej: POLLO ARVEJADO, LENTEJAS GUISADAS..."
+                  oninput="this.value=this.value.toUpperCase()"
+                  style="width:100%;padding:.65rem .85rem;border-radius:8px;border:2px solid #10b981;font-size:.9rem;font-weight:700;box-sizing:border-box;text-transform:uppercase;">
+                <datalist id="imListaProductos"></datalist>
+              </div>
+              <!-- OP -->
+              <div>
+                <label style="font-size:.78rem;font-weight:700;color:#374151;display:block;margin-bottom:.3rem;">📋 N° OP</label>
+                <input type="text" id="imOP" placeholder="Ej: 974"
+                  style="width:100%;padding:.65rem .85rem;border-radius:8px;border:1.5px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
+              </div>
+              <!-- Lote -->
+              <div>
+                <label style="font-size:.78rem;font-weight:700;color:#374151;display:block;margin-bottom:.3rem;">🔢 Lote</label>
+                <input type="text" id="imLote" placeholder="Ej: 105 (día juliano)"
+                  style="width:100%;padding:.65rem .85rem;border-radius:8px;border:1.5px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
+              </div>
+              <!-- Kg -->
+              <div>
+                <label style="font-size:.78rem;font-weight:700;color:#374151;display:block;margin-bottom:.3rem;">⚖️ Kg disponibles *</label>
+                <input type="number" id="imKg" min="0.1" step="0.1" placeholder="0.0"
+                  oninput="imActualizarCodigo()"
+                  style="width:100%;padding:.65rem .85rem;border-radius:8px;border:2px solid #10b981;font-size:1rem;font-weight:800;box-sizing:border-box;text-align:center;color:#065f46;">
+              </div>
+              <!-- N° bolsas -->
+              <div>
+                <label style="font-size:.78rem;font-weight:700;color:#374151;display:block;margin-bottom:.3rem;">📦 N° Bolsas</label>
+                <input type="number" id="imNBolsas" min="1" step="1" placeholder="0"
+                  style="width:100%;padding:.65rem .85rem;border-radius:8px;border:1.5px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;text-align:center;">
+              </div>
+              <!-- Formato -->
+              <div>
+                <label style="font-size:.78rem;font-weight:700;color:#374151;display:block;margin-bottom:.3rem;">📐 Formato bolsa</label>
+                <select id="imFormato" style="width:100%;padding:.65rem .85rem;border-radius:8px;border:1.5px solid #e2e8f0;font-size:.9rem;background:white;box-sizing:border-box;">
+                  <option value="3kg">Bolsa 3 kg</option>
+                  <option value="2kg">Bolsa 2 kg</option>
+                  <option value="1kg">Bolsa 1 kg</option>
+                  <option value="500gr">Bolsa 500 gr</option>
+                  <option value="250gr">Bolsa 250 gr</option>
+                </select>
+              </div>
+              <!-- Cliente -->
+              <div>
+                <label style="font-size:.78rem;font-weight:700;color:#374151;display:block;margin-bottom:.3rem;">🏢 Cliente</label>
+                <input type="text" id="imCliente" placeholder="Ej: LA COCINERÍA"
+                  oninput="this.value=this.value.toUpperCase()"
+                  style="width:100%;padding:.65rem .85rem;border-radius:8px;border:1.5px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;text-transform:uppercase;">
+              </div>
+              <!-- Fecha ingreso -->
+              <div>
+                <label style="font-size:.78rem;font-weight:700;color:#374151;display:block;margin-bottom:.3rem;">📅 Fecha de ingreso</label>
+                <input type="date" id="imFecha"
+                  style="width:100%;padding:.65rem .85rem;border-radius:8px;border:1.5px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
+              </div>
+              <!-- Temp salida abatidor -->
+              <div>
+                <label style="font-size:.78rem;font-weight:700;color:#374151;display:block;margin-bottom:.3rem;">🌡️ Temp. salida abatidor (°C)</label>
+                <input type="number" id="imTemp" step="0.1" placeholder="Ej: 3.5"
+                  style="width:100%;padding:.65rem .85rem;border-radius:8px;border:1.5px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;text-align:center;">
+              </div>
+              <!-- Código generado -->
+              <div style="grid-column:1/-1;">
+                <label style="font-size:.78rem;font-weight:700;color:#374151;display:block;margin-bottom:.3rem;">🔤 Código de bolsa (auto-generado)</label>
+                <input type="text" id="imCodigo" placeholder="Se genera automáticamente al completar los datos"
+                  style="width:100%;padding:.65rem .85rem;border-radius:8px;border:1.5px solid #e2e8f0;font-size:.85rem;background:#f8fafc;box-sizing:border-box;font-family:monospace;color:#475569;">
+              </div>
+            </div>
+
+            <div style="display:flex;gap:.75rem;margin-top:1.25rem;">
+              <button onclick="document.getElementById('modalIngresoManualBodega').style.display='none'"
+                style="padding:.65rem 1.25rem;border-radius:10px;border:1.5px solid #e2e8f0;background:white;cursor:pointer;font-weight:600;color:#64748b;">Cancelar</button>
+              <button onclick="bodegaGuardarIngresoManual()"
+                style="flex:1;padding:.65rem;border-radius:10px;border:none;background:linear-gradient(135deg,#10b981,#059669);color:white;cursor:pointer;font-weight:700;font-size:.95rem;">
+                ✅ Registrar en Cámara
+              </button>
+            </div>
           </div>
         </div>
 
@@ -26175,10 +26274,104 @@ async function bodegaGuardarEditarStock() {
     );
 }
 
-    </script>
+// ================================================================
+// INGRESO MANUAL A CÁMARA
+// ================================================================
+function bodegaAbrirIngresoManual() {
+    // Poblar datalist con productos de OPs recientes
+    const dl = document.getElementById('imListaProductos');
+    if (dl) {
+        const prods = [...new Set([
+            ...ordenesProduccion.map(op => op.nombre),
+            ...bodegaStock.map(s => s.producto)
+        ].filter(Boolean))].sort();
+        dl.innerHTML = prods.map(p => `<option value="${p.toUpperCase()}">`).join('');
+    }
+    // Fecha de hoy por defecto
+    document.getElementById('imFecha').value = new Date().toISOString().split('T')[0];
+    // Limpiar campos
+    ['imProducto','imOP','imLote','imKg','imNBolsas','imCliente','imTemp','imCodigo'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.value = '';
+    });
+    document.getElementById('imFormato').value = '3kg';
+    document.getElementById('modalIngresoManualBodega').style.display = 'flex';
+    setTimeout(() => document.getElementById('imProducto').focus(), 150);
+}
 
-<!-- ============================================================ -->
-<!-- TAB: CONTROL ENVASADO Y PRODUCTO TERMINADO                   -->
+function imActualizarCodigo() {
+    const prod   = (document.getElementById('imProducto')?.value || '').replace(/[^a-zA-Z0-9]/g,'').toUpperCase().slice(0,12);
+    const lote   = document.getElementById('imLote')?.value || new Date().toISOString().split('T')[0].replace(/-/g,'');
+    const kg     = parseFloat(document.getElementById('imKg')?.value) || 0;
+    const op     = document.getElementById('imOP')?.value || 'OP000';
+    if (prod && kg > 0) {
+        const kgStr = Number.isInteger(kg) ? String(kg) : kg.toFixed(1).replace('.','_');
+        document.getElementById('imCodigo').value = `GF-${prod}-${lote}-${kgStr}-${op}`;
+    }
+}
+
+async function bodegaGuardarIngresoManual() {
+    const producto = document.getElementById('imProducto').value.trim().toUpperCase();
+    const kg       = parseFloat(document.getElementById('imKg').value);
+    if (!producto) { alert('Ingresa el nombre del producto'); return; }
+    if (!kg || kg <= 0) { alert('Ingresa los kg disponibles'); return; }
+
+    const lote    = document.getElementById('imLote').value.trim() || String(new Date().getDate()).padStart(3,'0');
+    const op      = document.getElementById('imOP').value.trim()   || 'MANUAL';
+    const nBolsas = parseInt(document.getElementById('imNBolsas').value) || Math.ceil(kg / 3);
+    const formato = document.getElementById('imFormato').value;
+    const cliente = document.getElementById('imCliente').value.trim().toUpperCase();
+    const fecha   = document.getElementById('imFecha').value || new Date().toISOString().split('T')[0];
+    const temp    = parseFloat(document.getElementById('imTemp').value) || null;
+
+    // Generar código igual que bodegaGenerarCodigo
+    const prod    = producto.replace(/[^a-zA-Z0-9]/g,'').toUpperCase().slice(0,12);
+    const kgNum   = parseFloat(kg);
+    const kgStr   = Number.isInteger(kgNum) ? String(kgNum) : kgNum.toFixed(1).replace('.','_');
+    const codigo  = `GF-${prod}-${lote}-${kgStr}-${op}`;
+
+    const id = 'MANUAL-' + Date.now();
+    bodegaStock.push({
+        id,
+        producto,
+        cliente,
+        lote,
+        codigo,
+        kg,
+        kgDisponible:  kg,
+        kgReservado:   0,
+        nBolsas,
+        numeroOP:      op,
+        opVinculadaId: null,
+        formato,
+        fechaIngreso:  new Date(fecha).toLocaleDateString('es-CL'),
+        horaIngreso:   new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'}),
+        tempSalida:    temp,
+        origen:        'manual',
+        estado:        'disponible',
+        creadoPor:     window._emailActual || 'manual'
+    });
+
+    // Registrar también como vale de ingreso
+    bodegaValesIngreso.unshift({
+        id:       'VI-' + Date.now(),
+        nVale:    'VI-M-' + Date.now().toString().slice(-5),
+        fecha:    new Date(fecha).toLocaleDateString('es-CL'),
+        fechaISO: fecha,
+        hora:     new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'}),
+        producto, cliente, lote, codigo, kg, nBolsas, formato,
+        numeroOP: op, tempSalida: temp,
+        origen:   'Ingreso manual',
+        operador: window._emailActual || 'manual'
+    });
+
+    await guardarBodega();
+    document.getElementById('modalIngresoManualBodega').style.display = 'none';
+    renderBodegaKPIs();
+    renderBodegaContenido();
+    mostrarNotificacion(`✅ ${producto} ingresado — ${kg.toFixed(1)} kg · ${nBolsas} bolsas`, 'success');
+}
+
+    </script>
 <!-- R-POE-03-GF-11                                               -->
 <!-- ============================================================ -->
 <div id="controlPT" class="tab-content">
