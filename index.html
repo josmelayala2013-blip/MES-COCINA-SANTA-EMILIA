@@ -20286,7 +20286,7 @@ ${d._ingredientes.map(ing => `<tr>
             if (!equipoId)  { alert('Selecciona un equipo'); return; }
             if (!operador)  { alert('Selecciona un operador'); return; }
 
-            const equipo = equipos.find(e => e.id === equipoId);
+            const equipo = equipos.find(e => String(e.id) === String(equipoId));
             if (!equipo || equipo.estado !== 'disponible') {
                 alert('El equipo seleccionado no está disponible'); return;
             }
