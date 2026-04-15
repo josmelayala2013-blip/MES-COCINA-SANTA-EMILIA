@@ -1576,20 +1576,21 @@
             <!-- PASO 2: Pistoleo de bolsas -->
             <div id="bodegaSalidaPaso2" style="display:none;">
               <div style="background:#f0fdf4;border-radius:10px;padding:.85rem;margin-bottom:1rem;border-left:4px solid #10b981;font-size:.85rem;color:#065f46;">
-                <strong>Paso 2 de 2</strong> — Pistolera cada bolsa una por una
+                <strong>Paso 2 de 2</strong> — Pistolera cada bolsa · el sistema acumula automáticamente · edita los kg al final
               </div>
 
-              <!-- Scanner -->
+              <!-- Scanner — optimizado para Enter de pistola Netum -->
               <div style="background:#fffbeb;border-radius:12px;padding:1rem;margin-bottom:1rem;border:2px dashed #f59e0b;">
                 <label style="font-weight:700;font-size:.85rem;color:#92400e;display:block;margin-bottom:.5rem;">🔫 Pistoleer bolsa</label>
                 <input type="text" id="bodegaScanInput" placeholder="Pistoleer aquí..."
-                  autofocus autocomplete="off"
-                  oninput="bodegaProcesarScan(this.value)"
-                  style="width:100%;padding:.75rem;border-radius:8px;border:2px solid #f59e0b;font-size:1rem;box-sizing:border-box;background:white;">
-                <div id="bodegaScanFeedback" style="margin-top:.5rem;font-size:.82rem;color:#92400e;"></div>
+                  autofocus autocomplete="off" spellcheck="false"
+                  onkeydown="if(event.key==='Enter'){event.preventDefault();bodegaProcesarScan(this.value);}"
+                  oninput="bodegaProcesarScanLive(this.value)"
+                  style="width:100%;padding:.75rem;border-radius:8px;border:2px solid #f59e0b;font-size:1rem;box-sizing:border-box;background:white;letter-spacing:1px;">
+                <div id="bodegaScanFeedback" style="margin-top:.5rem;font-size:.82rem;min-height:1.2em;"></div>
               </div>
 
-              <!-- Contador de bolsas escaneadas -->
+              <!-- Contador en tiempo real -->
               <div id="bodegaContadorBolsas" style="display:none;background:#f0fdf4;border-radius:12px;padding:1.25rem;margin-bottom:1rem;border:2px solid #10b981;">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
                   <div>
@@ -1601,25 +1602,25 @@
                     <div id="bodegaContDisp" style="font-weight:800;color:#10b981;font-size:1rem;"></div>
                   </div>
                 </div>
-                <!-- Bolsas escaneadas -->
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;text-align:center;">
+                <!-- Contadores grandes -->
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;text-align:center;margin-bottom:.75rem;">
                   <div style="background:white;border-radius:10px;padding:.75rem;border:2px solid #10b981;">
                     <div style="font-size:.72rem;font-weight:700;color:#065f46;">BOLSAS</div>
-                    <div id="bodegaContBolsas" style="font-size:2rem;font-weight:900;color:#10b981;">0</div>
+                    <div id="bodegaContBolsas" style="font-size:2.5rem;font-weight:900;color:#10b981;line-height:1.1;">0</div>
                   </div>
                   <div style="background:white;border-radius:10px;padding:.75rem;border:2px solid #0e7490;">
-                    <div style="font-size:.72rem;font-weight:700;color:#0e7490;">KG POR BOLSA</div>
-                    <div id="bodegaContKgBolsa" style="font-size:2rem;font-weight:900;color:#0e7490;">—</div>
+                    <div style="font-size:.72rem;font-weight:700;color:#0e7490;">KG ESTIMADO</div>
+                    <div id="bodegaContKgBolsa" style="font-size:2rem;font-weight:900;color:#0e7490;line-height:1.2;">—</div>
                   </div>
                   <div style="background:white;border-radius:10px;padding:.75rem;border:2px solid #7c3aed;">
                     <div style="font-size:.72rem;font-weight:700;color:#5b21b6;">TOTAL KG</div>
-                    <div id="bodegaContTotalKg" style="font-size:2rem;font-weight:900;color:#7c3aed;">0</div>
+                    <div id="bodegaContTotalKg" style="font-size:2.5rem;font-weight:900;color:#7c3aed;line-height:1.1;">0</div>
                   </div>
                 </div>
-                <!-- Alerta stock insuficiente -->
-                <div id="bodegaAlertaStock" style="display:none;background:#fee2e2;border-radius:8px;padding:.6rem .85rem;margin-top:.75rem;font-size:.82rem;color:#dc2626;font-weight:700;"></div>
-                <!-- Lista de bolsas escaneadas -->
-                <div id="bodegaListaBolsas" style="margin-top:.75rem;max-height:120px;overflow-y:auto;"></div>
+                <!-- Alerta stock -->
+                <div id="bodegaAlertaStock" style="display:none;background:#fee2e2;border-radius:8px;padding:.6rem .85rem;margin-bottom:.5rem;font-size:.82rem;color:#dc2626;font-weight:700;"></div>
+                <!-- Lista compacta de bolsas — scroll automático al último -->
+                <div id="bodegaListaBolsas" style="max-height:140px;overflow-y:auto;background:white;border-radius:8px;padding:.4rem;border:1px solid #e2e8f0;"></div>
               </div>
 
               <div style="display:flex;gap:.75rem;">
@@ -1629,7 +1630,7 @@
                 </button>
                 <button onclick="confirmarSalidaBodega()" id="btnConfirmarSalida" disabled
                   style="flex:1;padding:.85rem;background:#cbd5e1;color:white;border:none;border-radius:12px;font-weight:700;cursor:not-allowed;font-size:.95rem;">
-                  ✅ Confirmar Salida y Generar Vale
+                  ✅ Listo — Revisar y Generar Vale
                 </button>
               </div>
             </div>
@@ -20860,87 +20861,127 @@ function renderBodegaSalidas(el) {
 }
 
 let _bodegaScanBuffer = '';
-let _bodegaScanTimer = null;
+let _bodegaScanTimer  = null;
 
+// ── Live: detecta cuando la pistola termina de enviar (pausa > 80ms) ──
+function bodegaProcesarScanLive(valor) {
+    clearTimeout(_bodegaScanTimer);
+    if (!valor || valor.length < 3) return;
+    // Si el código parece completo (largo suficiente), procesar tras pausa breve
+    _bodegaScanTimer = setTimeout(() => {
+        const input = document.getElementById('bodegaScanInput');
+        if (input && input.value.trim() === valor.trim()) {
+            bodegaProcesarScan(valor);
+        }
+    }, 120);
+}
+
+// ── Procesar código — se llama por Enter (pistola) o por live timer ──
 function bodegaProcesarScan(valor) {
     clearTimeout(_bodegaScanTimer);
-    _bodegaScanTimer = setTimeout(() => {
-        if (!valor || valor.length < 3) return;
-        const codigo = valor.trim();
-        document.getElementById('bodegaScanInput').value = '';
+    const input = document.getElementById('bodegaScanInput');
+    if (!valor || valor.length < 3) return;
+    const codigo = valor.trim();
 
-        const resultado = bodegaBuscarPorCodigo(codigo);
-        if (!resultado) {
-            document.getElementById('bodegaScanFeedback').innerHTML =
-                `<span style="color:#ef4444;">❌ Código no encontrado: ${codigo}</span>`;
-            return;
-        }
+    // Limpiar campo inmediatamente para la siguiente bolsa
+    if (input) { input.value = ''; input.focus(); }
 
-        // Primera bolsa escaneada — inicializa la sesión
-        if (!_bodegaSesionSalida.item) {
-            _bodegaSesionSalida.item = resultado;
-            // Determinar kg por bolsa desde el formato guardado
-            const fmtNum = parseFloat(resultado.formato);
-            _bodegaSesionSalida.kgPorBolsa = (!isNaN(fmtNum) && fmtNum > 0) ? fmtNum : parseFloat(resultado.kg) || 3;
-            document.getElementById('bodegaContadorBolsas').style.display = 'block';
-            document.getElementById('bodegaContProd').textContent = resultado.producto;
-            document.getElementById('bodegaContKgBolsa').textContent = _bodegaSesionSalida.kgPorBolsa + ' kg';
-        }
+    const resultado = bodegaBuscarPorCodigo(codigo);
+    if (!resultado) {
+        _bodegaMostrarFeedback(`❌ Código no encontrado: ${codigo}`, '#ef4444');
+        return;
+    }
 
-        // Verificar que es el mismo producto
-        if (_bodegaSesionSalida.item.id !== resultado.id) {
-            document.getElementById('bodegaScanFeedback').innerHTML =
-                `<span style="color:#ef4444;">⚠️ Bolsa de producto distinto. Esta sesión es solo para <strong>${_bodegaSesionSalida.item.producto}</strong></span>`;
-            return;
-        }
+    // Primera bolsa — inicializar sesión
+    if (!_bodegaSesionSalida.item) {
+        _bodegaSesionSalida.item = resultado;
+        const fmtNum = parseFloat(resultado.formato);
+        _bodegaSesionSalida.kgPorBolsa = (!isNaN(fmtNum) && fmtNum > 0) ? fmtNum : parseFloat(resultado.kg) || 3;
+        const cont = document.getElementById('bodegaContadorBolsas');
+        if (cont) cont.style.display = 'block';
+        const elProd = document.getElementById('bodegaContProd');
+        if (elProd) elProd.textContent = resultado.producto;
+        const elKg = document.getElementById('bodegaContKgBolsa');
+        if (elKg) elKg.textContent = _bodegaSesionSalida.kgPorBolsa + ' kg';
+    }
 
-        // Verificar que no supera el stock disponible
-        const kgAcum = _bodegaSesionSalida.bolsas.length * _bodegaSesionSalida.kgPorBolsa;
-        const kgSiguiente = kgAcum + _bodegaSesionSalida.kgPorBolsa;
-        const disponible = resultado.kgDisponible || 0;
+    // Verificar mismo producto
+    if (_bodegaSesionSalida.item.id !== resultado.id) {
+        _bodegaMostrarFeedback(`⚠️ Producto distinto — esta sesión es solo para ${_bodegaSesionSalida.item.producto}`, '#f59e0b');
+        return;
+    }
 
-        if (kgSiguiente > disponible + 0.01) {
-            document.getElementById('bodegaAlertaStock').style.display = 'block';
-            document.getElementById('bodegaAlertaStock').textContent =
-                `⛔ BLOQUEADO — Solo hay ${disponible.toFixed(1)} kg disponibles. No puedes escanear más bolsas.`;
-            document.getElementById('bodegaScanFeedback').innerHTML =
-                `<span style="color:#ef4444;">⛔ Stock insuficiente para otra bolsa</span>`;
-            return;
-        }
+    // Verificar stock
+    const kgAcum     = _bodegaSesionSalida.bolsas.reduce((s, b) => s + b.kg, 0);
+    const kgSiguiente = kgAcum + _bodegaSesionSalida.kgPorBolsa;
+    const disponible  = resultado.kgDisponible || 0;
 
-        // Registrar bolsa
-        const nBolsa = _bodegaSesionSalida.bolsas.length + 1;
-        _bodegaSesionSalida.bolsas.push({ codigo, kg: _bodegaSesionSalida.kgPorBolsa, n: nBolsa });
+    if (kgSiguiente > disponible + 0.01) {
+        const el = document.getElementById('bodegaAlertaStock');
+        if (el) { el.style.display = 'block'; el.textContent = `⛔ BLOQUEADO — Solo hay ${disponible.toFixed(1)} kg disponibles`; }
+        _bodegaMostrarFeedback('⛔ Stock insuficiente', '#ef4444');
+        return;
+    }
 
-        // Actualizar contadores
-        const totalBolsas = _bodegaSesionSalida.bolsas.length;
-        const totalKg = totalBolsas * _bodegaSesionSalida.kgPorBolsa;
-        document.getElementById('bodegaContBolsas').textContent = totalBolsas;
-        document.getElementById('bodegaContTotalKg').textContent = totalKg.toFixed(1);
-        document.getElementById('bodegaContDisp').textContent = `${(disponible - totalKg).toFixed(1)} kg restantes`;
-        document.getElementById('bodegaScanFeedback').innerHTML =
-            `<span style="color:#10b981;">✅ Bolsa ${nBolsa} registrada — ${_bodegaSesionSalida.kgPorBolsa} kg</span>`;
+    // ── Registrar bolsa ──
+    const nBolsa = _bodegaSesionSalida.bolsas.length + 1;
+    _bodegaSesionSalida.bolsas.push({ codigo, kg: _bodegaSesionSalida.kgPorBolsa, n: nBolsa });
 
-        // Lista de bolsas
-        document.getElementById('bodegaListaBolsas').innerHTML = _bodegaSesionSalida.bolsas.map(b =>
-            `<div style="display:flex;justify-content:space-between;padding:.3rem .5rem;border-radius:6px;background:${b.n%2===0?'#f0fdf4':'white'};font-size:.78rem;">
-                <span style="color:#065f46;font-weight:700;">Bolsa ${b.n}</span>
-                <span style="color:#0e7490;font-weight:700;">${b.kg} kg</span>
-                <span style="color:#94a3b8;font-size:.72rem;">${b.codigo.slice(0,20)}…</span>
-            </div>`
-        ).join('');
+    // Actualizar contadores
+    const totalBolsas = _bodegaSesionSalida.bolsas.length;
+    const totalKg     = _bodegaSesionSalida.bolsas.reduce((s, b) => s + b.kg, 0);
 
-        // Habilitar botón confirmar
-        document.getElementById('btnConfirmarSalida').disabled = false;
-        document.getElementById('btnConfirmarSalida').style.background = 'linear-gradient(135deg,#f59e0b,#d97706)';
-        document.getElementById('btnConfirmarSalida').style.cursor = 'pointer';
+    const elB = document.getElementById('bodegaContBolsas');
+    const elT = document.getElementById('bodegaContTotalKg');
+    const elD = document.getElementById('bodegaContDisp');
+    if (elB) elB.textContent = totalBolsas;
+    if (elT) elT.textContent = totalKg.toFixed(1);
+    if (elD) elD.textContent = `${(disponible - totalKg).toFixed(1)} kg restantes`;
 
-        // Ocultar alerta de stock si existía
-        document.getElementById('bodegaAlertaStock').style.display = 'none';
+    // Feedback visual instantáneo (verde con flash)
+    _bodegaMostrarFeedback(`✅ Bolsa ${nBolsa} — ${_bodegaSesionSalida.kgPorBolsa} kg`, '#10b981', true);
 
-        // Re-enfocar el campo para la siguiente bolsa
-        setTimeout(() => document.getElementById('bodegaScanInput').focus(), 100);
-    }, 250);
+    // Lista compacta — solo agrega la última fila sin re-renderizar todo
+    const lista = document.getElementById('bodegaListaBolsas');
+    if (lista) {
+        const fila = document.createElement('div');
+        fila.style.cssText = `display:flex;justify-content:space-between;align-items:center;
+            padding:.28rem .5rem;border-radius:5px;font-size:.78rem;
+            background:${nBolsa%2===0?'#f0fdf4':'white'};`;
+        fila.innerHTML = `
+            <span style="color:#065f46;font-weight:800;min-width:52px;">Bolsa ${nBolsa}</span>
+            <span style="color:#7c3aed;font-weight:700;">${_bodegaSesionSalida.kgPorBolsa} kg</span>
+            <span style="color:#94a3b8;font-size:.7rem;">${codigo.slice(0,22)}</span>`;
+        lista.appendChild(fila);
+        lista.scrollTop = lista.scrollHeight; // scroll al último
+    }
+
+    // Habilitar botón
+    const btn = document.getElementById('btnConfirmarSalida');
+    if (btn) {
+        btn.disabled = false;
+        btn.style.background = 'linear-gradient(135deg,#10b981,#059669)';
+        btn.style.cursor = 'pointer';
+    }
+
+    const alerta = document.getElementById('bodegaAlertaStock');
+    if (alerta) alerta.style.display = 'none';
+}
+
+// ── Feedback visual con flash verde ──
+function _bodegaMostrarFeedback(msg, color, flash) {
+    const el = document.getElementById('bodegaScanFeedback');
+    if (!el) return;
+    el.innerHTML = `<span style="color:${color};font-weight:700;">${msg}</span>`;
+    if (flash) {
+        el.style.transition = 'opacity .05s';
+        el.style.opacity = '1';
+        clearTimeout(el._fadeTimer);
+        el._fadeTimer = setTimeout(() => {
+            el.style.transition = 'opacity .6s';
+            el.style.opacity = '0.4';
+        }, 600);
+    }
 }
 
 function _normalizarCodigo(codigo) {
