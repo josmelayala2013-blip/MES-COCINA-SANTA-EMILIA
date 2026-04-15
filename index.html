@@ -4767,6 +4767,23 @@ function abrirRegistroHACCPAbatimiento(index) {
         </div>
       </div>
 
+      ${proceso.esAgrupado && proceso.componentesAgrupados?.length > 1 ? `
+      <div style="background:#faf5ff;border-radius:10px;padding:.85rem 1rem;margin-bottom:1rem;border:1.5px solid #c4b5fd;">
+        <div style="font-size:.75rem;font-weight:700;color:#0e7490;margin-bottom:.6rem;">📋 DESGLOSE POR ORDEN DE PRODUCCIÓN — Componentes Agrupados</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:.45rem;">
+          ${proceso.componentesAgrupados.map(c => `
+            <div style="background:white;border-radius:8px;padding:.45rem .7rem;border:1px solid #a5f3fc;">
+              <div style="font-size:.72rem;color:#0e7490;font-weight:700;">OP ${c.opNumero}</div>
+              <div style="font-size:.82rem;font-weight:700;color:#1e293b;">${c.nombre}</div>
+              <div style="font-size:.78rem;color:#10b981;font-weight:700;">${c.kg.toFixed(1)} kg</div>
+              <div style="font-size:.72rem;color:#64748b;">${c.opNombre||''}</div>
+            </div>`).join('')}
+        </div>
+        <div style="margin-top:.5rem;font-size:.78rem;color:#0e7490;font-weight:600;">
+          Total agrupado: ${proceso.componentesAgrupados.reduce((s,c)=>s+c.kg,0).toFixed(1)} kg · ${proceso.componentesAgrupados.length} componente(s)
+        </div>
+      </div>` : ''}
+
       <!-- Fila ingreso -->
       <div style="background:#fafafa;border-radius:10px;padding:1rem;border:1px solid #e2e8f0;margin-bottom:1rem;">
         <div style="font-size:.78rem;font-weight:700;color:#0e7490;margin-bottom:.75rem;">DATOS DE INGRESO AL ABATIDOR</div>
@@ -5293,6 +5310,25 @@ function abrirRegistroHACCPEnvasado(index) {
         <span style="font-size:.9rem;font-weight:800;color:#1e293b;margin-left:.5rem;">${proceso.producto}</span>
         <span style="margin-left:1rem;font-size:.78rem;color:#64748b;">OP: <strong>${proceso.numeroOP}</strong> · Equipo origen: <strong>${proceso.equipoNombre}</strong></span>
       </div>
+
+      ${proceso.esAgrupado && proceso.componentesAgrupados?.length > 1 ? `
+      <!-- Desglose de OPs agrupadas -->
+      <div style="background:#faf5ff;border-radius:10px;padding:.85rem 1rem;margin-bottom:1rem;border:1.5px solid #c4b5fd;">
+        <div style="font-size:.75rem;font-weight:700;color:#5b21b6;margin-bottom:.6rem;">📦 DESGLOSE POR ORDEN DE PRODUCCIÓN — Componentes Agrupados</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.5rem;">
+          ${proceso.componentesAgrupados.map(c => `
+            <div style="background:white;border-radius:8px;padding:.5rem .75rem;border:1px solid #ddd8fe;">
+              <div style="font-size:.72rem;color:#7c3aed;font-weight:700;">OP ${c.opNumero}</div>
+              <div style="font-size:.82rem;font-weight:700;color:#1e293b;">${c.nombre}</div>
+              <div style="font-size:.78rem;color:#10b981;font-weight:700;">${c.kg.toFixed(1)} kg</div>
+              <div style="font-size:.72rem;color:#64748b;">${c.opNombre||''}</div>
+            </div>
+          `).join('')}
+        </div>
+        <div style="margin-top:.6rem;font-size:.78rem;color:#5b21b6;font-weight:600;">
+          Total agrupado: ${proceso.componentesAgrupados.reduce((s,c) => s+c.kg, 0).toFixed(1)} kg en ${proceso.componentesAgrupados.length} componente(s)
+        </div>
+      </div>` : ''}
 
       <!-- Control de proceso (5) -->
       <div style="background:#fafafa;border-radius:10px;padding:1rem;border:1px solid #e2e8f0;margin-bottom:1rem;">
@@ -8029,6 +8065,18 @@ function imprimirRegistroHACCP(d) {
                     Ya envasado: <strong>${kgEnvasados.toFixed(1)} kg</strong> ·
                     Pendiente: <strong style="color:#dc2626;">${kgPendientes.toFixed(1)} kg</strong>
                 </div>
+                ${proceso.esAgrupado && proceso.componentesAgrupados?.length > 1 ? `
+                <div style="background:#faf5ff;border-radius:8px;padding:.7rem .85rem;margin-bottom:1.1rem;border:1.5px solid #c4b5fd;">
+                    <div style="font-size:.72rem;font-weight:700;color:#5b21b6;margin-bottom:.5rem;">📋 Desglose por OP — componentes agrupados</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:.4rem;">
+                        ${proceso.componentesAgrupados.map(c => `
+                            <div style="background:white;border-radius:6px;padding:.3rem .65rem;border:1px solid #ddd8fe;font-size:.78rem;">
+                                <span style="font-weight:700;color:#7c3aed;">OP ${c.opNumero}</span>
+                                <span style="color:#1e293b;margin-left:.3rem;">${c.nombre}</span>
+                                <span style="color:#10b981;font-weight:700;margin-left:.3rem;">${c.kg.toFixed(1)} kg</span>
+                            </div>`).join('')}
+                    </div>
+                </div>` : ''}
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
                     <div>
                         <label style="font-size:.82rem;font-weight:700;color:#5b21b6;display:block;margin-bottom:.3rem;">👤 Operadora</label>
@@ -8525,6 +8573,21 @@ function imprimirRegistroHACCP(d) {
                         <strong>Tiempo de Abatimiento:</strong> ${tiempoAbatimiento}
                     </div>
                 </div>
+                ${proceso.esAgrupado && proceso.componentesAgrupados?.length > 1 ? `
+                <div style="background:#faf5ff;border-radius:8px;padding:.7rem .85rem;margin-top:.6rem;border:1.5px solid #c4b5fd;">
+                    <div style="font-size:.72rem;font-weight:700;color:#5b21b6;margin-bottom:.5rem;">📋 Desglose por OP — componentes agrupados</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:.4rem;">
+                        ${proceso.componentesAgrupados.map(c => `
+                            <div style="background:white;border-radius:6px;padding:.3rem .65rem;border:1px solid #ddd8fe;font-size:.78rem;">
+                                <span style="font-weight:700;color:#7c3aed;">OP ${c.opNumero}</span>
+                                <span style="color:#1e293b;margin-left:.3rem;">${c.nombre}</span>
+                                <span style="color:#10b981;font-weight:700;margin-left:.3rem;">${c.kg.toFixed(1)} kg</span>
+                            </div>`).join('')}
+                    </div>
+                    <div style="margin-top:.4rem;font-size:.75rem;color:#5b21b6;font-weight:600;">
+                        Total: ${proceso.componentesAgrupados.reduce((s,c)=>s+c.kg,0).toFixed(1)} kg en ${proceso.componentesAgrupados.length} componente(s)
+                    </div>
+                </div>` : ''}
             `;
 
             openModal('finalizarAbatimiento');
