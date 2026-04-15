@@ -706,16 +706,16 @@
                 </button>
                 <div class="nav-dropdown-menu" id="menuGestion">
                     <div style="font-size:.7rem;color:#94a3b8;padding:.3rem 1rem .1rem;font-weight:600;text-transform:uppercase;">Productos y Recetas</div>
-                    <button class="nav-dropdown-item" onclick="changeTab('recetas',this);cerrarDropdownGestion()">📋 Recetas</button>
-                    <button class="nav-dropdown-item" onclick="changeTab('productos',this);cerrarDropdownGestion()">🍽️ Productos</button>
+                    <button class="nav-dropdown-item" data-modulo="recetas" onclick="changeTab('recetas',this);cerrarDropdownGestion()">📋 Recetas</button>
+                    <button class="nav-dropdown-item" data-modulo="productos" onclick="changeTab('productos',this);cerrarDropdownGestion()">🍽️ Productos</button>
                     <div style="border-top:1px solid #e2e8f0;margin:.25rem 0;"></div>
                     <div style="font-size:.7rem;color:#94a3b8;padding:.3rem 1rem .1rem;font-weight:600;text-transform:uppercase;">Inventario y Bodega</div>
-                    <button class="nav-dropdown-item" onclick="changeTab('bodega',this);cerrarDropdownGestion()">🏭 Bodega</button>
-                    <button class="nav-dropdown-item" onclick="changeTab('materiasprimas',this);cerrarDropdownGestion()">🌾 Control MP</button>
+                    <button class="nav-dropdown-item" data-modulo="bodega" onclick="changeTab('bodega',this);cerrarDropdownGestion()">🏭 Bodega</button>
+                    <button class="nav-dropdown-item" data-modulo="materiasprimas" onclick="changeTab('materiasprimas',this);cerrarDropdownGestion()">🌾 Control MP</button>
                     <div style="border-top:1px solid #e2e8f0;margin:.25rem 0;"></div>
                     <div style="font-size:.7rem;color:#94a3b8;padding:.3rem 1rem .1rem;font-weight:600;text-transform:uppercase;">Etiquetas y Personal</div>
-                    <button class="nav-dropdown-item" onclick="changeTab('etiquetas',this);cerrarDropdownGestion()">🏷️ Etiquetas</button>
-                    <button class="nav-dropdown-item" onclick="changeTab('personal',this);cerrarDropdownGestion()">👥 Personal</button>
+                    <button class="nav-dropdown-item" data-modulo="etiquetas" onclick="changeTab('etiquetas',this);cerrarDropdownGestion()">🏷️ Etiquetas</button>
+                    <button class="nav-dropdown-item" data-modulo="personal" onclick="changeTab('personal',this);cerrarDropdownGestion()">👥 Personal</button>
                 </div>
             </div>
 
@@ -19735,12 +19735,28 @@ ${d._ingredientes.map(ing => `<tr>
             const rol = getRol(email);
             const permitidos = PERMISOS[rol] || [];
 
-            // Ocultar/mostrar botones del menú según permisos
+            // 1. Ocultar/mostrar tabs del menú principal y dropdowns completos
             document.querySelectorAll('.nav-tab[data-modulo], .nav-dropdown[data-modulo]').forEach(el => {
                 const modulo = el.getAttribute('data-modulo');
                 if (!modulo) return;
                 el.style.display = permitidos.includes(modulo) ? '' : 'none';
             });
+
+            // 2. Filtrar items individuales DENTRO del dropdown Gestión
+            document.querySelectorAll('.nav-dropdown-item[data-modulo]').forEach(el => {
+                const modulo = el.getAttribute('data-modulo');
+                el.style.display = permitidos.includes(modulo) ? '' : 'none';
+            });
+
+            // 3. Si todos los items del dropdown Gestión quedan ocultos → ocultar el dropdown completo
+            //    Si al menos uno es visible → mostrar el dropdown (aunque data-modulo="gestion" no esté en permisos)
+            const menuGestion = document.getElementById('menuGestion');
+            const dropGestion = document.getElementById('dropdownGestion');
+            if (menuGestion && dropGestion) {
+                const hayItemsVisibles = [...menuGestion.querySelectorAll('.nav-dropdown-item[data-modulo]')]
+                    .some(el => el.style.display !== 'none');
+                dropGestion.style.display = hayItemsVisibles ? '' : 'none';
+            }
 
             // Guardar email actual para verificaciones posteriores
             window._emailActual = email;
