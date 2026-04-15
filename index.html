@@ -703,16 +703,16 @@
                 </button>
                 <div class="nav-dropdown-menu" id="menuGestion">
                     <div style="font-size:.7rem;color:#94a3b8;padding:.3rem 1rem .1rem;font-weight:600;text-transform:uppercase;">Productos y Recetas</div>
-                    <button class="nav-dropdown-item" data-modulo="recetas" onclick="changeTab('recetas',this);cerrarDropdownGestion()">📋 Recetas</button>
-                    <button class="nav-dropdown-item" data-modulo="productos" onclick="changeTab('productos',this);cerrarDropdownGestion()">🍽️ Productos</button>
+                    <button class="nav-dropdown-item" onclick="changeTab('recetas',this);cerrarDropdownGestion()">📋 Recetas</button>
+                    <button class="nav-dropdown-item" onclick="changeTab('productos',this);cerrarDropdownGestion()">🍽️ Productos</button>
                     <div style="border-top:1px solid #e2e8f0;margin:.25rem 0;"></div>
                     <div style="font-size:.7rem;color:#94a3b8;padding:.3rem 1rem .1rem;font-weight:600;text-transform:uppercase;">Inventario y Bodega</div>
-                    <button class="nav-dropdown-item" data-modulo="bodega" onclick="changeTab('bodega',this);cerrarDropdownGestion()">🏭 Bodega</button>
-                    <button class="nav-dropdown-item" data-modulo="materiasprimas" onclick="changeTab('materiasprimas',this);cerrarDropdownGestion()">🌾 Control MP</button>
+                    <button class="nav-dropdown-item" onclick="changeTab('bodega',this);cerrarDropdownGestion()">🏭 Bodega</button>
+                    <button class="nav-dropdown-item" onclick="changeTab('materiasprimas',this);cerrarDropdownGestion()">🌾 Control MP</button>
                     <div style="border-top:1px solid #e2e8f0;margin:.25rem 0;"></div>
                     <div style="font-size:.7rem;color:#94a3b8;padding:.3rem 1rem .1rem;font-weight:600;text-transform:uppercase;">Etiquetas y Personal</div>
-                    <button class="nav-dropdown-item" data-modulo="etiquetas" onclick="changeTab('etiquetas',this);cerrarDropdownGestion()">🏷️ Etiquetas</button>
-                    <button class="nav-dropdown-item" data-modulo="personal" onclick="changeTab('personal',this);cerrarDropdownGestion()">👥 Personal</button>
+                    <button class="nav-dropdown-item" onclick="changeTab('etiquetas',this);cerrarDropdownGestion()">🏷️ Etiquetas</button>
+                    <button class="nav-dropdown-item" onclick="changeTab('personal',this);cerrarDropdownGestion()">👥 Personal</button>
                 </div>
             </div>
 
@@ -19351,26 +19351,12 @@ ${d._ingredientes.map(ing => `<tr>
             const rol = getRol(email);
             const permitidos = PERMISOS[rol] || [];
 
-            // Ocultar/mostrar botones del menú superior según permisos
+            // Ocultar/mostrar botones del menú según permisos
             document.querySelectorAll('.nav-tab[data-modulo], .nav-dropdown[data-modulo]').forEach(el => {
                 const modulo = el.getAttribute('data-modulo');
                 if (!modulo) return;
                 el.style.display = permitidos.includes(modulo) ? '' : 'none';
             });
-
-            // Ocultar/mostrar items DENTRO de los dropdowns según permisos
-            document.querySelectorAll('.nav-dropdown-item[data-modulo]').forEach(el => {
-                const modulo = el.getAttribute('data-modulo');
-                el.style.display = permitidos.includes(modulo) ? '' : 'none';
-            });
-
-            // Si el dropdown Gestión queda con todos sus items ocultos, ocultarlo también
-            const menuGestion = document.getElementById('menuGestion');
-            if (menuGestion) {
-                const itemsVisibles = menuGestion.querySelectorAll('.nav-dropdown-item[data-modulo]:not([style*="display: none"]):not([style*="display:none"])');
-                const dropGestion = document.getElementById('dropdownGestion');
-                if (dropGestion) dropGestion.style.display = itemsVisibles.length > 0 ? '' : 'none';
-            }
 
             // Guardar email actual para verificaciones posteriores
             window._emailActual = email;
@@ -20577,12 +20563,55 @@ function _normalizarCodigo(codigo) {
 
 function bodegaBuscarPorCodigo(codigo) {
     const codigoNorm = _normalizarCodigo(codigo);
-    return bodegaStock.find(s => {
+
+    // Búsqueda 1 — coincidencia exacta (normalizada)
+    const exacto = bodegaStock.find(s => {
         const stockNorm = _normalizarCodigo(s.codigo);
         return stockNorm === codigoNorm &&
                s.estado !== 'agotado' &&
                (s.kgDisponible || 0) > 0;
-    }) || null;
+    });
+    if (exacto) return exacto;
+
+    // Búsqueda 2 — coincidencia por partes del código GF-PRODUCTO-LOTE-...-OP
+    // Útil cuando kg en etiqueta difiere del guardado (ej: "3" vs "3.0" vs "3_0")
+    if (codigoNorm.startsWith('GF-')) {
+        const partes = codigoNorm.split('-');
+        // Mínimo necesario: GF + producto + lote + op (4 partes)
+        if (partes.length >= 4) {
+            const prod   = partes[1];                        // DESMECHADAAT
+            const lote   = partes[2];                        // 104
+            const opPart = partes[partes.length - 1];        // 944 (última parte = OP)
+
+            const porPartes = bodegaStock.find(s => {
+                if (s.estado === 'agotado' || (s.kgDisponible || 0) <= 0) return false;
+                const sNorm  = _normalizarCodigo(s.codigo);
+                const sParts = sNorm.split('-');
+                if (sParts.length < 4) return false;
+                return sParts[1] === prod &&          // mismo producto
+                       sParts[2] === lote &&          // mismo lote
+                       sParts[sParts.length - 1] === opPart; // misma OP
+            });
+            if (porPartes) return porPartes;
+        }
+    }
+
+    // Búsqueda 3 — coincidencia por producto + OP (fallback más amplio)
+    if (codigoNorm.startsWith('GF-')) {
+        const partes = codigoNorm.split('-');
+        if (partes.length >= 3) {
+            const prod   = partes[1];
+            const opPart = partes[partes.length - 1];
+            return bodegaStock.find(s => {
+                if (s.estado === 'agotado' || (s.kgDisponible || 0) <= 0) return false;
+                const sNorm  = _normalizarCodigo(s.codigo);
+                const sParts = sNorm.split('-');
+                return sParts[1] === prod && sParts[sParts.length - 1] === opPart;
+            }) || null;
+        }
+    }
+
+    return null;
 }
 
 function mostrarProductoDetectado(s) {
