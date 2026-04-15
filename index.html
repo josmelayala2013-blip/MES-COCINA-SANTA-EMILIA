@@ -21291,12 +21291,46 @@ function _normalizarCodigo(codigo) {
 
 function bodegaBuscarPorCodigo(codigo) {
     const codigoNorm = _normalizarCodigo(codigo);
-    return bodegaStock.find(s => {
-        const stockNorm = _normalizarCodigo(s.codigo);
-        return stockNorm === codigoNorm &&
-               s.estado !== 'agotado' &&
-               (s.kgDisponible || 0) > 0;
-    }) || null;
+
+    // Nivel 1 — coincidencia exacta normalizada
+    const exacto = bodegaStock.find(s => {
+        const n = _normalizarCodigo(s.codigo);
+        return n === codigoNorm && s.estado !== 'agotado' && (s.kgDisponible||0) > 0;
+    });
+    if (exacto) return exacto;
+
+    // Nivel 2 — por partes: GF-PRODUCTO-LOTE-...-OP (ignora el campo kg)
+    if (codigoNorm.startsWith('GF-')) {
+        const partes = codigoNorm.split('-');
+        if (partes.length >= 4) {
+            const prod   = partes[1];
+            const lote   = partes[2];
+            const opPart = partes[partes.length - 1];
+            const porPartes = bodegaStock.find(s => {
+                if (s.estado === 'agotado' || (s.kgDisponible||0) <= 0) return false;
+                const sp = _normalizarCodigo(s.codigo).split('-');
+                if (sp.length < 4) return false;
+                return sp[1] === prod && sp[2] === lote && sp[sp.length-1] === opPart;
+            });
+            if (porPartes) return porPartes;
+        }
+    }
+
+    // Nivel 3 — fallback: producto + OP (ignora lote y kg)
+    if (codigoNorm.startsWith('GF-')) {
+        const partes = codigoNorm.split('-');
+        if (partes.length >= 3) {
+            const prod   = partes[1];
+            const opPart = partes[partes.length - 1];
+            return bodegaStock.find(s => {
+                if (s.estado === 'agotado' || (s.kgDisponible||0) <= 0) return false;
+                const sp = _normalizarCodigo(s.codigo).split('-');
+                return sp[1] === prod && sp[sp.length-1] === opPart;
+            }) || null;
+        }
+    }
+
+    return null;
 }
 
 function mostrarProductoDetectado(s) {
@@ -21535,6 +21569,25 @@ async function generarValeDefinitivo() {
         return;
     }
 
+    // ── Si hay ajuste de excedente, calcular entrega real ──
+    let kgEntregaReal = totalKg;
+    const ajuste = window._excedenteAjuste;
+    if (ajuste && ajuste.opNecesidades) {
+        // Para cada componente con saldo, descontar de lineasStock
+        ajuste.opNecesidades.forEach(c => {
+            const saldoIdx = lineasStock.findIndex(s =>
+                s.producto.trim().toUpperCase() === c.nombre.trim().toUpperCase() &&
+                s.linea === ajuste.linea
+            );
+            if (saldoIdx !== -1) {
+                const usar = Math.min(lineasStock[saldoIdx].kg, c.saldoLinea);
+                lineasStock[saldoIdx].kg = Math.max(0, lineasStock[saldoIdx].kg - usar);
+                if (lineasStock[saldoIdx].kg <= 0) lineasStock.splice(saldoIdx, 1);
+            }
+        });
+        window._excedenteAjuste = null;
+    }
+
     const vale = {
         id:          Date.now().toString(),
         nVale:       'VS-' + Date.now().toString().slice(-6),
@@ -21546,7 +21599,7 @@ async function generarValeDefinitivo() {
         codigo:      sesion.item.codigo,
         kg:          totalKg,
         nBolsas,
-        kgPorBolsa:  sesion.kgPorBolsa,  // kg estimado original
+        kgPorBolsa:  sesion.kgPorBolsa,
         desgloseBolsas: sesion.bolsas.map(b => ({ n: b.n, kg: b.kg, codigo: b.codigo })),
         lineaDestino: linea,
         opOrigen:    sesion.item.numeroOP,
@@ -21555,12 +21608,41 @@ async function generarValeDefinitivo() {
         stockIdOrigen: sesion.item.id
     };
 
-    // Descontar del stock el total REAL (suma de kg editados)
+    // ── Descontar de stock abatimiento ──
     const idx = bodegaStock.findIndex(s => s.id === sesion.item.id);
     if (idx !== -1) {
         bodegaStock[idx].kgDisponible = Math.max(0, bodegaStock[idx].kgDisponible - totalKg);
         if (bodegaStock[idx].kgDisponible <= 0) bodegaStock[idx].estado = 'agotado';
         bodegaStock[idx].nBolsas = Math.max(0, (bodegaStock[idx].nBolsas || 0) - nBolsas);
+    }
+
+    // ── Sumar en Bodega Líneas de Envasado ──
+    if (linea && linea !== 'otro') {
+        const existente = lineasStock.find(s =>
+            s.producto.trim().toUpperCase() === producto.trim().toUpperCase() &&
+            s.linea === linea
+        );
+        if (existente) {
+            existente.kg     = Math.round((existente.kg + totalKg) * 100) / 100;
+            existente.bolsas = (existente.bolsas || 0) + nBolsas;
+            existente.fecha  = vale.fecha;
+            existente.opOrigen = opDest || sesion.item.numeroOP;
+        } else {
+            lineasStock.push({
+                id:       'LIN-' + Date.now(),
+                producto,
+                linea,
+                kg:       totalKg,
+                bolsas:   nBolsas,
+                formato:  sesion.item.formato || '3kg',
+                opOrigen: opDest || sesion.item.numeroOP,
+                fecha:    vale.fecha,
+                fechaISO: vale.fechaISO,
+                hora:     vale.hora,
+                notas:    `Entregado desde bodega abatimiento · Vale ${vale.nVale}`,
+                creadoPor: operador
+            });
+        }
     }
 
     bodegaValesSalida.unshift(vale);
