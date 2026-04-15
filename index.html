@@ -1639,11 +1639,11 @@
 
         <!-- MODAL: REVISIÓN EDITABLE ANTES DE GENERAR VALE -->
         <div id="modalRevisionVale" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.75);z-index:10000;overflow-y:auto;">
-          <div style="background:white;border-radius:20px;padding:2rem;max-width:560px;width:90%;margin:2rem auto;box-shadow:0 25px 60px rgba(0,0,0,.5);border-top:6px solid #10b981;">
+          <div style="background:white;border-radius:20px;padding:2rem;max-width:600px;width:92%;margin:2rem auto;box-shadow:0 25px 60px rgba(0,0,0,.5);border-top:6px solid #10b981;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
               <div>
                 <h2 style="color:#065f46;margin:0;font-size:1.1rem;">📋 Revisar antes de confirmar</h2>
-                <div style="font-size:.8rem;color:#64748b;margin-top:.2rem;">Verifica y corrige si hay algún error</div>
+                <div style="font-size:.8rem;color:#64748b;margin-top:.2rem;">Edita el kg real de cada bolsa si hay diferencia — el total se recalcula solo</div>
               </div>
               <button onclick="document.getElementById('modalRevisionVale').style.display='none'"
                 style="background:#f1f5f9;border:none;border-radius:8px;padding:.4rem .7rem;cursor:pointer;font-size:1.1rem;">✕</button>
@@ -1659,18 +1659,14 @@
                 <input type="text" id="revCliente" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;font-size:.9rem;font-weight:700;box-sizing:border-box;text-transform:uppercase;">
               </div>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;margin-bottom:.75rem;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem;">
               <div>
                 <label style="font-weight:700;font-size:.8rem;color:#374151;display:block;margin-bottom:.3rem;">🔢 Lote</label>
                 <input type="text" id="revLote" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;font-size:.9rem;font-weight:700;box-sizing:border-box;text-align:center;">
               </div>
               <div>
-                <label style="font-weight:700;font-size:.8rem;color:#374151;display:block;margin-bottom:.3rem;">📦 N° Bolsas</label>
-                <input type="number" id="revNBolsas" min="1" style="width:100%;padding:.6rem;border-radius:8px;border:2px solid #f59e0b;font-size:.9rem;font-weight:800;box-sizing:border-box;text-align:center;color:#d97706;" oninput="revRecalcularKg()">
-              </div>
-              <div>
-                <label style="font-weight:700;font-size:.8rem;color:#374151;display:block;margin-bottom:.3rem;">⚖️ Kg por bolsa</label>
-                <input type="number" id="revKgBolsa" step="0.1" min="0.1" style="width:100%;padding:.6rem;border-radius:8px;border:2px solid #f59e0b;font-size:.9rem;font-weight:800;box-sizing:border-box;text-align:center;color:#d97706;" oninput="revRecalcularKg()">
+                <label style="font-weight:700;font-size:.8rem;color:#374151;display:block;margin-bottom:.3rem;">👤 Operario</label>
+                <input type="text" id="revOperador" style="width:100%;padding:.6rem;border-radius:8px;border:2px solid #10b981;font-size:.9rem;font-weight:700;box-sizing:border-box;">
               </div>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem;">
@@ -1688,14 +1684,22 @@
                 <input type="text" id="revOPDestino" placeholder="Ej: OP-938" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid #ddd;font-size:.9rem;box-sizing:border-box;">
               </div>
             </div>
-            <div style="margin-bottom:1.25rem;">
-              <label style="font-weight:700;font-size:.8rem;color:#374151;display:block;margin-bottom:.3rem;">👤 Operario Abatimiento</label>
-              <input type="text" id="revOperador" style="width:100%;padding:.6rem;border-radius:8px;border:2px solid #10b981;font-size:.9rem;font-weight:700;box-sizing:border-box;">
+
+            <!-- Lista editable de bolsas -->
+            <div style="margin-bottom:1rem;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;">
+                <label style="font-weight:700;font-size:.85rem;color:#374151;">⚖️ Kg por bolsa — edita si hay diferencia</label>
+                <span style="font-size:.75rem;color:#94a3b8;">Kg estimado por bolsa: <span id="revKgEstimado" style="font-weight:700;color:#0e7490;"></span></span>
+              </div>
+              <div id="revListaBolsas" style="max-height:220px;overflow-y:auto;background:#f8fafc;border-radius:10px;padding:.5rem;border:1.5px solid #e2e8f0;"></div>
             </div>
 
             <!-- Resumen total kg -->
             <div style="background:#f0fdf4;border-radius:10px;padding:1rem;margin-bottom:1.25rem;display:flex;justify-content:space-between;align-items:center;border:2px solid #10b981;">
-              <div style="font-size:.85rem;color:#065f46;font-weight:700;">TOTAL A DESPACHAR</div>
+              <div>
+                <div style="font-size:.85rem;color:#065f46;font-weight:700;">TOTAL A DESPACHAR</div>
+                <div style="font-size:.75rem;color:#64748b;margin-top:.15rem;"><span id="revNBolsasLabel"></span></div>
+              </div>
               <div id="revTotalKg" style="font-size:1.8rem;font-weight:900;color:#10b981;"></div>
             </div>
 
@@ -21089,48 +21093,103 @@ function abrirSalidaBodega() {
 
 // ── Confirmar salida — abre revisión editable ──
 function confirmarSalidaBodega() {
-    const sesion  = _bodegaSesionSalida;
+    const sesion = _bodegaSesionSalida;
     if (!sesion.item || sesion.bolsas.length === 0) { alert('Pistolera al menos una bolsa'); return; }
 
-    const linea    = document.getElementById('bodegaLineaDestino').value;
-    const opDest   = document.getElementById('bodegaOPDestino').value.trim();
+    const linea   = document.getElementById('bodegaLineaDestino').value;
+    const opDest  = document.getElementById('bodegaOPDestino').value.trim();
     const operador = document.getElementById('bodegaOperadorSalida').value.trim();
-    const totalKg  = sesion.bolsas.length * sesion.kgPorBolsa;
 
-    // Llenar modal de revisión
-    document.getElementById('revProducto').value    = sesion.item.producto || '';
-    document.getElementById('revCliente').value     = sesion.item.cliente  || '';
-    document.getElementById('revLote').value        = sesion.item.lote     || '';
-    document.getElementById('revNBolsas').value     = sesion.bolsas.length;
-    document.getElementById('revKgBolsa').value     = sesion.kgPorBolsa;
+    // Llenar campos generales del modal
+    document.getElementById('revProducto').value     = sesion.item.producto || '';
+    document.getElementById('revCliente').value      = sesion.item.cliente  || '';
+    document.getElementById('revLote').value         = sesion.item.lote     || '';
     document.getElementById('revLineaDestino').value = linea;
-    document.getElementById('revOPDestino').value   = opDest;
-    document.getElementById('revOperador').value    = operador;
-    document.getElementById('revTotalKg').textContent = totalKg.toFixed(1) + ' kg';
+    document.getElementById('revOPDestino').value    = opDest;
+    document.getElementById('revOperador').value     = operador;
+    document.getElementById('revKgEstimado').textContent = sesion.kgPorBolsa + ' kg';
+
+    // Renderizar lista editable de bolsas (una fila por bolsa)
+    revRenderListaBolsas();
 
     document.getElementById('modalRevisionVale').style.display = 'flex';
 }
 
+function revRenderListaBolsas() {
+    const sesion = _bodegaSesionSalida;
+    const cont   = document.getElementById('revListaBolsas');
+    if (!cont) return;
+
+    cont.innerHTML = sesion.bolsas.map((b, i) => `
+        <div style="display:grid;grid-template-columns:auto 1fr auto auto;gap:.5rem;align-items:center;
+            padding:.5rem .6rem;border-radius:8px;margin-bottom:.3rem;
+            background:${i%2===0?'white':'#f0fdf4'};border:1px solid #e2e8f0;">
+            <span style="font-size:.78rem;font-weight:800;color:#065f46;min-width:52px;">Bolsa ${b.n}</span>
+            <div style="position:relative;">
+                <input type="number" id="revBolsa_${i}" value="${b.kg}" step="0.01" min="0.01"
+                    oninput="revRecalcularKg()"
+                    style="width:100%;padding:.4rem .6rem;border-radius:6px;border:1.5px solid ${Math.abs(b.kg - sesion.kgPorBolsa) > 0.05 ? '#f59e0b' : '#10b981'};
+                    font-size:.9rem;font-weight:700;text-align:center;box-sizing:border-box;color:#374151;">
+            </div>
+            <span style="font-size:.78rem;color:#64748b;">kg</span>
+            <button onclick="revEliminarBolsa(${i})"
+                title="Eliminar esta bolsa"
+                style="background:#fee2e2;border:none;border-radius:6px;padding:.3rem .45rem;cursor:pointer;color:#ef4444;font-size:.8rem;line-height:1;">✕</button>
+        </div>`
+    ).join('');
+
+    revRecalcularKg();
+}
+
+function revEliminarBolsa(idx) {
+    if (_bodegaSesionSalida.bolsas.length <= 1) {
+        alert('Debe quedar al menos una bolsa'); return;
+    }
+    _bodegaSesionSalida.bolsas.splice(idx, 1);
+    // Renumerar
+    _bodegaSesionSalida.bolsas.forEach((b, i) => b.n = i + 1);
+    revRenderListaBolsas();
+}
+
 function revRecalcularKg() {
-    const n  = parseFloat(document.getElementById('revNBolsas').value)  || 0;
-    const kg = parseFloat(document.getElementById('revKgBolsa').value)  || 0;
-    document.getElementById('revTotalKg').textContent = (n * kg).toFixed(1) + ' kg';
+    const sesion = _bodegaSesionSalida;
+    let total = 0;
+    sesion.bolsas.forEach((b, i) => {
+        const input = document.getElementById(`revBolsa_${i}`);
+        if (input) {
+            const val = parseFloat(input.value) || 0;
+            b.kg  = val; // actualizar en memoria
+            total += val;
+            // Color de borde según diferencia con estimado
+            input.style.borderColor = Math.abs(val - sesion.kgPorBolsa) > 0.05 ? '#f59e0b' : '#10b981';
+        }
+    });
+    document.getElementById('revTotalKg').textContent = total.toFixed(2) + ' kg';
+    const nBolsas = sesion.bolsas.length;
+    document.getElementById('revNBolsasLabel').textContent = `${nBolsas} bolsa${nBolsas !== 1 ? 's' : ''}`;
 }
 
 // ── Generar vale definitivo con datos revisados ──
 async function generarValeDefinitivo() {
-    const sesion   = _bodegaSesionSalida;
+    const sesion  = _bodegaSesionSalida;
     if (!sesion.item) return;
 
-    const producto  = document.getElementById('revProducto').value.trim().toUpperCase();
-    const cliente   = document.getElementById('revCliente').value.trim().toUpperCase();
-    const lote      = document.getElementById('revLote').value.trim();
-    const nBolsas   = parseInt(document.getElementById('revNBolsas').value) || sesion.bolsas.length;
-    const kgBolsa   = parseFloat(document.getElementById('revKgBolsa').value) || sesion.kgPorBolsa;
-    const linea     = document.getElementById('revLineaDestino').value;
-    const opDest    = document.getElementById('revOPDestino').value.trim();
-    const operador  = document.getElementById('revOperador').value.trim();
-    const totalKg   = nBolsas * kgBolsa;
+    // Leer kg actualizados desde los inputs
+    let totalKg = 0;
+    sesion.bolsas.forEach((b, i) => {
+        const input = document.getElementById(`revBolsa_${i}`);
+        if (input) b.kg = parseFloat(input.value) || b.kg;
+        totalKg += b.kg;
+    });
+    totalKg = Math.round(totalKg * 100) / 100;
+
+    const producto = document.getElementById('revProducto').value.trim().toUpperCase();
+    const cliente  = document.getElementById('revCliente').value.trim().toUpperCase();
+    const lote     = document.getElementById('revLote').value.trim();
+    const nBolsas  = sesion.bolsas.length;
+    const linea    = document.getElementById('revLineaDestino').value;
+    const opDest   = document.getElementById('revOPDestino').value.trim();
+    const operador = document.getElementById('revOperador').value.trim();
 
     if (!operador) { alert('Ingresa el operario'); return; }
     if (!linea)    { alert('Selecciona la línea destino'); return; }
@@ -21140,25 +21199,26 @@ async function generarValeDefinitivo() {
     }
 
     const vale = {
-        id:         Date.now().toString(),
-        nVale:      'VS-' + Date.now().toString().slice(-6),
-        nGuia:      'GD-' + new Date().toISOString().split('T')[0].replace(/-/g,'') + '-' + Date.now().toString().slice(-4),
-        fecha:      new Date().toLocaleDateString('es-CL'),
-        fechaISO:   new Date().toISOString().split('T')[0],
-        hora:       new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'}),
+        id:          Date.now().toString(),
+        nVale:       'VS-' + Date.now().toString().slice(-6),
+        nGuia:       'GD-' + new Date().toISOString().split('T')[0].replace(/-/g,'') + '-' + Date.now().toString().slice(-4),
+        fecha:       new Date().toLocaleDateString('es-CL'),
+        fechaISO:    new Date().toISOString().split('T')[0],
+        hora:        new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'}),
         producto, cliente, lote,
-        codigo:     sesion.item.codigo,
-        kg:         totalKg,
+        codigo:      sesion.item.codigo,
+        kg:          totalKg,
         nBolsas,
-        kgPorBolsa: kgBolsa,
+        kgPorBolsa:  sesion.kgPorBolsa,  // kg estimado original
+        desgloseBolsas: sesion.bolsas.map(b => ({ n: b.n, kg: b.kg, codigo: b.codigo })),
         lineaDestino: linea,
-        opOrigen:   sesion.item.numeroOP,
-        opDestino:  opDest,
+        opOrigen:    sesion.item.numeroOP,
+        opDestino:   opDest,
         operador,
         stockIdOrigen: sesion.item.id
     };
 
-    // Descontar del stock
+    // Descontar del stock el total REAL (suma de kg editados)
     const idx = bodegaStock.findIndex(s => s.id === sesion.item.id);
     if (idx !== -1) {
         bodegaStock[idx].kgDisponible = Math.max(0, bodegaStock[idx].kgDisponible - totalKg);
@@ -21172,7 +21232,7 @@ async function generarValeDefinitivo() {
     cerrarModalSalidaBodega();
     renderBodegaKPIs();
     renderBodegaContenido();
-    mostrarNotificacion(`✅ Vale generado — ${nBolsas} bolsas · ${totalKg.toFixed(1)} kg · ${producto}`, 'success');
+    mostrarNotificacion(`✅ Vale generado — ${nBolsas} bolsa${nBolsas!==1?'s':''} · ${totalKg.toFixed(2)} kg · ${producto}`, 'success');
     imprimirGuiaDespacho(vale.id);
 }
 
