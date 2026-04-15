@@ -637,6 +637,9 @@
                 <button class="btn btn-primary" onclick="openModal('iniciarProduccion')">
                     ▶️ INICIAR PRODUCCIÓN
                 </button>
+                <button class="btn btn-primary" onclick="abrirModalAgrupar()" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);margin-left:.5rem;">
+                    🔀 Agrupar Componentes
+                </button>
             </div>
         </div>
 
@@ -3168,6 +3171,69 @@
                 </div>
                 <button class="btn btn-primary btn-full" onclick="iniciarProduccion()">
                     🚀 INICIAR PRODUCCIÓN
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: AGRUPAR COMPONENTES -->
+    <div id="modalAgruparComponentes" class="modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;align-items:center;justify-content:center;overflow-y:auto;">
+        <div style="background:white;border-radius:18px;padding:2rem;width:min(780px,96vw);max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);margin:auto;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+                <div>
+                    <h2 style="margin:0;font-size:1.2rem;font-weight:800;color:#5b21b6;">🔀 Agrupar Componentes</h2>
+                    <div style="font-size:.8rem;color:#64748b;margin-top:.2rem;">Selecciona componentes pendientes de distintas OPs y asígnalos a un mismo equipo</div>
+                </div>
+                <button onclick="cerrarModalAgrupar()" style="background:#f1f5f9;border:none;border-radius:8px;padding:.4rem .7rem;cursor:pointer;font-size:1.1rem;">✕</button>
+            </div>
+
+            <!-- Filtro por tipo de componente -->
+            <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem;">
+                <button onclick="filtrarComponentesPend('todos',this)" id="btnFiltroTodos"
+                    style="padding:.35rem .9rem;border-radius:20px;border:2px solid #7c3aed;background:#7c3aed;color:white;font-weight:700;cursor:pointer;font-size:.82rem;">
+                    Todos
+                </button>
+                <button onclick="filtrarComponentesPend('calor',this)"
+                    style="padding:.35rem .9rem;border-radius:20px;border:2px solid #e2e8f0;background:white;color:#374151;font-weight:600;cursor:pointer;font-size:.82rem;">
+                    🔥 Con cocción
+                </button>
+                <button onclick="filtrarComponentesPend('frio',this)"
+                    style="padding:.35rem .9rem;border-radius:20px;border:2px solid #e2e8f0;background:white;color:#374151;font-weight:600;cursor:pointer;font-size:.82rem;">
+                    ❄️ Sin cocción / Fríos
+                </button>
+            </div>
+
+            <!-- Lista de componentes pendientes -->
+            <div id="listaComponentesPend" style="max-height:340px;overflow-y:auto;border:1.5px solid #e2e8f0;border-radius:12px;padding:.5rem;margin-bottom:1.25rem;"></div>
+
+            <!-- Selección de equipo y operador para el grupo -->
+            <div id="panelAsignacionGrupo" style="display:none;background:#faf5ff;border-radius:12px;padding:1.1rem;border:1.5px solid #c4b5fd;margin-bottom:1.25rem;">
+                <div style="font-weight:700;font-size:.88rem;color:#5b21b6;margin-bottom:.85rem;">⚙️ Asignar grupo a equipo</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.85rem;">
+                    <div>
+                        <label style="font-size:.78rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">Equipo *</label>
+                        <select id="grupoEquipoSelect" style="width:100%;padding:.55rem .8rem;border-radius:8px;border:2px solid #7c3aed;font-size:.88rem;background:white;box-sizing:border-box;"></select>
+                    </div>
+                    <div>
+                        <label style="font-size:.78rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">Operador *</label>
+                        <select id="grupoOperadorSelect" style="width:100%;padding:.55rem .8rem;border-radius:8px;border:2px solid #7c3aed;font-size:.88rem;background:white;box-sizing:border-box;">
+                            <option value="">Selecciona...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:.78rem;font-weight:600;color:#374151;display:block;margin-bottom:.3rem;">🕐 Hora inicio</label>
+                        <input type="time" id="grupoHoraInicio" style="width:100%;padding:.55rem .8rem;border-radius:8px;border:2px solid #7c3aed;font-size:.88rem;box-sizing:border-box;">
+                    </div>
+                </div>
+                <!-- Resumen del grupo -->
+                <div id="resumenGrupo" style="margin-top:.85rem;font-size:.82rem;color:#5b21b6;background:white;border-radius:8px;padding:.6rem .9rem;"></div>
+            </div>
+
+            <div style="display:flex;gap:.75rem;justify-content:flex-end;">
+                <button onclick="cerrarModalAgrupar()" style="padding:.6rem 1.4rem;border-radius:10px;border:1.5px solid #e2e8f0;background:white;cursor:pointer;font-weight:600;">Cancelar</button>
+                <button onclick="confirmarAgrupacion()" id="btnConfirmarAgrupacion" disabled
+                    style="padding:.6rem 1.4rem;border-radius:10px;border:none;background:#d1d5db;color:white;cursor:not-allowed;font-weight:700;transition:all .2s;">
+                    🚀 Iniciar Grupo
                 </button>
             </div>
         </div>
@@ -20024,6 +20090,264 @@ ${d._ingredientes.map(ing => `<tr>
             }
         }, 60000);
 
+        // ================================================================
+        // AGRUPAR COMPONENTES — Asignar múltiples componentes a un equipo
+        // ================================================================
+
+        let _agruparFiltro = 'todos';
+
+        function abrirModalAgrupar() {
+            // Hora actual por defecto
+            const ahora = new Date();
+            const horaStr = ahora.toTimeString().slice(0,5);
+            document.getElementById('grupoHoraInicio').value = horaStr;
+
+            // Cargar operadores
+            const selOp = document.getElementById('grupoOperadorSelect');
+            selOp.innerHTML = '<option value="">Selecciona...</option>' + getOpcionesPersonal('cocina');
+
+            // Renderizar lista de componentes
+            renderComponentesPend();
+
+            document.getElementById('modalAgruparComponentes').style.display = 'flex';
+        }
+
+        function cerrarModalAgrupar() {
+            document.getElementById('modalAgruparComponentes').style.display = 'none';
+            // Limpiar selecciones
+            document.querySelectorAll('.chk-comp-pend').forEach(c => c.checked = false);
+            actualizarPanelAgrupacion();
+        }
+
+        function filtrarComponentesPend(filtro, btn) {
+            _agruparFiltro = filtro;
+            document.querySelectorAll('#modalAgruparComponentes button[onclick^="filtrarComp"]').forEach(b => {
+                b.style.background = 'white'; b.style.color = '#374151'; b.style.borderColor = '#e2e8f0';
+            });
+            if (btn) { btn.style.background = '#7c3aed'; btn.style.color = 'white'; btn.style.borderColor = '#7c3aed'; }
+            renderComponentesPend();
+        }
+
+        function _getComponentesPendientes() {
+            // Recorre todas las OPs pendientes/en-produccion y extrae componentes no iniciados aún
+            const procesosActivos = equipos
+                .filter(e => e.estado !== 'disponible' && e.produccion)
+                .map(e => (e.produccion.componente || e.produccion.producto || '').toLowerCase().trim() + '__' + (e.produccion.numeroOP || ''));
+
+            const componentes = [];
+            ordenesProduccion
+                .filter(op => op.estado === 'pendiente' || op.estado === 'en-produccion')
+                .forEach(op => {
+                    (op.componentes || []).forEach(comp => {
+                        if (!comp.nombre || !comp.kgTerminados) return;
+                        // Verificar si ya está en un equipo activo
+                        const clave = comp.nombre.toLowerCase().trim() + '__' + op.numeroOp;
+                        const yaActivo = procesosActivos.some(p => p === clave);
+                        if (yaActivo) return;
+                        componentes.push({
+                            opId:      op.id,
+                            opNumero:  op.numeroOp,
+                            opNombre:  op.nombre,
+                            opCliente: op.cliente || '',
+                            nombre:    comp.nombre,
+                            kg:        comp.kgTerminados || 0,
+                            esFrio:    esComponenteFrio(comp.nombre),
+                            equipoSugerido: comp.equipoSugerido || sugerirEquipoPorComponente(comp.nombre, comp.kgTerminados),
+                            tiempoCoccionMin: comp.tiempoCoccionMin || 0,
+                            key: `${op.id}__${comp.nombre}`
+                        });
+                    });
+                });
+            return componentes;
+        }
+
+        function renderComponentesPend() {
+            const cont = document.getElementById('listaComponentesPend');
+            let items = _getComponentesPendientes();
+
+            if (_agruparFiltro === 'calor') items = items.filter(i => !i.esFrio);
+            if (_agruparFiltro === 'frio')  items = items.filter(i => i.esFrio);
+
+            if (!items.length) {
+                cont.innerHTML = `<div style="text-align:center;padding:2rem;color:#94a3b8;">
+                    <div style="font-size:2rem;margin-bottom:.5rem;">✅</div>
+                    <div style="font-weight:600;">No hay componentes pendientes${_agruparFiltro !== 'todos' ? ' con ese filtro' : ''}</div>
+                </div>`;
+                return;
+            }
+
+            // Agrupar por nombre de componente para ver qué se puede juntar
+            const porNombre = {};
+            items.forEach(i => {
+                if (!porNombre[i.nombre]) porNombre[i.nombre] = [];
+                porNombre[i.nombre].push(i);
+            });
+
+            cont.innerHTML = Object.entries(porNombre).map(([nombre, lista]) => {
+                const total = lista.reduce((s, i) => s + i.kg, 0);
+                const badge = lista.length > 1
+                    ? `<span style="background:#fef9c3;color:#92400e;border-radius:12px;padding:.15rem .55rem;font-size:.72rem;font-weight:700;margin-left:.4rem;">⚡ ${lista.length} OPs</span>`
+                    : '';
+                return `
+                <div style="border-bottom:1px solid #f1f5f9;padding:.65rem .5rem;">
+                    <div style="font-weight:700;color:#1e293b;font-size:.9rem;margin-bottom:.4rem;">
+                        ${nombre}${badge}
+                        <span style="font-weight:400;font-size:.78rem;color:#64748b;margin-left:.5rem;">Total: ${total.toFixed(1)} kg</span>
+                    </div>
+                    ${lista.map(item => `
+                        <label style="display:flex;align-items:center;gap:.65rem;padding:.4rem .5rem;border-radius:8px;cursor:pointer;margin-bottom:.2rem;transition:background .15s;"
+                            onmouseover="this.style.background='#f5f3ff'" onmouseout="this.style.background='transparent'">
+                            <input type="checkbox" class="chk-comp-pend" data-key="${item.key}"
+                                data-nombre="${item.nombre.replace(/"/g,'&quot;')}"
+                                data-kg="${item.kg}"
+                                data-op="${item.opNumero}"
+                                data-op-id="${item.opId}"
+                                data-op-nombre="${(item.opNombre||'').replace(/"/g,'&quot;')}"
+                                data-equipo-sug="${item.equipoSugerido||''}"
+                                data-tiempo="${item.tiempoCoccionMin||60}"
+                                onchange="actualizarPanelAgrupacion()"
+                                style="width:16px;height:16px;cursor:pointer;accent-color:#7c3aed;">
+                            <div style="flex:1;">
+                                <div style="font-size:.85rem;color:#374151;">
+                                    <span style="font-weight:600;">OP ${item.opNumero}</span>
+                                    <span style="color:#64748b;"> — ${item.opNombre}</span>
+                                    ${item.opCliente ? `<span style="color:#0891b2;font-size:.75rem;"> · ${item.opCliente}</span>` : ''}
+                                </div>
+                                <div style="font-size:.75rem;color:#10b981;font-weight:600;">${item.kg.toFixed(1)} kg · ${item.esFrio ? '❄️ Sin cocción' : '🔥 Con cocción'}</div>
+                            </div>
+                        </label>
+                    `).join('')}
+                </div>`;
+            }).join('');
+        }
+
+        function actualizarPanelAgrupacion() {
+            const seleccionados = [...document.querySelectorAll('.chk-comp-pend:checked')];
+            const panel  = document.getElementById('panelAsignacionGrupo');
+            const btnConf = document.getElementById('btnConfirmarAgrupacion');
+
+            if (seleccionados.length === 0) {
+                panel.style.display = 'none';
+                btnConf.disabled = true;
+                btnConf.style.background = '#d1d5db';
+                btnConf.style.cursor = 'not-allowed';
+                return;
+            }
+
+            panel.style.display = 'block';
+
+            // Determinar tipo de equipo sugerido (el más común entre los seleccionados)
+            const tipoSug = seleccionados[0].dataset.equipoSug || '';
+            const tipoMapeado = tipoSug ? mapearTipoEquipo(tipoSug) : null;
+
+            // Cargar equipos disponibles
+            const sel = document.getElementById('grupoEquipoSelect');
+            const equiposDisp = equipos.filter(e => e.estado === 'disponible');
+            const equiposFiltrados = tipoMapeado
+                ? equiposDisp.filter(e => e.tipo === tipoMapeado)
+                : equiposDisp;
+            const equiposOtros = tipoMapeado
+                ? equiposDisp.filter(e => e.tipo !== tipoMapeado)
+                : [];
+
+            sel.innerHTML =
+                (equiposFiltrados.length > 0
+                    ? `<optgroup label="✅ Equipos recomendados">${equiposFiltrados.map(e => `<option value="${e.id}">${e.nombre} (${e.capacidad||'?'})</option>`).join('')}</optgroup>`
+                    : '') +
+                (equiposOtros.length > 0
+                    ? `<optgroup label="Otros disponibles">${equiposOtros.map(e => `<option value="${e.id}">${e.nombre} (${e.capacidad||'?'})</option>`).join('')}</optgroup>`
+                    : '') +
+                (equiposDisp.length === 0 ? '<option value="" disabled>Sin equipos disponibles</option>' : '');
+
+            // Resumen del grupo
+            const totalKg = seleccionados.reduce((s, c) => s + parseFloat(c.dataset.kg || 0), 0);
+            const nombresUnicos = [...new Set(seleccionados.map(c => c.dataset.nombre))];
+            const opsUnicas = [...new Set(seleccionados.map(c => c.dataset.op))];
+            document.getElementById('resumenGrupo').innerHTML =
+                `<strong>${seleccionados.length} componente(s)</strong> seleccionado(s) · 
+                 <strong>${totalKg.toFixed(1)} kg totales</strong> · 
+                 ${nombresUnicos.length > 1 ? nombresUnicos.join(', ') : nombresUnicos[0]} · 
+                 OPs: ${opsUnicas.join(', ')}`;
+
+            // Habilitar botón
+            btnConf.disabled = false;
+            btnConf.style.background = 'linear-gradient(135deg,#7c3aed,#5b21b6)';
+            btnConf.style.cursor = 'pointer';
+        }
+
+        function confirmarAgrupacion() {
+            const seleccionados = [...document.querySelectorAll('.chk-comp-pend:checked')];
+            if (!seleccionados.length) { alert('Selecciona al menos un componente'); return; }
+
+            const equipoId  = document.getElementById('grupoEquipoSelect').value;
+            const operador  = document.getElementById('grupoOperadorSelect').value;
+            const horaInput = document.getElementById('grupoHoraInicio').value;
+
+            if (!equipoId)  { alert('Selecciona un equipo'); return; }
+            if (!operador)  { alert('Selecciona un operador'); return; }
+
+            const equipo = equipos.find(e => e.id === equipoId);
+            if (!equipo || equipo.estado !== 'disponible') {
+                alert('El equipo seleccionado no está disponible'); return;
+            }
+
+            // Construir hora de inicio
+            const hoy = new Date().toISOString().split('T')[0];
+            const inicioISO = horaInput ? `${hoy}T${horaInput}:00` : new Date().toISOString();
+
+            // El primer componente seleccionado define el proceso principal del equipo
+            const primero = seleccionados[0];
+            const nombresGrupo = [...new Set(seleccionados.map(c => c.dataset.nombre))].join(' + ');
+            const totalKg = seleccionados.reduce((s, c) => s + parseFloat(c.dataset.kg || 0), 0);
+            const maxTiempo = Math.max(...seleccionados.map(c => parseInt(c.dataset.tiempo || 60)));
+            const opsGrupo = [...new Set(seleccionados.map(c => c.dataset.op))];
+
+            // Crear el proceso agrupado en el equipo
+            equipo.estado = 'activa';
+            equipo.produccion = {
+                numeroOP:        opsGrupo.join('+'),
+                producto:        nombresGrupo,
+                kgProgramados:   totalKg,
+                operador,
+                inicio:          inicioISO,
+                fase:            'coccion',
+                componente:      nombresGrupo,
+                tiempoCoccionMin: maxTiempo,
+                esAgrupado:      true,
+                componentesAgrupados: seleccionados.map(c => ({
+                    key:      c.dataset.key,
+                    nombre:   c.dataset.nombre,
+                    kg:       parseFloat(c.dataset.kg),
+                    opNumero: c.dataset.op,
+                    opId:     c.dataset.opId,
+                    opNombre: c.dataset.opNombre
+                })),
+                opVinculadaId: seleccionados.length === 1 ? primero.dataset.opId : null
+            };
+
+            // Marcar OPs involucradas como en producción
+            const opsIds = [...new Set(seleccionados.map(c => c.dataset.opId))];
+            opsIds.forEach(opId => {
+                const op = ordenesProduccion.find(x => x.id === opId);
+                if (op && op.estado === 'pendiente') {
+                    op.estado = 'en-produccion';
+                    op.equipoAsignado = equipo.nombre;
+                    op.inicioProduccion = inicioISO;
+                }
+            });
+            guardarOPs();
+
+            guardarDatos();
+            renderEquipos();
+            updateStats();
+            cerrarModalAgrupar();
+
+            mostrarNotificacion(
+                `✅ Grupo iniciado en ${equipo.nombre} — ${seleccionados.length} componente(s) · ${totalKg.toFixed(1)} kg`,
+                'success'
+            );
+        }
+
         window.onload = init;
 
         // ── Exponer funciones locales al scope global ──
@@ -20563,55 +20887,12 @@ function _normalizarCodigo(codigo) {
 
 function bodegaBuscarPorCodigo(codigo) {
     const codigoNorm = _normalizarCodigo(codigo);
-
-    // Búsqueda 1 — coincidencia exacta (normalizada)
-    const exacto = bodegaStock.find(s => {
+    return bodegaStock.find(s => {
         const stockNorm = _normalizarCodigo(s.codigo);
         return stockNorm === codigoNorm &&
                s.estado !== 'agotado' &&
                (s.kgDisponible || 0) > 0;
-    });
-    if (exacto) return exacto;
-
-    // Búsqueda 2 — coincidencia por partes del código GF-PRODUCTO-LOTE-...-OP
-    // Útil cuando kg en etiqueta difiere del guardado (ej: "3" vs "3.0" vs "3_0")
-    if (codigoNorm.startsWith('GF-')) {
-        const partes = codigoNorm.split('-');
-        // Mínimo necesario: GF + producto + lote + op (4 partes)
-        if (partes.length >= 4) {
-            const prod   = partes[1];                        // DESMECHADAAT
-            const lote   = partes[2];                        // 104
-            const opPart = partes[partes.length - 1];        // 944 (última parte = OP)
-
-            const porPartes = bodegaStock.find(s => {
-                if (s.estado === 'agotado' || (s.kgDisponible || 0) <= 0) return false;
-                const sNorm  = _normalizarCodigo(s.codigo);
-                const sParts = sNorm.split('-');
-                if (sParts.length < 4) return false;
-                return sParts[1] === prod &&          // mismo producto
-                       sParts[2] === lote &&          // mismo lote
-                       sParts[sParts.length - 1] === opPart; // misma OP
-            });
-            if (porPartes) return porPartes;
-        }
-    }
-
-    // Búsqueda 3 — coincidencia por producto + OP (fallback más amplio)
-    if (codigoNorm.startsWith('GF-')) {
-        const partes = codigoNorm.split('-');
-        if (partes.length >= 3) {
-            const prod   = partes[1];
-            const opPart = partes[partes.length - 1];
-            return bodegaStock.find(s => {
-                if (s.estado === 'agotado' || (s.kgDisponible || 0) <= 0) return false;
-                const sNorm  = _normalizarCodigo(s.codigo);
-                const sParts = sNorm.split('-');
-                return sParts[1] === prod && sParts[sParts.length - 1] === opPart;
-            }) || null;
-        }
-    }
-
-    return null;
+    }) || null;
 }
 
 function mostrarProductoDetectado(s) {
