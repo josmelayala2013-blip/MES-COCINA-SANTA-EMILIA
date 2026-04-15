@@ -21188,7 +21188,7 @@ function bodegaProcesarScan(valor) {
         return;
     }
 
-    // Primera bolsa — inicializar sesión
+    // Primera bolsa — inicializar sesión y verificar excedente en líneas
     if (!_bodegaSesionSalida.item) {
         _bodegaSesionSalida.item = resultado;
         const fmtNum = parseFloat(resultado.formato);
@@ -21199,6 +21199,9 @@ function bodegaProcesarScan(valor) {
         if (elProd) elProd.textContent = resultado.producto;
         const elKg = document.getElementById('bodegaContKgBolsa');
         if (elKg) elKg.textContent = _bodegaSesionSalida.kgPorBolsa + ' kg';
+
+        // Check excedente: solo para ESTE producto en la línea destino
+        if (_verificarExcedenteProducto(resultado)) return; // popup mostrado, esperar decisión
     }
 
     // Verificar mismo producto
@@ -26758,67 +26761,82 @@ function lineasGetSaldo(producto, linea) {
 let _excedenteData = null;
 
 function bodegaIrAPaso2ConCheck() {
+    // En paso 1 aún no sabemos el producto exacto (se sabrá al pistolar).
+    // Pasamos directo a paso 2 — el check de excedente se hace al primer scan.
+    bodegaIrAPaso2();
+}
+
+// ── Verificar excedente al detectar el primer producto escaneado ──
+function _verificarExcedenteProducto(stockItem) {
     const linea  = document.getElementById('bodegaLineaDestino').value;
     const opDest = document.getElementById('bodegaOPDestino').value.trim();
 
-    if (!linea || linea === 'otro') { bodegaIrAPaso2(); return; }
+    if (!linea || linea === 'otro') return false;
 
-    const saldosLinea = lineasStock.filter(s => s.linea === linea);
-    if (saldosLinea.length === 0) { bodegaIrAPaso2(); return; }
+    const producto   = stockItem.producto;
+    const saldoLinea = lineasGetSaldo(producto, linea);
+    if (saldoLinea <= 0) return false; // no hay saldo de ESTE producto — no alertar
 
-    let opNecesidades = [];
+    // Calcular kg necesarios desde la OP si está disponible
+    let kgNecesario = stockItem.kgDisponible;
     if (opDest) {
         const op = ordenesProduccion.find(o => String(o.numeroOp)===String(opDest) || o.id===opDest);
         if (op && op.componentes) {
-            opNecesidades = op.componentes.map(c => ({
-                nombre:      c.nombre,
-                kgNecesario: c.kgTerminados || 0,
-                saldoLinea:  lineasGetSaldo(c.nombre, linea)
-            })).filter(c => c.saldoLinea > 0);
+            const comp = op.componentes.find(c =>
+                c.nombre.trim().toUpperCase() === producto.trim().toUpperCase()
+            );
+            if (comp) kgNecesario = comp.kgTerminados || kgNecesario;
         }
     }
 
-    // Si no hay OP o no hay coincidencias, verificar si algún producto del stock
-    // que se va a entregar tiene saldo en esa línea
-    if (opNecesidades.length === 0 && _bodegaSesionSalida.item) {
-        const prod = _bodegaSesionSalida.item.producto;
-        const saldo = lineasGetSaldo(prod, linea);
-        if (saldo > 0) {
-            opNecesidades = [{ nombre: prod, kgNecesario: _bodegaSesionSalida.item.kgDisponible, saldoLinea: saldo }];
-        }
-    }
+    _excedenteData = {
+        linea, opDest,
+        opNecesidades: [{ nombre: producto, kgNecesario, saldoLinea }]
+    };
 
-    if (opNecesidades.length === 0) { bodegaIrAPaso2(); return; }
-
-    _excedenteData = { linea, opDest, opNecesidades };
     const detalle = document.getElementById('popupExcedenteDetalle');
     detalle.innerHTML = `
         <div style="font-weight:800;color:#dc2626;font-size:.9rem;margin-bottom:.75rem;">
-            ⚠️ La Bodega Líneas de Envasado ya tiene saldo de:
+            ⚠️ La Bodega Líneas de Envasado ya tiene saldo de este producto:
         </div>
-        ${opNecesidades.map(c=>`
-            <div style="display:grid;grid-template-columns:1fr auto auto;gap:.5rem;align-items:center;
-                background:white;border-radius:8px;padding:.55rem .75rem;margin-bottom:.4rem;border:1px solid #fca5a5;">
-                <span style="font-weight:700;color:#374151;font-size:.85rem;">${c.nombre}</span>
-                <span style="font-size:.78rem;color:#64748b;">Necesita: <strong>${c.kgNecesario.toFixed(1)} kg</strong></span>
-                <span style="font-size:.82rem;color:#7c3aed;font-weight:800;">Saldo línea: ${c.saldoLinea.toFixed(2)} kg</span>
-            </div>`).join('')}
+        <div style="display:grid;grid-template-columns:1fr auto auto;gap:.5rem;align-items:center;
+            background:white;border-radius:8px;padding:.65rem .75rem;margin-bottom:.4rem;border:1px solid #fca5a5;">
+            <span style="font-weight:700;color:#374151;font-size:.9rem;">${producto}</span>
+            <span style="font-size:.8rem;color:#64748b;">Necesita: <strong>${kgNecesario.toFixed(1)} kg</strong></span>
+            <span style="font-size:.85rem;color:#7c3aed;font-weight:800;">Saldo línea: ${saldoLinea.toFixed(2)} kg</span>
+        </div>
         <div style="margin-top:.75rem;padding:.65rem;background:#fef2f2;border-radius:8px;font-size:.82rem;color:#dc2626;font-weight:600;">
-            "Ajustar" → entrega solo el diferencial (necesario − saldo). Los saldos se descontarán automáticamente de la Bodega Líneas al confirmar.
+            "Ajustar" → entregará solo el diferencial (${Math.max(0, kgNecesario - saldoLinea).toFixed(1)} kg).
+            El saldo existente se descontará de Bodega Líneas al confirmar.
         </div>`;
     document.getElementById('popupExcedenteEntrega').style.display = 'flex';
+    return true; // se mostró el popup
 }
 
 function excedenteAjustarEntrega() {
     window._excedenteAjuste = _excedenteData;
     document.getElementById('popupExcedenteEntrega').style.display = 'none';
-    bodegaIrAPaso2();
+    // Si ya estamos en paso 2 con item cargado, solo cerrar y continuar
+    // Si aún no habíamos entrado a paso 2, entrar ahora
+    const paso2 = document.getElementById('bodegaSalidaPaso2');
+    if (paso2 && paso2.style.display === 'none') {
+        bodegaIrAPaso2();
+    } else {
+        setTimeout(() => document.getElementById('bodegaScanInput')?.focus(), 100);
+    }
 }
 
 function excedenteForzarEntrega() {
     window._excedenteAjuste = null;
+    // Limpiar sesión para no arrastrar el item ya inicializado con el check
+    _bodegaSesionSalida = { item: null, bolsas: [], kgPorBolsa: 0 };
+    document.getElementById('bodegaContadorBolsas').style.display = 'none';
+    document.getElementById('bodegaListaBolsas').innerHTML = '';
+    document.getElementById('bodegaScanFeedback').innerHTML = '';
+    document.getElementById('btnConfirmarSalida').disabled = true;
+    document.getElementById('btnConfirmarSalida').style.background = '#cbd5e1';
     document.getElementById('popupExcedenteEntrega').style.display = 'none';
-    bodegaIrAPaso2();
+    setTimeout(() => document.getElementById('bodegaScanInput')?.focus(), 100);
 }
 
     </script>
