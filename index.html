@@ -703,16 +703,16 @@
                 </button>
                 <div class="nav-dropdown-menu" id="menuGestion">
                     <div style="font-size:.7rem;color:#94a3b8;padding:.3rem 1rem .1rem;font-weight:600;text-transform:uppercase;">Productos y Recetas</div>
-                    <button class="nav-dropdown-item" onclick="changeTab('recetas',this);cerrarDropdownGestion()">📋 Recetas</button>
-                    <button class="nav-dropdown-item" onclick="changeTab('productos',this);cerrarDropdownGestion()">🍽️ Productos</button>
+                    <button class="nav-dropdown-item" data-modulo="recetas" onclick="changeTab('recetas',this);cerrarDropdownGestion()">📋 Recetas</button>
+                    <button class="nav-dropdown-item" data-modulo="productos" onclick="changeTab('productos',this);cerrarDropdownGestion()">🍽️ Productos</button>
                     <div style="border-top:1px solid #e2e8f0;margin:.25rem 0;"></div>
                     <div style="font-size:.7rem;color:#94a3b8;padding:.3rem 1rem .1rem;font-weight:600;text-transform:uppercase;">Inventario y Bodega</div>
-                    <button class="nav-dropdown-item" onclick="changeTab('bodega',this);cerrarDropdownGestion()">🏭 Bodega</button>
-                    <button class="nav-dropdown-item" onclick="changeTab('materiasprimas',this);cerrarDropdownGestion()">🌾 Control MP</button>
+                    <button class="nav-dropdown-item" data-modulo="bodega" onclick="changeTab('bodega',this);cerrarDropdownGestion()">🏭 Bodega</button>
+                    <button class="nav-dropdown-item" data-modulo="materiasprimas" onclick="changeTab('materiasprimas',this);cerrarDropdownGestion()">🌾 Control MP</button>
                     <div style="border-top:1px solid #e2e8f0;margin:.25rem 0;"></div>
                     <div style="font-size:.7rem;color:#94a3b8;padding:.3rem 1rem .1rem;font-weight:600;text-transform:uppercase;">Etiquetas y Personal</div>
-                    <button class="nav-dropdown-item" onclick="changeTab('etiquetas',this);cerrarDropdownGestion()">🏷️ Etiquetas</button>
-                    <button class="nav-dropdown-item" onclick="changeTab('personal',this);cerrarDropdownGestion()">👥 Personal</button>
+                    <button class="nav-dropdown-item" data-modulo="etiquetas" onclick="changeTab('etiquetas',this);cerrarDropdownGestion()">🏷️ Etiquetas</button>
+                    <button class="nav-dropdown-item" data-modulo="personal" onclick="changeTab('personal',this);cerrarDropdownGestion()">👥 Personal</button>
                 </div>
             </div>
 
@@ -2216,7 +2216,6 @@
             <button onclick="mpVerMovimientos()" style="background:linear-gradient(135deg,#6366f1,#4f46e5);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">📋 Movimientos</button>
             <button onclick="mpVerMermas()" style="background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">📊 Mermas</button>
             <button onclick="mpVerAuditoria()" style="background:linear-gradient(135deg,#374151,#4b5563);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">🔍 Auditoría</button>
-            <button onclick="mpAbrirRecall()" style="background:linear-gradient(135deg,#dc2626,#b91c1c);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:700;cursor:pointer;font-size:.85rem;">🚨 Recall / Trazabilidad</button>
           </div>
         </div>
 
@@ -19352,12 +19351,26 @@ ${d._ingredientes.map(ing => `<tr>
             const rol = getRol(email);
             const permitidos = PERMISOS[rol] || [];
 
-            // Ocultar/mostrar botones del menú según permisos
+            // Ocultar/mostrar botones del menú superior según permisos
             document.querySelectorAll('.nav-tab[data-modulo], .nav-dropdown[data-modulo]').forEach(el => {
                 const modulo = el.getAttribute('data-modulo');
                 if (!modulo) return;
                 el.style.display = permitidos.includes(modulo) ? '' : 'none';
             });
+
+            // Ocultar/mostrar items DENTRO de los dropdowns según permisos
+            document.querySelectorAll('.nav-dropdown-item[data-modulo]').forEach(el => {
+                const modulo = el.getAttribute('data-modulo');
+                el.style.display = permitidos.includes(modulo) ? '' : 'none';
+            });
+
+            // Si el dropdown Gestión queda con todos sus items ocultos, ocultarlo también
+            const menuGestion = document.getElementById('menuGestion');
+            if (menuGestion) {
+                const itemsVisibles = menuGestion.querySelectorAll('.nav-dropdown-item[data-modulo]:not([style*="display: none"]):not([style*="display:none"])');
+                const dropGestion = document.getElementById('dropdownGestion');
+                if (dropGestion) dropGestion.style.display = itemsVisibles.length > 0 ? '' : 'none';
+            }
 
             // Guardar email actual para verificaciones posteriores
             window._emailActual = email;
