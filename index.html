@@ -20813,8 +20813,12 @@ function renderBodegaStock(el) {
                                 </td>
                                 <td style="padding:.6rem .75rem;text-align:center;">
                                     <button onclick="bodegaAbrirEditarStock('${s.id}')"
-                                        style="background:#eff6ff;color:#2563eb;border:none;border-radius:6px;padding:.3rem .6rem;cursor:pointer;font-size:.78rem;font-weight:600;">
+                                        style="background:#eff6ff;color:#2563eb;border:none;border-radius:6px;padding:.3rem .6rem;cursor:pointer;font-size:.78rem;font-weight:600;margin-bottom:.2rem;display:block;width:100%;">
                                         ✏️ Editar
+                                    </button>
+                                    <button onclick="bodegaImprimirEtiqueta('${s.id}')"
+                                        style="background:#faf5ff;color:#7c3aed;border:none;border-radius:6px;padding:.3rem .6rem;cursor:pointer;font-size:.78rem;font-weight:600;display:block;width:100%;">
+                                        🏷️ Etiqueta
                                     </button>
                                 </td>
                             </tr>`;
@@ -26193,6 +26197,46 @@ function ocImportarDesdeExcel(input) {
     reader.readAsArrayBuffer(file);
 }
 
+// ── Imprimir etiqueta desde bodega ──────────────────────────────
+function bodegaImprimirEtiqueta(id) {
+    const s = bodegaStock.find(x => x.id === id);
+    if (!s) return;
+
+    // Calcular fechas si no existen
+    const hoy   = new Date();
+    const fElab = s.fechaIngreso || hoy.toLocaleDateString('es-CL');
+    // Vencimiento estimado: 5 días desde ingreso para producto refrigerado
+    const dVenc = new Date(hoy); dVenc.setDate(hoy.getDate() + 5);
+    const fVenc = dVenc.toLocaleDateString('es-CL');
+
+    // Peso por bolsa desde formato o kgDisponible/nBolsas
+    const nBolsas = s.nBolsas || Math.ceil(s.kgDisponible / 3);
+    const kgBolsa = nBolsas > 0
+        ? Math.round((s.kgDisponible / nBolsas) * 100) / 100
+        : parseFloat(s.formato) || 3;
+    const pesoStr = kgBolsa % 1 === 0 ? `${kgBolsa} Kg` : `${kgBolsa} Kg`;
+
+    // Generar una etiqueta por bolsa
+    const etiquetas = Array.from({ length: nBolsas }, (_, i) => ({
+        prod:    s.producto,
+        cliente: s.cliente || 'GUSTO FRESCO',
+        lote:    s.lote    || String(getDiaJuliano ? getDiaJuliano() : hoy.getDate()),
+        fElab,
+        fVenc,
+        peso:    pesoStr,
+        op:      s.numeroOP || 'MANUAL',
+        num:     i + 1,
+        total:   nBolsas
+    }));
+
+    if (typeof _abrirVentanaEtiquetas === 'function') {
+        _abrirVentanaEtiquetas(etiquetas);
+    } else {
+        alert('Módulo de etiquetas no disponible');
+    }
+}
+
+// ── Abrir edición de stock ──────────────────────────────────────
 // ================================================================
 // EDICIÓN MANUAL DE STOCK EN CÁMARA
 // ================================================================
