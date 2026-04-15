@@ -1494,16 +1494,20 @@
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
               <div>
                 <h2 style="color:#0e7490;margin:0;font-size:1.4rem;">🏭 Bodega — Cámara de Tránsito</h2>
-                <p style="color:#64748b;font-size:.85rem;margin:.25rem 0 0;">Stock en tiempo real · Vales de ingreso y salida</p>
+                <p style="color:#64748b;font-size:.85rem;margin:.25rem 0 0;">Stock en tiempo real · Vales de ingreso y salida · Líneas de Envasado</p>
               </div>
               <div style="display:flex;gap:.75rem;flex-wrap:wrap;">
                 <button onclick="bodegaTab('stock')" id="btnBodegaStock"
                   style="padding:.55rem 1.1rem;border-radius:10px;border:none;background:linear-gradient(135deg,#0e7490,#06b6d4);color:white;font-weight:700;cursor:pointer;font-size:.88rem;">
-                  📦 Stock Actual
+                  📦 Stock Abatimiento
+                </button>
+                <button onclick="bodegaTab('lineas')" id="btnBodegaLineas"
+                  style="padding:.55rem 1.1rem;border-radius:10px;border:2px solid #7c3aed;background:white;color:#7c3aed;font-weight:700;cursor:pointer;font-size:.88rem;">
+                  🥪 Stock Líneas Envasado
                 </button>
                 <button onclick="bodegaTab('camara')" id="btnBodegaCamara"
                   style="padding:.55rem 1.1rem;border-radius:10px;border:2px solid #0e7490;background:white;color:#0e7490;font-weight:700;cursor:pointer;font-size:.88rem;">
-                  🗂️ Vista Cámara 3D
+                  🗂️ Vista 3D Dual
                 </button>
                 <button onclick="bodegaTab('ingresos')" id="btnBodegaIngresos"
                   style="padding:.55rem 1.1rem;border-radius:10px;border:2px solid #10b981;background:white;color:#10b981;font-weight:700;cursor:pointer;font-size:.88rem;">
@@ -1516,6 +1520,10 @@
                 <button onclick="abrirSalidaBodega()"
                   style="padding:.55rem 1.1rem;border-radius:10px;border:none;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;font-weight:700;cursor:pointer;font-size:.88rem;">
                   🔫 Registrar Salida
+                </button>
+                <button onclick="lineasAbrirDevolucion()"
+                  style="padding:.55rem 1.1rem;border-radius:10px;border:none;background:linear-gradient(135deg,#7c3aed,#5b21b6);color:white;font-weight:700;cursor:pointer;font-size:.88rem;">
+                  ↩️ Devolución Línea
                 </button>
                 <button onclick="bodegaAbrirIngresoManual()"
                   style="padding:.55rem 1.1rem;border-radius:10px;border:none;background:linear-gradient(135deg,#10b981,#059669);color:white;font-weight:700;cursor:pointer;font-size:.88rem;">
@@ -1571,7 +1579,7 @@
                 <input type="text" id="bodegaOPDestino" placeholder="Ej: OP-938"
                   style="width:100%;padding:.65rem;border-radius:8px;border:1px solid #ddd;font-size:.9rem;box-sizing:border-box;">
               </div>
-              <button onclick="bodegaIrAPaso2()"
+              <button onclick="bodegaIrAPaso2ConCheck()"
                 style="width:100%;padding:.85rem;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:12px;font-weight:700;cursor:pointer;font-size:.95rem;">
                 Continuar → Escanear Bolsas
               </button>
@@ -1641,6 +1649,99 @@
 
           </div>
         </div>
+
+        <!-- MODAL: DEVOLUCIÓN DE LÍNEA A BODEGA LÍNEAS -->
+        <div id="modalDevolucionLinea" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10001;align-items:center;justify-content:center;overflow-y:auto;">
+          <div style="background:white;border-radius:18px;padding:2rem;width:min(560px,96vw);margin:1.5rem auto;box-shadow:0 20px 60px rgba(0,0,0,.3);border-top:5px solid #7c3aed;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+              <div>
+                <h3 style="margin:0;font-size:1rem;font-weight:800;color:#5b21b6;">↩️ Registrar Devolución de Línea</h3>
+                <div style="font-size:.75rem;color:#64748b;margin-top:.2rem;">Producto que línea devuelve a su cámara — queda como saldo disponible</div>
+              </div>
+              <button onclick="document.getElementById('modalDevolucionLinea').style.display='none'"
+                style="background:#f1f5f9;border:none;border-radius:8px;padding:.4rem .7rem;cursor:pointer;font-size:1rem;">✕</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem;">
+              <div style="grid-column:1/-1;">
+                <label style="font-size:.78rem;font-weight:700;color:#374151;display:block;margin-bottom:.3rem;">🏷️ Producto *</label>
+                <input type="text" id="devProducto" list="devListaProductos" placeholder="Nombre exacto del producto..."
+                  oninput="this.value=this.value.toUpperCase()"
+                  style="width:100%;padding:.65rem .85rem;border-radius:8px;border:2px solid #7c3aed;font-size:.9rem;font-weight:700;box-sizing:border-box;">
+                <datalist id="devListaProductos"></datalist>
+              </div>
+              <div>
+                <label style="font-size:.78rem;font-weight:700;color:#374151;display:block;margin-bottom:.3rem;">🥪 Línea de origen</label>
+                <select id="devLinea" style="width:100%;padding:.65rem .85rem;border-radius:8px;border:1.5px solid #e2e8f0;font-size:.9rem;background:white;box-sizing:border-box;">
+                  <option value="sandwiches">🥪 Línea Sándwiches</option>
+                  <option value="platos">🍽️ Línea Platos</option>
+                  <option value="avemayo">🥗 Línea Ave Mayo</option>
+                </select>
+              </div>
+              <div>
+                <label style="font-size:.78rem;font-weight:700;color:#374151;display:block;margin-bottom:.3rem;">📋 OP de origen</label>
+                <input type="text" id="devOP" placeholder="OP que no se completó"
+                  style="width:100%;padding:.65rem .85rem;border-radius:8px;border:1.5px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
+              </div>
+              <div>
+                <label style="font-size:.78rem;font-weight:700;color:#374151;display:block;margin-bottom:.3rem;">⚖️ Kg devueltos *</label>
+                <input type="number" id="devKg" min="0.01" step="0.01" placeholder="0.0"
+                  style="width:100%;padding:.65rem .85rem;border-radius:8px;border:2px solid #7c3aed;font-size:1rem;font-weight:800;box-sizing:border-box;text-align:center;color:#5b21b6;">
+              </div>
+              <div>
+                <label style="font-size:.78rem;font-weight:700;color:#374151;display:block;margin-bottom:.3rem;">📦 N° Bolsas</label>
+                <input type="number" id="devBolsas" min="0" step="1" placeholder="0"
+                  style="width:100%;padding:.65rem .85rem;border-radius:8px;border:1.5px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;text-align:center;">
+              </div>
+              <div>
+                <label style="font-size:.78rem;font-weight:700;color:#374151;display:block;margin-bottom:.3rem;">📐 Formato</label>
+                <select id="devFormato" style="width:100%;padding:.65rem .85rem;border-radius:8px;border:1.5px solid #e2e8f0;font-size:.9rem;background:white;box-sizing:border-box;">
+                  <option value="3kg">Bolsa 3 kg</option>
+                  <option value="2kg">Bolsa 2 kg</option>
+                  <option value="1kg">Bolsa 1 kg</option>
+                  <option value="fraccion">Fracción / Abierta</option>
+                </select>
+              </div>
+              <div style="grid-column:1/-1;">
+                <label style="font-size:.78rem;font-weight:700;color:#374151;display:block;margin-bottom:.3rem;">📝 Observación</label>
+                <input type="text" id="devNotas" placeholder="Motivo de la devolución (opcional)"
+                  style="width:100%;padding:.65rem .85rem;border-radius:8px;border:1.5px solid #e2e8f0;font-size:.9rem;box-sizing:border-box;">
+              </div>
+            </div>
+            <div style="display:flex;gap:.75rem;margin-top:1.25rem;">
+              <button onclick="document.getElementById('modalDevolucionLinea').style.display='none'"
+                style="padding:.65rem 1.25rem;border-radius:10px;border:1.5px solid #e2e8f0;background:white;cursor:pointer;font-weight:600;color:#64748b;">Cancelar</button>
+              <button onclick="lineasGuardarDevolucion()"
+                style="flex:1;padding:.65rem;border-radius:10px;border:none;background:linear-gradient(135deg,#7c3aed,#5b21b6);color:white;cursor:pointer;font-weight:700;font-size:.95rem;">
+                ✅ Registrar Devolución
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- POPUP: ALERTA EXCEDENTE DE ENTREGA -->
+        <div id="popupExcedenteEntrega" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99999;align-items:center;justify-content:center;">
+          <div style="background:white;border-radius:20px;padding:2rem;width:min(520px,94vw);box-shadow:0 25px 80px rgba(0,0,0,.5);border:4px solid #ef4444;animation:_pulsoAlerta .5s ease infinite alternate;">
+            <div style="text-align:center;margin-bottom:1.25rem;">
+              <div style="font-size:3.5rem;margin-bottom:.5rem;">🚨</div>
+              <h2 style="color:#dc2626;margin:0;font-size:1.2rem;font-weight:900;">ALERTA — EXCEDENTE DE ENTREGA</h2>
+              <div style="font-size:.82rem;color:#64748b;margin-top:.3rem;">La línea ya tiene saldo de este producto</div>
+            </div>
+            <div id="popupExcedenteDetalle" style="background:#fef2f2;border-radius:12px;padding:1.1rem;margin-bottom:1.25rem;border:2px solid #fca5a5;"></div>
+            <div style="display:flex;gap:.75rem;">
+              <button onclick="excedenteAjustarEntrega()"
+                style="flex:1;padding:.75rem;border-radius:10px;border:none;background:linear-gradient(135deg,#10b981,#059669);color:white;cursor:pointer;font-weight:700;font-size:.9rem;">
+                ✅ Ajustar automáticamente
+              </button>
+              <button onclick="excedenteForzarEntrega()"
+                style="flex:1;padding:.75rem;border-radius:10px;border:none;background:#ef4444;color:white;cursor:pointer;font-weight:700;font-size:.9rem;">
+                ⚠️ Entregar de todas formas
+              </button>
+            </div>
+          </div>
+        </div>
+        <style>
+          @keyframes _pulsoAlerta { from { box-shadow: 0 0 0 0 rgba(239,68,68,.6); } to { box-shadow: 0 0 0 16px rgba(239,68,68,0); } }
+        </style>
 
         <!-- MODAL: INGRESO MANUAL A CÁMARA -->
         <div id="modalIngresoManualBodega" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10001;align-items:center;justify-content:center;overflow-y:auto;">
@@ -20585,6 +20686,10 @@ let bodegaStock = JSON.parse(localStorage.getItem('mes_bodega_stock') || '[]');
 let bodegaValesIngreso = JSON.parse(localStorage.getItem('mes_bodega_ingresos') || '[]');
 let bodegaValesSalida = JSON.parse(localStorage.getItem('mes_bodega_salidas') || '[]');
 let bodegaAjustesStock = JSON.parse(localStorage.getItem('mes_bodega_ajustes') || '[]');
+
+// ── Bodega Líneas de Envasado ──
+let lineasStock      = JSON.parse(localStorage.getItem('mes_lineas_stock')   || '[]');
+let lineasDevoluciones = JSON.parse(localStorage.getItem('mes_lineas_devoluciones') || '[]');
 let _bodegaTabActual = 'stock';
 let _bodegaProductoActual = null;
 
@@ -20594,6 +20699,8 @@ async function guardarBodega() {
     localStorage.setItem('mes_bodega_ingresos', JSON.stringify(bodegaValesIngreso));
     localStorage.setItem('mes_bodega_salidas', JSON.stringify(bodegaValesSalida));
     localStorage.setItem('mes_bodega_ajustes', JSON.stringify(bodegaAjustesStock));
+    localStorage.setItem('mes_lineas_stock', JSON.stringify(lineasStock));
+    localStorage.setItem('mes_lineas_devoluciones', JSON.stringify(lineasDevoluciones));
     if (window.db && window.firestoreLoaded) {
         try {
             const {doc, setDoc} = window.firestoreFunctions;
@@ -20601,6 +20708,8 @@ async function guardarBodega() {
                 stock: bodegaStock,
                 ingresos: bodegaValesIngreso,
                 salidas: bodegaValesSalida,
+                lineasStock,
+                lineasDevoluciones,
                 ts: new Date().toISOString()
             });
         } catch(e) { console.error('Error guardando bodega:', e); }
@@ -20615,12 +20724,16 @@ async function cargarBodegaFirebase() {
         const snap = await getDoc(doc(window.db, 'mes-data', 'bodega-transito'));
         if (snap.exists()) {
             const data = snap.data();
-            bodegaStock = data.stock || [];
-            bodegaValesIngreso = data.ingresos || [];
-            bodegaValesSalida = data.salidas || [];
-            localStorage.setItem('mes_bodega_stock', JSON.stringify(bodegaStock));
+            bodegaStock        = data.stock       || [];
+            bodegaValesIngreso = data.ingresos    || [];
+            bodegaValesSalida  = data.salidas     || [];
+            lineasStock        = data.lineasStock || [];
+            lineasDevoluciones = data.lineasDevoluciones || [];
+            localStorage.setItem('mes_bodega_stock',    JSON.stringify(bodegaStock));
             localStorage.setItem('mes_bodega_ingresos', JSON.stringify(bodegaValesIngreso));
-            localStorage.setItem('mes_bodega_salidas', JSON.stringify(bodegaValesSalida));
+            localStorage.setItem('mes_bodega_salidas',  JSON.stringify(bodegaValesSalida));
+            localStorage.setItem('mes_lineas_stock',    JSON.stringify(lineasStock));
+            localStorage.setItem('mes_lineas_devoluciones', JSON.stringify(lineasDevoluciones));
         }
     } catch(e) { console.error('Error cargando bodega:', e); }
 }
@@ -20705,15 +20818,16 @@ function bodegaRegistrarIngreso(proceso) {
 // ── Tabs del módulo ──
 function bodegaTab(tab) {
     _bodegaTabActual = tab;
-    ['stock','camara','ingresos','salidas'].forEach(t => {
+    const tabs = ['stock','lineas','camara','ingresos','salidas'];
+    tabs.forEach(t => {
         const btn = document.getElementById('btnBodega' + t.charAt(0).toUpperCase() + t.slice(1));
-        if (btn) {
-            btn.style.background = t === tab ? 'linear-gradient(135deg,#0e7490,#06b6d4)' : 'white';
-            btn.style.color = t === tab ? 'white' : '#0e7490';
-            btn.style.border = t === tab ? 'none' : '2px solid #0e7490';
-            if (t === 'ingresos') { btn.style.border = t === tab ? 'none' : '2px solid #10b981'; btn.style.color = t === tab ? 'white' : '#10b981'; if(t===tab) btn.style.background='linear-gradient(135deg,#10b981,#059669)'; }
-            if (t === 'salidas') { btn.style.border = t === tab ? 'none' : '2px solid #f59e0b'; btn.style.color = t === tab ? 'white' : '#d97706'; if(t===tab) btn.style.background='linear-gradient(135deg,#f59e0b,#d97706)'; }
-        }
+        if (!btn) return;
+        const esActivo = t === tab;
+        if (t === 'stock')    { btn.style.background = esActivo ? 'linear-gradient(135deg,#0e7490,#06b6d4)' : 'white'; btn.style.color = esActivo ? 'white' : '#0e7490'; btn.style.border = esActivo ? 'none' : '2px solid #0e7490'; }
+        if (t === 'lineas')   { btn.style.background = esActivo ? 'linear-gradient(135deg,#7c3aed,#5b21b6)' : 'white'; btn.style.color = esActivo ? 'white' : '#7c3aed'; btn.style.border = esActivo ? 'none' : '2px solid #7c3aed'; }
+        if (t === 'camara')   { btn.style.background = esActivo ? 'linear-gradient(135deg,#0e7490,#06b6d4)' : 'white'; btn.style.color = esActivo ? 'white' : '#0e7490'; btn.style.border = esActivo ? 'none' : '2px solid #0e7490'; }
+        if (t === 'ingresos') { btn.style.background = esActivo ? 'linear-gradient(135deg,#10b981,#059669)' : 'white'; btn.style.color = esActivo ? 'white' : '#10b981'; btn.style.border = esActivo ? 'none' : '2px solid #10b981'; }
+        if (t === 'salidas')  { btn.style.background = esActivo ? 'linear-gradient(135deg,#f59e0b,#d97706)' : 'white'; btn.style.color = esActivo ? 'white' : '#d97706'; btn.style.border = esActivo ? 'none' : '2px solid #f59e0b'; }
     });
     renderBodegaKPIs();
     renderBodegaContenido();
@@ -20723,16 +20837,21 @@ function bodegaTab(tab) {
 function renderBodegaKPIs() {
     const el = document.getElementById('bodegaKPIs');
     if (!el) return;
-    const stockDisp = bodegaStock.filter(s => s.estado !== 'agotado');
-    const totalKg = stockDisp.reduce((s,x) => s + (x.kgDisponible||0), 0);
+    const stockDisp  = bodegaStock.filter(s => s.estado !== 'agotado');
+    const totalKg    = stockDisp.reduce((s,x) => s + (x.kgDisponible||0), 0);
     const nProductos = new Set(stockDisp.map(s => s.producto)).size;
     const ingresosHoy = bodegaValesIngreso.filter(v => v.fechaISO === new Date().toISOString().split('T')[0]).length;
-    const salidasHoy = bodegaValesSalida.filter(v => v.fechaISO === new Date().toISOString().split('T')[0]).length;
+    const salidasHoy  = bodegaValesSalida.filter(v => v.fechaISO === new Date().toISOString().split('T')[0]).length;
+    const totalKgLineas = lineasStock.reduce((s,x) => s + (x.kg||0), 0);
 
     el.innerHTML = `
         <div style="background:linear-gradient(135deg,#0e7490,#06b6d4);border-radius:14px;padding:1.25rem;color:white;text-align:center;">
             <div style="font-size:2rem;font-weight:800;">${totalKg.toFixed(1)}</div>
-            <div style="font-size:.8rem;opacity:.85;">📦 Kg Disponibles</div>
+            <div style="font-size:.8rem;opacity:.85;">📦 Kg Abatimiento</div>
+        </div>
+        <div style="background:linear-gradient(135deg,#7c3aed,#5b21b6);border-radius:14px;padding:1.25rem;color:white;text-align:center;">
+            <div style="font-size:2rem;font-weight:800;">${totalKgLineas.toFixed(1)}</div>
+            <div style="font-size:.8rem;opacity:.85;">🥪 Kg en Líneas</div>
         </div>
         <div style="background:linear-gradient(135deg,#10b981,#059669);border-radius:14px;padding:1.25rem;color:white;text-align:center;">
             <div style="font-size:2rem;font-weight:800;">${nProductos}</div>
@@ -20752,10 +20871,11 @@ function renderBodegaKPIs() {
 function renderBodegaContenido() {
     const el = document.getElementById('bodegaContenido');
     if (!el) return;
-    if (_bodegaTabActual === 'stock') renderBodegaStock(el);
-    else if (_bodegaTabActual === 'camara') renderBodegaCamara3D(el);
+    if (_bodegaTabActual === 'stock')    renderBodegaStock(el);
+    else if (_bodegaTabActual === 'lineas')   renderLineasStock(el);
+    else if (_bodegaTabActual === 'camara')   renderBodegaCamara3D(el);
     else if (_bodegaTabActual === 'ingresos') renderBodegaIngresos(el);
-    else if (_bodegaTabActual === 'salidas') renderBodegaSalidas(el);
+    else if (_bodegaTabActual === 'salidas')  renderBodegaSalidas(el);
 }
 
 // ── STOCK ACTUAL ──
@@ -20829,101 +20949,114 @@ function renderBodegaStock(el) {
         </div>`;
 }
 
-// ── VISTA 3D CÁMARA ──
+// ── VISTA 3D DUAL — Abatimiento + Líneas Envasado ──
 function renderBodegaCamara3D(el) {
-    const stockDisp = bodegaStock.filter(s => s.estado !== 'agotado');
+    const colores3D = ['#0e7490','#10b981','#8b5cf6','#f59e0b','#ef4444','#3b82f6','#ec4899'];
 
-    // Agrupar por producto para los estantes
-    const porProducto = {};
+    function _svgCamara(productos3D, titulo, colorTitulo) {
+        return `<svg viewBox="0 0 900 380" xmlns="http://www.w3.org/2000/svg" style="width:100%;border-radius:12px;background:linear-gradient(135deg,#0f172a,#1e293b);">
+            <defs><linearGradient id="pisoGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#1e3a5f;stop-opacity:1"/>
+                <stop offset="100%" style="stop-color:${colorTitulo};stop-opacity:1"/>
+            </linearGradient></defs>
+            <rect x="0" y="0" width="900" height="380" fill="#0f172a" rx="12"/>
+            <polygon points="50,350 850,350 750,270 150,270" fill="url(#pisoGrad2)" opacity="0.3"/>
+            ${[0,1,2,3,4].map(i => `<line x1="${150+i*150}" y1="270" x2="${50+i*200}" y2="350" stroke="#1e3a5f" stroke-width="1" opacity="0.4"/>`).join('')}
+            <text x="450" y="28" text-anchor="middle" fill="${colorTitulo}" font-size="13" font-family="sans-serif" font-weight="bold">${titulo}</text>
+            ${productos3D.length === 0
+                ? `<text x="450" y="190" text-anchor="middle" fill="#475569" font-size="16" font-family="sans-serif">📭 Sin stock</text>`
+                : productos3D.slice(0,6).map(([prod, data], idx) => {
+                    const col = idx % 3, row = Math.floor(idx / 3);
+                    const baseX = 130 + col * 220, baseY = 290 - row * 110;
+                    const pct = data.total > 0 ? data.disponible / data.total : 0;
+                    const color = colores3D[idx % colores3D.length];
+                    const h = Math.max(18, Math.round(pct * 70));
+                    const label = prod.length > 14 ? prod.slice(0,14)+'…' : prod;
+                    const w = 155, d = 35;
+                    return `<g>
+                        <rect x="${baseX}" y="${baseY-h}" width="${w}" height="${h}" fill="${color}" opacity="0.85" rx="3"/>
+                        <polygon points="${baseX},${baseY-h} ${baseX+w},${baseY-h} ${baseX+w+d},${baseY-h-d} ${baseX+d},${baseY-h-d}" fill="${color}" opacity="0.55"/>
+                        <polygon points="${baseX+w},${baseY-h} ${baseX+w},${baseY} ${baseX+w+d},${baseY-d} ${baseX+w+d},${baseY-h-d}" fill="${color}" opacity="0.45"/>
+                        <text x="${baseX+w/2}" y="${baseY-h/2+4}" text-anchor="middle" fill="white" font-size="10" font-family="sans-serif" font-weight="bold">${label}</text>
+                        <text x="${baseX+w/2}" y="${baseY-h/2+17}" text-anchor="middle" fill="rgba(255,255,255,.85)" font-size="9.5" font-family="sans-serif">${data.disponible.toFixed(1)} kg</text>
+                        <rect x="${baseX+4}" y="${baseY-h+4}" width="${w-8}" height="5" rx="2" fill="rgba(0,0,0,.3)"/>
+                        <rect x="${baseX+4}" y="${baseY-h+4}" width="${Math.round((w-8)*pct)}" height="5" rx="2" fill="rgba(255,255,255,.75)"/>
+                    </g>`;
+                }).join('')}
+        </svg>`;
+    }
+
+    // Datos Abatimiento
+    const stockDisp = bodegaStock.filter(s => s.estado !== 'agotado');
+    const porProdAbat = {};
     stockDisp.forEach(s => {
-        if (!porProducto[s.producto]) porProducto[s.producto] = { kg: 0, kgDisponible: 0, items: [] };
-        porProducto[s.producto].kg += s.kg || 0;
-        porProducto[s.producto].kgDisponible += s.kgDisponible || 0;
-        porProducto[s.producto].items.push(s);
+        if (!porProdAbat[s.producto]) porProdAbat[s.producto] = { total:0, disponible:0 };
+        porProdAbat[s.producto].total      += s.kg || 0;
+        porProdAbat[s.producto].disponible += s.kgDisponible || 0;
     });
 
-    const productos3D = Object.entries(porProducto);
-    const colores3D = ['#0e7490','#10b981','#8b5cf6','#f59e0b','#ef4444','#3b82f6','#ec4899'];
+    // Datos Líneas Envasado
+    const porProdLineas = {};
+    lineasStock.forEach(s => {
+        if (!porProdLineas[s.producto]) porProdLineas[s.producto] = { total:0, disponible:0 };
+        porProdLineas[s.producto].total      += s.kg || 0;
+        porProdLineas[s.producto].disponible += s.kg || 0;
+    });
+
+    const prod3DAbat  = Object.entries(porProdAbat);
+    const prod3DLineas = Object.entries(porProdLineas);
+    const colAbat = '#0e7490', colLineas = '#7c3aed';
 
     el.innerHTML = `
         <div style="background:white;border-radius:16px;padding:1.5rem;box-shadow:0 2px 12px rgba(0,0,0,.06);">
-            <h3 style="color:#0e7490;margin:0 0 1.25rem;font-size:1rem;">🗂️ Vista 3D — Cámara de Tránsito</h3>
-
-            <!-- Vista isométrica SVG -->
-            <div style="overflow-x:auto;margin-bottom:1.5rem;">
-                <svg viewBox="0 0 900 420" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:900px;min-width:600px;border-radius:12px;background:linear-gradient(135deg,#0f172a,#1e293b);">
-                    <!-- Piso -->
-                    <defs>
-                        <linearGradient id="pisoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style="stop-color:#1e3a5f;stop-opacity:1"/>
-                            <stop offset="100%" style="stop-color:#0e7490;stop-opacity:1"/>
-                        </linearGradient>
-                    </defs>
-                    <!-- Fondo sala -->
-                    <rect x="0" y="0" width="900" height="420" fill="#0f172a" rx="12"/>
-                    <!-- Piso perspectiva -->
-                    <polygon points="50,380 850,380 750,300 150,300" fill="url(#pisoGrad)" opacity="0.4"/>
-                    <!-- Líneas piso -->
-                    ${[0,1,2,3,4].map(i => `<line x1="${150+i*150}" y1="300" x2="${50+i*200}" y2="380" stroke="#1e3a5f" stroke-width="1" opacity="0.5"/>`).join('')}
-                    <!-- Título -->
-                    <text x="450" y="30" text-anchor="middle" fill="#94a3b8" font-size="14" font-family="sans-serif">❄️ Cámara de Tránsito — Vista Isométrica</text>
-                    <!-- Temperatura indicador -->
-                    <rect x="760" y="15" width="120" height="28" rx="14" fill="#0e7490" opacity="0.8"/>
-                    <text x="820" y="33" text-anchor="middle" fill="white" font-size="12" font-family="sans-serif">🌡️ ≤4°C</text>
-
-                    ${productos3D.length === 0 ? `
-                    <text x="450" y="200" text-anchor="middle" fill="#64748b" font-size="18" font-family="sans-serif">📭 Cámara vacía</text>
-                    ` : productos3D.slice(0, 6).map(([prod, data], idx) => {
-                        const col = idx % 3;
-                        const row = Math.floor(idx / 3);
-                        const baseX = 130 + col * 220;
-                        const baseY = 320 - row * 120;
-                        const pct = data.kg > 0 ? data.kgDisponible / data.kg : 0;
-                        const color = colores3D[idx % colores3D.length];
-                        const h = Math.max(20, Math.round(pct * 80));
-                        const label = prod.length > 14 ? prod.slice(0,14)+'…' : prod;
-
-                        // Caja 3D isométrica
-                        const w = 160, d = 40;
-                        return `
-                        <g>
-                            <!-- Cara frontal -->
-                            <rect x="${baseX}" y="${baseY - h}" width="${w}" height="${h}" fill="${color}" opacity="0.85" rx="3"/>
-                            <!-- Cara superior -->
-                            <polygon points="${baseX},${baseY-h} ${baseX+w},${baseY-h} ${baseX+w+d},${baseY-h-d} ${baseX+d},${baseY-h-d}" fill="${color}" opacity="0.6"/>
-                            <!-- Cara lateral -->
-                            <polygon points="${baseX+w},${baseY-h} ${baseX+w},${baseY} ${baseX+w+d},${baseY-d} ${baseX+w+d},${baseY-h-d}" fill="${color}" opacity="0.5"/>
-                            <!-- Borde base -->
-                            <rect x="${baseX}" y="${baseY-3}" width="${w}" height="3" fill="${color}"/>
-                            <!-- Nombre producto -->
-                            <text x="${baseX+w/2}" y="${baseY-h/2+5}" text-anchor="middle" fill="white" font-size="11" font-family="sans-serif" font-weight="bold">${label}</text>
-                            <!-- Kg disponible -->
-                            <text x="${baseX+w/2}" y="${baseY-h/2+20}" text-anchor="middle" fill="rgba(255,255,255,.9)" font-size="10" font-family="sans-serif">${data.kgDisponible.toFixed(1)} kg</text>
-                            <!-- Barra nivel -->
-                            <rect x="${baseX+5}" y="${baseY-h+5}" width="${w-10}" height="6" rx="3" fill="rgba(0,0,0,.3)"/>
-                            <rect x="${baseX+5}" y="${baseY-h+5}" width="${Math.round((w-10)*pct)}" height="6" rx="3" fill="rgba(255,255,255,.8)"/>
-                        </g>`;
-                    }).join('')}
-                </svg>
+            <h3 style="margin:0 0 1.25rem;font-size:1rem;color:#1e293b;">🗂️ Vista 3D Dual — Cámara Abatimiento · Bodega Líneas Envasado</h3>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.5rem;">
+                <div>
+                    <div style="font-size:.78rem;font-weight:700;color:${colAbat};margin-bottom:.5rem;">❄️ CÁMARA ABATIMIENTO</div>
+                    ${_svgCamara(prod3DAbat, '❄️ Cámara de Tránsito — Abatimiento', colAbat)}
+                </div>
+                <div>
+                    <div style="font-size:.78rem;font-weight:700;color:${colLineas};margin-bottom:.5rem;">🥪 BODEGA LÍNEAS DE ENVASADO</div>
+                    ${_svgCamara(prod3DLineas, '🥪 Bodega Líneas de Envasado', colLineas)}
+                </div>
             </div>
 
-            <!-- Leyenda detalle -->
-            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.75rem;">
-                ${productos3D.length === 0
-                    ? '<p style="color:#94a3b8;grid-column:1/-1;text-align:center;">Sin productos en cámara</p>'
-                    : productos3D.map(([prod, data], idx) => {
-                        const pct = data.kg > 0 ? Math.round(data.kgDisponible / data.kg * 100) : 0;
-                        const color = colores3D[idx % colores3D.length];
-                        const colorSt = pct > 60 ? '#10b981' : pct > 30 ? '#f59e0b' : '#ef4444';
-                        return `<div style="background:#f8fafc;border-radius:10px;padding:.85rem;border-left:4px solid ${color};">
-                            <div style="font-weight:700;font-size:.85rem;color:#1e293b;margin-bottom:.35rem;">${prod}</div>
-                            <div style="font-size:.78rem;color:#64748b;">Disponible: <strong style="color:${colorSt};">${data.kgDisponible.toFixed(1)} kg</strong></div>
-                            <div style="font-size:.78rem;color:#94a3b8;">Total ingresado: ${data.kg.toFixed(1)} kg</div>
-                            <div style="background:#e2e8f0;border-radius:99px;height:5px;margin-top:.4rem;overflow:hidden;">
-                                <div style="width:${pct}%;height:100%;background:${colorSt};border-radius:99px;"></div>
-                            </div>
-                        </div>`;
-                    }).join('')}
+            <!-- Leyenda Abatimiento -->
+            <div style="margin-bottom:1rem;">
+                <div style="font-size:.78rem;font-weight:700;color:${colAbat};margin-bottom:.5rem;border-bottom:2px solid ${colAbat};padding-bottom:.3rem;">Detalle Abatimiento</div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:.6rem;">
+                    ${prod3DAbat.length === 0
+                        ? '<p style="color:#94a3b8;font-size:.82rem;">Sin stock en cámara</p>'
+                        : prod3DAbat.map(([prod, data], idx) => {
+                            const pct = data.total > 0 ? Math.round(data.disponible / data.total * 100) : 0;
+                            const colorSt = pct > 60 ? '#10b981' : pct > 30 ? '#f59e0b' : '#ef4444';
+                            return `<div style="background:#f0f9ff;border-radius:8px;padding:.7rem;border-left:3px solid ${colores3D[idx%colores3D.length]};">
+                                <div style="font-weight:700;font-size:.82rem;color:#1e293b;">${prod}</div>
+                                <div style="font-size:.75rem;color:#64748b;">Disp: <strong style="color:${colorSt};">${data.disponible.toFixed(1)} kg</strong> / ${data.total.toFixed(1)} kg</div>
+                                <div style="background:#e2e8f0;border-radius:99px;height:4px;margin-top:.3rem;overflow:hidden;">
+                                    <div style="width:${pct}%;height:100%;background:${colorSt};border-radius:99px;"></div>
+                                </div>
+                            </div>`;
+                        }).join('')}
+                </div>
+            </div>
+
+            <!-- Leyenda Líneas -->
+            <div>
+                <div style="font-size:.78rem;font-weight:700;color:${colLineas};margin-bottom:.5rem;border-bottom:2px solid ${colLineas};padding-bottom:.3rem;">Detalle Líneas Envasado</div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:.6rem;">
+                    ${prod3DLineas.length === 0
+                        ? '<p style="color:#94a3b8;font-size:.82rem;">Sin saldos en líneas</p>'
+                        : prod3DLineas.map(([prod, data], idx) => {
+                            const lineaInfo = lineasStock.filter(s => s.producto === prod);
+                            const lineas = [...new Set(lineaInfo.map(s => s.linea))].join(', ');
+                            return `<div style="background:#faf5ff;border-radius:8px;padding:.7rem;border-left:3px solid ${colores3D[idx%colores3D.length]};">
+                                <div style="font-weight:700;font-size:.82rem;color:#5b21b6;">${prod}</div>
+                                <div style="font-size:.75rem;color:#64748b;">Saldo: <strong style="color:#7c3aed;">${data.disponible.toFixed(1)} kg</strong></div>
+                                <div style="font-size:.7rem;color:#94a3b8;">${lineas}</div>
+                            </div>`;
+                        }).join('')}
+                </div>
             </div>
         </div>`;
 }
@@ -26413,6 +26546,197 @@ async function bodegaGuardarIngresoManual() {
     renderBodegaKPIs();
     renderBodegaContenido();
     mostrarNotificacion(`✅ ${producto} ingresado — ${kg.toFixed(1)} kg · ${nBolsas} bolsas`, 'success');
+}
+
+// ================================================================
+// BODEGA LÍNEAS DE ENVASADO
+// ================================================================
+
+function renderLineasStock(el) {
+    const lineas = { sandwiches:'🥪 Sándwiches', platos:'🍽️ Platos', avemayo:'🥗 Ave Mayo' };
+    if (!window._lineasTabActual) window._lineasTabActual = 'sandwiches';
+    const items = lineasStock.filter(s => s.linea === window._lineasTabActual);
+
+    el.innerHTML = `
+        <div style="background:white;border-radius:16px;padding:1.25rem;box-shadow:0 2px 12px rgba(0,0,0,.06);">
+            <h3 style="margin:0 0 1rem;color:#5b21b6;font-size:1rem;">🥪 Bodega Líneas de Envasado — Saldos pendientes de montar</h3>
+            <div style="display:flex;gap:.5rem;margin-bottom:1rem;">
+                ${Object.keys(lineas).map(t=>`
+                    <button onclick="window._lineasTabActual='${t}';renderBodegaContenido();"
+                        style="padding:.4rem .9rem;border-radius:8px;font-weight:700;font-size:.82rem;cursor:pointer;
+                        background:${window._lineasTabActual===t?'linear-gradient(135deg,#7c3aed,#5b21b6)':'white'};
+                        color:${window._lineasTabActual===t?'white':'#7c3aed'};border:2px solid #7c3aed;">
+                        ${lineas[t]}</button>`).join('')}
+            </div>
+            ${items.length === 0
+                ? `<div style="text-align:center;padding:2.5rem;color:#94a3b8;">
+                    <div style="font-size:2.5rem;">✅</div>
+                    <div style="font-weight:600;margin-top:.5rem;">Sin saldos en ${lineas[window._lineasTabActual]}</div>
+                   </div>`
+                : `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:.84rem;">
+                    <thead><tr style="background:#7c3aed;color:white;">
+                        <th style="padding:.6rem .75rem;text-align:left;border-radius:8px 0 0 0;">Producto</th>
+                        <th style="padding:.6rem;text-align:center;">Kg</th>
+                        <th style="padding:.6rem;text-align:center;">Bolsas</th>
+                        <th style="padding:.6rem;text-align:center;">Formato</th>
+                        <th style="padding:.6rem;text-align:center;">OP origen</th>
+                        <th style="padding:.6rem;text-align:center;">Fecha dev.</th>
+                        <th style="padding:.6rem;text-align:center;">Notas</th>
+                        <th style="padding:.6rem;text-align:center;border-radius:0 8px 0 0;">⚙️</th>
+                    </tr></thead>
+                    <tbody>${items.map((s,i)=>`
+                        <tr style="background:${i%2===0?'white':'#faf5ff'};border-bottom:1px solid #f1f5f9;">
+                            <td style="padding:.55rem .75rem;font-weight:700;color:#5b21b6;">${s.producto}</td>
+                            <td style="padding:.55rem;text-align:center;font-weight:800;color:#7c3aed;">${(s.kg||0).toFixed(2)}</td>
+                            <td style="padding:.55rem;text-align:center;">${s.bolsas||'—'}</td>
+                            <td style="padding:.55rem;text-align:center;font-size:.78rem;">${s.formato||'—'}</td>
+                            <td style="padding:.55rem;text-align:center;font-size:.78rem;">${s.opOrigen||'—'}</td>
+                            <td style="padding:.55rem;text-align:center;font-size:.78rem;">${s.fecha||'—'}</td>
+                            <td style="padding:.55rem;text-align:center;font-size:.75rem;color:#94a3b8;">${s.notas||'—'}</td>
+                            <td style="padding:.55rem;text-align:center;">
+                                <button onclick="lineasEliminarSaldo('${s.id}')"
+                                    style="background:#fee2e2;color:#ef4444;border:none;border-radius:5px;padding:.25rem .5rem;cursor:pointer;font-size:.75rem;">🗑️</button>
+                            </td>
+                        </tr>`).join('')}
+                    </tbody></table></div>`}
+        </div>`;
+}
+
+function lineasAbrirDevolucion() {
+    const dl = document.getElementById('devListaProductos');
+    if (dl) {
+        const prods = [...new Set(bodegaStock.filter(s=>s.estado!=='agotado').map(s=>s.producto))].sort();
+        dl.innerHTML = prods.map(p=>`<option value="${p}">`).join('');
+    }
+    ['devProducto','devOP','devKg','devBolsas','devNotas'].forEach(id=>{
+        const el=document.getElementById(id); if(el) el.value='';
+    });
+    document.getElementById('modalDevolucionLinea').style.display = 'flex';
+    setTimeout(()=>document.getElementById('devProducto').focus(),150);
+}
+
+async function lineasGuardarDevolucion() {
+    const producto = document.getElementById('devProducto').value.trim().toUpperCase();
+    const linea    = document.getElementById('devLinea').value;
+    const op       = document.getElementById('devOP').value.trim();
+    const kg       = parseFloat(document.getElementById('devKg').value);
+    const bolsas   = parseInt(document.getElementById('devBolsas').value) || null;
+    const formato  = document.getElementById('devFormato').value;
+    const notas    = document.getElementById('devNotas').value.trim();
+
+    if (!producto) { alert('Ingresa el nombre del producto'); return; }
+    if (!kg || kg <= 0) { alert('Ingresa los kg devueltos'); return; }
+
+    const id = 'DEV-' + Date.now();
+    const entrada = {
+        id, producto, linea,
+        kg: Math.round(kg*100)/100,
+        bolsas, formato, opOrigen: op,
+        fecha:    new Date().toLocaleDateString('es-CL'),
+        fechaISO: new Date().toISOString().split('T')[0],
+        hora:     new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'}),
+        notas, creadoPor: window._emailActual || 'abatimiento'
+    };
+
+    // Merge si mismo producto+linea ya tiene saldo
+    const existente = lineasStock.find(s => s.producto===producto && s.linea===linea);
+    if (existente) {
+        existente.kg     = Math.round((existente.kg+kg)*100)/100;
+        existente.bolsas = (existente.bolsas||0) + (bolsas||0);
+        existente.fecha  = entrada.fecha;
+        existente.notas  = notas || existente.notas;
+    } else {
+        lineasStock.push(entrada);
+    }
+    lineasDevoluciones.unshift(entrada);
+
+    await guardarBodega();
+    document.getElementById('modalDevolucionLinea').style.display = 'none';
+    renderBodegaKPIs();
+    renderBodegaContenido();
+    mostrarNotificacion(`↩️ Devolución registrada — ${producto}: ${kg.toFixed(2)} kg en ${linea}`,'success');
+}
+
+async function lineasEliminarSaldo(id) {
+    if (!confirm('¿Eliminar este saldo de línea?')) return;
+    lineasStock = lineasStock.filter(s => s.id !== id);
+    await guardarBodega();
+    renderBodegaKPIs();
+    renderBodegaContenido();
+}
+
+function lineasGetSaldo(producto, linea) {
+    return lineasStock
+        .filter(s => s.producto.trim().toUpperCase() === producto.trim().toUpperCase()
+                  && (!linea || s.linea === linea))
+        .reduce((s,x) => s+(x.kg||0), 0);
+}
+
+// ── Check excedente al ir a paso 2 ──
+let _excedenteData = null;
+
+function bodegaIrAPaso2ConCheck() {
+    const linea  = document.getElementById('bodegaLineaDestino').value;
+    const opDest = document.getElementById('bodegaOPDestino').value.trim();
+
+    if (!linea || linea === 'otro') { bodegaIrAPaso2(); return; }
+
+    const saldosLinea = lineasStock.filter(s => s.linea === linea);
+    if (saldosLinea.length === 0) { bodegaIrAPaso2(); return; }
+
+    let opNecesidades = [];
+    if (opDest) {
+        const op = ordenesProduccion.find(o => String(o.numeroOp)===String(opDest) || o.id===opDest);
+        if (op && op.componentes) {
+            opNecesidades = op.componentes.map(c => ({
+                nombre:      c.nombre,
+                kgNecesario: c.kgTerminados || 0,
+                saldoLinea:  lineasGetSaldo(c.nombre, linea)
+            })).filter(c => c.saldoLinea > 0);
+        }
+    }
+
+    // Si no hay OP o no hay coincidencias, verificar si algún producto del stock
+    // que se va a entregar tiene saldo en esa línea
+    if (opNecesidades.length === 0 && _bodegaSesionSalida.item) {
+        const prod = _bodegaSesionSalida.item.producto;
+        const saldo = lineasGetSaldo(prod, linea);
+        if (saldo > 0) {
+            opNecesidades = [{ nombre: prod, kgNecesario: _bodegaSesionSalida.item.kgDisponible, saldoLinea: saldo }];
+        }
+    }
+
+    if (opNecesidades.length === 0) { bodegaIrAPaso2(); return; }
+
+    _excedenteData = { linea, opDest, opNecesidades };
+    const detalle = document.getElementById('popupExcedenteDetalle');
+    detalle.innerHTML = `
+        <div style="font-weight:800;color:#dc2626;font-size:.9rem;margin-bottom:.75rem;">
+            ⚠️ La Bodega Líneas de Envasado ya tiene saldo de:
+        </div>
+        ${opNecesidades.map(c=>`
+            <div style="display:grid;grid-template-columns:1fr auto auto;gap:.5rem;align-items:center;
+                background:white;border-radius:8px;padding:.55rem .75rem;margin-bottom:.4rem;border:1px solid #fca5a5;">
+                <span style="font-weight:700;color:#374151;font-size:.85rem;">${c.nombre}</span>
+                <span style="font-size:.78rem;color:#64748b;">Necesita: <strong>${c.kgNecesario.toFixed(1)} kg</strong></span>
+                <span style="font-size:.82rem;color:#7c3aed;font-weight:800;">Saldo línea: ${c.saldoLinea.toFixed(2)} kg</span>
+            </div>`).join('')}
+        <div style="margin-top:.75rem;padding:.65rem;background:#fef2f2;border-radius:8px;font-size:.82rem;color:#dc2626;font-weight:600;">
+            "Ajustar" → entrega solo el diferencial (necesario − saldo). Los saldos se descontarán automáticamente de la Bodega Líneas al confirmar.
+        </div>`;
+    document.getElementById('popupExcedenteEntrega').style.display = 'flex';
+}
+
+function excedenteAjustarEntrega() {
+    window._excedenteAjuste = _excedenteData;
+    document.getElementById('popupExcedenteEntrega').style.display = 'none';
+    bodegaIrAPaso2();
+}
+
+function excedenteForzarEntrega() {
+    window._excedenteAjuste = null;
+    document.getElementById('popupExcedenteEntrega').style.display = 'none';
+    bodegaIrAPaso2();
 }
 
     </script>
