@@ -8180,6 +8180,7 @@ function imprimirRegistroHACCP(d) {
             guardarDatos();
             renderEquipos();
             renderProcesosActivos();
+            renderEnvasado(); // ← asegurar que envasado se actualiza
             updateStats();
             mostrarNotificacion('✅ Desmechado finalizado — Pasando a Envasado', 'success');
         }
@@ -8237,6 +8238,7 @@ function imprimirRegistroHACCP(d) {
             guardarDatos();
             renderEquipos();
             renderProcesosActivos();
+            renderEnvasado(); // ← asegurar que la UI de envasado refleja el nuevo proceso
             updateStats();
             closeModal('finalizarCoccion');
 
@@ -11232,6 +11234,18 @@ function limpiarComponentesFriosDeEquipos() {
                         updateStats();
                     }
 
+                    // procesosEnvasado y procesosAbatimiento: SIEMPRE sincronizar
+                    // (no depende del dispositivo — cocina puede finalizar y envasado/abatimiento
+                    //  deben verse actualizados aunque sea el mismo dispositivo)
+                    if (Array.isArray(data.procesosEnvasado)) {
+                        procesosEnvasado = data.procesosEnvasado;
+                        renderEnvasado();
+                    }
+                    if (Array.isArray(data.procesosAbatimiento)) {
+                        procesosAbatimiento = data.procesosAbatimiento;
+                        renderAbatimiento();
+                    }
+
                     if (!esOtroDispositivo) return;
 
                     console.log('🔄 estado-actual actualizado desde otro dispositivo...');
@@ -11248,10 +11262,7 @@ function limpiarComponentesFriosDeEquipos() {
                     recalcularTiemposCoccion();
                     limpiarEsperasVencidas();
                     productos = data.productos || productos;
-                    procesosEnvasado = data.procesosEnvasado || [];
-                    procesosAbatimiento = data.procesosAbatimiento || [];
                     planDiario = data.planDiario || {};
-                    // Historial ya mergeado arriba para todos los dispositivos
 
                     // Refrescar UI módulos afectados
                     renderEquipos();
