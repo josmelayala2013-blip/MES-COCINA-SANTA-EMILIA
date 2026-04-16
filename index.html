@@ -1186,7 +1186,11 @@
             <div class="analytics-section">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:.75rem;">
                     <h2 style="color:#8b5cf6;margin:0;">📦 Envasado en Proceso</h2>
-                    <div style="display:flex;gap:.5rem;align-items:center;">
+                    <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;">
+                        <button onclick="abrirRegistroBatch()"
+                            style="background:linear-gradient(135deg,#dc2626,#b91c1c);color:white;border:none;border-radius:10px;padding:.5rem 1rem;cursor:pointer;font-weight:700;font-size:.85rem;">
+                            🔧 Registrar Procesos Perdidos
+                        </button>
                         <button onclick="togglePanelHACCP('envasado')" 
                             style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:white;border:none;border-radius:10px;padding:.5rem 1rem;cursor:pointer;font-weight:700;font-size:.85rem;">
                             📋 Registros HACCP
@@ -1537,6 +1541,68 @@
 
             <!-- Contenido dinámico -->
             <div id="bodegaContenido"></div>
+          </div>
+        </div>
+
+        <!-- MODAL: REGISTRAR PROCESOS PERDIDOS (BATCH) -->
+        <div id="modalRegistroBatch" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:10002;overflow-y:auto;">
+          <div style="background:white;border-radius:18px;padding:2rem;width:min(1100px,98vw);margin:1.5rem auto;box-shadow:0 20px 60px rgba(0,0,0,.4);border-top:5px solid #dc2626;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
+              <div>
+                <h2 style="margin:0;font-size:1.1rem;font-weight:800;color:#dc2626;">🔧 Registro Retroactivo de Procesos</h2>
+                <div style="font-size:.78rem;color:#64748b;margin-top:.2rem;">Completa envasado + abatimiento de las preparaciones que el sistema no registró hoy</div>
+              </div>
+              <button onclick="document.getElementById('modalRegistroBatch').style.display='none'"
+                style="background:#f1f5f9;border:none;border-radius:8px;padding:.4rem .7rem;cursor:pointer;font-size:1rem;">✕</button>
+            </div>
+
+            <!-- Fecha retroactiva -->
+            <div style="background:#fef2f2;border-radius:10px;padding:.75rem 1rem;margin-bottom:1rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;border:1px solid #fca5a5;">
+              <div style="font-size:.82rem;font-weight:700;color:#dc2626;">📅 Fecha de los procesos:</div>
+              <input type="date" id="batchFecha" style="padding:.45rem .75rem;border-radius:7px;border:2px solid #dc2626;font-size:.9rem;">
+              <div style="font-size:.78rem;color:#64748b;">Hora inicio envasado:</div>
+              <input type="time" id="batchHoraEnv" value="08:00" style="padding:.45rem .6rem;border-radius:7px;border:1.5px solid #e2e8f0;font-size:.9rem;">
+              <div style="font-size:.78rem;color:#64748b;">Hora inicio abatimiento:</div>
+              <input type="time" id="batchHoraAbat" value="10:00" style="padding:.45rem .6rem;border-radius:7px;border:1.5px solid #e2e8f0;font-size:.9rem;">
+            </div>
+
+            <!-- Tabla batch -->
+            <div style="overflow-x:auto;margin-bottom:1rem;">
+              <table style="width:100%;border-collapse:collapse;font-size:.82rem;" id="tablaBatch">
+                <thead>
+                  <tr style="background:#1e293b;color:white;">
+                    <th style="padding:.6rem .7rem;text-align:left;border-radius:8px 0 0 0;">✅</th>
+                    <th style="padding:.6rem .7rem;text-align:left;">OP</th>
+                    <th style="padding:.6rem .7rem;text-align:left;">Preparación</th>
+                    <th style="padding:.6rem .7rem;text-align:center;">Kg cocción</th>
+                    <th style="padding:.6rem .7rem;text-align:center;">Kg envasado</th>
+                    <th style="padding:.6rem .7rem;text-align:center;">Kg abatimiento</th>
+                    <th style="padding:.6rem .7rem;text-align:center;">Operador envasado</th>
+                    <th style="padding:.6rem .7rem;text-align:center;border-radius:0 8px 0 0;">Temp. abat. (°C)</th>
+                  </tr>
+                </thead>
+                <tbody id="batchFilas"></tbody>
+              </table>
+            </div>
+
+            <!-- Botón agregar fila manual -->
+            <button onclick="batchAgregarFila()"
+              style="padding:.5rem 1.1rem;border-radius:8px;border:2px dashed #94a3b8;background:white;color:#64748b;cursor:pointer;font-size:.82rem;font-weight:600;margin-bottom:1rem;">
+              + Agregar preparación manualmente
+            </button>
+
+            <div style="background:#f0fdf4;border-radius:10px;padding:.75rem 1rem;margin-bottom:1.25rem;font-size:.8rem;color:#065f46;border:1px solid #bbf7d0;">
+              💡 <strong>Instrucción:</strong> Marca solo las filas que necesitas recuperar. Los registros se crearán en historial con la fecha indicada y quedarán disponibles en HACCP.
+            </div>
+
+            <div style="display:flex;gap:.75rem;justify-content:flex-end;">
+              <button onclick="document.getElementById('modalRegistroBatch').style.display='none'"
+                style="padding:.65rem 1.4rem;border-radius:10px;border:1.5px solid #e2e8f0;background:white;cursor:pointer;font-weight:600;color:#64748b;">Cancelar</button>
+              <button onclick="batchConfirmarRegistros()"
+                style="padding:.65rem 1.8rem;border-radius:10px;border:none;background:linear-gradient(135deg,#dc2626,#b91c1c);color:white;cursor:pointer;font-weight:700;font-size:.95rem;">
+                ✅ Registrar procesos seleccionados
+              </button>
+            </div>
           </div>
         </div>
 
@@ -26864,6 +26930,207 @@ function excedenteForzarEntrega() {
     document.getElementById('btnConfirmarSalida').style.background = '#cbd5e1';
     document.getElementById('popupExcedenteEntrega').style.display = 'none';
     setTimeout(() => document.getElementById('bodegaScanInput')?.focus(), 100);
+}
+
+// ================================================================
+// REGISTRO RETROACTIVO BATCH — procesos perdidos
+// ================================================================
+
+function abrirRegistroBatch() {
+    // Fecha hoy por defecto
+    document.getElementById('batchFecha').value = new Date().toISOString().split('T')[0];
+
+    // Cargar filas desde OPs del planificador (estado en-produccion o completada hoy)
+    const hoy = new Date().toISOString().split('T')[0];
+    const ops = ordenesProduccion.filter(op =>
+        op.estado === 'en-produccion' || op.estado === 'completada' || op.estado === 'pendiente'
+    );
+
+    const tbody = document.getElementById('batchFilas');
+    tbody.innerHTML = '';
+
+    // Obtener operadoras de envasado
+    const opsList = (personal.envasado || []).map(p => typeof p === 'string' ? p : p.nombre).filter(Boolean);
+    const opsOptions = opsList.map(n => `<option value="${n}">${n}</option>`).join('');
+
+    let filaIdx = 0;
+    ops.forEach(op => {
+        (op.componentes || [{ nombre: op.nombre, kgTerminados: op.kgProgramados }]).forEach(comp => {
+            tbody.appendChild(_crearFilaBatch(filaIdx++, op.numeroOp || op.id, comp.nombre, comp.kgTerminados || 0, opsOptions));
+        });
+    });
+
+    // Si no hay OPs, agregar 3 filas vacías
+    if (filaIdx === 0) {
+        for (let i = 0; i < 3; i++) tbody.appendChild(_crearFilaBatch(filaIdx++, '', '', '', opsOptions));
+    }
+
+    document.getElementById('modalRegistroBatch').style.display = 'block';
+}
+
+function _crearFilaBatch(idx, op, nombre, kg, opsOptions) {
+    const tr = document.createElement('tr');
+    tr.id = `batchFila_${idx}`;
+    tr.style.cssText = `border-bottom:1px solid #f1f5f9;background:${idx%2===0?'white':'#f8fafc'};`;
+    tr.innerHTML = `
+        <td style="padding:.45rem .5rem;text-align:center;">
+            <input type="checkbox" id="batchChk_${idx}" checked style="width:16px;height:16px;cursor:pointer;accent-color:#dc2626;">
+        </td>
+        <td style="padding:.45rem .5rem;">
+            <input type="text" id="batchOP_${idx}" value="${op}" placeholder="Ej: 944"
+                style="width:70px;padding:.35rem .5rem;border-radius:6px;border:1.5px solid #e2e8f0;font-size:.82rem;text-align:center;">
+        </td>
+        <td style="padding:.45rem .5rem;">
+            <input type="text" id="batchNombre_${idx}" value="${nombre}" placeholder="Nombre preparación"
+                style="width:200px;padding:.35rem .5rem;border-radius:6px;border:1.5px solid #e2e8f0;font-size:.82rem;">
+        </td>
+        <td style="padding:.45rem .5rem;text-align:center;">
+            <input type="number" id="batchKgCoc_${idx}" value="${kg||''}" placeholder="kg" min="0" step="0.1"
+                style="width:70px;padding:.35rem .5rem;border-radius:6px;border:1.5px solid #e2e8f0;font-size:.82rem;text-align:center;">
+        </td>
+        <td style="padding:.45rem .5rem;text-align:center;">
+            <input type="number" id="batchKgEnv_${idx}" value="${kg||''}" placeholder="kg" min="0" step="0.1"
+                style="width:70px;padding:.35rem .5rem;border-radius:6px;border:1.5px solid #10b981;font-size:.82rem;text-align:center;">
+        </td>
+        <td style="padding:.45rem .5rem;text-align:center;">
+            <input type="number" id="batchKgAbat_${idx}" value="${kg||''}" placeholder="kg" min="0" step="0.1"
+                style="width:70px;padding:.35rem .5rem;border-radius:6px;border:1.5px solid #06b6d4;font-size:.82rem;text-align:center;">
+        </td>
+        <td style="padding:.45rem .5rem;text-align:center;">
+            <select id="batchOper_${idx}" style="width:140px;padding:.35rem .5rem;border-radius:6px;border:1.5px solid #e2e8f0;font-size:.82rem;">
+                <option value="">— Operadora —</option>
+                ${opsOptions}
+            </select>
+        </td>
+        <td style="padding:.45rem .5rem;text-align:center;">
+            <input type="number" id="batchTemp_${idx}" value="3" placeholder="°C" min="-5" max="10" step="0.1"
+                style="width:65px;padding:.35rem .5rem;border-radius:6px;border:1.5px solid #e2e8f0;font-size:.82rem;text-align:center;">
+        </td>`;
+    return tr;
+}
+
+function batchAgregarFila() {
+    const tbody = document.getElementById('batchFilas');
+    const idx   = tbody.children.length;
+    const opsList = (personal.envasado || []).map(p => typeof p === 'string' ? p : p.nombre).filter(Boolean);
+    tbody.appendChild(_crearFilaBatch(idx, '', '', '', opsList.map(n=>`<option value="${n}">${n}</option>`).join('')));
+}
+
+async function batchConfirmarRegistros() {
+    const fecha    = document.getElementById('batchFecha').value;
+    const horaEnv  = document.getElementById('batchHoraEnv').value || '08:00';
+    const horaAbat = document.getElementById('batchHoraAbat').value || '10:00';
+
+    if (!fecha) { alert('Selecciona la fecha'); return; }
+
+    const tbody = document.getElementById('batchFilas');
+    const filas = [...tbody.children];
+    let procesados = 0, errores = [];
+
+    for (let i = 0; i < filas.length; i++) {
+        const chk = document.getElementById(`batchChk_${i}`);
+        if (!chk || !chk.checked) continue;
+
+        const op      = document.getElementById(`batchOP_${i}`)?.value.trim()     || '—';
+        const nombre  = document.getElementById(`batchNombre_${i}`)?.value.trim() || '';
+        const kgCoc   = parseFloat(document.getElementById(`batchKgCoc_${i}`)?.value) || 0;
+        const kgEnv   = parseFloat(document.getElementById(`batchKgEnv_${i}`)?.value) || 0;
+        const kgAbat  = parseFloat(document.getElementById(`batchKgAbat_${i}`)?.value) || 0;
+        const operador = document.getElementById(`batchOper_${i}`)?.value || '';
+        const temp    = parseFloat(document.getElementById(`batchTemp_${i}`)?.value) || 3;
+
+        if (!nombre) { errores.push(`Fila ${i+1}: falta nombre`); continue; }
+        if (kgEnv <= 0) { errores.push(`Fila ${i+1} (${nombre}): kg envasado inválido`); continue; }
+
+        const inicioEnvISO  = `${fecha}T${horaEnv}:00`;
+        const inicioAbatISO = `${fecha}T${horaAbat}:00`;
+        const loteJuliano   = getDiaJuliano ? getDiaJuliano(new Date(fecha)) : fecha.replace(/-/g,'');
+
+        // ── Crear proceso envasado completado ──
+        const procesoEnv = {
+            id:            `BATCH-ENV-${Date.now()}-${i}`,
+            numeroOP:      op,
+            producto:      nombre,
+            componente:    nombre,
+            kgProgramados: kgCoc,
+            kgReales:      kgCoc,
+            manipulador:   operador,
+            equipoNombre:  'Registro retroactivo',
+            inicioEnvasado: inicioEnvISO,
+            finEnvasado:   inicioAbatISO,
+            tandas: [{
+                id:         `T-BATCH-${Date.now()}-${i}`,
+                producto:   nombre,
+                numeroOP:   op,
+                kg:         kgEnv,
+                nBolsas:    Math.ceil(kgEnv / 3),
+                formato:    '3kg',
+                horaInicio: horaEnv,
+                horaFin:    horaAbat,
+                operadora:  operador,
+                lote:       loteJuliano,
+                fechaISO:   fecha
+            }],
+            batchRetroactivo: true
+        };
+
+        // ── Crear proceso abatimiento completado y guardarlo en historial ──
+        const procesoAbat = {
+            id:                    `BATCH-ABAT-${Date.now()}-${i}`,
+            numeroOP:              op,
+            producto:              nombre,
+            componente:            nombre,
+            kgProgramados:         kgCoc,
+            kgAbatimiento:         kgEnv,
+            kgFinales:             kgAbat,
+            temperatura:           temp,
+            manipulador:           operador,
+            equipoNombre:          'Registro retroactivo',
+            inicioAbatimiento:     inicioAbatISO,
+            finAbatimiento:        inicioAbatISO,
+            finalizadoCompleto:    inicioAbatISO,
+            tiempoAbatimiento:     7200,
+            tiempoAbatimientoFormateado: '02:00:00',
+            observacionesAbatimiento: 'Registro retroactivo',
+            batchRetroactivo:      true
+        };
+
+        // Guardar en historial por fecha
+        if (!historialPorFecha[fecha]) historialPorFecha[fecha] = [];
+        historialPorFecha[fecha].push({
+            id:            `BATCH-${Date.now()}-${i}`,
+            numeroOP:      op,
+            producto:      nombre,
+            kgFinales:     kgAbat,
+            kgEnvasados:   kgEnv,
+            temperatura:   temp,
+            operador,
+            fecha,
+            hora:          horaAbat,
+            lote:          loteJuliano,
+            tipoRegistro:  'batch-retroactivo',
+            origen:        'Registro retroactivo batch'
+        });
+
+        // Agregar a procesosEnvasado como completado (para que aparezca en HACCP)
+        procesosEnvasado.push(procesoEnv);
+        procesados++;
+    }
+
+    if (errores.length > 0) {
+        alert('⚠️ Algunos registros no se pudieron procesar:\n' + errores.join('\n'));
+    }
+
+    if (procesados > 0) {
+        guardarDatos();
+        renderEnvasado();
+        renderProcesosActivos();
+        updateStats();
+        document.getElementById('modalRegistroBatch').style.display = 'none';
+        mostrarNotificacion(`✅ ${procesados} proceso${procesados!==1?'s':''} recuperado${procesados!==1?'s':''} — historial actualizado`, 'success');
+    } else {
+        alert('No se seleccionó ningún proceso válido para registrar.');
+    }
 }
 
     </script>
