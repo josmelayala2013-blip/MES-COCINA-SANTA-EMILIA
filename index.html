@@ -4011,23 +4011,23 @@
                             <div class="equipment-details">
                                 <div class="detail-row">
                                     <span class="detail-label">Preparación:</span>
-                                    <span class="detail-value" style="font-weight:700;">${p.componente || p.producto}</span>
+                                    <span class="detail-value" style="font-weight:700;">${p.componente || p.producto || '—'}</span>
                                 </div>
                                 <div class="detail-row">
                                     <span class="detail-label">OP:</span>
-                                    <span class="detail-value" style="font-size:.8rem;color:#64748b;">${p.producto}</span>
+                                    <span class="detail-value" style="font-size:.8rem;color:#64748b;">${p.numeroOP || p.producto || '—'}</span>
                                 </div>
                                 <div class="detail-row">
                                     <span class="detail-label">Operador:</span>
-                                    <span class="detail-value">${p.operador}</span>
+                                    <span class="detail-value">${p.operador || '—'}</span>
                                 </div>
                                 <div class="detail-row">
                                     <span class="detail-label">Kg Programados:</span>
-                                    <span class="detail-value">${p.kgProgramados} kg</span>
+                                    <span class="detail-value">${p.kgProgramados || 0} kg</span>
                                 </div>
                                 <div class="detail-row">
                                     <span class="detail-label">Inicio:</span>
-                                    <span class="detail-value">${new Date(p.inicio).toLocaleTimeString('es-CL')}</span>
+                                    <span class="detail-value">${p.inicio ? new Date(p.inicio).toLocaleTimeString('es-CL') : '—'}</span>
                                 </div>
                                 <div class="detail-row">
                                     <span class="detail-label">Tiempo Cocción:</span>
@@ -10861,53 +10861,60 @@ function imprimirRegistroHACCP(d) {
             try {
                 const { doc, setDoc, getDoc } = window.firestoreFunctions;
 
-                // ── PROTECCIÓN HISTORIAL ─────────────────────────────────────────
-                // Antes de guardar, mergear el historialPorFecha local con Firebase
-                // para que ningún dispositivo borre el historial de otro
+                // ── PROTECCIÓN HISTORIAL — documento separado para evitar límite 1MB ──
                 let historialParaGuardar = historialPorFecha || {};
                 try {
-                    const snapActual = await getDoc(doc(window.db, 'mes-data', 'estado-actual'));
-                    if (snapActual.exists()) {
-                        const dataActual = snapActual.data();
-                        const histFirebase = dataActual.historialPorFecha || {};
-                        // Merge: para cada fecha usar el que tenga MÁS registros
+                    const snapHist = await getDoc(doc(window.db, 'mes-data', 'historial-produccion'));
+                    if (snapHist.exists()) {
+                        const histFirebase = snapHist.data().historialPorFecha || {};
                         const merged = { ...historialParaGuardar };
                         Object.keys(histFirebase).forEach(fecha => {
                             const remotas = histFirebase[fecha] || [];
                             const locales = merged[fecha] || [];
-                            if (remotas.length > locales.length) {
-                                merged[fecha] = remotas;
-                            }
+                            if (remotas.length > locales.length) merged[fecha] = remotas;
                         });
                         historialParaGuardar = merged;
-                        // Actualizar memoria local con el merge
                         if (JSON.stringify(merged) !== JSON.stringify(historialPorFecha)) {
                             historialPorFecha = merged;
                             localStorage.setItem('mes_historialPorFecha', JSON.stringify(historialPorFecha));
                         }
                     }
                 } catch(mergeErr) {
-                    console.warn('⚠️ No se pudo mergear historial, guardando local:', mergeErr.message);
+                    console.warn('⚠️ No se pudo mergear historial:', mergeErr.message);
                 }
-                // ────────────────────────────────────────────────────────────────
+
+                // ── Guardar estado principal SIN historial (evita límite 1MB) ──
+                // Limpiar tandas antiguas de procesosEnvasado para reducir tamaño
+                const procesosEnvLimpios = procesosEnvasado.map(p => ({
+                    ...p,
+                    // Mantener solo últimas 5 tandas por proceso para no inflar el doc
+                    tandas: (p.tandas || []).slice(-5)
+                }));
 
                 await setDoc(doc(window.db, 'mes-data', 'estado-actual'), {
                     equipos,
                     productos,
-                    procesosEnvasado,
+                    procesosEnvasado: procesosEnvLimpios,
                     procesosAbatimiento,
-                    historialPorFecha: historialParaGuardar,
                     planDiario,
                     ultimaActualizacion: new Date().toISOString(),
                     dispositivoId: window._dispositivoId || localStorage.getItem('mes_dispositivo_id') || 'unknown',
                     dispositivo: navigator.userAgent.substring(0, 50)
+                });
+
+                // ── Guardar historial en documento separado ──
+                await setDoc(doc(window.db, 'mes-data', 'historial-produccion'), {
+                    historialPorFecha: historialParaGuardar,
+                    ultimaActualizacion: new Date().toISOString()
                 });
                 
                 console.log('✅ Datos sincronizados con Firebase');
                 mostrarNotificacion('✅ Sincronizado', 'success');
             } catch (error) {
                 console.error('❌ Error sincronizando:', error);
-                mostrarNotificacion('⚠️ Error al sincronizar', 'warning');
+                // Mostrar el error real para diagnóstico
+                const msg = error?.message || error?.code || 'Error desconocido';
+                mostrarNotificacion(`⚠️ Error al sincronizar: ${msg.slice(0,60)}`, 'warning');
             }
         }
         
@@ -10948,9 +10955,10 @@ function imprimirRegistroHACCP(d) {
                 if (snap.exists()) {
                     const data = snap.data();
                     console.log('📦 Firebase estado-actual keys:', Object.keys(data));
-                    console.log('📦 historialPorFecha:', data.historialPorFecha);
                     console.log('📦 ultimaActualizacion:', data.ultimaActualizacion);
 
+                    // historialPorFecha ahora está en documento separado
+                    // Solo leer del estado-actual si aún no migró
                     if (data.historialPorFecha && Object.keys(data.historialPorFecha).length > 0) {
                         histRecuperado = data.historialPorFecha;
                     }
@@ -10966,6 +10974,21 @@ function imprimirRegistroHACCP(d) {
                     if (Array.isArray(data.procesosAbatimiento)) procesosAbatimiento = data.procesosAbatimiento;
                     if (data.planDiario) planDiario = data.planDiario;
                 }
+
+                // Leer historial desde documento separado (nueva estructura)
+                try {
+                    const snapHistProd = await getDoc(doc(window.db, 'mes-data', 'historial-produccion'));
+                    if (snapHistProd.exists()) {
+                        const hProd = snapHistProd.data().historialPorFecha || {};
+                        // Merge con lo que ya tenemos
+                        Object.keys(hProd).forEach(fecha => {
+                            const remotas = hProd[fecha] || [];
+                            const locales = histRecuperado[fecha] || [];
+                            if (remotas.length > locales.length) histRecuperado[fecha] = remotas;
+                        });
+                        console.log('📦 Historial producción cargado:', Object.keys(hProd).length, 'fechas');
+                    }
+                } catch(eHist) { console.warn('Sin historial-produccion separado aún:', eHist.message); }
 
                 // También intentar desde haccp-historial (respaldo)
                 try {
@@ -11288,7 +11311,10 @@ function limpiarComponentesFriosDeEquipos() {
                     const esOtroDispositivo = data.dispositivoId !== window._dispositivoId;
 
                     // Historial: SIEMPRE mergear independiente del dispositivo
+                    // Ahora el historial viene del documento historial-produccion (separado)
+                    // El onSnapshot de estado-actual ya no trae historialPorFecha
                     if (data.historialPorFecha) {
+                        // Compatibilidad: si aún viene en estado-actual (datos viejos), mergear
                         Object.keys(data.historialPorFecha).forEach(fecha => {
                             const remotas = data.historialPorFecha[fecha] || [];
                             const locales = historialPorFecha[fecha] || [];
