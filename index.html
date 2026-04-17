@@ -21012,6 +21012,7 @@ ${d._ingredientes.map(ing => `<tr>
 
             if (!historialPorFecha[fecha]) historialPorFecha[fecha] = [];
             const loteJuliano = getDiaJuliano ? getDiaJuliano(new Date(fecha + 'T12:00:00')) : fecha.replace(/-/g,'').slice(4);
+            const fechaDisplay = new Date(fecha + 'T12:00:00').toLocaleDateString('es-CL');
 
             for (const fila of filas) {
                 const idx = fila.id.replace('rescFila_','');
@@ -21031,11 +21032,11 @@ ${d._ingredientes.map(ing => `<tr>
                 if (!nombre) { errores.push(`Fila ${parseInt(idx)+1}: falta nombre`); continue; }
                 if (kgCoc <= 0 && kgEnv <= 0) { errores.push(`Fila ${parseInt(idx)+1} (${nombre}): kg inválidos`); continue; }
 
-                const ts = new Date(`${fecha}T${horaCoc}:00`).getTime();
+                const ts = new Date(`${fecha}T${horaCoc}:00`).getTime() + parseInt(idx);
 
-                // ── 1. Registro cocina en historial ──
-                historialPorFecha[fecha].push({
-                    id:          `RSC-COC-${ts}-${idx}`,
+                // ── 1. Registro COCINA → historialPorFecha + HACCP historial ──
+                const regCocina = {
+                    id:          `RSC-COC-${ts}`,
                     numeroOP:    op,
                     producto:    nombre,
                     componente:  nombre,
@@ -21044,27 +21045,44 @@ ${d._ingredientes.map(ing => `<tr>
                     operador:    operCoc,
                     equipo,
                     fecha,
+                    fechaISO:    fecha,
                     hora:        horaCoc,
                     lote:        loteJuliano,
-                    tipoRegistro:'rescate-cocina',
+                    tipoRegistro: 'rescate-cocina',
                     origen:      'Registro retroactivo'
+                };
+                historialPorFecha[fecha].push(regCocina);
+
+                // Guardar también en HACCP historial cocina
+                guardarEnHistorialHACCP('cocina', {
+                    preparacion:    nombre,
+                    op,
+                    fecha:          fechaDisplay,
+                    fechaISO:       fecha,
+                    lote:           loteJuliano,
+                    kgFinales:      kgCoc,
+                    equipo,
+                    operador:       operCoc,
+                    firmaNombre:    operCoc,
+                    firmaTimestamp: `${fechaDisplay} ${horaCoc}`,
+                    origen:         'Registro retroactivo'
                 });
 
-                // ── 2. Proceso envasado — agregar a procesosEnvasado ──
-                const procesoEnv = {
-                    id:           `RSC-ENV-${ts}-${idx}`,
-                    numeroOP:     op,
-                    producto:     nombre,
-                    componente:   nombre,
-                    kgProgramados: kgCoc,
-                    kgReales:     kgCoc,
-                    manipulador:  operEnv,
-                    equipoNombre: equipo,
-                    equipoId:     null,
+                // ── 2. Proceso ENVASADO → procesosEnvasado ──
+                procesosEnvasado.push({
+                    id:             `RSC-ENV-${ts}`,
+                    numeroOP:       op,
+                    producto:       nombre,
+                    componente:     nombre,
+                    kgProgramados:  kgCoc,
+                    kgReales:       kgCoc,
+                    manipulador:    operEnv,
+                    equipoNombre:   equipo,
+                    equipoId:       null,
                     inicioEnvasado: `${fecha}T${horaEnv}:00`,
                     finEnvasado:    `${fecha}T${horaAbat}:00`,
                     tandas: [{
-                        id:         `T-RSC-${ts}-${idx}`,
+                        id:         `T-RSC-${ts}`,
                         producto:   nombre,
                         numeroOP:   op,
                         kg:         kgEnv,
@@ -21077,12 +21095,26 @@ ${d._ingredientes.map(ing => `<tr>
                         fechaISO:   fecha
                     }],
                     batchRetroactivo: true
-                };
-                procesosEnvasado.push(procesoEnv);
+                });
 
-                // ── 3. Proceso abatimiento — agregar a procesosAbatimiento ──
-                const procesoAbat = {
-                    id:                   `RSC-ABAT-${ts}-${idx}`,
+                // Guardar también en HACCP historial envasado
+                guardarEnHistorialHACCP('envasado', {
+                    preparacion:    nombre,
+                    op,
+                    fecha:          fechaDisplay,
+                    fechaISO:       fecha,
+                    lote:           loteJuliano,
+                    kgTotal:        kgEnv,
+                    responsable:    operEnv,
+                    firmaNombre:    operEnv,
+                    firmaTimestamp: `${fechaDisplay} ${horaEnv}`,
+                    origen:         'Registro retroactivo'
+                });
+
+                // ── 3. Registro ABATIMIENTO → historial HACCP abatimiento ──
+                // También guardar en historialPorFecha como completado
+                const regAbat = {
+                    id:                   `RSC-ABAT-${ts}`,
                     numeroOP:             op,
                     producto:             nombre,
                     componente:           nombre,
@@ -21100,7 +21132,22 @@ ${d._ingredientes.map(ing => `<tr>
                     observacionesAbatimiento: 'Registro retroactivo',
                     batchRetroactivo:     true
                 };
-                procesosAbatimiento.push(procesoAbat);
+
+                guardarEnHistorialHACCP('abatimiento', {
+                    preparacion:    nombre,
+                    op,
+                    fecha:          fechaDisplay,
+                    fechaISO:       fecha,
+                    lote:           loteJuliano,
+                    kgAbatimiento:  kgEnv,
+                    kgFinales:      kgAbat,
+                    temperatura:    temp,
+                    responsable:    operEnv,
+                    firmaNombre:    operEnv,
+                    firmaTimestamp: `${fechaDisplay} ${horaAbat}`,
+                    equipoOrigen:   equipo,
+                    origen:         'Registro retroactivo'
+                });
 
                 // ── 4. Marcar OP como completada ──
                 const opObj = ordenesProduccion.find(o =>
@@ -21115,7 +21162,7 @@ ${d._ingredientes.map(ing => `<tr>
             }
 
             if (errores.length > 0) {
-                mostrarNotificacion(`⚠️ ${errores.length} fila(s) con errores — revisa la consola`, 'warning');
+                mostrarNotificacion(`⚠️ ${errores.length} fila(s) con errores`, 'warning');
                 console.warn('Errores rescate:', errores);
             }
 
@@ -21128,7 +21175,7 @@ ${d._ingredientes.map(ing => `<tr>
                 renderProcesosActivos();
                 updateStats();
                 cerrarRescateDia();
-                mostrarNotificacion(`✅ ${creados} preparación(es) registradas — cocina · envasado · abatimiento`, 'success');
+                mostrarNotificacion(`✅ ${creados} preparación(es) — cocina · envasado · abatimiento registradas`, 'success');
             } else if (errores.length === 0) {
                 alert('No se seleccionó ninguna fila válida.');
             }
