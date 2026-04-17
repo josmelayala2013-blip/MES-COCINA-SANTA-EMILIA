@@ -24822,58 +24822,62 @@ function ptEliminarFila(tr) {
 // Se ejecuta al guardar Control PT
 // ================================================================
 function ptDescontarEnLineas(fecha) {
-    if (!ptRegistros[fecha]) {
-        console.warn('⚠️ ptDescontarEnLineas: no hay registro para fecha', fecha);
-        return;
-    }
+    if (!ptRegistros[fecha]) return;
     const filas = ptRegistros[fecha].filas || [];
-    if (filas.length === 0) {
-        console.warn('⚠️ ptDescontarEnLineas: filas vacías para', fecha);
-        return;
-    }
+    if (filas.length === 0) return;
     if (!lineasStock || lineasStock.length === 0) {
-        console.warn('⚠️ ptDescontarEnLineas: lineasStock vacío — sin saldo en Bodega Líneas para descontar');
+        console.warn('⚠️ ptDescontarEnLineas: lineasStock vacío — sin saldo en Bodega Líneas');
         return;
     }
 
-    // Guard: no descontar si ya se descontó esta fecha para evitar doble descuento
-    const yaDescontado = ptRegistros[fecha]._descontadoEnLineas === true;
-    if (yaDescontado) {
-        console.log('ℹ️ ptDescontarEnLineas: ya se descontó para', fecha, '— omitiendo');
-        return;
+    // ── Si ya se descontó antes, REVERTIR primero ──────────────────────────
+    const descuentosAnteriores = ptRegistros[fecha]._descuentosAplicados || [];
+    if (descuentosAnteriores.length > 0) {
+        console.log('🔄 Revirtiendo descuentos anteriores:', descuentosAnteriores.length, 'item(s)');
+        descuentosAnteriores.forEach(d => {
+            const idx = lineasStock.findIndex(s => s.producto === d.producto && s.linea === d.linea);
+            if (idx !== -1) {
+                lineasStock[idx].kg = Math.round((lineasStock[idx].kg + d.kgDescontado) * 100) / 100;
+                const kgBolsa = parseFloat(lineasStock[idx].formato) || 3;
+                lineasStock[idx].bolsas = Math.max(0, Math.ceil(lineasStock[idx].kg / kgBolsa));
+                console.log(`  ↩️ Revertido ${d.producto}: +${d.kgDescontado} kg`);
+            }
+        });
+        // Eliminar los movimientos anteriores de este registro del historial de líneas
+        lineasDevoluciones = (lineasDevoluciones || []).filter(m =>
+            !(m.tipo === 'consumo-automatico' && m.origen === 'Control PT' && m.fechaISO === fecha)
+        );
     }
+    // ───────────────────────────────────────────────────────────────────────
 
-    console.log('📦 ptDescontarEnLineas iniciando para', fecha, '| filas:', filas.length, '| lineasStock:', lineasStock.length);
-    // Log del contenido de lineasStock para diagnóstico
-    console.log('📦 lineasStock actual:', lineasStock.map(s => `${s.producto} (OP:${s.opOrigen||'—'}) ${s.kg}kg`));
-
+    const nuevosDescuentos = [];
     let huboDescuentos = false;
     const resumen = [];
 
-    filas.forEach((fila, fi) => {
-        const compPT  = (fila.componentePT || '').trim().toUpperCase();
-        const opPT    = (fila.op || '').trim();
-        console.log(`  Fila ${fi+1}: compPT="${compPT}" op="${opPT}" kgReal=${fila.kgReal} merma=${fila.merma}`);
+    filas.forEach(fila => {
+        const compPT = (fila.componentePT || '').trim().toUpperCase();
+        const opPT   = (fila.op || '').trim();
+        if (!compPT) return;
 
-        if (!compPT) { console.log(`    → sin componentePT, omitida`); return; }
-
-        const kgReal  = parseFloat(fila.kgReal)  || 0;
-        const merma   = parseFloat(fila.merma)   || 0;
+        const kgReal  = parseFloat(fila.kgReal) || 0;
+        const merma   = parseFloat(fila.merma)  || 0;
         const consumo = Math.round((kgReal + merma) * 100) / 100;
-        if (consumo <= 0) { console.log(`    → consumo=${consumo}, omitida`); return; }
+        if (consumo <= 0) return;
 
         const idx = _ptBuscarEnLineas(compPT, opPT);
-        console.log(`    → búsqueda idx=${idx}`, idx !== -1 ? `(${lineasStock[idx]?.producto})` : '(no encontrado)');
-        if (idx === -1) return;
+        if (idx === -1) {
+            console.log(`  ⚠️ Sin coincidencia en lineasStock para: "${compPT}" OP "${opPT}"`);
+            return;
+        }
 
         const saldoAntes = lineasStock[idx].kg;
         const descuento  = Math.min(consumo, saldoAntes);
         lineasStock[idx].kg = Math.round((saldoAntes - descuento) * 100) / 100;
-
         const kgBolsa = parseFloat(lineasStock[idx].formato) || 3;
         lineasStock[idx].bolsas = Math.max(0, Math.ceil(lineasStock[idx].kg / kgBolsa));
 
-        if (!window.lineasDevoluciones) lineasDevoluciones = [];
+        // Registrar movimiento en historial
+        if (!lineasDevoluciones) lineasDevoluciones = [];
         lineasDevoluciones.unshift({
             id:       'PT-AUTO-' + Date.now() + '-' + Math.random().toString(36).slice(2,6),
             producto: lineasStock[idx].producto,
@@ -24888,21 +24892,32 @@ function ptDescontarEnLineas(fecha) {
             notas:    `Auto-descuento Control PT OP ${opPT}: ${kgReal} kg real + ${merma} kg merma`
         });
 
-        resumen.push(`${lineasStock[idx].producto} (OP ${opPT}): −${descuento.toFixed(2)} kg → saldo: ${lineasStock[idx].kg.toFixed(2)} kg`);
+        // Guardar para poder revertir si se edita
+        nuevosDescuentos.push({
+            producto:     lineasStock[idx].producto,
+            linea:        lineasStock[idx].linea,
+            kgDescontado: descuento
+        });
+
+        resumen.push(`${lineasStock[idx].producto}: −${descuento.toFixed(2)} kg → saldo: ${lineasStock[idx].kg.toFixed(2)} kg`);
         huboDescuentos = true;
     });
 
-    if (huboDescuentos) {
-        // Marcar como ya descontado para evitar doble descuento
-        ptRegistros[fecha]._descontadoEnLineas = true;
+    if (huboDescuentos || descuentosAnteriores.length > 0) {
+        // Guardar registro de lo aplicado para poder revertir en próxima edición
+        ptRegistros[fecha]._descuentosAplicados = nuevosDescuentos;
+        ptRegistros[fecha]._descontadoEnLineas  = nuevosDescuentos.length > 0;
         localStorage.setItem('mes_controlPT', JSON.stringify(ptRegistros));
         lineasStock = lineasStock.filter(s => s.kg > 0);
         guardarBodega();
-        console.log('✅ Bodega Líneas actualizada desde Control PT:', resumen);
-        mostrarNotificacion(`📦 Bodega Líneas actualizada: ${resumen.length} componente(s) descontado(s)`, 'success');
+        if (huboDescuentos) {
+            console.log('✅ Bodega Líneas actualizada desde Control PT:', resumen);
+            mostrarNotificacion(`📦 Bodega Líneas actualizada: ${resumen.length} componente(s) descontado(s)`, 'success');
+        } else {
+            mostrarNotificacion('🔄 Bodega Líneas: descuentos anteriores revertidos (sin nuevos)', 'info');
+        }
     } else {
         console.warn('⚠️ ptDescontarEnLineas: ningún componente coincidió con lineasStock');
-        mostrarNotificacion('⚠️ Control PT guardado — sin coincidencias en Bodega Líneas', 'warning');
     }
 }
 
