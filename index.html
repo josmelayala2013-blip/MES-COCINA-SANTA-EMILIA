@@ -10933,11 +10933,17 @@ function imprimirRegistroHACCP(d) {
             }));
         }
 
+        // Flag global: bloquea onSnapshot mientras guardamos para evitar rebote
+        window._guardandoEnFirebase = false;
+
         async function sincronizarFirebase() {
             if (!window.db || !window.firestoreLoaded) {
                 console.log('⚠️ Firebase no disponible, usando solo localStorage');
                 return;
             }
+
+            // Bloquear onSnapshot mientras guardamos — evita el rebote
+            window._guardandoEnFirebase = true;
             
             try {
                 const { doc, setDoc, getDoc } = window.firestoreFunctions;
@@ -10993,6 +10999,10 @@ function imprimirRegistroHACCP(d) {
                 console.error('❌ Error sincronizando:', error);
                 const msg = error?.message || error?.code || 'Error desconocido';
                 mostrarNotificacion(`⚠️ Error al sincronizar: ${msg.slice(0,60)}`, 'warning');
+            } finally {
+                // Liberar bloqueo después de 3 segundos (tiempo suficiente para que
+                // Firebase procese la escritura y el onSnapshot se dispare con datos nuevos)
+                setTimeout(() => { window._guardandoEnFirebase = false; }, 3000);
             }
         }
         
@@ -11379,6 +11389,14 @@ function limpiarComponentesFriosDeEquipos() {
                 const docRef = doc(window.db, 'mes-data', 'estado-actual');
                 onSnapshot(docRef, (snap) => {
                     if (!snap.exists()) return;
+
+                    // Si estamos en medio de un guardado, ignorar este snapshot
+                    // (es el rebote de nuestros propios datos — evita sobreescribir estado local)
+                    if (window._guardandoEnFirebase) {
+                        console.log('⏸️ onSnapshot ignorado — guardado en progreso');
+                        return;
+                    }
+
                     const data = snap.data();
                     // Usar ID único por pestaña/sesión, no userAgent
                     if (!window._dispositivoId) {
