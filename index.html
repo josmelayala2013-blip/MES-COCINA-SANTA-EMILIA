@@ -21466,27 +21466,38 @@ function renderBodegaStock(el) {
 
 // ── VISTA 3D DUAL — Abatimiento + Líneas Envasado ──
 function renderBodegaCamara3D(el) {
-    const colores3D = ['#0e7490','#10b981','#8b5cf6','#f59e0b','#ef4444','#3b82f6','#ec4899'];
+    const colores3D = ['#0e7490','#10b981','#8b5cf6','#f59e0b','#ef4444','#3b82f6','#ec4899','#f97316','#14b8a6','#a855f7'];
 
     function _svgCamara(productos3D, titulo, colorTitulo) {
-        return `<svg viewBox="0 0 900 380" xmlns="http://www.w3.org/2000/svg" style="width:100%;border-radius:12px;background:linear-gradient(135deg,#0f172a,#1e293b);">
-            <defs><linearGradient id="pisoGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style="stop-color:#1e3a5f;stop-opacity:1"/>
-                <stop offset="100%" style="stop-color:${colorTitulo};stop-opacity:1"/>
-            </linearGradient></defs>
-            <rect x="0" y="0" width="900" height="380" fill="#0f172a" rx="12"/>
-            <polygon points="50,350 850,350 750,270 150,270" fill="url(#pisoGrad2)" opacity="0.3"/>
-            ${[0,1,2,3,4].map(i => `<line x1="${150+i*150}" y1="270" x2="${50+i*200}" y2="350" stroke="#1e3a5f" stroke-width="1" opacity="0.4"/>`).join('')}
-            <text x="450" y="28" text-anchor="middle" fill="${colorTitulo}" font-size="13" font-family="sans-serif" font-weight="bold">${titulo}</text>
-            ${productos3D.length === 0
-                ? `<text x="450" y="190" text-anchor="middle" fill="#475569" font-size="16" font-family="sans-serif">📭 Sin stock</text>`
-                : productos3D.slice(0,6).map(([prod, data], idx) => {
+        const n = productos3D.length;
+        if (n === 0) {
+            return `<svg viewBox="0 0 900 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;border-radius:12px;background:linear-gradient(135deg,#0f172a,#1e293b);">
+                <rect x="0" y="0" width="900" height="200" fill="#0f172a" rx="12"/>
+                <text x="450" y="28" text-anchor="middle" fill="${colorTitulo}" font-size="13" font-family="sans-serif" font-weight="bold">${titulo}</text>
+                <text x="450" y="110" text-anchor="middle" fill="#475569" font-size="16" font-family="sans-serif">📭 Sin stock</text>
+            </svg>`;
+        }
+
+        // Layout: ≤6 → cajas 3D clásicas | >6 → lista compacta de barras
+        if (n <= 6) {
+            const cols = Math.min(n, 3);
+            const rows = Math.ceil(n / 3);
+            const svgH = 80 + rows * 120;
+            return `<svg viewBox="0 0 900 ${svgH}" xmlns="http://www.w3.org/2000/svg" style="width:100%;border-radius:12px;background:linear-gradient(135deg,#0f172a,#1e293b);">
+                <defs><linearGradient id="pg_${colorTitulo.replace('#','')}" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#1e3a5f;stop-opacity:1"/>
+                    <stop offset="100%" style="stop-color:${colorTitulo};stop-opacity:1"/>
+                </linearGradient></defs>
+                <rect x="0" y="0" width="900" height="${svgH}" fill="#0f172a" rx="12"/>
+                <polygon points="50,${svgH-30} 850,${svgH-30} 750,${svgH-110} 150,${svgH-110}" fill="url(#pg_${colorTitulo.replace('#','')})" opacity="0.25"/>
+                <text x="450" y="28" text-anchor="middle" fill="${colorTitulo}" font-size="13" font-family="sans-serif" font-weight="bold">${titulo}</text>
+                ${productos3D.map(([prod, data], idx) => {
                     const col = idx % 3, row = Math.floor(idx / 3);
-                    const baseX = 130 + col * 220, baseY = 290 - row * 110;
-                    const pct = data.total > 0 ? data.disponible / data.total : 0;
+                    const baseX = 130 + col * 220, baseY = svgH - 50 - row * 110;
+                    const pct = data.total > 0 ? data.disponible / data.total : 1;
                     const color = colores3D[idx % colores3D.length];
-                    const h = Math.max(18, Math.round(pct * 70));
-                    const label = prod.length > 14 ? prod.slice(0,14)+'…' : prod;
+                    const h = Math.max(22, Math.round(pct * 75));
+                    const label = prod.length > 16 ? prod.slice(0,16)+'…' : prod;
                     const w = 155, d = 35;
                     return `<g>
                         <rect x="${baseX}" y="${baseY-h}" width="${w}" height="${h}" fill="${color}" opacity="0.85" rx="3"/>
@@ -21498,6 +21509,35 @@ function renderBodegaCamara3D(el) {
                         <rect x="${baseX+4}" y="${baseY-h+4}" width="${Math.round((w-8)*pct)}" height="5" rx="2" fill="rgba(255,255,255,.75)"/>
                     </g>`;
                 }).join('')}
+            </svg>`;
+        }
+
+        // >6 productos: lista compacta con barras horizontales
+        const rowH  = 32;
+        const svgH  = 48 + n * rowH + 10;
+        const maxKg = Math.max(...productos3D.map(([,d]) => d.disponible), 1);
+        return `<svg viewBox="0 0 900 ${svgH}" xmlns="http://www.w3.org/2000/svg" style="width:100%;border-radius:12px;background:linear-gradient(135deg,#0f172a,#1e293b);">
+            <rect x="0" y="0" width="900" height="${svgH}" fill="#0f172a" rx="12"/>
+            <text x="450" y="28" text-anchor="middle" fill="${colorTitulo}" font-size="13" font-family="sans-serif" font-weight="bold">${titulo} (${n} productos)</text>
+            ${productos3D.map(([prod, data], idx) => {
+                const y      = 42 + idx * rowH;
+                const color  = colores3D[idx % colores3D.length];
+                const barW   = Math.round((data.disponible / maxKg) * 480);
+                const pct    = data.total > 0 ? Math.round(data.disponible / data.total * 100) : 100;
+                const label  = prod.length > 28 ? prod.slice(0,28)+'…' : prod;
+                const bg     = idx % 2 === 0 ? 'rgba(255,255,255,0.04)' : 'transparent';
+                return `<g>
+                    <rect x="10" y="${y}" width="880" height="${rowH-2}" fill="${bg}" rx="3"/>
+                    <!-- Nombre -->
+                    <text x="16" y="${y+rowH/2+4}" fill="white" font-size="10.5" font-family="sans-serif" font-weight="bold">${label}</text>
+                    <!-- Barra fondo -->
+                    <rect x="390" y="${y+6}" width="490" height="${rowH-14}" rx="3" fill="rgba(255,255,255,0.08)"/>
+                    <!-- Barra valor -->
+                    <rect x="390" y="${y+6}" width="${barW}" height="${rowH-14}" rx="3" fill="${color}" opacity="0.9"/>
+                    <!-- Kg y % -->
+                    <text x="886" y="${y+rowH/2+4}" text-anchor="end" fill="${color}" font-size="10" font-family="sans-serif" font-weight="bold">${data.disponible.toFixed(1)} kg</text>
+                </g>`;
+            }).join('')}
         </svg>`;
     }
 
