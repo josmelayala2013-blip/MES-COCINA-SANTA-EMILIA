@@ -24831,8 +24831,8 @@ function ptDescontarEnLineas(fecha) {
         console.warn('⚠️ ptDescontarEnLineas: filas vacías para', fecha);
         return;
     }
-    if (!window.lineasStock || lineasStock.length === 0) {
-        console.warn('⚠️ ptDescontarEnLineas: lineasStock vacío o no existe. lineasStock=', lineasStock);
+    if (!lineasStock || lineasStock.length === 0) {
+        console.warn('⚠️ ptDescontarEnLineas: lineasStock vacío — sin saldo en Bodega Líneas para descontar');
         return;
     }
 
