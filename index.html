@@ -24074,6 +24074,9 @@ async function ptGuardar() {
         mostrarNotificacion('✅ Control PT guardado localmente', 'success');
     }
 
+    // 5. ── Descuento automático en Bodega Líneas de Envasado ──
+    ptDescontarEnLineas(fecha);
+
     ptActualizarAlertasResumen(fecha);
 }
 
@@ -24754,6 +24757,96 @@ function ptEliminarFila(tr) {
 }
 
 // ── Alertas resumen ──
+// ================================================================
+// DESCUENTO AUTOMÁTICO EN BODEGA LÍNEAS DE ENVASADO
+// Se ejecuta al guardar Control PT
+// ================================================================
+function ptDescontarEnLineas(fecha) {
+    if (!ptRegistros[fecha]) return;
+    const filas = ptRegistros[fecha].filas || [];
+    if (filas.length === 0) return;
+    if (!window.lineasStock || lineasStock.length === 0) return;
+
+    let huboDescuentos = false;
+    const resumen = [];
+
+    filas.forEach(fila => {
+        const compPT  = (fila.componentePT || '').trim().toUpperCase();
+        if (!compPT) return;
+
+        const kgReal  = parseFloat(fila.kgReal)  || 0;
+        const merma   = parseFloat(fila.merma)   || 0;
+        const consumo = Math.round((kgReal + merma) * 100) / 100;
+        if (consumo <= 0) return;
+
+        // Buscar en lineasStock por nombre exacto o similitud
+        // Primero exacto, luego contiene, luego cualquier palabra en común
+        const idx = _ptBuscarEnLineas(compPT);
+        if (idx === -1) return; // no encontrado — no tocar nada
+
+        const saldoAntes = lineasStock[idx].kg;
+        const descuento  = Math.min(consumo, saldoAntes); // nunca descuenta más de lo que hay
+        lineasStock[idx].kg = Math.round((saldoAntes - descuento) * 100) / 100;
+
+        // Actualizar bolsas estimadas
+        const kgBolsa = parseFloat(lineasStock[idx].formato) || 3;
+        lineasStock[idx].bolsas = Math.max(0, Math.ceil(lineasStock[idx].kg / kgBolsa));
+
+        // Registrar en devoluciones como consumo automático
+        if (!window.lineasDevoluciones) lineasDevoluciones = [];
+        lineasDevoluciones.unshift({
+            id:       'PT-AUTO-' + Date.now() + '-' + Math.random().toString(36).slice(2,6),
+            producto: lineasStock[idx].producto,
+            linea:    lineasStock[idx].linea,
+            kg:       -descuento,  // negativo = consumo
+            tipo:     'consumo-automatico',
+            origen:   'Control PT',
+            fecha:    new Date().toLocaleDateString('es-CL'),
+            fechaISO: fecha,
+            hora:     new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'}),
+            notas:    `Auto-descuento Control PT: ${kgReal} kg real + ${merma} kg merma`
+        });
+
+        resumen.push(`${lineasStock[idx].producto}: −${descuento.toFixed(2)} kg (saldo: ${lineasStock[idx].kg.toFixed(2)} kg)`);
+        huboDescuentos = true;
+    });
+
+    if (huboDescuentos) {
+        // Eliminar registros con kg <= 0
+        lineasStock = lineasStock.filter(s => s.kg > 0);
+        guardarBodega();
+        console.log('📦 Bodega Líneas actualizada desde Control PT:', resumen);
+        mostrarNotificacion(`📦 Bodega Líneas actualizada: ${resumen.length} componente(s) descontado(s)`, 'success');
+    }
+}
+
+// Búsqueda por similitud: exacto > contiene > palabras en común
+function _ptBuscarEnLineas(nombrePT) {
+    if (!lineasStock || lineasStock.length === 0) return -1;
+    const norm = s => (s || '').trim().toUpperCase().replace(/[^A-Z0-9 ]/g, '');
+    const ptNorm = norm(nombrePT);
+
+    // Nivel 1: exacto
+    let idx = lineasStock.findIndex(s => norm(s.producto) === ptNorm);
+    if (idx !== -1) return idx;
+
+    // Nivel 2: uno contiene al otro
+    idx = lineasStock.findIndex(s => {
+        const sNorm = norm(s.producto);
+        return sNorm.includes(ptNorm) || ptNorm.includes(sNorm);
+    });
+    if (idx !== -1) return idx;
+
+    // Nivel 3: palabras en común (mínimo 2 palabras iguales)
+    const palabrasPT = ptNorm.split(' ').filter(w => w.length > 3);
+    idx = lineasStock.findIndex(s => {
+        const palabrasS = norm(s.producto).split(' ').filter(w => w.length > 3);
+        const comunes = palabrasPT.filter(w => palabrasS.includes(w));
+        return comunes.length >= Math.min(2, palabrasPT.length);
+    });
+    return idx;
+}
+
 function ptActualizarAlertasResumen(fecha) {
     const data = ptRegistros[fecha] || {};
     const filas = data.filas || [];
