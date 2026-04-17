@@ -24772,6 +24772,7 @@ function ptDescontarEnLineas(fecha) {
 
     filas.forEach(fila => {
         const compPT  = (fila.componentePT || '').trim().toUpperCase();
+        const opPT    = (fila.op || '').trim();
         if (!compPT) return;
 
         const kgReal  = parseFloat(fila.kgReal)  || 0;
@@ -24779,40 +24780,37 @@ function ptDescontarEnLineas(fecha) {
         const consumo = Math.round((kgReal + merma) * 100) / 100;
         if (consumo <= 0) return;
 
-        // Buscar en lineasStock por nombre exacto o similitud
-        // Primero exacto, luego contiene, luego cualquier palabra en común
-        const idx = _ptBuscarEnLineas(compPT);
-        if (idx === -1) return; // no encontrado — no tocar nada
+        // Buscar en lineasStock primero por OP+componente, luego solo componente
+        let idx = _ptBuscarEnLineas(compPT, opPT);
+        if (idx === -1) return;
 
         const saldoAntes = lineasStock[idx].kg;
-        const descuento  = Math.min(consumo, saldoAntes); // nunca descuenta más de lo que hay
+        const descuento  = Math.min(consumo, saldoAntes);
         lineasStock[idx].kg = Math.round((saldoAntes - descuento) * 100) / 100;
 
-        // Actualizar bolsas estimadas
         const kgBolsa = parseFloat(lineasStock[idx].formato) || 3;
         lineasStock[idx].bolsas = Math.max(0, Math.ceil(lineasStock[idx].kg / kgBolsa));
 
-        // Registrar en devoluciones como consumo automático
         if (!window.lineasDevoluciones) lineasDevoluciones = [];
         lineasDevoluciones.unshift({
             id:       'PT-AUTO-' + Date.now() + '-' + Math.random().toString(36).slice(2,6),
             producto: lineasStock[idx].producto,
             linea:    lineasStock[idx].linea,
-            kg:       -descuento,  // negativo = consumo
+            opOrigen: opPT || lineasStock[idx].opOrigen || '—',
+            kg:       -descuento,
             tipo:     'consumo-automatico',
             origen:   'Control PT',
             fecha:    new Date().toLocaleDateString('es-CL'),
             fechaISO: fecha,
             hora:     new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'}),
-            notas:    `Auto-descuento Control PT: ${kgReal} kg real + ${merma} kg merma`
+            notas:    `Auto-descuento Control PT OP ${opPT}: ${kgReal} kg real + ${merma} kg merma`
         });
 
-        resumen.push(`${lineasStock[idx].producto}: −${descuento.toFixed(2)} kg (saldo: ${lineasStock[idx].kg.toFixed(2)} kg)`);
+        resumen.push(`${lineasStock[idx].producto} (OP ${opPT}): −${descuento.toFixed(2)} kg → saldo: ${lineasStock[idx].kg.toFixed(2)} kg`);
         huboDescuentos = true;
     });
 
     if (huboDescuentos) {
-        // Eliminar registros con kg <= 0
         lineasStock = lineasStock.filter(s => s.kg > 0);
         guardarBodega();
         console.log('📦 Bodega Líneas actualizada desde Control PT:', resumen);
@@ -24820,31 +24818,47 @@ function ptDescontarEnLineas(fecha) {
     }
 }
 
-// Búsqueda por similitud: exacto > contiene > palabras en común
-function _ptBuscarEnLineas(nombrePT) {
+// Búsqueda por OP+componente, luego solo componente con similitud
+function _ptBuscarEnLineas(nombrePT, opPT) {
     if (!lineasStock || lineasStock.length === 0) return -1;
     const norm = s => (s || '').trim().toUpperCase().replace(/[^A-Z0-9 ]/g, '');
     const ptNorm = norm(nombrePT);
 
-    // Nivel 1: exacto
+    // Nivel 1: OP + nombre exacto
+    if (opPT) {
+        let idx = lineasStock.findIndex(s =>
+            String(s.opOrigen || '').trim() === String(opPT).trim() &&
+            norm(s.producto) === ptNorm
+        );
+        if (idx !== -1) return idx;
+
+        // Nivel 2: OP + nombre contiene
+        idx = lineasStock.findIndex(s => {
+            if (String(s.opOrigen || '').trim() !== String(opPT).trim()) return false;
+            const sNorm = norm(s.producto);
+            return sNorm.includes(ptNorm) || ptNorm.includes(sNorm);
+        });
+        if (idx !== -1) return idx;
+    }
+
+    // Nivel 3: solo nombre exacto (sin OP)
     let idx = lineasStock.findIndex(s => norm(s.producto) === ptNorm);
     if (idx !== -1) return idx;
 
-    // Nivel 2: uno contiene al otro
+    // Nivel 4: nombre contiene
     idx = lineasStock.findIndex(s => {
         const sNorm = norm(s.producto);
         return sNorm.includes(ptNorm) || ptNorm.includes(sNorm);
     });
     if (idx !== -1) return idx;
 
-    // Nivel 3: palabras en común (mínimo 2 palabras iguales)
+    // Nivel 5: palabras en común (mínimo 2)
     const palabrasPT = ptNorm.split(' ').filter(w => w.length > 3);
-    idx = lineasStock.findIndex(s => {
+    return lineasStock.findIndex(s => {
         const palabrasS = norm(s.producto).split(' ').filter(w => w.length > 3);
         const comunes = palabrasPT.filter(w => palabrasS.includes(w));
         return comunes.length >= Math.min(2, palabrasPT.length);
     });
-    return idx;
 }
 
 function ptActualizarAlertasResumen(fecha) {
