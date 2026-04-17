@@ -640,6 +640,9 @@
                 <button class="btn btn-primary" onclick="abrirModalAgrupar()" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);margin-left:.5rem;">
                     🔀 Agrupar Componentes
                 </button>
+                <button onclick="abrirRescateDia()" style="background:linear-gradient(135deg,#dc2626,#991b1b);color:white;border:none;border-radius:10px;padding:.6rem 1.2rem;font-weight:700;cursor:pointer;font-size:.88rem;margin-left:.5rem;">
+                    🔧 Completar Registros del Día
+                </button>
             </div>
         </div>
 
@@ -3430,6 +3433,75 @@
 
 <!-- MODALES -->
     
+    <!-- MODAL: COMPLETAR REGISTROS DEL DÍA -->
+    <div id="modalRescateDia" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:10005;overflow-y:auto;">
+      <div style="background:white;border-radius:18px;padding:2rem;width:min(1200px,98vw);margin:1rem auto;box-shadow:0 20px 60px rgba(0,0,0,.4);border-top:6px solid #dc2626;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+          <div>
+            <h2 style="margin:0;font-size:1.15rem;font-weight:800;color:#dc2626;">🔧 Completar Registros del Día</h2>
+            <div style="font-size:.8rem;color:#64748b;margin-top:.2rem;">Carga las OPs de hoy y completa cocina · envasado · abatimiento en una sola pantalla</div>
+          </div>
+          <button onclick="cerrarRescateDia()" style="background:#f1f5f9;border:none;border-radius:8px;padding:.4rem .75rem;cursor:pointer;font-size:1.1rem;">✕</button>
+        </div>
+
+        <!-- Controles superiores -->
+        <div style="background:#fef2f2;border-radius:10px;padding:.85rem 1rem;margin-bottom:1rem;display:flex;gap:1rem;align-items:center;flex-wrap:wrap;border:1px solid #fca5a5;">
+          <div style="display:flex;align-items:center;gap:.5rem;">
+            <label style="font-size:.82rem;font-weight:700;color:#dc2626;">📅 Fecha:</label>
+            <input type="date" id="rescateFecha" style="padding:.4rem .7rem;border-radius:7px;border:2px solid #dc2626;font-size:.9rem;" onchange="rescateCargarOPs()">
+          </div>
+          <div style="display:flex;align-items:center;gap:.5rem;">
+            <label style="font-size:.82rem;font-weight:700;color:#374151;">🕐 Hora cocción:</label>
+            <input type="time" id="rescateHoraCoc" value="08:00" style="padding:.4rem .6rem;border-radius:7px;border:1.5px solid #e2e8f0;font-size:.88rem;">
+          </div>
+          <div style="display:flex;align-items:center;gap:.5rem;">
+            <label style="font-size:.82rem;font-weight:700;color:#374151;">🕐 Hora envasado:</label>
+            <input type="time" id="rescateHoraEnv" value="10:00" style="padding:.4rem .6rem;border-radius:7px;border:1.5px solid #e2e8f0;font-size:.88rem;">
+          </div>
+          <div style="display:flex;align-items:center;gap:.5rem;">
+            <label style="font-size:.82rem;font-weight:700;color:#374151;">🕐 Hora abatimiento:</label>
+            <input type="time" id="rescateHoraAbat" value="12:00" style="padding:.4rem .6rem;border-radius:7px;border:1.5px solid #e2e8f0;font-size:.88rem;">
+          </div>
+          <div style="display:flex;gap:.5rem;margin-left:auto;">
+            <button onclick="rescateSeleccionarTodos(true)" style="padding:.35rem .8rem;border-radius:7px;border:1.5px solid #10b981;background:white;color:#059669;cursor:pointer;font-size:.8rem;font-weight:600;">✅ Todos</button>
+            <button onclick="rescateSeleccionarTodos(false)" style="padding:.35rem .8rem;border-radius:7px;border:1.5px solid #94a3b8;background:white;color:#64748b;cursor:pointer;font-size:.8rem;font-weight:600;">☐ Ninguno</button>
+          </div>
+        </div>
+
+        <!-- Tabla de registros -->
+        <div style="overflow-x:auto;margin-bottom:1rem;">
+          <table style="width:100%;border-collapse:collapse;font-size:.8rem;" id="rescateTabla">
+            <thead>
+              <tr style="background:#1e293b;color:white;font-size:.78rem;">
+                <th style="padding:.55rem .5rem;text-align:center;width:30px;">✓</th>
+                <th style="padding:.55rem .6rem;text-align:left;">OP</th>
+                <th style="padding:.55rem .6rem;text-align:left;">Componente / Preparación</th>
+                <th style="padding:.55rem .5rem;text-align:center;">Kg prog.</th>
+                <th style="padding:.55rem .5rem;text-align:center;background:#78350f;">Kg cocción</th>
+                <th style="padding:.55rem .5rem;text-align:center;background:#1e3a5f;">Kg envasado</th>
+                <th style="padding:.55rem .5rem;text-align:center;background:#064e3b;">Kg abatimiento</th>
+                <th style="padding:.55rem .6rem;text-align:center;">Operador cocina</th>
+                <th style="padding:.55rem .6rem;text-align:center;">Operadora envasado</th>
+                <th style="padding:.55rem .5rem;text-align:center;">Temp. °C</th>
+                <th style="padding:.55rem .5rem;text-align:center;border-radius:0 8px 0 0;">Equipo</th>
+              </tr>
+            </thead>
+            <tbody id="rescateFilas"></tbody>
+          </table>
+        </div>
+        <div id="rescateMensaje" style="font-size:.82rem;color:#64748b;margin-bottom:1rem;"></div>
+
+        <div style="display:flex;gap:.75rem;justify-content:flex-end;">
+          <button onclick="cerrarRescateDia()"
+            style="padding:.65rem 1.4rem;border-radius:10px;border:1.5px solid #e2e8f0;background:white;cursor:pointer;font-weight:600;color:#64748b;">Cancelar</button>
+          <button onclick="rescateConfirmar()"
+            style="padding:.65rem 2rem;border-radius:10px;border:none;background:linear-gradient(135deg,#dc2626,#991b1b);color:white;cursor:pointer;font-weight:700;font-size:.95rem;">
+            ✅ Generar todos los registros seleccionados
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- MODAL: INICIAR PRODUCCIÓN -->
     <div id="modalIniciarProduccion" class="modal">
         <div class="modal-content" style="max-width:700px;">
@@ -10852,6 +10924,15 @@ function imprimirRegistroHACCP(d) {
             sincronizarFirebase();
         }
         
+        // ── Elimina undefined/NaN/Infinity antes de enviar a Firestore ──
+        function _sanitizarParaFirebase(obj) {
+            return JSON.parse(JSON.stringify(obj, (key, value) => {
+                if (value === undefined) return null;
+                if (typeof value === 'number' && !isFinite(value)) return null;
+                return value;
+            }));
+        }
+
         async function sincronizarFirebase() {
             if (!window.db || !window.firestoreLoaded) {
                 console.log('⚠️ Firebase no disponible, usando solo localStorage');
@@ -10883,15 +10964,13 @@ function imprimirRegistroHACCP(d) {
                     console.warn('⚠️ No se pudo mergear historial:', mergeErr.message);
                 }
 
-                // ── Guardar estado principal SIN historial (evita límite 1MB) ──
-                // Limpiar tandas antiguas de procesosEnvasado para reducir tamaño
-                const procesosEnvLimpios = procesosEnvasado.map(p => ({
+                // ── Limpiar undefined/NaN antes de enviar a Firestore ──
+                const procesosEnvLimpios = _sanitizarParaFirebase(procesosEnvasado.map(p => ({
                     ...p,
-                    // Mantener solo últimas 5 tandas por proceso para no inflar el doc
                     tandas: (p.tandas || []).slice(-5)
-                }));
+                })));
 
-                await setDoc(doc(window.db, 'mes-data', 'estado-actual'), {
+                await setDoc(doc(window.db, 'mes-data', 'estado-actual'), _sanitizarParaFirebase({
                     equipos,
                     productos,
                     procesosEnvasado: procesosEnvLimpios,
@@ -10900,19 +10979,18 @@ function imprimirRegistroHACCP(d) {
                     ultimaActualizacion: new Date().toISOString(),
                     dispositivoId: window._dispositivoId || localStorage.getItem('mes_dispositivo_id') || 'unknown',
                     dispositivo: navigator.userAgent.substring(0, 50)
-                });
+                }));
 
                 // ── Guardar historial en documento separado ──
-                await setDoc(doc(window.db, 'mes-data', 'historial-produccion'), {
+                await setDoc(doc(window.db, 'mes-data', 'historial-produccion'), _sanitizarParaFirebase({
                     historialPorFecha: historialParaGuardar,
                     ultimaActualizacion: new Date().toISOString()
-                });
+                }));
                 
                 console.log('✅ Datos sincronizados con Firebase');
                 mostrarNotificacion('✅ Sincronizado', 'success');
             } catch (error) {
                 console.error('❌ Error sincronizando:', error);
-                // Mostrar el error real para diagnóstico
                 const msg = error?.message || error?.code || 'Error desconocido';
                 mostrarNotificacion(`⚠️ Error al sincronizar: ${msg.slice(0,60)}`, 'warning');
             }
@@ -20783,6 +20861,259 @@ ${d._ingredientes.map(ing => `<tr>
                 `✅ Grupo iniciado en ${equipo.nombre} — ${seleccionados.length} componente(s) · ${totalKg.toFixed(1)} kg`,
                 'success'
             );
+        }
+
+        // ================================================================
+        // RESCATE DEL DÍA — Completar registros desde OPs planificadas
+        // ================================================================
+
+        function abrirRescateDia() {
+            const hoy = new Date().toISOString().split('T')[0];
+            document.getElementById('rescateFecha').value = hoy;
+            rescateCargarOPs();
+            document.getElementById('modalRescateDia').style.display = 'block';
+        }
+
+        function cerrarRescateDia() {
+            document.getElementById('modalRescateDia').style.display = 'none';
+        }
+
+        function rescateCargarOPs() {
+            const fecha = document.getElementById('rescateFecha').value;
+            if (!fecha) return;
+
+            // Obtener operadores
+            const opsCocina  = (personal.cocina     || []).map(p => typeof p === 'string' ? p : p.nombre).filter(Boolean);
+            const opsEnv     = (personal.envasado   || []).map(p => typeof p === 'string' ? p : p.nombre).filter(Boolean);
+            const selCocina  = opsCocina.map(n  => `<option value="${n}">${n}</option>`).join('');
+            const selEnv     = opsEnv.map(n    => `<option value="${n}">${n}</option>`).join('');
+
+            // Equipos disponibles
+            const equiposList = equipos.map(e => `<option value="${e.nombre}">${e.nombre}</option>`).join('');
+
+            // Cargar OPs de la fecha seleccionada
+            const ops = ordenesProduccion.filter(op => op.fecha === fecha);
+            const tbody = document.getElementById('rescateFilas');
+            tbody.innerHTML = '';
+
+            let filaIdx = 0;
+            let totalFilas = 0;
+
+            if (ops.length === 0) {
+                document.getElementById('rescateMensaje').innerHTML =
+                    `<span style="color:#f59e0b;">⚠️ No hay OPs planificadas para ${fecha}. Puedes agregar filas manualmente.</span>`;
+            } else {
+                document.getElementById('rescateMensaje').innerHTML =
+                    `<span style="color:#10b981;">✅ ${ops.length} OP(s) encontradas para ${fecha}</span>`;
+            }
+
+            ops.forEach(op => {
+                const comps = op.componentes && op.componentes.length > 0
+                    ? op.componentes.filter(c => !esComponenteFrio(c.nombre))
+                    : [{ nombre: op.nombre, kgTerminados: op.kgProgramados || 0 }];
+
+                comps.forEach(comp => {
+                    const kg = comp.kgTerminados || comp.kg || op.kgProgramados || 0;
+                    tbody.appendChild(_crearFilaRescate(filaIdx++, op.numeroOp || op.id, comp.nombre, kg, selCocina, selEnv, equiposList));
+                    totalFilas++;
+                });
+            });
+
+            // Siempre dejar 3 filas vacías al final para ingresos manuales
+            for (let i = 0; i < 3; i++) {
+                tbody.appendChild(_crearFilaRescate(filaIdx++, '', '', '', selCocina, selEnv, equiposList, true));
+            }
+        }
+
+        function _crearFilaRescate(idx, op, nombre, kg, selCocina, selEnv, equiposList, vacia = false) {
+            const tr = document.createElement('tr');
+            tr.id = `rescFila_${idx}`;
+            tr.style.cssText = `border-bottom:1px solid #f1f5f9;background:${vacia ? '#fafafa' : (idx%2===0 ? 'white' : '#f8fafc')};`;
+            tr.innerHTML = `
+                <td style="padding:.4rem .5rem;text-align:center;">
+                    <input type="checkbox" id="rescChk_${idx}" ${vacia ? '' : 'checked'}
+                        style="width:16px;height:16px;accent-color:#dc2626;cursor:pointer;">
+                </td>
+                <td style="padding:.4rem .4rem;">
+                    <input type="text" id="rescOP_${idx}" value="${op}" placeholder="OP"
+                        style="width:65px;padding:.3rem .4rem;border-radius:5px;border:1.5px solid #e2e8f0;font-size:.8rem;text-align:center;box-sizing:border-box;">
+                </td>
+                <td style="padding:.4rem .4rem;">
+                    <input type="text" id="rescNombre_${idx}" value="${nombre}" placeholder="Nombre preparación"
+                        style="width:190px;padding:.3rem .4rem;border-radius:5px;border:1.5px solid #e2e8f0;font-size:.8rem;box-sizing:border-box;">
+                </td>
+                <td style="padding:.4rem .3rem;text-align:center;color:#94a3b8;font-size:.78rem;">${kg || '—'}</td>
+                <td style="padding:.4rem .3rem;text-align:center;">
+                    <input type="number" id="rescKgCoc_${idx}" value="${kg || ''}" min="0" step="0.1" placeholder="kg"
+                        style="width:62px;padding:.3rem .4rem;border-radius:5px;border:2px solid #d97706;font-size:.82rem;font-weight:700;text-align:center;box-sizing:border-box;color:#92400e;">
+                </td>
+                <td style="padding:.4rem .3rem;text-align:center;">
+                    <input type="number" id="rescKgEnv_${idx}" value="${kg || ''}" min="0" step="0.1" placeholder="kg"
+                        style="width:62px;padding:.3rem .4rem;border-radius:5px;border:2px solid #1d4ed8;font-size:.82rem;font-weight:700;text-align:center;box-sizing:border-box;color:#1d4ed8;">
+                </td>
+                <td style="padding:.4rem .3rem;text-align:center;">
+                    <input type="number" id="rescKgAbat_${idx}" value="${kg || ''}" min="0" step="0.1" placeholder="kg"
+                        style="width:62px;padding:.3rem .4rem;border-radius:5px;border:2px solid #059669;font-size:.82rem;font-weight:700;text-align:center;box-sizing:border-box;color:#065f46;">
+                </td>
+                <td style="padding:.4rem .3rem;text-align:center;">
+                    <select id="rescOperCoc_${idx}" style="width:130px;padding:.3rem .4rem;border-radius:5px;border:1.5px solid #e2e8f0;font-size:.78rem;box-sizing:border-box;">
+                        <option value="">— Operador —</option>${selCocina}
+                    </select>
+                </td>
+                <td style="padding:.4rem .3rem;text-align:center;">
+                    <select id="rescOperEnv_${idx}" style="width:130px;padding:.3rem .4rem;border-radius:5px;border:1.5px solid #e2e8f0;font-size:.78rem;box-sizing:border-box;">
+                        <option value="">— Operadora —</option>${selEnv}
+                    </select>
+                </td>
+                <td style="padding:.4rem .3rem;text-align:center;">
+                    <input type="number" id="rescTemp_${idx}" value="3.5" min="-5" max="15" step="0.1"
+                        style="width:58px;padding:.3rem .4rem;border-radius:5px;border:1.5px solid #e2e8f0;font-size:.82rem;text-align:center;box-sizing:border-box;">
+                </td>
+                <td style="padding:.4rem .3rem;text-align:center;">
+                    <select id="rescEquipo_${idx}" style="width:100px;padding:.3rem .4rem;border-radius:5px;border:1.5px solid #e2e8f0;font-size:.78rem;box-sizing:border-box;">
+                        <option value="Registro manual">Manual</option>${equiposList}
+                    </select>
+                </td>`;
+            return tr;
+        }
+
+        function rescateSeleccionarTodos(val) {
+            document.querySelectorAll('[id^="rescChk_"]').forEach(c => c.checked = val);
+        }
+
+        async function rescateConfirmar() {
+            const fecha     = document.getElementById('rescateFecha').value;
+            const horaCoc   = document.getElementById('rescateHoraCoc').value  || '08:00';
+            const horaEnv   = document.getElementById('rescateHoraEnv').value  || '10:00';
+            const horaAbat  = document.getElementById('rescateHoraAbat').value || '12:00';
+
+            if (!fecha) { alert('Selecciona la fecha'); return; }
+
+            const filas = document.querySelectorAll('[id^="rescFila_"]');
+            let creados = 0, errores = [];
+
+            if (!historialPorFecha[fecha]) historialPorFecha[fecha] = [];
+            const loteJuliano = getDiaJuliano ? getDiaJuliano(new Date(fecha + 'T12:00:00')) : fecha.replace(/-/g,'').slice(4);
+
+            for (const fila of filas) {
+                const idx = fila.id.replace('rescFila_','');
+                const chk = document.getElementById(`rescChk_${idx}`);
+                if (!chk?.checked) continue;
+
+                const op      = document.getElementById(`rescOP_${idx}`)?.value.trim()      || '—';
+                const nombre  = document.getElementById(`rescNombre_${idx}`)?.value.trim()  || '';
+                const kgCoc   = parseFloat(document.getElementById(`rescKgCoc_${idx}`)?.value)  || 0;
+                const kgEnv   = parseFloat(document.getElementById(`rescKgEnv_${idx}`)?.value)  || 0;
+                const kgAbat  = parseFloat(document.getElementById(`rescKgAbat_${idx}`)?.value) || 0;
+                const operCoc = document.getElementById(`rescOperCoc_${idx}`)?.value || 'Operador';
+                const operEnv = document.getElementById(`rescOperEnv_${idx}`)?.value || operCoc;
+                const temp    = parseFloat(document.getElementById(`rescTemp_${idx}`)?.value) || 3.5;
+                const equipo  = document.getElementById(`rescEquipo_${idx}`)?.value || 'Registro manual';
+
+                if (!nombre) { errores.push(`Fila ${parseInt(idx)+1}: falta nombre`); continue; }
+                if (kgCoc <= 0 && kgEnv <= 0) { errores.push(`Fila ${parseInt(idx)+1} (${nombre}): kg inválidos`); continue; }
+
+                const ts = new Date(`${fecha}T${horaCoc}:00`).getTime();
+
+                // ── 1. Registro cocina en historial ──
+                historialPorFecha[fecha].push({
+                    id:          `RSC-COC-${ts}-${idx}`,
+                    numeroOP:    op,
+                    producto:    nombre,
+                    componente:  nombre,
+                    kgFinales:   kgCoc,
+                    kgEnvasados: kgEnv,
+                    operador:    operCoc,
+                    equipo,
+                    fecha,
+                    hora:        horaCoc,
+                    lote:        loteJuliano,
+                    tipoRegistro:'rescate-cocina',
+                    origen:      'Registro retroactivo'
+                });
+
+                // ── 2. Proceso envasado — agregar a procesosEnvasado ──
+                const procesoEnv = {
+                    id:           `RSC-ENV-${ts}-${idx}`,
+                    numeroOP:     op,
+                    producto:     nombre,
+                    componente:   nombre,
+                    kgProgramados: kgCoc,
+                    kgReales:     kgCoc,
+                    manipulador:  operEnv,
+                    equipoNombre: equipo,
+                    equipoId:     null,
+                    inicioEnvasado: `${fecha}T${horaEnv}:00`,
+                    finEnvasado:    `${fecha}T${horaAbat}:00`,
+                    tandas: [{
+                        id:         `T-RSC-${ts}-${idx}`,
+                        producto:   nombre,
+                        numeroOP:   op,
+                        kg:         kgEnv,
+                        nBolsas:    Math.ceil(kgEnv / 3),
+                        formato:    '3kg',
+                        horaInicio: horaEnv,
+                        horaFin:    horaAbat,
+                        operadora:  operEnv,
+                        lote:       loteJuliano,
+                        fechaISO:   fecha
+                    }],
+                    batchRetroactivo: true
+                };
+                procesosEnvasado.push(procesoEnv);
+
+                // ── 3. Proceso abatimiento — agregar a procesosAbatimiento ──
+                const procesoAbat = {
+                    id:                   `RSC-ABAT-${ts}-${idx}`,
+                    numeroOP:             op,
+                    producto:             nombre,
+                    componente:           nombre,
+                    kgProgramados:        kgCoc,
+                    kgAbatimiento:        kgEnv,
+                    kgFinales:            kgAbat,
+                    temperatura:          temp,
+                    manipulador:          operEnv,
+                    equipoNombre:         equipo,
+                    inicioAbatimiento:    `${fecha}T${horaAbat}:00`,
+                    finAbatimiento:       `${fecha}T${horaAbat}:00`,
+                    finalizadoCompleto:   `${fecha}T${horaAbat}:00`,
+                    tiempoAbatimiento:    7200,
+                    tiempoAbatimientoFormateado: '02:00:00',
+                    observacionesAbatimiento: 'Registro retroactivo',
+                    batchRetroactivo:     true
+                };
+                procesosAbatimiento.push(procesoAbat);
+
+                // ── 4. Marcar OP como completada ──
+                const opObj = ordenesProduccion.find(o =>
+                    String(o.numeroOp) === String(op) || o.id === op
+                );
+                if (opObj && opObj.estado !== 'completada') {
+                    opObj.estado = 'completada';
+                    opObj.fechaCompletado = fecha;
+                }
+
+                creados++;
+            }
+
+            if (errores.length > 0) {
+                mostrarNotificacion(`⚠️ ${errores.length} fila(s) con errores — revisa la consola`, 'warning');
+                console.warn('Errores rescate:', errores);
+            }
+
+            if (creados > 0) {
+                localStorage.setItem('mes_historialPorFecha', JSON.stringify(historialPorFecha));
+                guardarOPs();
+                guardarDatos();
+                renderEnvasado();
+                renderAbatimiento();
+                renderProcesosActivos();
+                updateStats();
+                cerrarRescateDia();
+                mostrarNotificacion(`✅ ${creados} preparación(es) registradas — cocina · envasado · abatimiento`, 'success');
+            } else if (errores.length === 0) {
+                alert('No se seleccionó ninguna fila válida.');
+            }
         }
 
         window.onload = init;
