@@ -20900,44 +20900,64 @@ ${d._ingredientes.map(ing => `<tr>
             const fecha = document.getElementById('rescateFecha').value;
             if (!fecha) return;
 
-            // Obtener operadores
-            const opsCocina  = (personal.cocina     || []).map(p => typeof p === 'string' ? p : p.nombre).filter(Boolean);
-            const opsEnv     = (personal.envasado   || []).map(p => typeof p === 'string' ? p : p.nombre).filter(Boolean);
-            const selCocina  = opsCocina.map(n  => `<option value="${n}">${n}</option>`).join('');
+            const opsCocina  = (personal.cocina   || []).map(p => typeof p === 'string' ? p : p.nombre).filter(Boolean);
+            const opsEnv     = (personal.envasado || []).map(p => typeof p === 'string' ? p : p.nombre).filter(Boolean);
+            const selCocina  = opsCocina.map(n => `<option value="${n}">${n}</option>`).join('');
             const selEnv     = opsEnv.map(n    => `<option value="${n}">${n}</option>`).join('');
-
-            // Equipos disponibles
             const equiposList = equipos.map(e => `<option value="${e.nombre}">${e.nombre}</option>`).join('');
 
-            // Cargar OPs de la fecha seleccionada
-            const ops = ordenesProduccion.filter(op => op.fecha === fecha);
+            // Normalizar fecha para comparación flexible
+            // Acepta YYYY-MM-DD, DD-MM-YYYY, DD/MM/YYYY
+            function _normFecha(f) {
+                if (!f) return '';
+                f = String(f).trim();
+                if (/^\d{4}-\d{2}-\d{2}$/.test(f)) return f;
+                const p = f.split(/[-\/]/);
+                if (p.length === 3 && p[2].length === 4) return `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
+                return f;
+            }
+
+            const fechaNorm = _normFecha(fecha);
+
+            // Incluir TODAS las OPs — pendientes, en-produccion Y completadas del día
+            const ops = ordenesProduccion.filter(op => _normFecha(op.fecha) === fechaNorm);
+
             const tbody = document.getElementById('rescateFilas');
             tbody.innerHTML = '';
 
             let filaIdx = 0;
-            let totalFilas = 0;
 
             if (ops.length === 0) {
                 document.getElementById('rescateMensaje').innerHTML =
-                    `<span style="color:#f59e0b;">⚠️ No hay OPs planificadas para ${fecha}. Puedes agregar filas manualmente.</span>`;
+                    `<span style="color:#f59e0b;">⚠️ No hay OPs para ${fecha}. Verifica la fecha o agrega filas manualmente.</span>`;
             } else {
                 document.getElementById('rescateMensaje').innerHTML =
-                    `<span style="color:#10b981;">✅ ${ops.length} OP(s) encontradas para ${fecha}</span>`;
+                    `<span style="color:#10b981;">✅ ${ops.length} OP(s) encontradas — todos los componentes cargados</span>`;
             }
 
             ops.forEach(op => {
+                // Incluir TODOS los componentes — fríos, calientes e insumos con cocción
                 const comps = op.componentes && op.componentes.length > 0
-                    ? op.componentes.filter(c => !esComponenteFrio(c.nombre))
+                    ? op.componentes.filter(c => {
+                        // Excluir solo insumos puros (pan, queso, etc.) que no pasan por cocina/abatimiento
+                        const esInsumo = esComponenteInsumo ? esComponenteInsumo(c.nombre) : false;
+                        return !esInsumo;
+                      })
                     : [{ nombre: op.nombre, kgTerminados: op.kgProgramados || 0 }];
 
-                comps.forEach(comp => {
-                    const kg = comp.kgTerminados || comp.kg || op.kgProgramados || 0;
-                    tbody.appendChild(_crearFilaRescate(filaIdx++, op.numeroOp || op.id, comp.nombre, kg, selCocina, selEnv, equiposList));
-                    totalFilas++;
-                });
+                if (comps.length === 0) {
+                    // Si todos son insumos, igual agregar el producto principal
+                    const kg = op.kgProgramados || 0;
+                    tbody.appendChild(_crearFilaRescate(filaIdx++, op.numeroOp || op.id, op.nombre, kg, selCocina, selEnv, equiposList));
+                } else {
+                    comps.forEach(comp => {
+                        const kg = comp.kgTerminados || comp.kg || op.kgProgramados || 0;
+                        tbody.appendChild(_crearFilaRescate(filaIdx++, op.numeroOp || op.id, comp.nombre, kg, selCocina, selEnv, equiposList));
+                    });
+                }
             });
 
-            // Siempre dejar 3 filas vacías al final para ingresos manuales
+            // 3 filas vacías para ingresos manuales
             for (let i = 0; i < 3; i++) {
                 tbody.appendChild(_crearFilaRescate(filaIdx++, '', '', '', selCocina, selEnv, equiposList, true));
             }
