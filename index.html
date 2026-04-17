@@ -20900,64 +20900,44 @@ ${d._ingredientes.map(ing => `<tr>
             const fecha = document.getElementById('rescateFecha').value;
             if (!fecha) return;
 
-            const opsCocina  = (personal.cocina   || []).map(p => typeof p === 'string' ? p : p.nombre).filter(Boolean);
-            const opsEnv     = (personal.envasado || []).map(p => typeof p === 'string' ? p : p.nombre).filter(Boolean);
-            const selCocina  = opsCocina.map(n => `<option value="${n}">${n}</option>`).join('');
+            // Obtener operadores
+            const opsCocina  = (personal.cocina     || []).map(p => typeof p === 'string' ? p : p.nombre).filter(Boolean);
+            const opsEnv     = (personal.envasado   || []).map(p => typeof p === 'string' ? p : p.nombre).filter(Boolean);
+            const selCocina  = opsCocina.map(n  => `<option value="${n}">${n}</option>`).join('');
             const selEnv     = opsEnv.map(n    => `<option value="${n}">${n}</option>`).join('');
+
+            // Equipos disponibles
             const equiposList = equipos.map(e => `<option value="${e.nombre}">${e.nombre}</option>`).join('');
 
-            // Normalizar fecha para comparación flexible
-            // Acepta YYYY-MM-DD, DD-MM-YYYY, DD/MM/YYYY
-            function _normFecha(f) {
-                if (!f) return '';
-                f = String(f).trim();
-                if (/^\d{4}-\d{2}-\d{2}$/.test(f)) return f;
-                const p = f.split(/[-\/]/);
-                if (p.length === 3 && p[2].length === 4) return `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
-                return f;
-            }
-
-            const fechaNorm = _normFecha(fecha);
-
-            // Incluir TODAS las OPs — pendientes, en-produccion Y completadas del día
-            const ops = ordenesProduccion.filter(op => _normFecha(op.fecha) === fechaNorm);
-
+            // Cargar OPs de la fecha seleccionada
+            const ops = ordenesProduccion.filter(op => op.fecha === fecha);
             const tbody = document.getElementById('rescateFilas');
             tbody.innerHTML = '';
 
             let filaIdx = 0;
+            let totalFilas = 0;
 
             if (ops.length === 0) {
                 document.getElementById('rescateMensaje').innerHTML =
-                    `<span style="color:#f59e0b;">⚠️ No hay OPs para ${fecha}. Verifica la fecha o agrega filas manualmente.</span>`;
+                    `<span style="color:#f59e0b;">⚠️ No hay OPs planificadas para ${fecha}. Puedes agregar filas manualmente.</span>`;
             } else {
                 document.getElementById('rescateMensaje').innerHTML =
-                    `<span style="color:#10b981;">✅ ${ops.length} OP(s) encontradas — todos los componentes cargados</span>`;
+                    `<span style="color:#10b981;">✅ ${ops.length} OP(s) encontradas para ${fecha}</span>`;
             }
 
             ops.forEach(op => {
-                // Incluir TODOS los componentes — fríos, calientes e insumos con cocción
                 const comps = op.componentes && op.componentes.length > 0
-                    ? op.componentes.filter(c => {
-                        // Excluir solo insumos puros (pan, queso, etc.) que no pasan por cocina/abatimiento
-                        const esInsumo = esComponenteInsumo ? esComponenteInsumo(c.nombre) : false;
-                        return !esInsumo;
-                      })
+                    ? op.componentes.filter(c => !esComponenteFrio(c.nombre))
                     : [{ nombre: op.nombre, kgTerminados: op.kgProgramados || 0 }];
 
-                if (comps.length === 0) {
-                    // Si todos son insumos, igual agregar el producto principal
-                    const kg = op.kgProgramados || 0;
-                    tbody.appendChild(_crearFilaRescate(filaIdx++, op.numeroOp || op.id, op.nombre, kg, selCocina, selEnv, equiposList));
-                } else {
-                    comps.forEach(comp => {
-                        const kg = comp.kgTerminados || comp.kg || op.kgProgramados || 0;
-                        tbody.appendChild(_crearFilaRescate(filaIdx++, op.numeroOp || op.id, comp.nombre, kg, selCocina, selEnv, equiposList));
-                    });
-                }
+                comps.forEach(comp => {
+                    const kg = comp.kgTerminados || comp.kg || op.kgProgramados || 0;
+                    tbody.appendChild(_crearFilaRescate(filaIdx++, op.numeroOp || op.id, comp.nombre, kg, selCocina, selEnv, equiposList));
+                    totalFilas++;
+                });
             });
 
-            // 3 filas vacías para ingresos manuales
+            // Siempre dejar 3 filas vacías al final para ingresos manuales
             for (let i = 0; i < 3; i++) {
                 tbody.appendChild(_crearFilaRescate(filaIdx++, '', '', '', selCocina, selEnv, equiposList, true));
             }
@@ -24149,12 +24129,24 @@ function ptLeerTablaAMemoria(fecha) {
     const filas = [];
     rows.forEach(tr => {
         const fila = {};
+        // Leer campos de la fila principal
         tr.querySelectorAll('[data-campo]').forEach(el => {
             const val = el.value !== undefined ? el.value : el.textContent;
             fila[el.getAttribute('data-campo')] = val;
         });
+        // Leer campos de la fila extendida (organolépticas + pesos) — buscar el tr siguiente con clase pt-fila-ext
+        const tr2 = tr.nextElementSibling;
+        if (tr2 && tr2.classList.contains('pt-fila-ext')) {
+            // Leer hidden inputs de C/NC
+            tr2.querySelectorAll('input[type="hidden"][data-campo]').forEach(el => {
+                fila[el.getAttribute('data-campo')] = el.value;
+            });
+            // Leer inputs normales (cantInsp, m1-m8)
+            tr2.querySelectorAll('input:not([type="hidden"])[data-campo]').forEach(el => {
+                fila[el.getAttribute('data-campo')] = el.value;
+            });
+        }
         fila._loteEmpaqueData = tr._loteEmpaqueData || null;
-        // Guardar datos de cálculo para restaurar al re-renderizar
         fila._gramaje    = tr._gramaje    || 0;
         fila._unidadComp = tr._unidadComp || '';
         fila._kgComp     = tr._kgComp     || 0;
@@ -24162,7 +24154,6 @@ function ptLeerTablaAMemoria(fecha) {
     });
     if (!ptRegistros[fecha]) ptRegistros[fecha] = {};
     ptRegistros[fecha].filas = filas;
-    // Guardar localStorage inmediatamente cada vez que se lee
     localStorage.setItem('mes_controlPT', JSON.stringify(ptRegistros));
 }
 
@@ -24222,86 +24213,86 @@ function ptRenderFila(tbody, datos, idx, autoHora) {
 
     tr.innerHTML = `
         <!-- # -->
-        <td style="padding:.4rem .3rem;text-align:center;font-size:.8rem;color:#94a3b8;font-weight:700;">${idx+1}</td>
+        <td style="padding:.4rem .3rem;text-align:center;font-size:.8rem;color:#94a3b8;font-weight:700;border:1px solid #e2e8f0;">${idx+1}</td>
 
-        <!-- Cliente (editable, viene de OP) -->
-        <td style="padding:.3rem .4rem;">
+        <!-- Cliente -->
+        <td style="padding:.3rem .4rem;border:1px solid #e2e8f0;">
             <input data-campo="cliente" value="${datos.cliente||''}" placeholder="Cliente..."
                 style="${_ptInputStyle('purple')}" oninput="ptMarcarEdicion(this)">
         </td>
 
-        <!-- OP — al escribir autollena -->
-        <td style="padding:.3rem .4rem;">
+        <!-- OP -->
+        <td style="padding:.3rem .4rem;border:1px solid #e2e8f0;">
             <input data-campo="op" value="${datos.op||''}" placeholder="N° OP"
                 style="${_ptInputStyle('purple','center')}"
                 onblur="ptAutoLlenarDesdeOP(this)"
                 onkeydown="if(event.key==='Enter'||event.key==='Tab'){ptAutoLlenarDesdeOP(this);}">
         </td>
 
-        <!-- Hora (auto) -->
-        <td style="padding:.3rem .4rem;">
+        <!-- Hora -->
+        <td style="padding:.3rem .4rem;border:1px solid #e2e8f0;">
             <input data-campo="hora" value="${hora}" placeholder="HH:MM"
                 style="${_ptInputStyle('gray','center')}">
         </td>
 
-        <!-- Preparación (auto desde OP) -->
-        <td style="padding:.3rem .4rem;">
+        <!-- Preparación -->
+        <td style="padding:.3rem .4rem;border:1px solid #e2e8f0;">
             <input data-campo="preparacion" value="${datos.preparacion||''}" placeholder="Auto desde OP..."
                 style="${_ptInputStyle('gray')}">
         </td>
 
-        <!-- Lote PT (calidad lo escribe) -->
-        <td style="padding:.3rem .4rem;">
+        <!-- Lote PT -->
+        <td style="padding:.3rem .4rem;border:1px solid #e2e8f0;">
             <input data-campo="lotePT" value="${datos.lotePT||''}" placeholder="Lote PT..."
                 style="${_ptInputStyle('blue')}">
         </td>
 
-        <!-- Componente PT (auto desde OP) -->
-        <td style="padding:.3rem .4rem;">
+        <!-- Componente PT -->
+        <td style="padding:.3rem .4rem;border:1px solid #e2e8f0;">
             <input data-campo="componentePT" value="${datos.componentePT||''}" placeholder="Auto desde OP..."
                 style="${_ptInputStyle('gray')}">
         </td>
 
-        <!-- Lote Componente (calidad) -->
-        <td style="padding:.3rem .4rem;">
+        <!-- Lote Componente -->
+        <td style="padding:.3rem .4rem;border:1px solid #e2e8f0;">
             <input data-campo="loteComp" value="${datos.loteComp||''}" placeholder="Lote..."
                 style="${_ptInputStyle('blue','center')}">
         </td>
 
-        <!-- Unid. Estimadas (auto desde OP) -->
-        <td style="padding:.3rem .4rem;">
+        <!-- Unid. Estimadas -->
+        <td style="padding:.3rem .4rem;border:1px solid #e2e8f0;">
             <input data-campo="unidEst" value="${datos.unidEst||''}" placeholder="Auto..."
                 style="${_ptInputStyle('gray','center')}" readonly>
         </td>
 
-        <!-- Kg Estimados (auto desde OP) -->
-        <td style="padding:.3rem .4rem;">
+        <!-- Kg Estimados -->
+        <td style="padding:.3rem .4rem;border:1px solid #e2e8f0;">
             <input data-campo="kgEst" value="${datos.kgEst||''}" placeholder="Auto..."
                 style="${_ptInputStyle('gray','center')}" readonly>
         </td>
 
-        <!-- Unid. Real (calidad — dispara cálculo kg real) -->
-        <td style="padding:.3rem .4rem;background:#faf5ff;">
+        <!-- Unid. Real -->
+        <td style="padding:.3rem .4rem;background:#faf5ff;border:1px solid #c4b5fd;">
             <input data-campo="unidReal" value="${datos.unidReal||''}" placeholder="Real..." type="number" min="0"
                 style="${_ptInputStyle('blue','center')}"
                 oninput="ptCalcularKgReal(this)">
         </td>
 
-        <!-- Kg Real (calculado automáticamente, editable manualmente) -->
-        <td style="padding:.3rem .4rem;background:#faf5ff;">
+        <!-- Kg Real -->
+        <td style="padding:.3rem .4rem;background:#faf5ff;border:1px solid #c4b5fd;">
             <input data-campo="kgReal" value="${datos.kgReal||''}" placeholder="Calc..."
                 style="${_ptInputStyle('blue','center')}" oninput="ptMarcarEdicion(this)">
         </td>
 
-        <!-- Merma (calidad) -->
-        <td style="padding:.3rem .4rem;">
+        <!-- Merma -->
+        <td style="padding:.3rem .4rem;border:1px solid #e2e8f0;">
             <input data-campo="merma" value="${datos.merma||''}" placeholder="Merma" type="number" min="0" step="0.1"
                 style="${_ptInputStyle('blue','center')}"
                 oninput="ptValidarMerma(this)">
         </td>
 
-        <!-- Formato de envasado -->
-        <td style="padding:.3rem .4rem;">
+        <!-- Formato -->
+        <td style="padding:.3rem .4rem;border:1px solid #e2e8f0;">
             <select data-campo="formatoEnv" style="${_ptSelectStyle()}">
                 <option value="">—</option>
                 <option value="Bolsa" ${datos.formatoEnv==='Bolsa'?'selected':''}>Bolsa</option>
@@ -24310,7 +24301,7 @@ function ptRenderFila(tbody, datos, idx, autoHora) {
         </td>
 
         <!-- Tipo envasado -->
-        <td style="padding:.3rem .4rem;">
+        <td style="padding:.3rem .4rem;border:1px solid #e2e8f0;">
             <select data-campo="tipoEnv" style="${_ptSelectStyle()}">
                 <option value="">—</option>
                 <option value="Unidad" ${datos.tipoEnv==='Unidad'?'selected':''}>Unidad</option>
@@ -24322,8 +24313,8 @@ function ptRenderFila(tbody, datos, idx, autoHora) {
             </select>
         </td>
 
-        <!-- Lote Empaque Primario (abre modal) -->
-        <td style="padding:.3rem .4rem;">
+        <!-- Lote Empaque -->
+        <td style="padding:.3rem .4rem;border:1px solid #e2e8f0;">
             <button onclick="ptAbrirLoteEmpaque(this.closest('tr'))"
                 style="width:100%;padding:.35rem .5rem;border-radius:6px;border:1.5px solid #8b5cf6;background:#faf5ff;color:#5b21b6;font-size:.78rem;font-weight:600;cursor:pointer;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
                 ${tr._loteEmpaqueData ? ptFormatLoteEmpaque(tr._loteEmpaqueData) : '📦 Configurar...'}
@@ -24332,7 +24323,7 @@ function ptRenderFila(tbody, datos, idx, autoHora) {
         </td>
 
         <!-- Área envasado -->
-        <td style="padding:.3rem .4rem;">
+        <td style="padding:.3rem .4rem;border:1px solid #e2e8f0;">
             <select data-campo="areaEnv" style="${_ptSelectStyle()}">
                 <option value="">—</option>
                 <option value="Platos"       ${datos.areaEnv==='Platos'      ?'selected':''}>Platos</option>
@@ -24342,38 +24333,14 @@ function ptRenderFila(tbody, datos, idx, autoHora) {
         </td>
 
         <!-- Temperatura -->
-        <td style="padding:.3rem .4rem;">
+        <td style="padding:.3rem .4rem;border:1px solid #e2e8f0;">
             <input data-campo="temp" value="${datos.temp||''}" placeholder="°C" type="number" step="0.1"
                 style="${_ptInputStyle('blue','center')}"
                 oninput="ptValidarTemp(this)">
         </td>
 
-        <!-- Organolépticas C/NC -->
-        ${['aroma','sabor','color','textura','peso','ausExt','rotulacion'].map(campo => `
-        <td style="padding:.3rem .25rem;background:#faf5ff;">
-            <select data-campo="${campo}" style="width:100%;padding:.3rem .2rem;border-radius:5px;border:1px solid #e2e8f0;font-size:.75rem;background:white;text-align:center;cursor:pointer;">
-                <option value="">—</option>
-                <option value="C"  ${datos[campo]==='C' ?'selected':''} style="color:#10b981;font-weight:700;">C</option>
-                <option value="NC" ${datos[campo]==='NC'?'selected':''} style="color:#ef4444;font-weight:700;">NC</option>
-            </select>
-        </td>`).join('')}
-
-        <!-- Cantidad inspeccionada -->
-        <td style="padding:.3rem .25rem;background:#f0fdf4;">
-            <input data-campo="cantInsp" value="${datos.cantInsp||''}" placeholder="N" type="number" min="0"
-                style="${_ptInputStyle('green','center')}">
-        </td>
-
-        <!-- Muestras M1-M8 -->
-        ${[1,2,3,4,5,6,7,8].map(n => `
-        <td style="padding:.3rem .25rem;background:#f0fdf4;">
-            <input data-campo="m${n}" value="${datos['m'+n]||''}" placeholder="gr" type="number" min="0" step="0.1"
-                style="${_ptInputStyle('green','center')}"
-                oninput="ptValidarMuestra(this)">
-        </td>`).join('')}
-
-        <!-- Estatus liberación -->
-        <td style="padding:.3rem .4rem;">
+        <!-- Estatus -->
+        <td style="padding:.3rem .4rem;border:1px solid #e2e8f0;">
             <select data-campo="estatus" style="width:100%;padding:.35rem .4rem;border-radius:6px;border:2px solid ${colorEst};font-size:.8rem;font-weight:700;color:${colorEst};background:white;cursor:pointer;"
                 onchange="ptCambiarEstatus(this)">
                 <option value="">— Seleccionar —</option>
@@ -24383,7 +24350,7 @@ function ptRenderFila(tbody, datos, idx, autoHora) {
         </td>
 
         <!-- Eliminar -->
-        <td style="padding:.3rem .25rem;text-align:center;">
+        <td style="padding:.3rem .25rem;text-align:center;border:1px solid #e2e8f0;">
             <button onclick="ptEliminarFila(this.closest('tr'))"
                 style="background:#fee2e2;border:none;border-radius:6px;padding:.3rem .5rem;cursor:pointer;color:#ef4444;font-size:.9rem;">🗑️</button>
         </td>
@@ -24392,6 +24359,95 @@ function ptRenderFila(tbody, datos, idx, autoHora) {
     // Guardar loteEmpaqueData en el tr
     if (datos._loteEmpaqueData) tr._loteEmpaqueData = datos._loteEmpaqueData;
     tbody.appendChild(tr);
+
+    // ── SEGUNDA FILA: Organolépticas + Control de Pesos ──
+    const tr2 = document.createElement('tr');
+    tr2.className = 'pt-fila-ext';
+    tr2.dataset.idx = idx;
+    tr2.style.background = bg;
+    tr2.innerHTML = `
+        <td colspan="20" style="padding:.35rem .5rem;border:1px solid #e2e8f0;border-top:none;">
+            <div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;">
+
+                <!-- Label organolépticas -->
+                <span style="font-size:.72rem;font-weight:700;color:#7c3aed;background:#ede9fe;border-radius:4px;padding:.15rem .5rem;white-space:nowrap;">🧪 Organolépticas</span>
+
+                <!-- Botones C/NC por campo -->
+                ${['aroma','sabor','color','textura','peso','ausExt','rotulacion'].map((campo, ci) => {
+                    const labels = ['Aroma','Sabor','Color','Textura','Peso','Aus.Ext.','Rotul.'];
+                    const val = datos[campo] || '';
+                    return `<div style="display:flex;align-items:center;gap:.2rem;">
+                        <span style="font-size:.7rem;color:#64748b;white-space:nowrap;">${labels[ci]}</span>
+                        <button type="button" data-campo="${campo}" data-valor="C"
+                            onclick="ptToggleCNC(this)"
+                            style="padding:.2rem .45rem;border-radius:5px;border:1.5px solid #10b981;font-size:.72rem;font-weight:700;cursor:pointer;
+                                background:${val==='C'?'#10b981':'white'};color:${val==='C'?'white':'#10b981'};">C</button>
+                        <button type="button" data-campo="${campo}" data-valor="NC"
+                            onclick="ptToggleCNC(this)"
+                            style="padding:.2rem .45rem;border-radius:5px;border:1.5px solid #ef4444;font-size:.72rem;font-weight:700;cursor:pointer;
+                                background:${val==='NC'?'#ef4444':'white'};color:${val==='NC'?'white':'#ef4444'};">NC</button>
+                        <input data-campo="${campo}" type="hidden" value="${val}">
+                    </div>`;
+                }).join('')}
+
+                <span style="width:1px;height:20px;background:#e2e8f0;margin:0 .25rem;"></span>
+
+                <!-- Label control pesos -->
+                <span style="font-size:.72rem;font-weight:700;color:#065f46;background:#d1fae5;border-radius:4px;padding:.15rem .5rem;white-space:nowrap;">⚖️ Control Pesos</span>
+
+                <!-- Cant. Insp. -->
+                <div style="display:flex;align-items:center;gap:.2rem;">
+                    <span style="font-size:.7rem;color:#64748b;white-space:nowrap;">Insp.</span>
+                    <input data-campo="cantInsp" value="${datos.cantInsp||''}" placeholder="N" type="number" min="0"
+                        style="width:52px;${_ptInputStyle('green','center')}">
+                </div>
+
+                <!-- M1-M8 -->
+                ${[1,2,3,4,5,6,7,8].map(n => `
+                <div style="display:flex;align-items:center;gap:.2rem;">
+                    <span style="font-size:.7rem;color:#64748b;">M${n}</span>
+                    <input data-campo="m${n}" value="${datos['m'+n]||''}" placeholder="gr" type="number" min="0" step="0.1"
+                        style="width:58px;${_ptInputStyle('green','center')}"
+                        oninput="ptValidarMuestra(this)">
+                </div>`).join('')}
+            </div>
+        </td>
+    `;
+    tbody.appendChild(tr2);
+
+// ── Toggle botones C/NC ──
+function ptToggleCNC(btn) {
+    const campo  = btn.dataset.campo;
+    const valor  = btn.dataset.valor;
+    const fila2  = btn.closest('tr.pt-fila-ext');
+    if (!fila2) return;
+
+    // Botones del mismo campo
+    const btns = fila2.querySelectorAll(`[data-campo="${campo}"][data-valor]`);
+    btns.forEach(b => {
+        const esSeleccionado = b.dataset.valor === valor;
+        if (b.dataset.valor === 'C') {
+            b.style.background = esSeleccionado && valor === 'C' ? '#10b981' : 'white';
+            b.style.color      = esSeleccionado && valor === 'C' ? 'white'   : '#10b981';
+        } else {
+            b.style.background = esSeleccionado && valor === 'NC' ? '#ef4444' : 'white';
+            b.style.color      = esSeleccionado && valor === 'NC' ? 'white'   : '#ef4444';
+        }
+    });
+
+    // Guardar en el hidden input
+    const hidden = fila2.querySelector(`input[data-campo="${campo}"][type="hidden"]`);
+    if (hidden) {
+        // Toggle: si ya estaba seleccionado el mismo valor, deseleccionar
+        hidden.value = hidden.value === valor ? '' : valor;
+        // Reajustar colores si fue deseleccionado
+        if (hidden.value === '') {
+            btns.forEach(b => {
+                b.style.background = 'white';
+                b.style.color = b.dataset.valor === 'C' ? '#10b981' : '#ef4444';
+            });
+        }
+    }
 }
 
 // ── Helpers de estilo ──
@@ -24957,13 +25013,15 @@ function ptImprimir() {
         const colorEst = f.estatus === 'Liberado' ? '#10b981' : f.estatus === 'Bloqueado' ? '#ef4444' : '#666';
         const loteEmpLabel = f._loteEmpaqueData ? ptFormatLoteEmpaque(f._loteEmpaqueData) :
                              (f.loteEmpaque ? ptFormatLoteEmpaque(JSON.parse(f.loteEmpaque||'{}')) : '—');
-        return `<tr style="background:${i%2===0?'white':'#faf5ff'}">
+        const bgFila = i%2===0 ? 'white' : '#faf5ff';
+        return `
+        <tr style="background:${bgFila}">
             <td style="text-align:center;">${i+1}</td>
             <td>${f.cliente||'—'}</td>
             <td style="text-align:center;">${f.op||'—'}</td>
             <td style="text-align:center;">${f.hora||'—'}</td>
             <td>${f.preparacion||'—'}</td>
-            <td style="font-size:8pt;">${f.lotePT||'—'}</td>
+            <td style="font-size:7pt;">${f.lotePT||'—'}</td>
             <td>${f.componentePT||'—'}</td>
             <td style="text-align:center;">${f.loteComp||'—'}</td>
             <td style="text-align:center;">${f.unidEst||'—'}</td>
@@ -24973,13 +25031,26 @@ function ptImprimir() {
             <td style="text-align:center;">${f.merma||'—'}</td>
             <td style="text-align:center;">${f.formatoEnv||'—'}</td>
             <td style="text-align:center;">${f.tipoEnv||'—'}</td>
-            <td style="font-size:8pt;">${loteEmpLabel}</td>
+            <td style="font-size:7pt;">${loteEmpLabel}</td>
             <td style="text-align:center;">${f.areaEnv||'—'}</td>
             <td style="text-align:center;${parseFloat(f.temp)>10?'color:#ef4444;font-weight:700;':''}">${f.temp||'—'}${f.temp?'°C':''}</td>
-            ${camposOrg.map(c => `<td style="text-align:center;color:${f[c]==='NC'?'#ef4444':f[c]==='C'?'#10b981':'#666'};font-weight:700;">${f[c]||'—'}</td>`).join('')}
-            <td style="text-align:center;">${f.cantInsp||'—'}</td>
-            ${[1,2,3,4,5,6,7,8].map(n => `<td style="text-align:center;">${f['m'+n]||'—'}</td>`).join('')}
             <td style="text-align:center;font-weight:800;color:${colorEst};">${f.estatus||'—'}</td>
+        </tr>
+        <tr style="background:${i%2===0?'#faf5ff':'#f0fdf4'};">
+            <td colspan="19" style="padding:3px 6px;border-top:none;">
+                <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+                    <span style="font-size:6pt;font-weight:700;color:#7c3aed;background:#ede9fe;border-radius:3px;padding:1px 5px;">Organolépticas</span>
+                    ${camposOrg.map((c, ci) => {
+                        const val = f[c] || '—';
+                        const color = val === 'NC' ? '#ef4444' : val === 'C' ? '#10b981' : '#94a3b8';
+                        return `<span style="font-size:6.5pt;color:#64748b;">${labelsOrg[ci]}: <strong style="color:${color};">${val}</strong></span>`;
+                    }).join(' &nbsp;·&nbsp; ')}
+                    &nbsp;&nbsp;
+                    <span style="font-size:6pt;font-weight:700;color:#065f46;background:#d1fae5;border-radius:3px;padding:1px 5px;">Control Pesos</span>
+                    <span style="font-size:6.5pt;color:#64748b;">Insp: <strong>${f.cantInsp||'—'}</strong></span>
+                    ${[1,2,3,4,5,6,7,8].map(n => `<span style="font-size:6.5pt;color:#64748b;">M${n}: <strong>${f['m'+n]||'—'}</strong></span>`).join(' · ')}
+                </div>
+            </td>
         </tr>`;
     }).join('');
 
@@ -24993,11 +25064,11 @@ function ptImprimir() {
         .titulo { font-size: 13pt; font-weight: 900; color: #5b21b6; }
         .subtitulo { font-size: 8pt; color: #64748b; margin-top: 2px; }
         table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-        thead tr { background: #5b21b6; color: white; }
+        thead tr:first-child { background: #5b21b6; color: white; }
+        thead tr:last-child { background: #3b0764; color: #c4b5fd; }
         th { padding: 4px 3px; text-align: center; font-size: 7pt; font-weight: 700; border: 1px solid #4c1d95; }
         td { padding: 3px; border: 1px solid #e2e8f0; vertical-align: middle; }
-        .org-head { background: #ede9fe; color: #5b21b6; }
-        .peso-head { background: #d1fae5; color: #065f46; }
+        tr td:last-child { border-bottom: none; }
         .firmas { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 12px; }
         .firma-box { border-top: 1.5px solid #1e293b; padding-top: 5px; font-size: 8pt; color: #475569; }
         .obs-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 10px; margin-bottom: 10px; font-size: 8pt; }
@@ -25018,35 +25089,37 @@ function ptImprimir() {
     <table>
         <thead>
             <tr>
-                <th rowspan="2">#</th>
-                <th rowspan="2">Cliente</th>
-                <th rowspan="2">OP</th>
-                <th rowspan="2">Hora</th>
-                <th rowspan="2">Preparación</th>
-                <th rowspan="2">Lote PT</th>
-                <th rowspan="2">Componente PT</th>
-                <th rowspan="2">Lote Comp.</th>
-                <th rowspan="2">Unid. Est.</th>
-                <th rowspan="2">Kg Est.</th>
-                <th rowspan="2">Unid. Real</th>
-                <th rowspan="2">Kg Real</th>
-                <th rowspan="2">Merma</th>
-                <th rowspan="2">Formato</th>
-                <th rowspan="2">Tipo Env.</th>
-                <th rowspan="2">Lote Empaque</th>
-                <th rowspan="2">Área Env.</th>
-                <th rowspan="2">Temp °C</th>
-                <th colspan="7" class="org-head">Características Organolépticas</th>
-                <th rowspan="2" class="peso-head">Cant. Insp.</th>
-                <th colspan="8" class="peso-head">Control de Pesos (gr)</th>
-                <th rowspan="2">Estatus</th>
+                <th>#</th>
+                <th>Cliente</th>
+                <th>OP</th>
+                <th>Hora</th>
+                <th>Preparación</th>
+                <th>Lote PT</th>
+                <th>Componente PT</th>
+                <th>Lote Comp.</th>
+                <th>Unid. Est.</th>
+                <th>Kg Est.</th>
+                <th>Unid. Real</th>
+                <th>Kg Real</th>
+                <th>Merma</th>
+                <th>Formato</th>
+                <th>Tipo Env.</th>
+                <th>Lote Empaque</th>
+                <th>Área Env.</th>
+                <th>Temp °C</th>
+                <th>Estatus</th>
             </tr>
             <tr>
-                ${labelsOrg.map(l => `<th class="org-head" style="font-size:6.5pt;">${l}</th>`).join('')}
-                ${[1,2,3,4,5,6,7,8].map(n => `<th class="peso-head">M${n}</th>`).join('')}
+                <th colspan="19" style="text-align:left;font-size:6.5pt;padding:3px 6px;">
+                    ↳ &nbsp;
+                    <span style="background:#7c3aed;color:white;border-radius:3px;padding:1px 5px;">Organolépticas</span>
+                    &nbsp; Aroma · Sabor · Color · Textura · Peso · Aus. Ext. · Rotulación &nbsp;&nbsp;
+                    <span style="background:#065f46;color:white;border-radius:3px;padding:1px 5px;">Control de Pesos</span>
+                    &nbsp; Cant. Insp. · M1 – M8 &nbsp;(se muestran en la fila inferior de cada registro)
+                </th>
             </tr>
         </thead>
-        <tbody>${filasHTML || '<tr><td colspan="36" style="text-align:center;padding:1rem;color:#94a3b8;">Sin registros</td></tr>'}</tbody>
+        <tbody>${filasHTML || '<tr><td colspan="19" style="text-align:center;padding:1rem;color:#94a3b8;">Sin registros</td></tr>'}</tbody>
     </table>
     ${obs ? `<div class="obs-box"><strong>Observaciones:</strong> ${obs}</div>` : ''}
     <div class="firmas">
@@ -27762,53 +27835,46 @@ async function batchConfirmarRegistros() {
     <!-- Tabla principal scrollable -->
     <div style="background:white;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,.08);overflow:hidden;">
       <div style="overflow-x:auto;">
-        <table id="ptTabla" style="width:100%;border-collapse:collapse;min-width:1800px;font-size:.82rem;">
+        <table id="ptTabla" style="width:100%;border-collapse:collapse;min-width:1400px;font-size:.82rem;border:2px solid #5b21b6;">
           <thead>
+            <!-- FILA 1: datos principales -->
             <tr style="background:#5b21b6;color:white;">
-              <th style="padding:.6rem .5rem;text-align:center;min-width:30px;">#</th>
-              <th style="padding:.6rem .75rem;text-align:left;min-width:100px;">🏢 Cliente</th>
-              <th style="padding:.6rem .75rem;text-align:center;min-width:80px;">📋 OP</th>
-              <th style="padding:.6rem .75rem;text-align:center;min-width:75px;">🕐 Hora</th>
-              <th style="padding:.6rem .75rem;text-align:left;min-width:180px;">🍽️ Preparación</th>
-              <th style="padding:.6rem .75rem;text-align:left;min-width:140px;">🏷️ Lote PT</th>
-              <th style="padding:.6rem .75rem;text-align:left;min-width:150px;">📦 Componente PT</th>
-              <th style="padding:.6rem .75rem;text-align:center;min-width:80px;">Lote Comp.</th>
-              <th style="padding:.6rem .75rem;text-align:center;min-width:80px;">Unid. Est.</th>
-              <th style="padding:.6rem .75rem;text-align:center;min-width:80px;">Kg Est.</th>
-              <th style="padding:.6rem .75rem;text-align:center;min-width:80px;background:rgba(255,255,255,.15);">Unid. Real</th>
-              <th style="padding:.6rem .75rem;text-align:center;min-width:80px;background:rgba(255,255,255,.15);">Kg Real</th>
-              <th style="padding:.6rem .75rem;text-align:center;min-width:70px;">Merma</th>
-              <th style="padding:.6rem .75rem;text-align:center;min-width:100px;">Formato</th>
-              <th style="padding:.6rem .75rem;text-align:center;min-width:100px;">Tipo Env.</th>
-              <th style="padding:.6rem .75rem;text-align:left;min-width:140px;">Lote Empaque</th>
-              <th style="padding:.6rem .75rem;text-align:center;min-width:110px;">Área Env.</th>
-              <th style="padding:.6rem .75rem;text-align:center;min-width:75px;">Temp °C</th>
-              <!-- Organolépticas -->
-              <th style="padding:.6rem .4rem;text-align:center;min-width:55px;background:rgba(255,255,255,.1);">Aroma</th>
-              <th style="padding:.6rem .4rem;text-align:center;min-width:55px;background:rgba(255,255,255,.1);">Sabor</th>
-              <th style="padding:.6rem .4rem;text-align:center;min-width:55px;background:rgba(255,255,255,.1);">Color</th>
-              <th style="padding:.6rem .4rem;text-align:center;min-width:55px;background:rgba(255,255,255,.1);">Textura</th>
-              <th style="padding:.6rem .4rem;text-align:center;min-width:55px;background:rgba(255,255,255,.1);">Peso</th>
-              <th style="padding:.6rem .4rem;text-align:center;min-width:65px;background:rgba(255,255,255,.1);">Aus. Ext.</th>
-              <th style="padding:.6rem .4rem;text-align:center;min-width:65px;background:rgba(255,255,255,.1);">Rotul.</th>
-              <!-- Control pesos -->
-              <th style="padding:.6rem .5rem;text-align:center;min-width:60px;background:rgba(16,185,129,.3);">Insp.</th>
-              <th style="padding:.6rem .4rem;text-align:center;min-width:55px;background:rgba(16,185,129,.2);">M1</th>
-              <th style="padding:.6rem .4rem;text-align:center;min-width:55px;background:rgba(16,185,129,.2);">M2</th>
-              <th style="padding:.6rem .4rem;text-align:center;min-width:55px;background:rgba(16,185,129,.2);">M3</th>
-              <th style="padding:.6rem .4rem;text-align:center;min-width:55px;background:rgba(16,185,129,.2);">M4</th>
-              <th style="padding:.6rem .4rem;text-align:center;min-width:55px;background:rgba(16,185,129,.2);">M5</th>
-              <th style="padding:.6rem .4rem;text-align:center;min-width:55px;background:rgba(16,185,129,.2);">M6</th>
-              <th style="padding:.6rem .4rem;text-align:center;min-width:55px;background:rgba(16,185,129,.2);">M7</th>
-              <th style="padding:.6rem .4rem;text-align:center;min-width:55px;background:rgba(16,185,129,.2);">M8</th>
-              <!-- Estatus -->
-              <th style="padding:.6rem .75rem;text-align:center;min-width:110px;">🔓 Estatus</th>
-              <th style="padding:.6rem .5rem;text-align:center;min-width:40px;">🗑️</th>
+              <th style="padding:.6rem .5rem;text-align:center;min-width:30px;border:1px solid #7c3aed;">#</th>
+              <th style="padding:.6rem .75rem;text-align:left;min-width:100px;border:1px solid #7c3aed;">🏢 Cliente</th>
+              <th style="padding:.6rem .75rem;text-align:center;min-width:80px;border:1px solid #7c3aed;">📋 OP</th>
+              <th style="padding:.6rem .75rem;text-align:center;min-width:75px;border:1px solid #7c3aed;">🕐 Hora</th>
+              <th style="padding:.6rem .75rem;text-align:left;min-width:180px;border:1px solid #7c3aed;">🍽️ Preparación</th>
+              <th style="padding:.6rem .75rem;text-align:left;min-width:140px;border:1px solid #7c3aed;">🏷️ Lote PT</th>
+              <th style="padding:.6rem .75rem;text-align:left;min-width:150px;border:1px solid #7c3aed;">📦 Componente PT</th>
+              <th style="padding:.6rem .75rem;text-align:center;min-width:80px;border:1px solid #7c3aed;">Lote Comp.</th>
+              <th style="padding:.6rem .75rem;text-align:center;min-width:80px;border:1px solid #7c3aed;">Unid. Est.</th>
+              <th style="padding:.6rem .75rem;text-align:center;min-width:80px;border:1px solid #7c3aed;">Kg Est.</th>
+              <th style="padding:.6rem .75rem;text-align:center;min-width:80px;background:rgba(255,255,255,.18);border:1px solid #7c3aed;">Unid. Real</th>
+              <th style="padding:.6rem .75rem;text-align:center;min-width:80px;background:rgba(255,255,255,.18);border:1px solid #7c3aed;">Kg Real</th>
+              <th style="padding:.6rem .75rem;text-align:center;min-width:70px;border:1px solid #7c3aed;">Merma</th>
+              <th style="padding:.6rem .75rem;text-align:center;min-width:100px;border:1px solid #7c3aed;">Formato</th>
+              <th style="padding:.6rem .75rem;text-align:center;min-width:100px;border:1px solid #7c3aed;">Tipo Env.</th>
+              <th style="padding:.6rem .75rem;text-align:left;min-width:140px;border:1px solid #7c3aed;">Lote Empaque</th>
+              <th style="padding:.6rem .75rem;text-align:center;min-width:110px;border:1px solid #7c3aed;">Área Env.</th>
+              <th style="padding:.6rem .75rem;text-align:center;min-width:75px;border:1px solid #7c3aed;">Temp °C</th>
+              <th style="padding:.6rem .75rem;text-align:center;min-width:110px;border:1px solid #7c3aed;">🔓 Estatus</th>
+              <th style="padding:.6rem .5rem;text-align:center;min-width:40px;border:1px solid #7c3aed;">🗑️</th>
+            </tr>
+            <!-- FILA 2: organolépticas + control de pesos (subencabezado) -->
+            <tr style="background:#3b0764;color:white;">
+              <th colspan="20" style="padding:.4rem .75rem;text-align:left;font-size:.75rem;color:#c4b5fd;border:1px solid #7c3aed;letter-spacing:.04em;">
+                ↳ &nbsp; 
+                <span style="background:#7c3aed;border-radius:4px;padding:.15rem .5rem;margin-right:.5rem;">🧪 Características Organolépticas</span>
+                &nbsp;Aroma &nbsp;·&nbsp; Sabor &nbsp;·&nbsp; Color &nbsp;·&nbsp; Textura &nbsp;·&nbsp; Peso &nbsp;·&nbsp; Aus. Ext. &nbsp;·&nbsp; Rotulación
+                &nbsp;&nbsp;&nbsp;
+                <span style="background:#065f46;border-radius:4px;padding:.15rem .5rem;margin-left:.5rem;">⚖️ Control de Pesos</span>
+                &nbsp;Cant. Insp. &nbsp;·&nbsp; M1 – M8
+              </th>
             </tr>
           </thead>
           <tbody id="ptTbody">
             <tr id="ptEmptyRow">
-              <td colspan="37" style="text-align:center;padding:3rem;color:#94a3b8;">
+              <td colspan="20" style="text-align:center;padding:3rem;color:#94a3b8;">
                 <div style="font-size:2.5rem;margin-bottom:.5rem;">📋</div>
                 <div style="font-weight:700;color:#7c3aed;">Sin registros para este día</div>
                 <div style="font-size:.85rem;margin-top:.3rem;">Haz clic en "Agregar Línea" para iniciar el registro</div>
