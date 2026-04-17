@@ -1921,6 +1921,12 @@
             <!-- Info del item -->
             <div id="editStockInfo" style="background:#f0f9ff;border-radius:10px;padding:.85rem 1rem;margin-bottom:1.1rem;border:1px solid #bae6fd;font-size:.85rem;"></div>
             <!-- Campos editables -->
+            <div style="margin-bottom:.85rem;">
+              <label style="font-size:.78rem;font-weight:700;color:#374151;display:block;margin-bottom:.3rem;">🏷️ Lote</label>
+              <input type="text" id="editStockLote" placeholder="Ej: 107"
+                style="width:100%;padding:.65rem .85rem;border-radius:8px;border:2px solid #f59e0b;font-size:1rem;font-weight:800;box-sizing:border-box;color:#92400e;text-align:center;">
+              <div style="font-size:.72rem;color:#92400e;margin-top:.25rem;">⚠️ Cambiar el lote actualiza el código de barras del producto</div>
+            </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem;margin-bottom:.85rem;">
               <div>
                 <label style="font-size:.78rem;font-weight:700;color:#374151;display:block;margin-bottom:.3rem;">⚖️ Kg Disponible *</label>
@@ -21762,6 +21768,11 @@ function bodegaProcesarScan(valor) {
         _bodegaMostrarFeedback(`❌ Código no encontrado: ${codigo}`, '#ef4444');
         return;
     }
+    // Item existe pero sin stock disponible
+    if (resultado._sinStockDisponible) {
+        _bodegaMostrarFeedback(`⛔ ${resultado.producto} — sin stock disponible (${(resultado.kgDisponible||0).toFixed(1)} kg)`, '#ef4444');
+        return;
+    }
 
     // Primera bolsa — inicializar sesión y verificar excedente en líneas
     if (!_bodegaSesionSalida.item) {
@@ -21900,11 +21911,42 @@ function bodegaBuscarPorCodigo(codigo) {
         if (partes.length >= 3) {
             const prod   = partes[1];
             const opPart = partes[partes.length - 1];
-            return bodegaStock.find(s => {
+            const porProdOP = bodegaStock.find(s => {
                 if (s.estado === 'agotado' || (s.kgDisponible||0) <= 0) return false;
                 const sp = _normalizarCodigo(s.codigo).split('-');
                 return sp[1] === prod && sp[sp.length-1] === opPart;
-            }) || null;
+            });
+            if (porProdOP) return porProdOP;
+        }
+    }
+
+    // Nivel 4 — solo producto (ignora lote, kg y OP) — última opción
+    if (codigoNorm.startsWith('GF-')) {
+        const partes = codigoNorm.split('-');
+        if (partes.length >= 2) {
+            const prod = partes[1];
+            const porProd = bodegaStock.find(s => {
+                if (s.estado === 'agotado' || (s.kgDisponible||0) <= 0) return false;
+                const sp = _normalizarCodigo(s.codigo).split('-');
+                return sp[1] === prod;
+            });
+            if (porProd) return porProd;
+        }
+    }
+
+    // ── Diagnóstico: verificar si el item existe pero está agotado ──
+    if (codigoNorm.startsWith('GF-')) {
+        const partes = codigoNorm.split('-');
+        const prod   = partes[1] || '';
+        const opPart = partes[partes.length - 1] || '';
+        const agotado = bodegaStock.find(s => {
+            const sp = _normalizarCodigo(s.codigo).split('-');
+            return sp[1] === prod && sp[sp.length-1] === opPart;
+        });
+        if (agotado) {
+            // Existe pero sin stock — retornar con flag para mensaje específico
+            agotado._sinStockDisponible = true;
+            return agotado;
         }
     }
 
@@ -27200,6 +27242,7 @@ function bodegaAbrirEditarStock(id) {
         </div>`;
 
     // Prellenar con valores actuales
+    document.getElementById('editStockLote').value    = item.lote || '';
     document.getElementById('editStockKg').value     = (item.kgDisponible || 0).toFixed(2);
     document.getElementById('editStockBolsas').value = item.nBolsas || 0;
     document.getElementById('editStockMotivo').value = '';
@@ -27215,6 +27258,7 @@ async function bodegaGuardarEditarStock() {
 
     const nuevoKg     = parseFloat(document.getElementById('editStockKg').value);
     const nuevoBolsas = parseInt(document.getElementById('editStockBolsas').value);
+    const nuevoLote   = document.getElementById('editStockLote').value.trim();
     const motivo      = document.getElementById('editStockMotivo').value;
     const detalle     = document.getElementById('editStockMotivoTexto').value.trim();
 
@@ -27223,12 +27267,20 @@ async function bodegaGuardarEditarStock() {
 
     const kgAnterior     = item.kgDisponible;
     const bolsasAnterior = item.nBolsas;
+    const loteAnterior   = item.lote;
     const diferencia     = nuevoKg - kgAnterior;
 
     // Aplicar corrección
     item.kgDisponible = nuevoKg;
     if (!isNaN(nuevoBolsas)) item.nBolsas = nuevoBolsas;
     item.estado = nuevoKg <= 0 ? 'agotado' : 'disponible';
+
+    // Aplicar nuevo lote y regenerar código de barras si cambió
+    if (nuevoLote && nuevoLote !== loteAnterior) {
+        item.lote   = nuevoLote;
+        item.codigo = bodegaGenerarCodigo(item.producto, nuevoLote, item.kg, item.numeroOP);
+        console.log(`🏷️ Lote actualizado: ${loteAnterior} → ${nuevoLote} | nuevo código: ${item.codigo}`);
+    }
 
     // Registrar en auditoría de bodega
     if (!bodegaAjustesStock) window.bodegaAjustesStock = [];
@@ -27239,13 +27291,14 @@ async function bodegaGuardarEditarStock() {
         hora:        new Date().toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'}),
         producto:    item.producto,
         lote:        item.lote,
+        loteAnterior: loteAnterior !== item.lote ? loteAnterior : undefined,
         numeroOP:    item.numeroOP,
         kgAnterior,
         kgNuevo:     nuevoKg,
         diferencia:  Math.round(diferencia * 100) / 100,
         bolsasAnterior,
         bolsasNuevo: nuevoBolsas,
-        motivo:      motivo + (detalle ? ` — ${detalle}` : ''),
+        motivo:      motivo + (detalle ? ` — ${detalle}` : '') + (loteAnterior !== item.lote ? ` | Lote: ${loteAnterior}→${item.lote}` : ''),
         usuario:     window._emailActual || 'Sistema'
     });
 
