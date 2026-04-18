@@ -99,7 +99,7 @@
         position: fixed;
         top: 0; left: 0;
         width: 100%; height: 100%;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: #1f2937;
         z-index: 99999;
         align-items: center;
         justify-content: center;
@@ -107,56 +107,57 @@
     }
     .login-card {
         background: white;
-        border-radius: 20px;
+        border-radius: 16px;
         padding: 2.5rem 2rem;
         width: 100%;
         max-width: 400px;
-        box-shadow: 0 25px 60px rgba(0,0,0,0.3);
+        box-shadow: 0 25px 60px rgba(0,0,0,0.5);
         text-align: center;
+        border-top: 4px solid #dc2626;
     }
     .login-logo { font-size: 3rem; margin-bottom: 0.5rem; }
-    .login-title { font-size: 1.5rem; font-weight: 800; color: #333; margin-bottom: 0.25rem; }
-    .login-subtitle { font-size: 0.9rem; color: #888; margin-bottom: 2rem; }
+    .login-title { font-size: 1.5rem; font-weight: 800; color: #111827; margin-bottom: 0.25rem; }
+    .login-subtitle { font-size: 0.9rem; color: #9ca3af; margin-bottom: 2rem; }
     .login-input {
         width: 100%;
         padding: 0.9rem 1rem;
-        border: 2px solid #e5e7eb;
-        border-radius: 10px;
+        border: 1.5px solid #e5e7eb;
+        border-radius: 8px;
         font-size: 1rem;
         margin-bottom: 1rem;
         outline: none;
         transition: border-color 0.2s;
         box-sizing: border-box;
     }
-    .login-input:focus { border-color: #667eea; }
+    .login-input:focus { border-color: #1f2937; }
     .login-btn {
         width: 100%;
         padding: 1rem;
-        background: linear-gradient(135deg, #667eea, #764ba2);
+        background: #1f2937;
         color: white;
         border: none;
-        border-radius: 10px;
+        border-radius: 8px;
         font-size: 1rem;
         font-weight: 700;
         cursor: pointer;
-        transition: all 0.3s;
+        transition: all 0.2s;
         margin-top: 0.5rem;
     }
-    .login-btn:hover:not(:disabled) { transform: scale(1.02); box-shadow: 0 5px 20px rgba(102,126,234,0.5); }
+    .login-btn:hover:not(:disabled) { background: #111827; }
     .login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-    .login-error { color: #ef4444; font-size: 0.85rem; margin-top: 0.75rem; min-height: 1.2rem; }
+    .login-error { color: #dc2626; font-size: 0.85rem; margin-top: 0.75rem; min-height: 1.2rem; }
     .logout-btn {
         background: none;
-        border: 1px solid #ef4444;
-        color: #ef4444;
-        padding: 0.4rem 0.9rem;
-        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,.3);
+        color: #f9fafb;
+        padding: 0.35rem 0.85rem;
+        border-radius: 6px;
         font-size: 0.8rem;
         font-weight: 600;
         cursor: pointer;
         transition: all 0.2s;
     }
-    .logout-btn:hover { background: #ef4444; color: white; }
+    .logout-btn:hover { background: rgba(255,255,255,.1); }
     .user-info { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
     </style>
     
@@ -198,245 +199,83 @@
         
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #111827;
             color: #333;
-            padding: 1rem;
             min-height: 100vh;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
-        }
-        .container { max-width: 1400px; margin: 0 auto; }
-        .header {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            margin-bottom: 1.5rem;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 1rem;
+            flex-direction: column;
         }
-        .header h1 {
-            font-size: 1.8rem;
-            color: #667eea;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .version-badge {
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: white;
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
-        .header-info { display: flex; gap: 2rem; align-items: center; flex-wrap: wrap; }
-        .time-display { font-size: 1.5rem; font-weight: bold; color: #764ba2; }
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-        .stat-card {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 12px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            text-align: center;
-            transition: all 0.3s;
-        }
-        .stat-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
-        .stat-card h3 { font-size: 0.9rem; color: #666; margin-bottom: 0.5rem; text-transform: uppercase; }
-        .stat-card .value { font-size: 2rem; font-weight: bold; color: #667eea; }
-        .equipment-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-        .equipment-card {
-            background: white;
-            border-radius: 15px;
-            padding: 1.5rem;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-            transition: all 0.3s;
-            position: relative;
-            overflow: hidden;
-        }
-        .equipment-card:hover { transform: translateY(-5px); box-shadow: 0 12px 35px rgba(0,0,0,0.2); }
-        .equipment-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 5px; }
-        .equipment-card.disponible::before { background: #10b981; }
-        .equipment-card.activa::before { background: #f59e0b; }
-        .equipment-card.limpieza::before { background: #3b82f6; }
-        .equipment-card.limpieza.alerta::before { background: #ef4444; animation: pulse-alert 1s infinite; }
-        .equipment-card.desmechado { border-top: 4px solid #d97706 !important; }
-        .equipment-card.desmechado::before { background: #d97706; }
-        @keyframes pulse-alert { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        .equipment-card.alerta { animation: shake 0.5s infinite; border: 3px solid #ef4444; }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
-        .equipment-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-        .equipment-name { font-size: 1.3rem; font-weight: bold; color: #333; }
-        .op-badge {
-            background: #667eea;
-            color: white;
-            padding: 0.25rem 0.75rem;
-            border-radius: 15px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            margin-top: 0.25rem;
-            display: inline-block;
-        }
-        .status-badge { padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; }
-        .status-badge.disponible { background: #d1fae5; color: #065f46; }
-        .status-badge.activa { background: #fef3c7; color: #92400e; }
-        .status-badge.limpieza { background: #dbeafe; color: #1e40af; }
-        .status-badge.en_espera { background: #ede9fe; color: #5b21b6; animation: pulse 2s infinite; }
-        .status-badge.limpieza.alerta { background: #fee2e2; color: #991b1b; animation: pulse-alert 1s infinite; }
-        .equipment-details { margin-top: 1rem; }
-        .detail-row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #f0f0f0; }
-        .detail-label { color: #666; font-size: 0.9rem; }
-        .detail-value { font-weight: 600; color: #333; }
-        .timer { font-size: 1.2rem; color: #667eea; font-weight: bold; font-family: monospace; }
-        .timer.warning { color: #f59e0b; }
-        .timer.danger { color: #ef4444; animation: pulse-alert 1s infinite; }
-        .alert-box-card {
-            background: #fee2e2;
-            border: 2px solid #ef4444;
-            border-radius: 10px;
-            padding: 1rem;
-            margin-top: 1rem;
-            text-align: center;
-        }
-        .alert-box-card strong { color: #991b1b; font-size: 1.1rem; }
-        .progress-bar { width: 100%; height: 8px; background: #f0f0f0; border-radius: 10px; overflow: hidden; margin-top: 1rem; }
-        .progress-fill { height: 100%; background: linear-gradient(90deg, #667eea, #764ba2); transition: width 0.3s; }
-        .progress-fill.warning { background: linear-gradient(90deg, #f59e0b, #d97706); }
-        .progress-fill.danger { background: linear-gradient(90deg, #ef4444, #dc2626); }
-        .btn {
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 0.95rem;
-            margin-top: 1rem;
-        }
-        .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
-        .btn-primary:hover { transform: scale(1.05); box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4); }
-        .btn-success { background: #10b981; color: white; }
-        .btn-success:hover { background: #059669; }
-        .btn-danger { background: #ef4444; color: white; }
-        .btn-info { background: #3b82f6; color: white; }
-        .btn-full { width: 100%; }
-        .modal {
-            display: none;
+
+        /* ── SIDEBAR ─────────────────────────────────────────── */
+        #appSidebar {
+            width: 220px;
+            background: #1f2937;
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.7);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-            padding: 1rem;
-        }
-        .modal.active { display: flex; }
-        .modal-content {
-            background: white;
-            padding: 2rem;
-            border-radius: 20px;
-            max-width: 600px;
-            width: 100%;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        }
-        .modal-header {
+            top: 0; left: 0;
+            height: 100vh;
             display: flex;
-            justify-content: space-between;
+            flex-direction: column;
+            z-index: 200;
+            border-right: 1px solid rgba(255,255,255,.06);
+            overflow-y: auto;
+        }
+        .sb-logo-area {
+            padding: 18px 16px 14px;
+            border-bottom: 1px solid rgba(255,255,255,.07);
+        }
+        .sb-logo-area h1 {
+            font-size: 13px !important;
+            font-weight: 700;
+            color: #f9fafb !important;
+            letter-spacing: .04em;
+            display: flex;
             align-items: center;
-            margin-bottom: 1.5rem;
-            padding-bottom: 1rem;
-            border-bottom: 2px solid #f0f0f0;
+            gap: .4rem;
         }
-        .modal-header h2 { color: #667eea; font-size: 1.5rem; }
-        .close-btn { font-size: 2rem; cursor: pointer; color: #999; background: none; border: none; }
-        .close-btn:hover { color: #ef4444; }
-        .form-group { margin-bottom: 1.5rem; }
-        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; color: #333; }
-        .form-group input, .form-group select, .form-group textarea {
-            width: 100%;
-            padding: 0.75rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: border 0.3s;
+        .sb-logo-sub { font-size: 10px; color: #6b7280; margin-top: 2px; }
+        .sb-section-title {
+            padding: 10px 14px 3px;
+            font-size: 9px;
+            font-weight: 700;
+            color: #4b5563;
+            letter-spacing: .1em;
+            text-transform: uppercase;
         }
-        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-        .equipment-selector {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-        .equipment-option {
-            padding: 1rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 10px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        .equipment-option:hover { border-color: #667eea; background: #f0f4ff; }
-        .equipment-option.selected { background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-color: #667eea; }
-        .equipment-option.disabled { opacity: 0.5; cursor: not-allowed; background: #f5f5f5; }
-        .alert { padding: 1rem; border-radius: 10px; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
-        .alert-warning { background: #fef3c7; color: #92400e; border-left: 4px solid #f59e0b; }
-        .alert-info { background: #dbeafe; color: #1e40af; border-left: 4px solid #3b82f6; }
-        .alert-success { background: #d1fae5; color: #065f46; border-left: 4px solid #10b981; }
         .nav-tabs {
             display: flex;
-            gap: 0.4rem;
-            margin-bottom: 1.5rem;
-            background: white;
-            padding: .75rem 1rem;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            flex-wrap: wrap;
-            align-items: center;
+            flex-direction: column;
+            gap: 1px;
+            background: transparent;
+            padding: 0 8px;
+            border-radius: 0;
+            box-shadow: none;
+            flex-wrap: nowrap;
+            align-items: stretch;
             position: relative;
             z-index: 100;
+            margin-bottom: 0;
         }
         .nav-dropdown {
             position: relative;
-            display: inline-block;
+            display: block;
         }
         .nav-dropdown-menu {
             display: none;
             position: fixed;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 12px 40px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08);
+            background: #1f2937;
+            border-radius: 10px;
+            box-shadow: 0 12px 40px rgba(0,0,0,.5);
             z-index: 99999;
-            min-width: 220px;
-            border: 1px solid #e2e8f0;
-            padding: .4rem 0;
+            min-width: 200px;
+            border: 1px solid rgba(255,255,255,.1);
+            padding: .3rem 0;
             animation: dropFadeIn .15s ease;
         }
         @keyframes dropFadeIn {
-            from { opacity: 0; transform: translateY(-6px); }
-            to   { opacity: 1; transform: translateY(0); }
+            from { opacity: 0; transform: translateX(-6px); }
+            to   { opacity: 1; transform: translateX(0); }
         }
         .nav-dropdown-menu.open { display: block; }
         .nav-dropdown-item {
@@ -444,69 +283,262 @@
             align-items: center;
             gap: .5rem;
             width: 100%;
-            padding: 0.6rem 1.1rem;
+            padding: .55rem 1rem;
             border: none;
-            background: white;
+            background: transparent;
             text-align: left;
             cursor: pointer;
             font-weight: 600;
-            font-size: 0.88rem;
-            color: #374151;
-            transition: background 0.15s;
+            font-size: .82rem;
+            color: #9ca3af;
+            transition: background .15s;
             white-space: nowrap;
             box-sizing: border-box;
         }
-        .nav-dropdown-item:hover { background: #f5f3ff; color: #5b21b6; }
-        .nav-dropdown-item.active { background: #ede9fe; color: #5b21b6; }
+        .nav-dropdown-item:hover { background: rgba(220,38,38,.15); color: #fca5a5; }
+        .nav-dropdown-item.active { background: rgba(220,38,38,.2); color: #fca5a5; }
         .nav-tab {
-            padding: 0.6rem 1.1rem;
+            padding: .55rem 1rem;
             border: none;
             background: transparent;
-            border-radius: 8px;
+            border-radius: 7px;
             cursor: pointer;
             font-weight: 600;
-            font-size: .88rem;
-            transition: all 0.2s;
+            font-size: .82rem;
+            transition: all .2s;
             white-space: nowrap;
+            color: #9ca3af;
+            text-align: left;
+            width: 100%;
         }
-        .nav-tab:hover { background: #f0f4ff; color: #4f46e5; }
-        .nav-tab.active { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .nav-tab:hover { background: rgba(255,255,255,.06); color: #e5e7eb; }
+        .nav-tab.active { background: rgba(220,38,38,.2); color: #fca5a5; border-left: 3px solid #dc2626; }
+
+        /* ── TOPBAR ──────────────────────────────────────────── */
+        #appTopbar {
+            position: fixed;
+            top: 0; left: 220px; right: 0;
+            height: 52px;
+            background: #fff;
+            border-bottom: 2px solid #dc2626;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.5rem;
+            z-index: 150;
+            box-shadow: 0 1px 4px rgba(0,0,0,.08);
+        }
+        #appTopbar .topbar-left { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+        #appTopbar .topbar-right { display: flex; align-items: center; gap: .75rem; }
+
+        /* ── MAIN CONTENT ────────────────────────────────────── */
+        #appMain {
+            margin-left: 220px;
+            margin-top: 52px;
+            padding: 1.25rem 1.5rem;
+            min-height: calc(100vh - 52px);
+            background: #f1f3f6;
+        }
+
+        .container { max-width: 1400px; margin: 0 auto; }
+
+        /* ── HEADER (legacy — ahora es topbar) ──────────────── */
+        .header {
+            background: transparent;
+            padding: 0;
+            border-radius: 0;
+            box-shadow: none;
+            margin-bottom: 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: .75rem;
+        }
+        .header h1 {
+            font-size: 1.1rem;
+            color: #111827;
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            font-weight: 700;
+        }
+        .version-badge {
+            background: #dc2626;
+            color: white;
+            padding: .2rem .6rem;
+            border-radius: 20px;
+            font-size: .7rem;
+            font-weight: 700;
+        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
+        .header-info { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+        .time-display { font-size: 1.4rem; font-weight: bold; color: #dc2626; font-variant-numeric: tabular-nums; }
+
+        /* ── KPI STATS ───────────────────────────────────────── */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+        }
+        .stat-card {
+            background: white;
+            padding: 1.1rem 1.25rem;
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+            border-left: 3px solid #dc2626;
+            text-align: center;
+            transition: box-shadow .2s;
+        }
+        .stat-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.1); }
+        .stat-card h3 { font-size: .75rem; color: #9ca3af; margin-bottom: .4rem; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; }
+        .stat-card .value { font-size: 1.8rem; font-weight: 700; color: #111827; }
+
+        /* ── EQUIPMENT CARDS ─────────────────────────────────── */
+        .equipment-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .equipment-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.25rem;
+            border: 1px solid #e5e7eb;
+            transition: box-shadow .2s;
+            position: relative;
+            overflow: hidden;
+        }
+        .equipment-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.1); }
+        .equipment-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; }
+        .equipment-card.disponible::before { background: #10b981; }
+        .equipment-card.activa::before { background: #f59e0b; }
+        .equipment-card.limpieza::before { background: #6366f1; }
+        .equipment-card.limpieza.alerta::before { background: #dc2626; animation: pulse-alert 1s infinite; }
+        .equipment-card.desmechado { border-top: 4px solid #d97706 !important; }
+        .equipment-card.desmechado::before { background: #d97706; }
+        @keyframes pulse-alert { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .equipment-card.alerta { animation: shake 0.5s infinite; border: 2px solid #dc2626; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+        .equipment-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: .85rem; }
+        .equipment-name { font-size: 1.1rem; font-weight: 700; color: #111827; }
+        .op-badge {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: .2rem .65rem;
+            border-radius: 12px;
+            font-size: .72rem;
+            font-weight: 700;
+            margin-top: .2rem;
+            display: inline-block;
+        }
+        .status-badge { padding: .35rem .85rem; border-radius: 20px; font-size: .78rem; font-weight: 700; text-transform: uppercase; }
+        .status-badge.disponible { background: #d1fae5; color: #065f46; }
+        .status-badge.activa { background: #fef3c7; color: #92400e; }
+        .status-badge.limpieza { background: #ede9fe; color: #4338ca; }
+        .status-badge.en_espera { background: #ede9fe; color: #5b21b6; animation: pulse 2s infinite; }
+        .status-badge.limpieza.alerta { background: #fee2e2; color: #991b1b; animation: pulse-alert 1s infinite; }
+        .equipment-details { margin-top: .85rem; }
+        .detail-row { display: flex; justify-content: space-between; padding: .4rem 0; border-bottom: 1px solid #f1f5f9; }
+        .detail-label { color: #9ca3af; font-size: .85rem; }
+        .detail-value { font-weight: 600; color: #111827; }
+        .timer { font-size: 1.1rem; color: #dc2626; font-weight: 700; font-family: monospace; }
+        .timer.warning { color: #f59e0b; }
+        .timer.danger { color: #dc2626; animation: pulse-alert 1s infinite; }
+        .alert-box-card {
+            background: #fee2e2; border: 1.5px solid #dc2626; border-radius: 8px;
+            padding: .85rem; margin-top: .85rem; text-align: center;
+        }
+        .alert-box-card strong { color: #991b1b; font-size: 1rem; }
+        .progress-bar { width: 100%; height: 6px; background: #f1f5f9; border-radius: 10px; overflow: hidden; margin-top: .85rem; }
+        .progress-fill { height: 100%; background: #1f2937; transition: width .3s; }
+        .progress-fill.warning { background: #f59e0b; }
+        .progress-fill.danger { background: #dc2626; }
+
+        /* ── BUTTONS ─────────────────────────────────────────── */
+        .btn {
+            padding: .65rem 1.25rem; border: none; border-radius: 8px;
+            font-weight: 700; cursor: pointer; transition: all .2s;
+            font-size: .9rem; margin-top: .85rem;
+        }
+        .btn-primary { background: #1f2937; color: white; }
+        .btn-primary:hover { background: #111827; }
+        .btn-success { background: #10b981; color: white; }
+        .btn-success:hover { background: #059669; }
+        .btn-danger { background: #dc2626; color: white; }
+        .btn-info { background: #3b82f6; color: white; }
+        .btn-full { width: 100%; }
+
+        /* ── MODALS ──────────────────────────────────────────── */
+        .modal {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,.65); z-index: 1000;
+            justify-content: center; align-items: center; padding: 1rem;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: white; padding: 1.75rem; border-radius: 16px;
+            max-width: 600px; width: 100%; max-height: 90vh;
+            overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.35);
+            border-top: 3px solid #dc2626;
+        }
+        .modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 1.25rem; padding-bottom: .85rem;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .modal-header h2 { color: #111827; font-size: 1.2rem; }
+        .close-btn { font-size: 1.6rem; cursor: pointer; color: #9ca3af; background: none; border: none; }
+        .close-btn:hover { color: #dc2626; }
+        .form-group { margin-bottom: 1.25rem; }
+        .form-group label { display: block; margin-bottom: .4rem; font-weight: 600; color: #374151; font-size: .9rem; }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: .65rem .85rem;
+            border: 1.5px solid #e5e7eb; border-radius: 8px;
+            font-size: .95rem; transition: border .2s;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none; border-color: #1f2937;
+        }
+        .equipment-selector {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: .85rem; margin-top: .85rem;
+        }
+        .equipment-option {
+            padding: .85rem; border: 1.5px solid #e5e7eb; border-radius: 8px;
+            text-align: center; cursor: pointer; transition: all .2s;
+        }
+        .equipment-option:hover { border-color: #1f2937; background: #f9fafb; }
+        .equipment-option.selected { background: #1f2937; color: white; border-color: #1f2937; }
+        .equipment-option.disabled { opacity: .5; cursor: not-allowed; background: #f5f5f5; }
+        .alert { padding: .85rem; border-radius: 8px; margin-bottom: .85rem; display: flex; align-items: center; gap: .5rem; }
+        .alert-warning { background: #fef3c7; color: #92400e; border-left: 3px solid #f59e0b; }
+        .alert-info { background: #dbeafe; color: #1e40af; border-left: 3px solid #3b82f6; }
+        .alert-success { background: #d1fae5; color: #065f46; border-left: 3px solid #10b981; }
+
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         .parallel-process-card {
-            background: white;
-            border-radius: 15px;
-            padding: 1.5rem;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-            margin-bottom: 1rem;
+            background: white; border-radius: 12px; padding: 1.25rem;
+            border: 1px solid #e5e7eb; margin-bottom: .85rem;
         }
-        
-        /* ESTILOS HISTORIAL MULTI-DÍA */
         .date-selector-bar {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            margin-bottom: 1.5rem;
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-            flex-wrap: wrap;
+            background: white; padding: 1.1rem 1.25rem; border-radius: 10px;
+            border: 1px solid #e5e7eb; margin-bottom: 1.25rem;
+            display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;
         }
-        .date-selector-bar label { font-weight: 600; color: #667eea; }
+        .date-selector-bar label { font-weight: 700; color: #374151; font-size: .88rem; }
         .date-selector-bar input[type="date"], .date-selector-bar select {
-            padding: 0.75rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            font-size: 1rem;
+            padding: .6rem .85rem; border: 1.5px solid #e5e7eb;
+            border-radius: 8px; font-size: .9rem;
         }
         .search-bar { flex: 1; min-width: 250px; }
         .search-bar input {
-            width: 100%;
-            padding: 0.75rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            font-size: 1rem;
+            width: 100%; padding: .6rem .85rem;
+            border: 1.5px solid #e5e7eb; border-radius: 8px; font-size: .9rem;
         }
         .history-summary {
             background: linear-gradient(135deg, #667eea, #764ba2);
@@ -612,39 +644,62 @@
 
     <!-- ===== CONTENIDO DE LA APP ===== -->
     <div id="appContent" style="display:none;">
-    <div class="container">
-        <div class="header">
-            <h1>
-                🏭 Manufacturing Execution System 
+
+    <!-- SIDEBAR -->
+    <div id="appSidebar">
+        <div class="sb-logo-area">
+            <h1>🏭 MES Cocina</h1>
+            <div class="sb-logo-sub">Alimentos Santa Emilia</div>
+            <div style="margin-top:6px;">
                 <span class="version-badge">v4.0 MULTI-DEVICE</span>
-            </h1>
-            <div class="header-info">
-                <div id="firebaseStatus" style="display:flex; align-items:center; gap:0.5rem; padding:0.5rem 1rem; background:#10b981; color:white; border-radius:8px; font-size:0.9rem; font-weight:600;">
-                    <span style="width:8px; height:8px; background:white; border-radius:50%; animation:pulse 2s infinite;"></span>
-                    🔥 Sincronizado
-                </div>
-                <button onclick="recuperarDatosFirebase()" style="background:#667eea;color:white;border:none;border-radius:8px;padding:.5rem 1rem;cursor:pointer;font-size:.85rem;font-weight:700;" title="Recargar todos los datos desde Firebase">
-                    🔄 Recargar datos
-                </button>
-                <button onclick="subirHistorialAFirebase()" style="background:#dc2626;color:white;border:none;border-radius:8px;padding:.5rem 1rem;cursor:pointer;font-size:.85rem;font-weight:700;" title="Subir historial local a Firebase">
-                    ⬆️ Subir a Firebase
-                </button>
-                <div class="time-display" id="currentTime">00:00:00</div>
-                <div class="user-info">
-                    <span id="userEmailDisplay" style="font-size:0.8rem;color:#666;"></span>
-                    <button class="logout-btn" onclick="window.signOut()">🚪 Cerrar sesión</button>
-                </div>
-                <button class="btn btn-primary" onclick="openModal('iniciarProduccion')">
-                    ▶️ INICIAR PRODUCCIÓN
-                </button>
-                <button class="btn btn-primary" onclick="abrirModalAgrupar()" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);margin-left:.5rem;">
-                    🔀 Agrupar Componentes
-                </button>
-                <button onclick="abrirRescateDia()" style="background:linear-gradient(135deg,#dc2626,#991b1b);color:white;border:none;border-radius:10px;padding:.6rem 1.2rem;font-weight:700;cursor:pointer;font-size:.88rem;margin-left:.5rem;">
-                    🔧 Completar Registros del Día
-                </button>
             </div>
         </div>
+        <div class="sb-section-title">Producción</div>
+        <div class="nav-tabs" id="navProduccion"></div>
+        <div class="sb-section-title">Planificación</div>
+        <div class="nav-tabs" id="navPlanificacion"></div>
+        <div class="sb-section-title">Gestión</div>
+        <div class="nav-tabs" id="navGestion"></div>
+        <div class="sb-section-title">Calidad</div>
+        <div class="nav-tabs" id="navCalidad"></div>
+        <div style="margin-top:auto;padding:8px 8px 12px;border-top:1px solid rgba(255,255,255,.06);">
+            <div class="nav-tabs" id="navExtra"></div>
+        </div>
+    </div>
+
+    <!-- TOPBAR -->
+    <div id="appTopbar">
+        <div class="topbar-left">
+            <div id="firebaseStatus" style="display:flex;align-items:center;gap:.5rem;padding:.35rem .85rem;background:#10b981;color:white;border-radius:7px;font-size:.8rem;font-weight:700;">
+                <span style="width:7px;height:7px;background:white;border-radius:50%;animation:pulse 2s infinite;"></span>
+                Sincronizado
+            </div>
+            <button onclick="recuperarDatosFirebase()" style="background:#f1f5f9;color:#374151;border:1px solid #e5e7eb;border-radius:7px;padding:.35rem .85rem;cursor:pointer;font-size:.8rem;font-weight:700;">
+                🔄 Recargar datos
+            </button>
+            <button onclick="subirHistorialAFirebase()" style="background:#dc2626;color:white;border:none;border-radius:7px;padding:.35rem .85rem;cursor:pointer;font-size:.8rem;font-weight:700;">
+                ⬆️ Subir a Firebase
+            </button>
+            <button class="btn btn-primary" onclick="openModal('iniciarProduccion')" style="margin-top:0;padding:.4rem 1rem;font-size:.82rem;">
+                ▶️ INICIAR PRODUCCIÓN
+            </button>
+            <button onclick="abrirModalAgrupar()" style="background:#1f2937;color:white;border:none;border-radius:7px;padding:.4rem .9rem;cursor:pointer;font-weight:700;font-size:.82rem;">
+                🔀 Agrupar
+            </button>
+            <button onclick="abrirRescateDia()" style="background:#dc2626;color:white;border:none;border-radius:7px;padding:.4rem .9rem;cursor:pointer;font-weight:700;font-size:.82rem;">
+                🔧 Registros del Día
+            </button>
+        </div>
+        <div class="topbar-right">
+            <div class="time-display" id="currentTime">00:00:00</div>
+            <span id="userEmailDisplay" style="font-size:.78rem;color:#6b7280;"></span>
+            <button class="logout-btn" onclick="window.signOut()">🚪 Cerrar sesión</button>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="appMain">
+    <div class="container">
 
         <div class="stats">
             <div class="stat-card">
@@ -665,7 +720,8 @@
             </div>
         </div>
 
-        <div class="nav-tabs">
+        <!-- NAV SIDEBAR — distribuido en secciones por JS init -->
+        <div id="navTabsOriginal" style="display:none;">
             <!-- Dashboard siempre visible -->
             <button class="nav-tab active" data-modulo="dashboard" onclick="changeTab('dashboard',this)">📊 Dashboard</button>
 
@@ -678,8 +734,8 @@
                 <div class="nav-dropdown-menu" id="menuProduccion">
                     <button class="nav-dropdown-item" onclick="changeTab('gantt',this);cerrarDropdownProduccion()">📅 Gantt</button>
                     <button class="nav-dropdown-item" onclick="changeTab('ejecutivo',this);cerrarDropdownProduccion()">👔 Vista Ejecutivo</button>
-                    <div style="border-top:1px solid #e2e8f0;margin:.25rem 0;"></div>
-                    <div style="font-size:.7rem;color:#94a3b8;padding:.3rem 1rem .1rem;font-weight:600;text-transform:uppercase;">Líneas</div>
+                    <div style="border-top:1px solid rgba(255,255,255,.08);margin:.25rem 0;"></div>
+                    <div style="font-size:.7rem;color:#6b7280;padding:.3rem 1rem .1rem;font-weight:600;text-transform:uppercase;">Líneas</div>
                     <button class="nav-dropdown-item" onclick="toggleDropdownAcond(event);cerrarDropdownProduccion()">🔪 Acondicionamiento ▸</button>
                     <button class="nav-dropdown-item" onclick="changeTab('envasado',this);cerrarDropdownProduccion()">📦 Envasado</button>
                     <button class="nav-dropdown-item" onclick="changeTab('abatimiento',this);cerrarDropdownProduccion()">❄️ Abatimiento</button>
@@ -708,15 +764,15 @@
                     🗂️ Gestión <span style="font-size:.7rem;">▼</span>
                 </button>
                 <div class="nav-dropdown-menu" id="menuGestion">
-                    <div style="font-size:.7rem;color:#94a3b8;padding:.3rem 1rem .1rem;font-weight:600;text-transform:uppercase;">Productos y Recetas</div>
+                    <div style="font-size:.7rem;color:#6b7280;padding:.3rem 1rem .1rem;font-weight:600;text-transform:uppercase;">Productos y Recetas</div>
                     <button class="nav-dropdown-item" data-modulo="recetas" onclick="changeTab('recetas',this);cerrarDropdownGestion()">📋 Recetas</button>
                     <button class="nav-dropdown-item" data-modulo="productos" onclick="changeTab('productos',this);cerrarDropdownGestion()">🍽️ Productos</button>
-                    <div style="border-top:1px solid #e2e8f0;margin:.25rem 0;"></div>
-                    <div style="font-size:.7rem;color:#94a3b8;padding:.3rem 1rem .1rem;font-weight:600;text-transform:uppercase;">Inventario y Bodega</div>
+                    <div style="border-top:1px solid rgba(255,255,255,.08);margin:.25rem 0;"></div>
+                    <div style="font-size:.7rem;color:#6b7280;padding:.3rem 1rem .1rem;font-weight:600;text-transform:uppercase;">Inventario y Bodega</div>
                     <button class="nav-dropdown-item" data-modulo="bodega" onclick="changeTab('bodega',this);cerrarDropdownGestion()">🏭 Bodega</button>
                     <button class="nav-dropdown-item" data-modulo="materiasprimas" onclick="changeTab('materiasprimas',this);cerrarDropdownGestion()">🌾 Control MP</button>
-                    <div style="border-top:1px solid #e2e8f0;margin:.25rem 0;"></div>
-                    <div style="font-size:.7rem;color:#94a3b8;padding:.3rem 1rem .1rem;font-weight:600;text-transform:uppercase;">Etiquetas y Personal</div>
+                    <div style="border-top:1px solid rgba(255,255,255,.08);margin:.25rem 0;"></div>
+                    <div style="font-size:.7rem;color:#6b7280;padding:.3rem 1rem .1rem;font-weight:600;text-transform:uppercase;">Etiquetas y Personal</div>
                     <button class="nav-dropdown-item" data-modulo="etiquetas" onclick="changeTab('etiquetas',this);cerrarDropdownGestion()">🏷️ Etiquetas</button>
                     <button class="nav-dropdown-item" data-modulo="personal" onclick="changeTab('personal',this);cerrarDropdownGestion()">👥 Personal</button>
                 </div>
@@ -729,44 +785,30 @@
                     🔪 Acondicionamiento <span style="font-size:.7rem;">▼</span>
                 </button>
                 <div class="nav-dropdown-menu" id="menuAcondicionamiento">
-                    <button class="nav-dropdown-item" onclick="changeTabAcond('carnes');cerrarDropdownAcond()">
-                        🥩 Carnes
-                    </button>
-                    <button class="nav-dropdown-item" onclick="changeTabAcond('vegetales');cerrarDropdownAcond()">
-                        🥦 Vegetales
-                    </button>
+                    <button class="nav-dropdown-item" onclick="changeTabAcond('carnes');cerrarDropdownAcond()">🥩 Carnes</button>
+                    <button class="nav-dropdown-item" onclick="changeTabAcond('vegetales');cerrarDropdownAcond()">🥦 Vegetales</button>
                 </div>
             </div>
 
             <!-- Admin -->
-            <button class="nav-tab" id="btnAdmin" data-modulo="administracion" style="display:none;background:linear-gradient(135deg,#374151,#4b5563);color:white;" onclick="changeTab('administracion')">⚙️ Admin</button>
+            <button class="nav-tab" id="btnAdmin" data-modulo="administracion" style="display:none;" onclick="changeTab('administracion')">⚙️ Admin</button>
 
-            <!-- CALIDAD — acceso restringido -->
+            <!-- CALIDAD -->
             <div class="nav-dropdown" id="dropdownCalidad" style="display:none;">
                 <button class="nav-tab" onclick="toggleDropdownCalidad(event)" id="btnCalidad"
-                    style="display:flex;align-items:center;gap:.4rem;background:linear-gradient(135deg,#0e7490,#0891b2);color:white;">
+                    style="display:flex;align-items:center;gap:.4rem;">
                     🔬 Calidad <span style="font-size:.7rem;">▼</span>
                 </button>
                 <div class="nav-dropdown-menu" id="menuCalidad">
-                    <button class="nav-dropdown-item" onclick="changeTabCalidad('pcc1');cerrarDropdownCalidad()">
-                        🪣 Almacenamiento (PCC1)
-                    </button>
-                    <div style="border-top:1px solid #e2e8f0;margin:.25rem 0;"></div>
-                    <div style="font-size:.7rem;color:#94a3b8;padding:.3rem 1rem .1rem;font-weight:600;text-transform:uppercase;">Procesos Cocción y Abatimiento</div>
-                    <button class="nav-dropdown-item" onclick="changeTabCalidad('tempCoccionEnvasado');cerrarDropdownCalidad()">
-                        🌡️ Verif. Temp. Cocción y Envasado
-                    </button>
-                    <button class="nav-dropdown-item" onclick="changeTabCalidad('tempTunel');cerrarDropdownCalidad()">
-                        ❄️ Verif. Temp. Almacenamiento - Túnel Abatimiento
-                    </button>
-                    <button class="nav-dropdown-item" onclick="changeTabCalidad('tempTransito');cerrarDropdownCalidad()">
-                        🪣 Verif. Temp. Almacenamiento - C. Tránsito
-                    </button>
-                    <div style="border-top:1px solid #e2e8f0;margin:.25rem 0;"></div>
-                    <div style="font-size:.7rem;color:#94a3b8;padding:.3rem 1rem .1rem;font-weight:600;text-transform:uppercase;">Producto Terminado</div>
-                    <button class="nav-dropdown-item" onclick="changeTabCalidad('controlPT');cerrarDropdownCalidad()" style="color:#7c3aed;font-weight:700;">
-                        📋 Control Envasado y PT
-                    </button>
+                    <button class="nav-dropdown-item" onclick="changeTabCalidad('pcc1');cerrarDropdownCalidad()">🪣 Almacenamiento (PCC1)</button>
+                    <div style="border-top:1px solid rgba(255,255,255,.08);margin:.25rem 0;"></div>
+                    <div style="font-size:.7rem;color:#6b7280;padding:.3rem 1rem .1rem;font-weight:600;text-transform:uppercase;">Cocción y Abatimiento</div>
+                    <button class="nav-dropdown-item" onclick="changeTabCalidad('tempCoccionEnvasado');cerrarDropdownCalidad()">🌡️ Temp. Cocción y Envasado</button>
+                    <button class="nav-dropdown-item" onclick="changeTabCalidad('tempTunel');cerrarDropdownCalidad()">❄️ Temp. Túnel Abatimiento</button>
+                    <button class="nav-dropdown-item" onclick="changeTabCalidad('tempTransito');cerrarDropdownCalidad()">🪣 Temp. C. Tránsito</button>
+                    <div style="border-top:1px solid rgba(255,255,255,.08);margin:.25rem 0;"></div>
+                    <div style="font-size:.7rem;color:#6b7280;padding:.3rem 1rem .1rem;font-weight:600;text-transform:uppercase;">Producto Terminado</div>
+                    <button class="nav-dropdown-item" onclick="changeTabCalidad('controlPT');cerrarDropdownCalidad()" style="color:#fca5a5;font-weight:700;">📋 Control Envasado y PT</button>
                 </div>
             </div>
         </div>
@@ -3921,6 +3963,10 @@
             setInterval(updateTime, 1000);
             setInterval(updateTimers, 1000);
             setInterval(checkAlertas, 1000);
+
+            // ── Distribuir nav en sidebar ──────────────────────────
+            _initSidebarNav();
+            // ───────────────────────────────────────────────────────
             
             // Mostrar indicador de Firebase
             setTimeout(() => {
@@ -21204,6 +21250,39 @@ ${d._ingredientes.map(ing => `<tr>
                 mostrarNotificacion(`✅ ${creados} preparación(es) — cocina · envasado · abatimiento registradas`, 'success');
             } else if (errores.length === 0) {
                 alert('No se seleccionó ninguna fila válida.');
+            }
+        }
+
+        // ── Inicializar sidebar: mover los nav-items a sus secciones ──
+        function _initSidebarNav() {
+            const orig = document.getElementById('navTabsOriginal');
+            if (!orig) return;
+
+            // Dashboard → sección producción
+            const dash = orig.querySelector('[data-modulo="dashboard"]');
+            const prod = orig.querySelector('#dropdownProduccion');
+            const plan = orig.querySelector('#dropdownPlanificacion');
+            const gest = orig.querySelector('#dropdownGestion');
+            const admin = orig.querySelector('#btnAdmin');
+            const cal  = orig.querySelector('#dropdownCalidad');
+            const acond = orig.querySelector('#dropdownAcondicionamiento');
+
+            const sProd = document.getElementById('navProduccion');
+            const sPlan = document.getElementById('navPlanificacion');
+            const sGest = document.getElementById('navGestion');
+            const sCal  = document.getElementById('navCalidad');
+            const sExtra = document.getElementById('navExtra');
+
+            if (sProd) {
+                if (dash)  sProd.appendChild(dash);
+                if (prod)  sProd.appendChild(prod);
+                if (acond) sProd.appendChild(acond);
+            }
+            if (sPlan && plan) sPlan.appendChild(plan);
+            if (sGest && gest) sGest.appendChild(gest);
+            if (sCal) {
+                if (admin) sCal.appendChild(admin);
+                if (cal)   sCal.appendChild(cal);
             }
         }
 
