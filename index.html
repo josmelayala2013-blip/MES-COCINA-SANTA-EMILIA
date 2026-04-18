@@ -1505,45 +1505,55 @@
                         </select>
                     </div>
                 </div>
-                
+
+                <!-- KPIs principales -->
                 <div class="metric-cards" id="analyticsMetrics"></div>
-                
+
+                <!-- INSIGHTS AUTOMÁTICOS -->
+                <div id="analyticsInsights" style="margin:1.25rem 0;display:none;">
+                    <h3 style="color:#1f2937;font-size:.95rem;font-weight:700;margin-bottom:.85rem;display:flex;align-items:center;gap:.5rem;">
+                        🧠 Insights del Período
+                        <span style="font-size:.72rem;font-weight:500;color:#9ca3af;background:#f1f5f9;border-radius:4px;padding:.1rem .45rem;">Automático</span>
+                    </h3>
+                    <div id="analyticsInsightsList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:.85rem;"></div>
+                </div>
+
                 <div class="chart-grid">
                     <div class="analytics-section">
-                        <h3 style="color:#667eea; margin-bottom:1rem;">📊 Producción por Día</h3>
+                        <h3 style="color:#1f2937; margin-bottom:1rem;">📊 Producción por Día</h3>
                         <div class="chart-container"><canvas id="chartProduccionDia"></canvas></div>
                     </div>
                     <div class="analytics-section">
-                        <h3 style="color:#667eea; margin-bottom:1rem;">⚡ Eficiencia Real vs Programada</h3>
+                        <h3 style="color:#1f2937; margin-bottom:1rem;">⚡ Eficiencia Real vs Programada</h3>
                         <div class="chart-container"><canvas id="chartEficiencia"></canvas></div>
                     </div>
                 </div>
 
                 <div class="chart-grid">
                     <div class="analytics-section">
-                        <h3 style="color:#667eea; margin-bottom:1rem;">⚖️ Kg Programados vs Reales</h3>
+                        <h3 style="color:#1f2937; margin-bottom:1rem;">⚖️ Kg Programados vs Reales</h3>
                         <div class="chart-container"><canvas id="chartComparativa"></canvas></div>
                     </div>
                     <div class="analytics-section">
-                        <h3 style="color:#667eea; margin-bottom:1rem;">⏱️ Tiempos Promedio por Fase</h3>
+                        <h3 style="color:#1f2937; margin-bottom:1rem;">⏱️ Tiempos Promedio por Fase</h3>
                         <div class="chart-container"><canvas id="chartTiemposPromedio"></canvas></div>
                     </div>
                 </div>
                 
                 <div class="chart-grid">
                     <div class="analytics-section">
-                        <h3 style="color:#667eea; margin-bottom:1rem;">🏆 Ranking Productos Más Producidos</h3>
+                        <h3 style="color:#1f2937; margin-bottom:1rem;">🏆 Ranking Productos Más Producidos</h3>
                         <div class="chart-container"><canvas id="chartRanking"></canvas></div>
                     </div>
                     <div class="analytics-section">
-                        <h3 style="color:#667eea; margin-bottom:1rem;">🎯 Producción por Equipo</h3>
+                        <h3 style="color:#1f2937; margin-bottom:1rem;">🎯 Producción por Equipo</h3>
                         <div class="chart-container"><canvas id="chartPorEquipo"></canvas></div>
                     </div>
                 </div>
 
                 <div class="chart-grid">
                     <div class="analytics-section">
-                        <h3 style="color:#667eea; margin-bottom:1rem;">👤 Rendimiento por Operador</h3>
+                        <h3 style="color:#1f2937; margin-bottom:1rem;">👤 Rendimiento por Operador</h3>
                         <div class="chart-container"><canvas id="chartPorOperador"></canvas></div>
                     </div>
                 </div>
@@ -10241,34 +10251,34 @@ function imprimirRegistroHACCP(d) {
             let totalProducido = 0, totalProgramado = 0;
             let totalProducciones = 0;
             let sumaTiempoCoccion = 0, sumaTiempoEnvasado = 0;
+            let totalMerma = 0;
 
             fechas.forEach(fecha => {
                 const historial = historialPorFecha[fecha] || [];
-                totalProducido += historial.reduce((s, h) => s + (h.kgFinales || 0), 0);
+                totalProducido  += historial.reduce((s, h) => s + (h.kgFinales || 0), 0);
                 totalProgramado += historial.reduce((s, h) => s + (h.kgProgramados || 0), 0);
                 totalProducciones += historial.length;
-                sumaTiempoCoccion += historial.reduce((s, h) => s + (h.tiempoCoccion || 0), 0);
+                sumaTiempoCoccion  += historial.reduce((s, h) => s + (h.tiempoCoccion || 0), 0);
                 sumaTiempoEnvasado += historial.reduce((s, h) => s + (h.tiempoEnvasado || 0), 0);
+                totalMerma += historial.reduce((s, h) => s + (h.merma || 0), 0);
             });
 
-            const promCoccion = totalProducciones > 0 ? sumaTiempoCoccion / totalProducciones : 0;
+            const promCoccion  = totalProducciones > 0 ? sumaTiempoCoccion  / totalProducciones : 0;
             const promEnvasado = totalProducciones > 0 ? sumaTiempoEnvasado / totalProducciones : 0;
-            const promDiario = fechas.length > 0 ? totalProducido / fechas.length : 0;
-            const eficiencia = totalProgramado > 0 ? (totalProducido / totalProgramado * 100) : 0;
+            const promDiario   = fechas.length > 0 ? totalProducido / fechas.length : 0;
+            const eficiencia   = totalProgramado > 0 ? (totalProducido / totalProgramado * 100) : 0;
+            const pctMerma     = totalProducido > 0 ? (totalMerma / (totalProducido + totalMerma) * 100) : 0;
 
-            // Verificar si hay datos reales
             const hayDatos = totalProducciones > 0 || totalProducido > 0;
             if (!hayDatos) {
                 document.getElementById('analyticsMetrics').innerHTML = `
-                    <div style="grid-column:1/-1;text-align:center;padding:2rem;background:#f8f9ff;border-radius:12px;border:2px dashed #c7d2fe;">
+                    <div style="grid-column:1/-1;text-align:center;padding:2rem;background:#f8f9ff;border-radius:12px;border:2px dashed #e5e7eb;">
                         <div style="font-size:2.5rem;margin-bottom:.75rem;">📭</div>
-                        <h3 style="color:#667eea;margin-bottom:.5rem;">Sin datos para este período</h3>
+                        <h3 style="color:#374151;margin-bottom:.5rem;">Sin datos para este período</h3>
                         <p style="color:#94a3b8;font-size:.9rem;">No se encontraron producciones en los últimos ${fechas.length} días.<br>
-                        Verifica que las producciones estén completadas (abatimiento finalizado) y sincronizadas.</p>
-                        <div style="margin-top:1rem;font-size:.8rem;color:#a5b4fc;">
-                            Fechas buscadas: ${fechas.join(', ')}
-                        </div>
+                        Verifica que las producciones estén completadas y sincronizadas.</p>
                     </div>`;
+                document.getElementById('analyticsInsights').style.display = 'none';
                 return;
             }
 
@@ -10283,9 +10293,9 @@ function imprimirRegistroHACCP(d) {
                     <div class="metric-value">${promDiario.toFixed(0)} kg</div>
                     <div class="metric-sub">Por día</div>
                 </div>
-                <div class="metric-card" style="border-left-color:${eficiencia >= 95 ? '#10b981' : eficiencia >= 80 ? '#f59e0b' : '#ef4444'}">
+                <div class="metric-card" style="border-left-color:${eficiencia >= 95 ? '#10b981' : eficiencia >= 80 ? '#f59e0b' : '#dc2626'}">
                     <h4>Eficiencia Global</h4>
-                    <div class="metric-value" style="color:${eficiencia >= 95 ? '#10b981' : eficiencia >= 80 ? '#f59e0b' : '#ef4444'}">${eficiencia.toFixed(1)}%</div>
+                    <div class="metric-value" style="color:${eficiencia >= 95 ? '#10b981' : eficiencia >= 80 ? '#f59e0b' : '#dc2626'}">${eficiencia.toFixed(1)}%</div>
                     <div class="metric-sub">Real vs Programado</div>
                 </div>
                 <div class="metric-card">
@@ -10298,12 +10308,129 @@ function imprimirRegistroHACCP(d) {
                     <div class="metric-value">${formatTime(Math.floor(promCoccion))}</div>
                     <div class="metric-sub">Por producción</div>
                 </div>
-                <div class="metric-card">
-                    <h4>T. Envasado Prom.</h4>
-                    <div class="metric-value">${formatTime(Math.floor(promEnvasado))}</div>
-                    <div class="metric-sub">Por producción</div>
+                <div class="metric-card" style="border-left-color:${pctMerma < 3 ? '#10b981' : pctMerma < 6 ? '#f59e0b' : '#dc2626'}">
+                    <h4>% Merma</h4>
+                    <div class="metric-value" style="color:${pctMerma < 3 ? '#10b981' : pctMerma < 6 ? '#f59e0b' : '#dc2626'}">${pctMerma.toFixed(1)}%</div>
+                    <div class="metric-sub">${totalMerma.toFixed(1)} kg total</div>
                 </div>
             `;
+
+            // Generar insights automáticos
+            generarInsights(fechas, { totalProducido, totalProgramado, totalProducciones,
+                promCoccion, promEnvasado, promDiario, eficiencia, pctMerma, totalMerma });
+        }
+
+        function generarInsights(fechas, metricas) {
+            const { totalProducido, totalProgramado, totalProducciones,
+                    promCoccion, eficiencia, pctMerma, totalMerma, promDiario } = metricas;
+
+            const insights = [];
+            const hoy = new Date().toISOString().split('T')[0];
+
+            // ── 1. Eficiencia ──────────────────────────────────────
+            if (eficiencia > 0) {
+                if (eficiencia >= 95) {
+                    insights.push({ tipo: 'success', icono: '🎯', titulo: 'Eficiencia excelente',
+                        texto: `La eficiencia global es <strong>${eficiencia.toFixed(1)}%</strong> — superando el objetivo del 95%. El equipo está produciendo prácticamente lo programado.` });
+                } else if (eficiencia >= 80) {
+                    insights.push({ tipo: 'warning', icono: '⚠️', titulo: 'Eficiencia mejorable',
+                        texto: `La eficiencia está en <strong>${eficiencia.toFixed(1)}%</strong>. Se están dejando de producir <strong>${(totalProgramado - totalProducido).toFixed(0)} kg</strong> respecto a lo programado.` });
+                } else {
+                    insights.push({ tipo: 'danger', icono: '🚨', titulo: 'Eficiencia crítica',
+                        texto: `La eficiencia global es <strong>${eficiencia.toFixed(1)}%</strong> — muy por debajo del objetivo. Revisar causas de pérdida de producción.` });
+                }
+            }
+
+            // ── 2. Merma ───────────────────────────────────────────
+            if (totalMerma > 0) {
+                if (pctMerma < 3) {
+                    insights.push({ tipo: 'success', icono: '✅', titulo: 'Merma controlada',
+                        texto: `La merma es de solo <strong>${pctMerma.toFixed(1)}%</strong> (${totalMerma.toFixed(1)} kg) — dentro del rango óptimo menor al 3%.` });
+                } else if (pctMerma < 6) {
+                    insights.push({ tipo: 'warning', icono: '⚖️', titulo: 'Merma moderada',
+                        texto: `La merma acumulada es <strong>${totalMerma.toFixed(1)} kg (${pctMerma.toFixed(1)}%)</strong>. Revisar gramaje y técnica de porcionado.` });
+                } else {
+                    insights.push({ tipo: 'danger', icono: '📉', titulo: 'Merma elevada',
+                        texto: `La merma alcanza <strong>${totalMerma.toFixed(1)} kg (${pctMerma.toFixed(1)}%)</strong> — por encima del 6%. Acción correctiva recomendada.` });
+                }
+            }
+
+            // ── 3. Producto más producido ──────────────────────────
+            const contProd = {};
+            fechas.forEach(f => {
+                (historialPorFecha[f] || []).forEach(h => {
+                    const p = h.producto || h.componente || '—';
+                    contProd[p] = (contProd[p] || 0) + (h.kgFinales || 0);
+                });
+            });
+            const topProd = Object.entries(contProd).sort((a,b) => b[1]-a[1])[0];
+            if (topProd) {
+                insights.push({ tipo: 'info', icono: '🏆', titulo: 'Producto líder',
+                    texto: `<strong>${topProd[0]}</strong> es el producto más producido en el período con <strong>${topProd[1].toFixed(1)} kg</strong> (${(topProd[1]/totalProducido*100).toFixed(0)}% del total).` });
+            }
+
+            // ── 4. Día con más producción ──────────────────────────
+            let mejorDia = null, mejorKg = 0;
+            fechas.forEach(f => {
+                const kg = (historialPorFecha[f] || []).reduce((s,h) => s + (h.kgFinales||0), 0);
+                if (kg > mejorKg) { mejorKg = kg; mejorDia = f; }
+            });
+            if (mejorDia && mejorKg > 0) {
+                const label = new Date(mejorDia + 'T12:00:00').toLocaleDateString('es-CL', {weekday:'long', day:'numeric', month:'long'});
+                insights.push({ tipo: 'info', icono: '📅', titulo: 'Mejor día del período',
+                    texto: `El día más productivo fue el <strong>${label}</strong> con <strong>${mejorKg.toFixed(0)} kg</strong> producidos.` });
+            }
+
+            // ── 5. Tiempo de cocción ───────────────────────────────
+            if (promCoccion > 0) {
+                const minutos = Math.floor(promCoccion / 60);
+                if (minutos > 90) {
+                    insights.push({ tipo: 'warning', icono: '⏱️', titulo: 'Tiempos de cocción altos',
+                        texto: `El tiempo promedio de cocción es <strong>${minutos} min</strong>. Considerar optimizar cargas o revisar temperaturas de equipos.` });
+                } else {
+                    insights.push({ tipo: 'success', icono: '⚡', titulo: 'Tiempos de cocción normales',
+                        texto: `El tiempo promedio de cocción es <strong>${minutos} min</strong> — dentro del rango esperado.` });
+                }
+            }
+
+            // ── 6. Comparar hoy vs promedio ────────────────────────
+            const kgHoy = (historialPorFecha[hoy] || []).reduce((s,h) => s + (h.kgFinales||0), 0);
+            if (kgHoy > 0 && promDiario > 0) {
+                const diff = ((kgHoy - promDiario) / promDiario * 100);
+                if (diff > 10) {
+                    insights.push({ tipo: 'success', icono: '📈', titulo: 'Hoy por encima del promedio',
+                        texto: `Hoy se produjeron <strong>${kgHoy.toFixed(0)} kg</strong>, un <strong>+${diff.toFixed(0)}%</strong> sobre el promedio diario del período.` });
+                } else if (diff < -10) {
+                    insights.push({ tipo: 'warning', icono: '📉', titulo: 'Hoy por debajo del promedio',
+                        texto: `Hoy se produjeron <strong>${kgHoy.toFixed(0)} kg</strong>, un <strong>${diff.toFixed(0)}%</strong> bajo el promedio diario del período.` });
+                }
+            }
+
+            // ── Renderizar insights ────────────────────────────────
+            const colores = {
+                success: { bg: '#f0fdf4', border: '#10b981', text: '#065f46', badge: '#d1fae5', badgeText: '#065f46' },
+                warning: { bg: '#fffbeb', border: '#f59e0b', text: '#78350f', badge: '#fef3c7', badgeText: '#92400e' },
+                danger:  { bg: '#fef2f2', border: '#dc2626', text: '#7f1d1d', badge: '#fee2e2', badgeText: '#991b1b' },
+                info:    { bg: '#eff6ff', border: '#3b82f6', text: '#1e3a5f', badge: '#dbeafe', badgeText: '#1e40af' },
+            };
+
+            const contenedor = document.getElementById('analyticsInsightsList');
+            const wrapper    = document.getElementById('analyticsInsights');
+            if (!contenedor || !wrapper) return;
+
+            if (insights.length === 0) { wrapper.style.display = 'none'; return; }
+
+            wrapper.style.display = 'block';
+            contenedor.innerHTML = insights.map(ins => {
+                const c = colores[ins.tipo] || colores.info;
+                return `<div style="background:${c.bg};border-radius:10px;border:1px solid ${c.border};padding:.9rem 1rem;border-left:4px solid ${c.border};">
+                    <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem;">
+                        <span style="font-size:1rem;">${ins.icono}</span>
+                        <span style="font-size:.8rem;font-weight:700;color:${c.text};">${ins.titulo}</span>
+                    </div>
+                    <div style="font-size:.78rem;color:${c.text};line-height:1.5;">${ins.texto}</div>
+                </div>`;
+            }).join('');
         }
 
         function crearGraficos(fechas) {
