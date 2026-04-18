@@ -263,19 +263,21 @@
         }
         .nav-dropdown-menu {
             display: none;
-            position: fixed;
-            background: #1f2937;
-            border-radius: 10px;
-            box-shadow: 0 12px 40px rgba(0,0,0,.5);
-            z-index: 99999;
-            min-width: 200px;
-            border: 1px solid rgba(255,255,255,.1);
-            padding: .3rem 0;
-            animation: dropFadeIn .15s ease;
+            position: static;
+            background: rgba(0,0,0,.2);
+            border-radius: 0;
+            box-shadow: none;
+            z-index: auto;
+            min-width: unset;
+            border: none;
+            border-left: 2px solid rgba(220,38,38,.4);
+            padding: .2rem 0 .2rem .5rem;
+            margin: 2px 6px 2px 14px;
+            animation: none;
         }
         @keyframes dropFadeIn {
-            from { opacity: 0; transform: translateX(-6px); }
-            to   { opacity: 1; transform: translateX(0); }
+            from { opacity: 0; }
+            to   { opacity: 1; }
         }
         .nav-dropdown-menu.open { display: block; }
         .nav-dropdown-item {
@@ -283,17 +285,18 @@
             align-items: center;
             gap: .5rem;
             width: 100%;
-            padding: .55rem 1rem;
+            padding: .45rem .85rem;
             border: none;
             background: transparent;
             text-align: left;
             cursor: pointer;
             font-weight: 600;
-            font-size: .82rem;
+            font-size: .78rem;
             color: #9ca3af;
             transition: background .15s;
             white-space: nowrap;
             box-sizing: border-box;
+            border-radius: 5px;
         }
         .nav-dropdown-item:hover { background: rgba(220,38,38,.15); color: #fca5a5; }
         .nav-dropdown-item.active { background: rgba(220,38,38,.2); color: #fca5a5; }
@@ -318,25 +321,39 @@
         #appTopbar {
             position: fixed;
             top: 0; left: 220px; right: 0;
-            height: 52px;
+            min-height: 52px;
+            height: auto;
             background: #fff;
             border-bottom: 2px solid #dc2626;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 1.5rem;
+            padding: 6px 14px;
             z-index: 150;
             box-shadow: 0 1px 4px rgba(0,0,0,.08);
+            flex-wrap: wrap;
+            gap: 6px;
         }
-        #appTopbar .topbar-left { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
-        #appTopbar .topbar-right { display: flex; align-items: center; gap: .75rem; }
+        #appTopbar .topbar-left {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+            flex: 1;
+        }
+        #appTopbar .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
 
         /* ── MAIN CONTENT ────────────────────────────────────── */
         #appMain {
             margin-left: 220px;
-            margin-top: 52px;
+            margin-top: 60px;
             padding: 1.25rem 1.5rem;
-            min-height: calc(100vh - 52px);
+            min-height: calc(100vh - 60px);
             background: #f1f3f6;
         }
 
@@ -670,30 +687,30 @@
     <!-- TOPBAR -->
     <div id="appTopbar">
         <div class="topbar-left">
-            <div id="firebaseStatus" style="display:flex;align-items:center;gap:.5rem;padding:.35rem .85rem;background:#10b981;color:white;border-radius:7px;font-size:.8rem;font-weight:700;">
-                <span style="width:7px;height:7px;background:white;border-radius:50%;animation:pulse 2s infinite;"></span>
+            <div id="firebaseStatus" style="display:flex;align-items:center;gap:.4rem;padding:.3rem .7rem;background:#10b981;color:white;border-radius:6px;font-size:.75rem;font-weight:700;white-space:nowrap;">
+                <span style="width:6px;height:6px;background:white;border-radius:50%;animation:pulse 2s infinite;"></span>
                 Sincronizado
             </div>
-            <button onclick="recuperarDatosFirebase()" style="background:#f1f5f9;color:#374151;border:1px solid #e5e7eb;border-radius:7px;padding:.35rem .85rem;cursor:pointer;font-size:.8rem;font-weight:700;">
-                🔄 Recargar datos
+            <button onclick="recuperarDatosFirebase()" style="background:#f1f5f9;color:#374151;border:1px solid #e5e7eb;border-radius:6px;padding:.3rem .7rem;cursor:pointer;font-size:.75rem;font-weight:700;white-space:nowrap;">
+                🔄 Recargar
             </button>
-            <button onclick="subirHistorialAFirebase()" style="background:#dc2626;color:white;border:none;border-radius:7px;padding:.35rem .85rem;cursor:pointer;font-size:.8rem;font-weight:700;">
-                ⬆️ Subir a Firebase
+            <button onclick="subirHistorialAFirebase()" style="background:#dc2626;color:white;border:none;border-radius:6px;padding:.3rem .7rem;cursor:pointer;font-size:.75rem;font-weight:700;white-space:nowrap;">
+                ⬆️ Subir Firebase
             </button>
-            <button class="btn btn-primary" onclick="openModal('iniciarProduccion')" style="margin-top:0;padding:.4rem 1rem;font-size:.82rem;">
-                ▶️ INICIAR PRODUCCIÓN
+            <button class="btn btn-primary" onclick="openModal('iniciarProduccion')" style="margin-top:0;padding:.3rem .8rem;font-size:.75rem;white-space:nowrap;">
+                ▶️ Iniciar Producción
             </button>
-            <button onclick="abrirModalAgrupar()" style="background:#1f2937;color:white;border:none;border-radius:7px;padding:.4rem .9rem;cursor:pointer;font-weight:700;font-size:.82rem;">
+            <button onclick="abrirModalAgrupar()" style="background:#1f2937;color:white;border:none;border-radius:6px;padding:.3rem .7rem;cursor:pointer;font-weight:700;font-size:.75rem;white-space:nowrap;">
                 🔀 Agrupar
             </button>
-            <button onclick="abrirRescateDia()" style="background:#dc2626;color:white;border:none;border-radius:7px;padding:.4rem .9rem;cursor:pointer;font-weight:700;font-size:.82rem;">
+            <button onclick="abrirRescateDia()" style="background:#dc2626;color:white;border:none;border-radius:6px;padding:.3rem .7rem;cursor:pointer;font-weight:700;font-size:.75rem;white-space:nowrap;">
                 🔧 Registros del Día
             </button>
         </div>
         <div class="topbar-right">
-            <div class="time-display" id="currentTime">00:00:00</div>
-            <span id="userEmailDisplay" style="font-size:.78rem;color:#6b7280;"></span>
-            <button class="logout-btn" onclick="window.signOut()">🚪 Cerrar sesión</button>
+            <div class="time-display" id="currentTime" style="font-size:1.2rem;">00:00:00</div>
+            <span id="userEmailDisplay" style="font-size:.72rem;color:#6b7280;white-space:nowrap;"></span>
+            <button class="logout-btn" onclick="window.signOut()">🚪</button>
         </div>
     </div>
 
