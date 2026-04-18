@@ -11442,7 +11442,29 @@ function imprimirRegistroHACCP(d) {
                         console.log('✅ Abatimiento cargado desde Firebase');
                     }
                 } catch(e) { console.error('Error cargando abatimiento:', e); }
+
+                // ── Cargar historial de producción desde documento separado ──
+                // (se guarda en historial-produccion para no superar 1MB en estado-actual)
+                try {
+                    const {doc, getDoc} = window.firestoreFunctions;
+                    const snapHist = await getDoc(doc(window.db, 'mes-data', 'historial-produccion'));
+                    if (snapHist.exists()) {
+                        const histFirebase = snapHist.data().historialPorFecha || {};
+                        const histLocal   = historialPorFecha || {};
+                        const merged = { ...histLocal };
+                        Object.keys(histFirebase).forEach(fecha => {
+                            const remotas = histFirebase[fecha] || [];
+                            const locales  = merged[fecha]     || [];
+                            if (remotas.length > locales.length) merged[fecha] = remotas;
+                        });
+                        historialPorFecha = merged;
+                        localStorage.setItem('mes_historialPorFecha', JSON.stringify(historialPorFecha));
+                        const totalRegs = Object.values(merged).reduce((s,a) => s + a.length, 0);
+                        console.log(`✅ Historial producción cargado: ${Object.keys(merged).length} fechas, ${totalRegs} registros`);
+                    }
+                } catch(eHist) { console.warn('Sin historial-produccion:', eHist.message); }
             }
+
             // Intentar cargar desde Firebase primero
             const cargadoFirebase = await cargarDesdeFirebase();
             
