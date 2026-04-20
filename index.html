@@ -16737,12 +16737,14 @@ function abrirHACCPPreCarnes(pre) {
     </div>
   `;
 
-  document.getElementById('contenidoHACCPPreCarnes').innerHTML = html;
-  document.getElementById('modalHACCPPreCarnes').style.display = 'block';
-  // Guardar el preId en el modal como data attribute
-  document.getElementById('modalHACCPPreCarnes').dataset.preId = pre.id;
-  const btnGuardar = document.getElementById('contenidoHACCPPreCarnes').querySelector('button.btn-guardar-haccp-carnes');
-  if (btnGuardar) btnGuardar.onclick = () => guardarHACCPPreCarnes(document.getElementById('modalHACCPPreCarnes').dataset.preId);
+  const _contCarnes = _getContenidoCarnes();
+  const _modCarnes  = _getModalCarnes();
+  if (!_contCarnes || !_modCarnes) { console.error('Modal HACCP Carnes no encontrado en DOM'); return; }
+  _contCarnes.innerHTML = html;
+  _modCarnes.style.display = 'block';
+  _modCarnes.dataset.preId = pre.id;
+  const btnGuardar = _contCarnes.querySelector('button.btn-guardar-haccp-carnes');
+  if (btnGuardar) btnGuardar.onclick = () => guardarHACCPPreCarnes(_getModalCarnes().dataset.preId);
 
   // Si ya tiene HACCP guardado, precargar todos los campos para edición
   if (pre.haccp) {
@@ -16778,8 +16780,13 @@ function abrirHACCPPreCarnes(pre) {
   }, 150);
 }
 
+function _getModalCarnes()    { const els = document.querySelectorAll('#modalHACCPPreCarnes');    return els[els.length-1]; }
+function _getContenidoCarnes(){ const els = document.querySelectorAll('#contenidoHACCPPreCarnes'); return els[els.length-1]; }
+function _getModalVeg()       { const els = document.querySelectorAll('#modalHACCPPreVegetales');    return els[els.length-1]; }
+function _getContenidoVeg()   { const els = document.querySelectorAll('#contenidoHACCPPreVegetales'); return els[els.length-1]; }
+
 function cerrarHACCPPreCarnes() {
-  document.getElementById('modalHACCPPreCarnes').style.display = 'none';
+  const m = _getModalCarnes(); if (m) m.style.display = 'none';
 }
 
 function guardarHACCPPreCarnes(preId) {
@@ -17090,12 +17097,14 @@ function abrirHACCPPreVegetales(pre) {
     </div>
   `;
 
-  document.getElementById('contenidoHACCPPreVegetales').innerHTML = html;
-  document.getElementById('modalHACCPPreVegetales').style.display = 'block';
-  // Guardar preId en data attribute del modal
-  document.getElementById('modalHACCPPreVegetales').dataset.preId = pre.id;
-  const btnGuardarVeg = document.getElementById('contenidoHACCPPreVegetales').querySelector('button.btn-guardar-haccp-vegetales');
-  if (btnGuardarVeg) btnGuardarVeg.onclick = () => guardarHACCPPreVegetales(document.getElementById('modalHACCPPreVegetales').dataset.preId);
+  const _contVeg = _getContenidoVeg();
+  const _modVeg  = _getModalVeg();
+  if (!_contVeg || !_modVeg) { console.error('Modal HACCP Vegetales no encontrado en DOM'); return; }
+  _contVeg.innerHTML = html;
+  _modVeg.style.display = 'block';
+  _modVeg.dataset.preId = pre.id;
+  const btnGuardarVeg = _contVeg.querySelector('button.btn-guardar-haccp-vegetales');
+  if (btnGuardarVeg) btnGuardarVeg.onclick = () => guardarHACCPPreVegetales(_getModalVeg().dataset.preId);
 
   // Si ya tiene HACCP guardado, precargar todos los campos para edición
   if (pre.haccp) {
@@ -17127,7 +17136,7 @@ function abrirHACCPPreVegetales(pre) {
 }
 
 function cerrarHACCPPreVegetales() {
-  document.getElementById('modalHACCPPreVegetales').style.display = 'none';
+  const m = _getModalVeg(); if (m) m.style.display = 'none';
 }
 
 function guardarHACCPPreVegetales(preId) {
