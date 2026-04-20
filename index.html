@@ -16780,10 +16780,10 @@ function abrirHACCPPreCarnes(pre) {
   }, 150);
 }
 
-function _getModalCarnes()    { const els = document.querySelectorAll('#modalHACCPPreCarnes');    return els[els.length-1]; }
-function _getContenidoCarnes(){ const els = document.querySelectorAll('#contenidoHACCPPreCarnes'); return els[els.length-1]; }
-function _getModalVeg()       { const els = document.querySelectorAll('#modalHACCPPreVegetales');    return els[els.length-1]; }
-function _getContenidoVeg()   { const els = document.querySelectorAll('#contenidoHACCPPreVegetales'); return els[els.length-1]; }
+function _getModalCarnes()    { return document.querySelector('#modalHACCPPreCarnes'); }
+function _getContenidoCarnes(){ return document.querySelector('#contenidoHACCPPreCarnes'); }
+function _getModalVeg()       { return document.querySelector('#modalHACCPPreVegetales'); }
+function _getContenidoVeg()   { return document.querySelector('#contenidoHACCPPreVegetales'); }
 
 function cerrarHACCPPreCarnes() {
   const m = _getModalCarnes(); if (m) m.style.display = 'none';
@@ -28440,4 +28440,10 @@ async function batchConfirmarRegistros() {
           <div style="color:white;font-weight:800;font-size:1.1rem;">📋 Registro HACCP — Preelaborado de Vegetales</div>
           <div style="color:rgba(255,255,255,.75);font-size:.8rem;margin-top:.2rem;">R-POE-03-GF-02 · Versión 02 · Vigencia: 15-12-2025</div>
         </div>
-        <button onclick="cerrarHACCPPreVegetales()" style="background:rgba(255,255,255,.2);border:none;color:white;bo
+        <button onclick="cerrarHACCPPreVegetales()" style="background:rgba(255,255,255,.2);border:none;color:white;bo      </div>
+      <div style="padding:1.5rem;" id="contenidoHACCPPreVegetales"></div>
+    </div>
+  </div>
+
+</body>
+</html>
