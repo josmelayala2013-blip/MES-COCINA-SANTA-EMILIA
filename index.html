@@ -4755,7 +4755,35 @@
                     .flatMap(([, arr]) => arr);
             }
 
-            const kgProducidos = historial.reduce((s, h) => s + (h.kgFinales || 0), 0);
+            const hoyStr = hoy;
+
+            // ── Kg terminados (abatimiento finalizado) ──
+            const kgTerminados = historial.reduce((s, h) => s + (h.kgFinales || 0), 0);
+
+            // ── Kg en proceso (solo para tab 'hoy' o 'fecha' con fecha = hoy) ──
+            let kgEnProceso = 0;
+            const esPeriodoHoy = (tab === 'hoy') || (tab === 'fecha' && (window._fechaSelEjec || hoy) === hoy);
+            if (esPeriodoHoy) {
+                // Procesos de envasado activos hoy
+                (procesosEnvasado || []).forEach(p => {
+                    const fechaP = (p.inicioEnvasado || p.fecha || '').slice(0, 10);
+                    if (fechaP === hoyStr) kgEnProceso += parseFloat(p.kgReales || p.kgProgramados || 0);
+                });
+                // Procesos de abatimiento activos hoy (no finalizados)
+                (procesosAbatimiento || []).forEach(p => {
+                    const fechaP = (p.fechaInicio || p.fecha || '').slice(0, 10);
+                    if (fechaP === hoyStr && !p.finalizado) kgEnProceso += parseFloat(p.kgIngresados || 0);
+                });
+                // Equipos activos en cocción/desmechado hoy
+                (equipos || []).forEach(e => {
+                    if ((e.estado === 'activa' || e.estado === 'desmechado') && e.produccion) {
+                        const fechaE = (e.produccion.inicio || '').slice(0, 10);
+                        if (fechaE === hoyStr) kgEnProceso += parseFloat(e.produccion.kgProgramados || 0);
+                    }
+                });
+            }
+
+            const kgProducidos = kgTerminados + kgEnProceso;
             const kgProgramados = ops.reduce((s, op) => s + (op.kgTotalesTerminados || 0), 0);
             const eficiencia = kgProgramados > 0 ? Math.round((kgProducidos / kgProgramados) * 100) : 0;
             const opsCompletadas = ops.filter(op => op.estado === 'completada').length;
@@ -4918,15 +4946,31 @@
             } else if (tab === 'hoy') {
                 if (titulo) titulo.textContent = '📈 Producción por Hora — Hoy';
                 const data = {};
+                // Producciones finalizadas
                 d.historial.forEach(h => {
                     const hora = new Date(h.finCoccion || h.finEnvasado || Date.now()).getHours();
                     if (!data[hora]) data[hora] = 0;
                     data[hora] += h.kgFinales || 0;
                 });
+                // Producciones en curso — aparecen en la hora actual
+                const horaActual = new Date().getHours();
+                let kgCurso = 0;
+                (procesosEnvasado || []).forEach(p => {
+                    if ((p.inicioEnvasado || '').slice(0,10) === hoy) kgCurso += parseFloat(p.kgReales || p.kgProgramados || 0);
+                });
+                (procesosAbatimiento || []).forEach(p => {
+                    if ((p.fechaInicio || '').slice(0,10) === hoy && !p.finalizado) kgCurso += parseFloat(p.kgIngresados || 0);
+                });
+                (equipos || []).forEach(e => {
+                    if ((e.estado === 'activa' || e.estado === 'desmechado') && e.produccion) {
+                        if ((e.produccion.inicio || '').slice(0,10) === hoy) kgCurso += parseFloat(e.produccion.kgProgramados || 0);
+                    }
+                });
+                if (kgCurso > 0) { if (!data[horaActual]) data[horaActual] = 0; data[horaActual] += kgCurso; }
                 for (let h = 8; h <= 18; h++) {
                     labels.push(h + ':00');
                     valores.push(data[h] || 0);
-                    colores.push(data[h] > 0 ? '#667eea' : '#e2e8f0');
+                    colores.push(h === horaActual && kgCurso > 0 ? '#f59e0b' : data[h] > 0 ? '#667eea' : '#e2e8f0');
                 }
             } else if (tab === 'semana') {
                 if (titulo) titulo.textContent = '📈 Producción por Día — Esta Semana';
