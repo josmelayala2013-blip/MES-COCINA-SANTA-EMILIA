@@ -4554,16 +4554,50 @@
         
         function updateStats() {
             const historialHoy = getHistorialHoy();
-            const totalProducido = historialHoy.reduce((sum, h) => sum + (h.kgFinales || 0), 0);
-            const equiposActivos = equipos.filter(e => e.estado === 'activa' || e.estado === 'ocupado').length;
-            const enLimpieza = equipos.filter(e => e.estado === 'limpieza').length;
-            const completados = historialHoy.length;
+            const hoy = getHoy();
+
+            // ── Kg ya terminados (abatimiento finalizado hoy) ──
+            const kgTerminados = historialHoy.reduce((sum, h) => sum + (h.kgFinales || 0), 0);
+
+            // ── Kg en proceso: suma de producciones activas no finalizadas ──
+            let kgEnProceso = 0;
+
+            // Procesos de envasado activos — usan kgReales (los que salieron de cocción)
+            (procesosEnvasado || []).forEach(p => {
+                const fechaP = (p.inicioEnvasado || p.fecha || '').slice(0, 10);
+                if (fechaP === hoy) {
+                    kgEnProceso += parseFloat(p.kgReales || p.kgProgramados || 0);
+                }
+            });
+
+            // Procesos de abatimiento activos — usan kgIngresados
+            (procesosAbatimiento || []).forEach(p => {
+                const fechaP = (p.fechaInicio || p.fecha || '').slice(0, 10);
+                if (fechaP === hoy && !p.finalizado) {
+                    kgEnProceso += parseFloat(p.kgIngresados || 0);
+                }
+            });
+
+            // Equipos activos en cocción con kgProgramados (aún no finalizados)
+            (equipos || []).forEach(e => {
+                if ((e.estado === 'activa' || e.estado === 'desmechado') && e.produccion) {
+                    const fechaE = (e.produccion.inicio || '').slice(0, 10);
+                    if (fechaE === hoy) {
+                        kgEnProceso += parseFloat(e.produccion.kgProgramados || 0);
+                    }
+                }
+            });
+
+            const totalProducido = kgTerminados + kgEnProceso;
+            const equiposActivos = (equipos || []).filter(e => e.estado === 'activa' || e.estado === 'desmechado').length;
+            const enLimpieza     = (equipos || []).filter(e => e.estado === 'limpieza').length;
+            const completados    = historialHoy.length;
 
             document.getElementById('totalProducido').textContent = `${totalProducido.toFixed(1)} kg`;
             document.getElementById('equiposActivos').textContent = equiposActivos;
-            document.getElementById('enLimpieza').textContent = enLimpieza;
-            document.getElementById('completados').textContent = completados;
-            
+            document.getElementById('enLimpieza').textContent     = enLimpieza;
+            document.getElementById('completados').textContent     = completados;
+
             // Actualizar vista ejecutivo si está visible
             if (document.getElementById('ejecutivo') && document.getElementById('ejecutivo').classList.contains('active')) {
                 actualizarVistaEjecutivo();
