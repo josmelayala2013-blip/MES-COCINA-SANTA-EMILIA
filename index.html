@@ -16740,6 +16740,7 @@ function abrirHACCPPreCarnes(pre) {
   const _contCarnes = _getContenidoCarnes();
   const _modCarnes  = _getModalCarnes();
   if (!_contCarnes || !_modCarnes) { console.error('Modal HACCP Carnes no encontrado en DOM'); return; }
+  _moverModalAlBody(_modCarnes);
   _contCarnes.innerHTML = html;
   _modCarnes.style.display = 'block';
   _modCarnes.dataset.preId = pre.id;
@@ -16784,6 +16785,14 @@ function _getModalCarnes()    { return document.querySelector('#modalHACCPPreCar
 function _getContenidoCarnes(){ return document.querySelector('#contenidoHACCPPreCarnes'); }
 function _getModalVeg()       { return document.querySelector('#modalHACCPPreVegetales'); }
 function _getContenidoVeg()   { return document.querySelector('#contenidoHACCPPreVegetales'); }
+
+// Mover modal al body para que no herede estilos de su contenedor padre
+function _moverModalAlBody(modal) {
+    if (!modal) return;
+    if (modal.parentElement !== document.body) {
+        document.body.appendChild(modal);
+    }
+}
 
 function cerrarHACCPPreCarnes() {
   const m = _getModalCarnes(); if (m) m.style.display = 'none';
@@ -17100,6 +17109,7 @@ function abrirHACCPPreVegetales(pre) {
   const _contVeg = _getContenidoVeg();
   const _modVeg  = _getModalVeg();
   if (!_contVeg || !_modVeg) { console.error('Modal HACCP Vegetales no encontrado en DOM'); return; }
+  _moverModalAlBody(_modVeg);
   _contVeg.innerHTML = html;
   _modVeg.style.display = 'block';
   _modVeg.dataset.preId = pre.id;
