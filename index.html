@@ -21877,47 +21877,143 @@ function apRenderEnvasado() {
         const colorOP    = pctOP >= 95 ? '#10b981' : pctOP >= 80 ? '#f59e0b' : '#dc2626';
         const bgOP       = pctOP >= 95 ? '#f0fdf4' : pctOP >= 80 ? '#fffbeb' : '#fef2f2';
 
-        // Insight automático para esta OP
-        const insights = [];
-        if (op.unidPlan > 0 && unidRealOP < op.unidPlan) {
-            const faltantes = op.unidPlan - unidRealOP;
-            const kgFaltante = op.kgPlan > 0 && op.unidPlan > 0 ? (faltantes * op.kgPlan / op.unidPlan).toFixed(1) : '?';
-            insights.push({ tipo:'danger', texto:`Faltan <strong>${faltantes.toLocaleString()} unidades</strong> (~${kgFaltante} kg) para cumplir la OP.` });
-        } else if (op.unidPlan > 0 && unidRealOP > op.unidPlan) {
-            insights.push({ tipo:'success', texto:`Excedente de <strong>${(unidRealOP - op.unidPlan).toLocaleString()} unidades</strong> sobre lo planificado.` });
-        }
-        if (mermaOP > 0) {
-            const pctM = kgRealOP > 0 ? (mermaOP/(kgRealOP+mermaOP)*100) : 0;
-            const colM = pctM < 3 ? 'success' : pctM < 6 ? 'warning' : 'danger';
-            insights.push({ tipo: colM, texto:`Merma registrada: <strong>${mermaOP.toFixed(2)} kg</strong> (${pctM.toFixed(1)}% del total).` });
-        }
-        // ¿Componentes sin envasar?
-        comps.forEach(c => {
-            if (c.kgPlanComp > 0 && c.kgRealComp === 0) {
-                insights.push({ tipo:'warning', texto:`<strong>${c.nombre}</strong>: planificado pero sin registro real de envasado.` });
-            }
+        // ── Análisis profundo: cruzar con vales de salida de bodega ──
+        // Para esta OP, buscar qué se entregó desde abatimiento
+        const valesOP = (bodegaValesSalida || []).filter(v =>
+            String(v.opOrigen || '').trim() === String(op.numeroOp).trim() ||
+            String(v.opDestino || '').trim() === String(op.numeroOp).trim()
+        );
+        // Agrupar kg entregados por producto
+        const kgEntregadoPorProducto = {};
+        valesOP.forEach(v => {
+            const prod = (v.producto || '').trim().toUpperCase();
+            if (!kgEntregadoPorProducto[prod]) kgEntregadoPorProducto[prod] = 0;
+            kgEntregadoPorProducto[prod] += parseFloat(v.kg || 0);
         });
-        // Estatus liberación
-        const bloqueados = comps.flatMap(c => c.filas).filter(f => f.estatus === 'Bloqueado');
-        if (bloqueados.length > 0) {
-            insights.push({ tipo:'danger', texto:`⚠️ ${bloqueados.length} fila(s) con estatus <strong>Bloqueado</strong> en Control PT.` });
+        const totalKgEntregado = valesOP.reduce((s,v) => s + parseFloat(v.kg||0), 0);
+
+        // Kg teórico necesario por unidad para cada componente
+        const kgPorUnidad = op.unidPlan > 0 && op.kgPlan > 0 ? op.kgPlan / op.unidPlan : 0;
+
+        // ── Generar insights ──
+        const insights = [];
+
+        // 1. Cumplimiento de unidades
+        if (op.unidPlan > 0) {
+            if (unidRealOP < op.unidPlan) {
+                const faltantes = op.unidPlan - unidRealOP;
+                const kgFaltante = kgPorUnidad > 0 ? (faltantes * kgPorUnidad).toFixed(1) : '?';
+                insights.push({ tipo:'danger', icono:'🚨',
+                    titulo: 'Producción incompleta',
+                    texto: `Faltan <strong>${faltantes.toLocaleString()} unidades</strong> para cumplir la OP (${kgFaltante} kg no envasados de ${op.kgPlan.toFixed(1)} kg planificados).` });
+            } else if (unidRealOP >= op.unidPlan) {
+                insights.push({ tipo:'success', icono:'✅',
+                    titulo: 'OP cumplida',
+                    texto: `Se produjeron <strong>${unidRealOP.toLocaleString()} unidades</strong> de ${op.unidPlan.toLocaleString()} planificadas${unidRealOP > op.unidPlan ? ` — excedente de <strong>${(unidRealOP-op.unidPlan).toLocaleString()} unidades</strong>` : ''}.` });
+            }
         }
 
-        const insightColors = { success:'#f0fdf4', warning:'#fffbeb', danger:'#fef2f2' };
-        const insightBorder = { success:'#10b981', warning:'#f59e0b', danger:'#dc2626' };
-        const insightText   = { success:'#065f46', warning:'#92400e', danger:'#991b1b' };
+        // 2. Entrega desde bodega vs lo usado
+        if (totalKgEntregado > 0) {
+            const kgTotalUsado = kgRealOP + mermaOP;
+            const difEntrega   = totalKgEntregado - kgTotalUsado;
+            if (Math.abs(difEntrega) > 0.5) {
+                if (difEntrega > 0) {
+                    insights.push({ tipo:'warning', icono:'📦',
+                        titulo: 'Excedente de bodega sin usar',
+                        texto: `Bodega entregó <strong>${totalKgEntregado.toFixed(1)} kg</strong> pero solo se usaron <strong>${kgTotalUsado.toFixed(1)} kg</strong> (real + merma). Sobran <strong>${difEntrega.toFixed(1)} kg</strong> sin justificar.` });
+                } else {
+                    insights.push({ tipo:'danger', icono:'⚠️',
+                        titulo: 'Déficit vs entrega de bodega',
+                        texto: `Bodega entregó <strong>${totalKgEntregado.toFixed(1)} kg</strong> pero el registro refleja <strong>${kgTotalUsado.toFixed(1)} kg</strong> usados. Verificar si hay pérdidas no registradas.` });
+                }
+            } else {
+                insights.push({ tipo:'success', icono:'⚖️',
+                    titulo: 'Balance de bodega correcto',
+                    texto: `Lo entregado desde bodega (<strong>${totalKgEntregado.toFixed(1)} kg</strong>) cuadra con lo registrado en envasado + merma (<strong>${kgTotalUsado.toFixed(1)} kg</strong>).` });
+            }
+        } else if (valesOP.length === 0) {
+            insights.push({ tipo:'info', icono:'📋',
+                titulo: 'Sin vales de salida registrados',
+                texto: `No se encontraron vales de salida de bodega para esta OP. Verificar que la salida de abatimiento fue registrada correctamente.` });
+        }
+
+        // 3. Análisis componente a componente — ¿cuál limitó la producción?
+        if (op.unidPlan > 0 && unidRealOP < op.unidPlan) {
+            const gramaje = op.unidPlan > 0 ? {} : {};
+            const opRef = (ordenesProduccion||[]).find(o => String(o.numeroOp)===String(op.numeroOp));
+            const componentesLimitantes = [];
+            comps.forEach(c => {
+                // Kg teórico que se necesitaba para las unidades planificadas
+                const compPlan = opRef?.componentes?.find(cp =>
+                    (cp.nombre||'').trim().toUpperCase() === c.nombre.trim().toUpperCase()
+                );
+                const kgNecesario = compPlan?.kgProgramados || compPlan?.kg || c.kgPlanComp || 0;
+                const kgDisponible = c.kgRealComp + c.mermaKg; // lo que realmente llegó
+                if (kgNecesario > 0 && kgDisponible < kgNecesario * 0.97) {
+                    const deficit = kgNecesario - kgDisponible;
+                    // Cuántas unidades menos explica este déficit
+                    const gramajePorUnidad = op.unidPlan > 0 ? kgNecesario / op.unidPlan : 0;
+                    const unidPerdidas = gramajePorUnidad > 0 ? Math.round(deficit / gramajePorUnidad) : '?';
+                    componentesLimitantes.push({ nombre: c.nombre, deficit: deficit.toFixed(2), unidPerdidas });
+                }
+            });
+            if (componentesLimitantes.length > 0) {
+                const listaComp = componentesLimitantes.map(cl =>
+                    `<strong>${cl.nombre}</strong> (déficit ${cl.deficit} kg ≈ ${cl.unidPerdidas} unidades menos)`
+                ).join(', ');
+                insights.push({ tipo:'danger', icono:'🔍',
+                    titulo: 'Componentes que limitaron la producción',
+                    texto: `Los siguientes componentes tuvieron menos kg del necesario: ${listaComp}. Esto explicaría la producción incompleta.` });
+            }
+        }
+
+        // 4. Merma por componente — alertas individuales
+        comps.forEach(c => {
+            const pctMc = c.kgRealComp > 0 ? (c.mermaKg/(c.kgRealComp+c.mermaKg)*100) : 0;
+            if (pctMc >= 10) {
+                insights.push({ tipo:'danger', icono:'📉',
+                    titulo: `Merma crítica: ${c.nombre}`,
+                    texto: `<strong>${c.nombre}</strong> registra <strong>${c.mermaKg.toFixed(2)} kg de merma (${pctMc.toFixed(1)}%)</strong>. Revisar técnica de porcionado, gramaje o condición del producto.` });
+            } else if (pctMc >= 5) {
+                insights.push({ tipo:'warning', icono:'⚠️',
+                    titulo: `Merma elevada: ${c.nombre}`,
+                    texto: `<strong>${c.nombre}</strong> con ${pctMc.toFixed(1)}% de merma (${c.mermaKg.toFixed(2)} kg). Dentro del rango de atención.` });
+            }
+        });
+
+        // 5. Componentes planificados sin registro
+        comps.forEach(c => {
+            if (c.kgPlanComp > 0 && c.kgRealComp === 0) {
+                insights.push({ tipo:'warning', icono:'❓',
+                    titulo: `Sin registro: ${c.nombre}`,
+                    texto: `<strong>${c.nombre}</strong> está en la OP pero no tiene registro de envasado en Control PT.` });
+            }
+        });
+
+        // 6. Estatus bloqueado
+        const bloqueados = comps.flatMap(c => c.filas).filter(f => f.estatus === 'Bloqueado');
+        if (bloqueados.length > 0) {
+            insights.push({ tipo:'danger', icono:'🔴',
+                titulo: 'Producto bloqueado por Calidad',
+                texto: `${bloqueados.length} fila(s) con estatus <strong>Bloqueado</strong> en el registro de Control PT. Requiere revisión de Calidad antes de liberar.` });
+        }
+
+        const insightColors = { success:'#f0fdf4', warning:'#fffbeb', danger:'#fef2f2', info:'#eff6ff' };
+        const insightBorder = { success:'#10b981', warning:'#f59e0b', danger:'#dc2626', info:'#3b82f6' };
+        const insightText   = { success:'#065f46', warning:'#92400e', danger:'#991b1b', info:'#1e3a5f' };
 
         const compsHTML = comps.length > 0 ? `
             <table style="width:100%;border-collapse:collapse;font-size:.8rem;margin-top:.75rem;">
                 <thead>
                     <tr style="background:#f1f5f9;">
                         <th style="padding:.45rem .6rem;text-align:left;color:#64748b;font-weight:700;">Componente</th>
-                        <th style="padding:.45rem .6rem;text-align:center;color:#64748b;font-weight:700;">Kg Plan</th>
-                        <th style="padding:.45rem .6rem;text-align:center;color:#64748b;font-weight:700;">Kg Real</th>
+                        <th style="padding:.45rem .6rem;text-align:center;color:#0e7490;font-weight:700;">Kg Entregado<br><span style="font-weight:400;font-size:.68rem;">desde Bodega</span></th>
+                        <th style="padding:.45rem .6rem;text-align:center;color:#64748b;font-weight:700;">Kg Plan OP</th>
+                        <th style="padding:.45rem .6rem;text-align:center;color:#64748b;font-weight:700;">Kg Real usado</th>
                         <th style="padding:.45rem .6rem;text-align:center;color:#64748b;font-weight:700;">Unid. Reales</th>
                         <th style="padding:.45rem .6rem;text-align:center;color:#64748b;font-weight:700;">Merma kg</th>
                         <th style="padding:.45rem .6rem;text-align:center;color:#64748b;font-weight:700;">% Merma</th>
-                        <th style="padding:.45rem .6rem;text-align:center;color:#64748b;font-weight:700;">Área</th>
                         <th style="padding:.45rem .6rem;text-align:center;color:#64748b;font-weight:700;">Estatus</th>
                     </tr>
                 </thead>
@@ -21927,9 +22023,21 @@ function apRenderEnvasado() {
                         const difKg = c.kgPlanComp > 0 ? c.kgRealComp - c.kgPlanComp : null;
                         const colorDif = difKg === null ? '' : difKg >= 0 ? '#10b981' : '#dc2626';
                         const estatusDom = [...new Set(c.estatus)];
-                        const areas     = [...new Set(c.area)];
+                        // Kg entregado desde bodega para este componente
+                        const cNormKey = c.nombre.trim().toUpperCase();
+                        const kgEntComp = Object.entries(kgEntregadoPorProducto).find(([k]) =>
+                            k === cNormKey || k.includes(cNormKey.split(' ')[0]) || cNormKey.includes(k.split(' ')[0])
+                        );
+                        const kgEnt = kgEntComp ? kgEntComp[1] : null;
+                        const difEnt = kgEnt !== null ? (c.kgRealComp + c.mermaKg) - kgEnt : null;
                         return `<tr style="background:${ci%2===0?'white':'#f8fafc'};border-bottom:1px solid #f1f5f9;">
                             <td style="padding:.45rem .6rem;font-weight:600;color:#1f2937;">${c.nombre}</td>
+                            <td style="padding:.45rem .6rem;text-align:center;">
+                                ${kgEnt !== null ? `
+                                <span style="font-weight:700;color:#0e7490;">${kgEnt.toFixed(1)} kg</span>
+                                ${difEnt !== null && Math.abs(difEnt) > 0.3 ? `<div style="font-size:.68rem;color:${difEnt>0?'#dc2626':'#10b981'};font-weight:600;">${difEnt>0?'▲':'▼'} ${Math.abs(difEnt).toFixed(1)} kg ${difEnt>0?'más de lo usado':'sobrante'}</div>` : ''}
+                                ` : '<span style="color:#9ca3af;font-size:.75rem;">—</span>'}
+                            </td>
                             <td style="padding:.45rem .6rem;text-align:center;color:#64748b;">${c.kgPlanComp > 0 ? c.kgPlanComp.toFixed(1)+' kg' : '—'}</td>
                             <td style="padding:.45rem .6rem;text-align:center;font-weight:700;color:#374151;">${c.kgRealComp.toFixed(1)} kg
                                 ${difKg !== null ? `<div style="font-size:.7rem;color:${colorDif};font-weight:600;">${difKg>=0?'+':''}${difKg.toFixed(1)} kg</div>` : ''}
@@ -21939,7 +22047,6 @@ function apRenderEnvasado() {
                             <td style="padding:.45rem .6rem;text-align:center;">
                                 <span style="font-weight:700;color:${pctMc<3?'#10b981':pctMc<6?'#d97706':'#dc2626'};">${pctMc.toFixed(1)}%</span>
                             </td>
-                            <td style="padding:.45rem .6rem;text-align:center;font-size:.75rem;color:#64748b;">${areas.join(', ')||'—'}</td>
                             <td style="padding:.45rem .6rem;text-align:center;">
                                 ${estatusDom.map(e => `<span style="font-size:.72rem;font-weight:700;padding:.1rem .4rem;border-radius:4px;background:${e==='Liberado'?'#d1fae5':e==='Bloqueado'?'#fee2e2':'#f1f5f9'};color:${e==='Liberado'?'#065f46':e==='Bloqueado'?'#991b1b':'#374151'};">${e||'—'}</span>`).join(' ')||'—'}
                             </td>
@@ -21981,11 +22088,18 @@ function apRenderEnvasado() {
             </div>
             <!-- Insights -->
             ${insights.length > 0 ? `
-            <div style="padding:.65rem 1.25rem;background:#f8fafc;border-bottom:1px solid #e5e7eb;display:flex;gap:.6rem;flex-wrap:wrap;">
-                ${insights.map(ins => `
-                <div style="background:${insightColors[ins.tipo]};border:1px solid ${insightBorder[ins.tipo]};border-radius:6px;padding:.3rem .7rem;font-size:.78rem;color:${insightText[ins.tipo]};">
-                    ${ins.texto}
-                </div>`).join('')}
+            <div style="padding:.75rem 1.25rem;background:#f8fafc;border-bottom:1px solid #e5e7eb;">
+                <div style="font-size:.72rem;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.5rem;">🧠 Análisis Automático</div>
+                <div style="display:flex;flex-direction:column;gap:.5rem;">
+                    ${insights.map(ins => `
+                    <div style="background:${insightColors[ins.tipo]};border:1px solid ${insightBorder[ins.tipo]};border-left:4px solid ${insightBorder[ins.tipo]};border-radius:7px;padding:.5rem .85rem;display:flex;align-items:flex-start;gap:.5rem;">
+                        <span style="font-size:.95rem;flex-shrink:0;margin-top:.05rem;">${ins.icono||''}</span>
+                        <div>
+                            <div style="font-size:.78rem;font-weight:700;color:${insightText[ins.tipo]};margin-bottom:.15rem;">${ins.titulo||''}</div>
+                            <div style="font-size:.78rem;color:${insightText[ins.tipo]};line-height:1.5;">${ins.texto}</div>
+                        </div>
+                    </div>`).join('')}
+                </div>
             </div>` : ''}
             <!-- Tabla componentes -->
             <div style="padding:.75rem 1.25rem 1rem;">
