@@ -21768,74 +21768,57 @@ function apRenderEnvasado() {
         });
     });
 
-    // ── OPs del período ──
-    const opsDelPeriodo = (ordenesProduccion || []).filter(op => fechas.includes(op.fecha));
-
-    if (filasPT.length === 0 && opsDelPeriodo.length === 0) {
+    // ── Sin filas de Control PT → sin análisis ──
+    if (filasPT.length === 0) {
         cont.innerHTML = `
             <div style="text-align:center;padding:3rem;background:white;border-radius:14px;border:2px dashed #e5e7eb;">
                 <div style="font-size:3rem;margin-bottom:1rem;">📭</div>
-                <h3 style="color:#374151;margin-bottom:.5rem;">Sin datos para este período</h3>
-                <p style="color:#9ca3af;font-size:.9rem;">No hay registros de Control PT ni OPs en las fechas seleccionadas.</p>
+                <h3 style="color:#374151;margin-bottom:.5rem;">Sin registros de Control PT en este período</h3>
+                <p style="color:#9ca3af;font-size:.9rem;">El análisis se genera cuando la monitora cierra un registro de Control de Envasado y PT.<br>
+                Selecciona un rango que incluya fechas con registros cerrados.</p>
             </div>`;
         return;
     }
 
-    // ── Construir análisis por OP + componente ──
+    // ── Construir análisis SOLO desde las filas del Control PT ──
+    // La fecha que rige es la del registro de Control PT, no la fecha de la OP de cocina.
     const analisisPorOP = {};
 
-    // Primero cargar datos desde OPs planificadas
-    opsDelPeriodo.forEach(op => {
-        const key = String(op.numeroOp);
-        if (!analisisPorOP[key]) {
-            analisisPorOP[key] = {
-                numeroOp:   op.numeroOp,
-                cliente:    op.cliente || '—',
-                nombre:     op.nombre  || '—',
-                fecha:      op.fecha   || '—',
-                unidPlan:   op.platos  || 0,
-                kgPlan:     op.kgTotalesTerminados || 0,
-                componentes: {}
-            };
-        }
-        // Componentes planificados desde la OP
-        (op.componentes || []).forEach(comp => {
-            const cKey = (comp.nombre || '').trim().toUpperCase();
-            if (!analisisPorOP[key].componentes[cKey]) {
-                analisisPorOP[key].componentes[cKey] = {
-                    nombre:      comp.nombre || cKey,
-                    kgPlanComp:  parseFloat(comp.kgProgramados || comp.kg || 0),
-                    kgRealComp:  0,
-                    unidReal:    0,
-                    mermaKg:     0,
-                    estatus:     [],
-                    area:        [],
-                    filas:       []
-                };
-            }
-        });
-    });
-
-    // Luego cruzar con datos reales del Control PT
     filasPT.forEach(fila => {
-        const opKey  = String(fila.op || '').trim();
+        const opKey   = String(fila.op || '').trim();
         const cNombre = (fila.componentePT || fila.preparacion || '').trim().toUpperCase();
         if (!opKey || !cNombre) return;
 
-        // Crear OP si no existía en el período (puede ser de otra fecha pero registrada hoy)
+        // Buscar datos planificados desde ordenesProduccion (independiente de su fecha)
         if (!analisisPorOP[opKey]) {
             const opRef = (ordenesProduccion || []).find(o => String(o.numeroOp) === opKey);
             analisisPorOP[opKey] = {
-                numeroOp:    opKey,
-                cliente:     fila.cliente || opRef?.cliente || '—',
-                nombre:      opRef?.nombre || fila.preparacion || '—',
-                fecha:       fila._fecha,
-                unidPlan:    opRef?.platos || 0,
-                kgPlan:      opRef?.kgTotalesTerminados || 0,
+                numeroOp:   opKey,
+                cliente:    fila.cliente || opRef?.cliente || '—',
+                nombre:     opRef?.nombre || fila.preparacion || '—',
+                fechaPT:    fila._fecha,   // ← fecha del registro Control PT (la que manda)
+                fechaOP:    opRef?.fecha || '—',
+                unidPlan:   opRef?.platos || 0,
+                kgPlan:     opRef?.kgTotalesTerminados || 0,
                 componentes: {}
             };
+            // Pre-cargar componentes planificados desde la OP para tener kg plan
+            (opRef?.componentes || []).forEach(comp => {
+                const cKey = (comp.nombre || '').trim().toUpperCase();
+                analisisPorOP[opKey].componentes[cKey] = {
+                    nombre:     comp.nombre || cKey,
+                    kgPlanComp: parseFloat(comp.kgProgramados || comp.kg || 0),
+                    kgRealComp: 0,
+                    unidReal:   0,
+                    mermaKg:    0,
+                    estatus:    [],
+                    area:       [],
+                    filas:      []
+                };
+            });
         }
 
+        // Asegurar que el componente existe
         if (!analisisPorOP[opKey].componentes[cNombre]) {
             analisisPorOP[opKey].componentes[cNombre] = {
                 nombre:     fila.componentePT || fila.preparacion || cNombre,
@@ -21972,7 +21955,9 @@ function apRenderEnvasado() {
                 <div>
                     <div style="font-size:1rem;font-weight:800;color:#1f2937;">OP ${op.numeroOp} — ${op.nombre}</div>
                     <div style="font-size:.78rem;color:#64748b;margin-top:.2rem;">
-                        📅 ${op.fecha} &nbsp;·&nbsp; 🏢 ${op.cliente}
+                        📋 Registrado: ${new Date(op.fechaPT+'T12:00:00').toLocaleDateString('es-CL',{weekday:'short',day:'numeric',month:'short'})}
+                        &nbsp;·&nbsp; 🏢 ${op.cliente}
+                        ${op.fechaOP && op.fechaOP !== '—' && op.fechaOP !== op.fechaPT ? `&nbsp;·&nbsp; <span style="color:#9ca3af;">OP cocina: ${op.fechaOP}</span>` : ''}
                     </div>
                 </div>
                 <div style="display:flex;gap:1rem;flex-wrap:wrap;text-align:center;">
