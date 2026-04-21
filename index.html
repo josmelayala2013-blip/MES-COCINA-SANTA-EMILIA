@@ -21863,10 +21863,13 @@ function apRenderEnvasado() {
     Object.values(analisisPorOP).forEach(op => {
         totalUnidPlan += op.unidPlan;
         totalKgPlan   += op.kgPlan;
-        Object.values(op.componentes).forEach(c => {
-            totalUnidReal += c.unidReal;
-            totalKgReal   += c.kgRealComp;
-            totalMerma    += c.mermaKg;
+        const comps = Object.values(op.componentes);
+        // Unidades reales = máximo entre componentes (todos representan el mismo producto terminado)
+        const unidMaxOP = comps.length > 0 ? Math.max(...comps.map(c => c.unidReal)) : 0;
+        totalUnidReal += unidMaxOP;
+        comps.forEach(c => {
+            totalKgReal  += c.kgRealComp;
+            totalMerma   += c.mermaKg;
         });
     });
 
@@ -21884,7 +21887,8 @@ function apRenderEnvasado() {
     const opsHTML = Object.values(analisisPorOP).map(op => {
         const comps = Object.values(op.componentes);
         const kgRealOP   = comps.reduce((s,c) => s+c.kgRealComp, 0);
-        const unidRealOP = comps.reduce((s,c) => s+c.unidReal,   0);
+        // Unidades reales = máximo entre componentes (todos reflejan el mismo producto final)
+        const unidRealOP = comps.length > 0 ? Math.max(...comps.map(c => c.unidReal)) : 0;
         const mermaOP    = comps.reduce((s,c) => s+c.mermaKg,    0);
         const pctOP      = op.unidPlan > 0 ? Math.round(unidRealOP / op.unidPlan * 100) : (unidRealOP > 0 ? 100 : 0);
         const colorOP    = pctOP >= 95 ? '#10b981' : pctOP >= 80 ? '#f59e0b' : '#dc2626';
