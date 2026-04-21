@@ -3991,6 +3991,14 @@
             setInterval(updateTimers, 1000);
             setInterval(checkAlertas, 1000);
 
+            // ── Sincronización periódica cada 5 min — garantiza que nada quede solo en localStorage ──
+            setInterval(() => {
+                if (window.db && window.firestoreLoaded) {
+                    sincronizarFirebase();
+                    console.log('🔄 Sincronización periódica ejecutada:', new Date().toLocaleTimeString('es-CL'));
+                }
+            }, 5 * 60 * 1000);
+
             // ── Distribuir nav en sidebar ──────────────────────────
             _initSidebarNav();
             // ───────────────────────────────────────────────────────
