@@ -1574,13 +1574,18 @@
                 <p style="color:#9ca3af;font-size:.82rem;margin:.3rem 0 0;">Envasado vs OPs planificadas · Mermas · Rendimiento real de líneas</p>
               </div>
               <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;">
-                <select id="apRango" onchange="apActualizar()" style="padding:.45rem .85rem;border-radius:8px;border:1.5px solid #4b5563;background:#374151;color:#f9fafb;font-size:.85rem;font-weight:600;">
+                <select id="apRango" onchange="apCambiarRango()" style="padding:.45rem .85rem;border-radius:8px;border:1.5px solid #4b5563;background:#374151;color:#f9fafb;font-size:.85rem;font-weight:600;">
+                  <option value="personalizado">Por rango</option>
                   <option value="hoy">Hoy</option>
                   <option value="semana">Esta semana</option>
                   <option value="mes">Este mes</option>
-                  <option value="fecha">Por fecha</option>
                 </select>
-                <input type="date" id="apFecha" style="display:none;padding:.45rem .85rem;border-radius:8px;border:1.5px solid #4b5563;background:#374151;color:#f9fafb;font-size:.85rem;" onchange="apActualizar()">
+                <div id="apRangoCustom" style="display:flex;align-items:center;gap:.4rem;">
+                  <span style="font-size:.78rem;color:#9ca3af;">Desde</span>
+                  <input type="date" id="apFechaDesde" value="2026-04-13" style="padding:.4rem .7rem;border-radius:8px;border:1.5px solid #4b5563;background:#374151;color:#f9fafb;font-size:.82rem;" onchange="apActualizar()">
+                  <span style="font-size:.78rem;color:#9ca3af;">hasta</span>
+                  <input type="date" id="apFechaHasta" style="padding:.4rem .7rem;border-radius:8px;border:1.5px solid #4b5563;background:#374151;color:#f9fafb;font-size:.82rem;" onchange="apActualizar()">
+                </div>
                 <button onclick="apActualizar()" style="background:#dc2626;color:white;border:none;border-radius:8px;padding:.45rem 1rem;cursor:pointer;font-weight:700;font-size:.85rem;">🔄 Actualizar</button>
                 <span id="apUltimaAct" style="font-size:.75rem;color:#6b7280;"></span>
               </div>
@@ -11111,7 +11116,12 @@ function imprimirRegistroHACCP(d) {
             else if (tabName === 'planificador') { initPlanificador(); renderSelectorPlanProductos(); renderPlanVisual(); setTimeout(() => { cargarSelectorOPs(); initFechaPlan(); renderListaOPs(); }, 1500); }
             else if (tabName === 'etiquetas') { initModuloEtiquetas(); }
             else if (tabName === 'controlPT') { initControlPT(); }
-            else if (tabName === 'analisisProductivos') { setTimeout(() => apActualizar(), 100); }
+            else if (tabName === 'analisisProductivos') {
+                // Inicializar fecha hasta = hoy si no tiene valor
+                const fh = document.getElementById('apFechaHasta');
+                if (fh && !fh.value) fh.value = new Date().toISOString().split('T')[0];
+                setTimeout(() => apActualizar(), 100);
+            }
             else if (tabName === 'gantt') { renderGanttGrid(); iniciarLineaHora(); renderGanttBloques(); iniciarCronometroGantt(); }
             else if (tabName === 'ejecutivo') { _sincronizarHistorialYRenderizar('ejecutivo'); }
             // Sincronización al cambiar de tab
@@ -21645,43 +21655,82 @@ function apCambiarTab(tab) {
     apActualizar();
 }
 
-function apGetFechas() {
-    const rango = document.getElementById('apRango')?.value || 'hoy';
-    const hoy   = new Date().toISOString().split('T')[0];
+function apCambiarRango() {
+    const rango = document.getElementById('apRango')?.value;
+    const custom = document.getElementById('apRangoCustom');
+    const hoy = new Date().toISOString().split('T')[0];
     const ahora = new Date();
 
-    if (rango === 'hoy') return [hoy];
-    if (rango === 'fecha') {
-        const f = document.getElementById('apFecha')?.value;
-        return f ? [f] : [hoy];
-    }
-    if (rango === 'semana') {
-        const dias = [];
-        const lunes = new Date(ahora);
-        const dw = lunes.getDay() || 7;
-        lunes.setDate(lunes.getDate() - dw + 1);
-        for (let i = 0; i < 7; i++) {
-            const d = new Date(lunes); d.setDate(lunes.getDate() + i);
-            dias.push(d.toISOString().split('T')[0]);
+    if (rango === 'personalizado') {
+        if (custom) custom.style.display = 'flex';
+    } else {
+        if (custom) custom.style.display = 'none';
+        // Pre-setear fechas según selección para referencia
+        if (rango === 'hoy') {
+            const fi = document.getElementById('apFechaDesde');
+            const fh = document.getElementById('apFechaHasta');
+            if (fi) fi.value = hoy;
+            if (fh) fh.value = hoy;
+        } else if (rango === 'semana') {
+            const lunes = new Date(ahora);
+            const dw = lunes.getDay() || 7;
+            lunes.setDate(lunes.getDate() - dw + 1);
+            const domingo = new Date(lunes); domingo.setDate(lunes.getDate() + 6);
+            const fi = document.getElementById('apFechaDesde');
+            const fh = document.getElementById('apFechaHasta');
+            if (fi) fi.value = lunes.toISOString().split('T')[0];
+            if (fh) fh.value = domingo.toISOString().split('T')[0];
+        } else if (rango === 'mes') {
+            const fi = document.getElementById('apFechaDesde');
+            const fh = document.getElementById('apFechaHasta');
+            if (fi) fi.value = new Date(ahora.getFullYear(), ahora.getMonth(), 1).toISOString().split('T')[0];
+            if (fh) fh.value = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 0).toISOString().split('T')[0];
         }
-        return dias;
     }
-    if (rango === 'mes') {
-        const dias = [];
-        const primerDia = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
-        const ultimoDia = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 0);
-        for (let d = new Date(primerDia); d <= ultimoDia; d.setDate(d.getDate() + 1)) {
-            dias.push(new Date(d).toISOString().split('T')[0]);
-        }
-        return dias;
-    }
-    return [hoy];
+    apActualizar();
 }
 
-function apActualizar() {
-    const rango = document.getElementById('apRango')?.value;
-    const fechaInput = document.getElementById('apFecha');
-    if (fechaInput) fechaInput.style.display = rango === 'fecha' ? 'block' : 'none';
+function apGetFechas() {
+    const desde = document.getElementById('apFechaDesde')?.value || '2026-04-13';
+    const hasta = document.getElementById('apFechaHasta')?.value || new Date().toISOString().split('T')[0];
+    const fechas = [];
+    let cur = new Date(desde + 'T12:00:00');
+    const fin = new Date(hasta + 'T12:00:00');
+    while (cur <= fin) {
+        fechas.push(cur.toISOString().split('T')[0]);
+        cur.setDate(cur.getDate() + 1);
+    }
+    return fechas.length > 0 ? fechas : [new Date().toISOString().split('T')[0]];
+}
+
+async function apActualizar() {
+    const cont = document.getElementById('apContenido');
+    if (!cont) return;
+
+    // Mostrar loading
+    cont.innerHTML = `<div style="text-align:center;padding:3rem;color:#9ca3af;">
+        <div style="font-size:1.5rem;margin-bottom:.5rem;">⏳</div>
+        <div>Cargando datos desde Firebase...</div>
+    </div>`;
+
+    // Cargar ptRegistros frescos desde Firebase antes de analizar
+    if (window.db && window.firestoreLoaded) {
+        try {
+            const { doc, getDoc } = window.firestoreFunctions;
+            const snap = await getDoc(doc(window.db, 'mes-data', 'control-pt'));
+            if (snap.exists()) {
+                const remoto = snap.data().registros || {};
+                const merged = { ...(ptRegistros || {}) };
+                Object.keys(remoto).forEach(fecha => {
+                    const rFilas = (remoto[fecha]?.filas || []).length;
+                    const lFilas = (merged[fecha]?.filas  || []).length;
+                    if (rFilas > lFilas) merged[fecha] = remoto[fecha];
+                });
+                ptRegistros = merged;
+                localStorage.setItem('mes_controlPT', JSON.stringify(ptRegistros));
+            }
+        } catch(e) { console.warn('AP: no se pudo cargar Control PT:', e.message); }
+    }
 
     const el = document.getElementById('apUltimaAct');
     if (el) el.textContent = 'Actualizado: ' + new Date().toLocaleTimeString('es-CL');
