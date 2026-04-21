@@ -1594,7 +1594,7 @@
             <!-- SUB-TABS -->
             <div style="display:flex;gap:.5rem;margin-bottom:1.25rem;flex-wrap:wrap;">
               <button id="apTabEnv" onclick="apCambiarTab('envasado')" style="padding:.5rem 1.1rem;border-radius:8px;border:none;background:#1f2937;color:#f9fafb;font-weight:700;cursor:pointer;font-size:.85rem;">📦 Envasado vs OPs</button>
-              <button id="apTabCoc" onclick="apCambiarTab('cocina')" style="padding:.5rem 1.1rem;border-radius:8px;border:2px solid #e5e7eb;background:white;color:#374151;font-weight:700;cursor:pointer;font-size:.85rem;">🍳 Cocina — Próximamente</button>
+              <button id="apTabCoc" onclick="apCambiarTab('cocina')" style="padding:.5rem 1.1rem;border-radius:8px;border:2px solid #e5e7eb;background:white;color:#374151;font-weight:700;cursor:pointer;font-size:.85rem;">🍳 Análisis de Cocina</button>
             </div>
 
             <!-- CONTENIDO DINÁMICO -->
@@ -21740,14 +21740,357 @@ async function apActualizar() {
 }
 
 function apRenderCocinaProximo() {
+    apRenderCocina();
+}
+
+function apRenderCocina() {
     const cont = document.getElementById('apContenido');
     if (!cont) return;
-    cont.innerHTML = `
-        <div style="text-align:center;padding:3rem;background:white;border-radius:14px;border:2px dashed #e5e7eb;">
-            <div style="font-size:3rem;margin-bottom:1rem;">🍳</div>
-            <h3 style="color:#374151;margin-bottom:.5rem;">Análisis de Cocina — Próximamente</h3>
-            <p style="color:#9ca3af;font-size:.9rem;">Este módulo analizará excedentes y faltantes de preparaciones de componentes vs lo planificado en OPs.</p>
+
+    const fechas = apGetFechas();
+
+    // ── Recopilar registros del historial de cocina para las fechas ──
+    const registros = [];
+    fechas.forEach(f => {
+        (historialPorFecha[f] || []).forEach(h => {
+            // Solo registros que pasaron por cocción (tienen kgProgramados o kgReales)
+            if (h.kgProgramados || h.kgReales) {
+                registros.push({ ...h, _fecha: f });
+            }
+        });
+    });
+
+    if (registros.length === 0) {
+        cont.innerHTML = `
+            <div style="text-align:center;padding:3rem;background:white;border-radius:14px;border:2px dashed #e5e7eb;">
+                <div style="font-size:3rem;margin-bottom:1rem;">📭</div>
+                <h3 style="color:#374151;margin-bottom:.5rem;">Sin registros de cocina en este período</h3>
+                <p style="color:#9ca3af;font-size:.9rem;">Los registros aparecen cuando se finaliza el abatimiento de una producción.</p>
+            </div>`;
+        return;
+    }
+
+    // ── Agrupar por componente/producto ──
+    const porProducto = {};
+    registros.forEach(h => {
+        const key = (h.componente || h.producto || '—').trim().toUpperCase();
+        if (!porProducto[key]) {
+            porProducto[key] = {
+                nombre:       h.componente || h.producto || '—',
+                producciones: [],
+                esProteina:   _apEsProteina(h.componente || h.producto || '')
+            };
+        }
+        porProducto[key].producciones.push(h);
+    });
+
+    // ── Obtener rendimiento teórico desde recetas ──
+    function _apRendimientoTeorico(nombreComp) {
+        const n = (nombreComp||'').toLowerCase().trim();
+        for (const r of (recetas||[])) {
+            const comp = (r.componentes||[]).find(c =>
+                (c.nombre||'').toLowerCase().trim() === n ||
+                n.includes((c.nombre||'').toLowerCase().trim()) ||
+                (c.nombre||'').toLowerCase().trim().includes(n)
+            );
+            if (comp && comp.rendimiento) return parseFloat(comp.rendimiento);
+        }
+        // Buscar en productos
+        const prod = (productos||[]).find(p =>
+            (p.nombre||'').toLowerCase().trim() === n ||
+            n.includes((p.nombre||'').toLowerCase().trim())
+        );
+        return prod?.rendimientoEsperado || prod?.rendimiento || null;
+    }
+
+    // ── Clasificar proteínas ──
+    function _apEsProteina(nombre) {
+        const n = (nombre||'').toLowerCase();
+        return ['vacuno','pollo','cerdo','pavo','salmón','salmon','carne','filete',
+                'pechuga','costilla','osobuco','plateada','lomo'].some(p => n.includes(p));
+    }
+
+    // ── Totales globales ──
+    let totalKgProg = 0, totalKgReales = 0, totalKgFinales = 0;
+    registros.forEach(h => {
+        totalKgProg   += parseFloat(h.kgProgramados||0);
+        totalKgReales += parseFloat(h.kgReales||0);
+        totalKgFinales+= parseFloat(h.kgFinales||0);
+    });
+    const rendGlobal    = totalKgProg   > 0 ? (totalKgReales  / totalKgProg   * 100) : 0;
+    const mermaGlobal   = totalKgReales > 0 ? ((totalKgReales - totalKgFinales) / totalKgReales * 100) : 0;
+
+    // ── Label período ──
+    const labelPeriodo = fechas.length === 1
+        ? new Date(fechas[0]+'T12:00:00').toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long'})
+        : `${new Date(fechas[0]+'T12:00:00').toLocaleDateString('es-CL',{day:'numeric',month:'short'})} — ${new Date(fechas[fechas.length-1]+'T12:00:00').toLocaleDateString('es-CL',{day:'numeric',month:'short'})}`;
+
+    // ── HTML por producto ──
+    const productosOrdenados = Object.values(porProducto)
+        .sort((a,b) => b.esProteina - a.esProteina || b.producciones.length - a.producciones.length);
+
+    const productosHTML = productosOrdenados.map(prod => {
+        const prods = prod.producciones;
+        const kgProgTotal  = prods.reduce((s,h) => s+parseFloat(h.kgProgramados||0), 0);
+        const kgRealTotal  = prods.reduce((s,h) => s+parseFloat(h.kgReales||0), 0);
+        const kgFinalTotal = prods.reduce((s,h) => s+parseFloat(h.kgFinales||0), 0);
+        const rendReal     = kgProgTotal > 0 ? (kgRealTotal / kgProgTotal * 100) : 0;
+        const mermaCoccion = kgRealTotal > 0 ? ((kgRealTotal - kgFinalTotal) / kgRealTotal * 100) : 0;
+        const rendTeorico  = _apRendimientoTeorico(prod.nombre);
+        const difRendimiento = rendTeorico !== null ? rendReal - rendTeorico : null;
+
+        // Tiempo promedio de cocción
+        const tiemposSegundos = prods.filter(h => h.tiempoCoccion > 0).map(h => h.tiempoCoccion);
+        const tiempoPromSeg   = tiemposSegundos.length > 0
+            ? tiemposSegundos.reduce((s,t) => s+t,0) / tiemposSegundos.length : 0;
+        const tiempoPromMin   = Math.round(tiempoPromSeg / 60);
+
+        // Tiempo estándar desde receta/producto
+        const tiempoEstandar = (() => {
+            const n = prod.nombre.toLowerCase();
+            for (const r of (recetas||[])) {
+                const comp = (r.componentes||[]).find(c => (c.nombre||'').toLowerCase().includes(n) || n.includes((c.nombre||'').toLowerCase()));
+                if (comp?.tiempoCoccionMin) return comp.tiempoCoccionMin;
+            }
+            const p = (productos||[]).find(p => (p.nombre||'').toLowerCase().includes(n) || n.includes((p.nombre||'').toLowerCase()));
+            return p?.tiempoCoccionMin || null;
+        })();
+
+        const colorRend  = difRendimiento === null ? '#374151'
+            : difRendimiento >= 0 ? '#10b981' : '#dc2626';
+        const bgCard     = prod.esProteina ? '#faf5ff' : 'white';
+        const borderCard = prod.esProteina ? '#8b5cf6' : '#e5e7eb';
+
+        // ── Generar insights de cocina ──
+        const insights = [];
+
+        // 1. Rendimiento vs teórico
+        if (rendTeorico !== null && difRendimiento !== null) {
+            if (difRendimiento >= 3) {
+                insights.push({ tipo:'success', icono:'🎯',
+                    titulo:'Rendimiento superior al estándar',
+                    texto:`Rendimiento real <strong>${rendReal.toFixed(1)}%</strong> vs teórico <strong>${rendTeorico}%</strong> (+${difRendimiento.toFixed(1)} pp). La cocción fue óptima.` });
+            } else if (difRendimiento < -5) {
+                insights.push({ tipo:'danger', icono:'📉',
+                    titulo:'Rendimiento por debajo del estándar',
+                    texto:`Rendimiento real <strong>${rendReal.toFixed(1)}%</strong> vs teórico <strong>${rendTeorico}%</strong> (${difRendimiento.toFixed(1)} pp). Posibles causas: exceso de tiempo de cocción, temperatura elevada o materia prima con mayor contenido graso/agua.` });
+            } else if (difRendimiento < -2) {
+                insights.push({ tipo:'warning', icono:'⚠️',
+                    titulo:'Rendimiento ligeramente bajo',
+                    texto:`Rendimiento real <strong>${rendReal.toFixed(1)}%</strong> vs teórico <strong>${rendTeorico}%</strong> (${difRendimiento.toFixed(1)} pp). Revisar condición de materia prima.` });
+            } else {
+                insights.push({ tipo:'success', icono:'✅',
+                    titulo:'Rendimiento dentro del estándar',
+                    texto:`Rendimiento real <strong>${rendReal.toFixed(1)}%</strong> ≈ teórico <strong>${rendTeorico}%</strong>. Proceso estable.` });
+            }
+        } else if (rendTeorico === null) {
+            insights.push({ tipo:'info', icono:'📋',
+                titulo:'Sin rendimiento teórico en receta',
+                texto:`No hay rendimiento teórico definido para <strong>${prod.nombre}</strong>. Considera agregar el % de rendimiento esperado en la receta para habilitar el análisis comparativo.` });
+        }
+
+        // 2. Análisis de tiempo de cocción
+        if (tiempoPromMin > 0 && tiempoEstandar !== null) {
+            const difTiempo = tiempoPromMin - tiempoEstandar;
+            if (difTiempo > 15) {
+                insights.push({ tipo:'danger', icono:'⏱️',
+                    titulo:'Tiempo de cocción excesivo',
+                    texto:`Promedio real <strong>${tiempoPromMin} min</strong> vs estándar <strong>${tiempoEstandar} min</strong> (+${difTiempo} min). El exceso de cocción puede explicar el bajo rendimiento — la proteína pierde más agua y grasa con el calor prolongado.` });
+            } else if (difTiempo < -10) {
+                insights.push({ tipo:'warning', icono:'⏱️',
+                    titulo:'Tiempo de cocción corto',
+                    texto:`Promedio real <strong>${tiempoPromMin} min</strong> vs estándar <strong>${tiempoEstandar} min</strong> (${difTiempo} min). Verificar que el producto alcanzó la temperatura interna requerida.` });
+            } else {
+                insights.push({ tipo:'success', icono:'⏱️',
+                    titulo:'Tiempo de cocción dentro del estándar',
+                    texto:`Promedio real <strong>${tiempoPromMin} min</strong> ≈ estándar <strong>${tiempoEstandar} min</strong>. Tiempo correcto.` });
+            }
+        } else if (tiempoPromMin > 0 && tiempoEstandar === null) {
+            insights.push({ tipo:'info', icono:'⏱️',
+                titulo:'Tiempo promedio registrado',
+                texto:`Tiempo promedio de cocción: <strong>${tiempoPromMin} min</strong>. No hay tiempo estándar definido en la receta para comparar.` });
+        }
+
+        // 3. Diferencia kg programados vs reales (excedente/faltante)
+        const difKg = kgRealTotal - kgProgTotal;
+        if (Math.abs(difKg) > 0.5) {
+            if (difKg > 0) {
+                insights.push({ tipo:'warning', icono:'⚖️',
+                    titulo:'Excedente sobre lo programado',
+                    texto:`Se cocinaron <strong>${kgRealTotal.toFixed(1)} kg</strong> vs <strong>${kgProgTotal.toFixed(1)} kg</strong> programados (+${difKg.toFixed(1)} kg). Si es recurrente, ajustar el gramaje en la OP.` });
+            } else {
+                insights.push({ tipo:'warning', icono:'⚖️',
+                    titulo:'Faltante respecto a lo programado',
+                    texto:`Se cocinaron <strong>${kgRealTotal.toFixed(1)} kg</strong> vs <strong>${kgProgTotal.toFixed(1)} kg</strong> programados (${difKg.toFixed(1)} kg). Verificar si hubo merma en descongelado o acondicionamiento previo.` });
+            }
+        }
+
+        // 4. Merma post-cocción (cocción → abatimiento)
+        if (mermaCoccion > 5) {
+            insights.push({ tipo:'danger', icono:'💧',
+                titulo:'Merma post-cocción elevada',
+                texto:`De <strong>${kgRealTotal.toFixed(1)} kg cocidos</strong> quedaron <strong>${kgFinalTotal.toFixed(1)} kg finales</strong> (${mermaCoccion.toFixed(1)}% de pérdida). Revisar tiempo de reposo, drenado o desmechado.` });
+        }
+
+        // 5. Recomendación de ajuste de receta si hay múltiples producciones
+        if (prods.length >= 2 && rendTeorico !== null && difRendimiento !== null) {
+            const kgProgramadoPromedio = kgProgTotal / prods.length;
+            const factorAjuste = rendReal / 100;
+            const kgSugeridoPorProduccion = kgProgramadoPromedio / factorAjuste;
+            const difSugerido = kgSugeridoPorProduccion - kgProgramadoPromedio;
+            if (Math.abs(difRendimiento) >= 3) {
+                insights.push({ tipo: difRendimiento < 0 ? 'warning' : 'info', icono:'🔧',
+                    titulo:'Recomendación: ajuste de receta',
+                    texto:`Con el rendimiento actual de ${rendReal.toFixed(1)}%, para obtener los kg finales planificados deberías programar <strong>${Math.round(difSugerido > 0 ? difSugerido : Math.abs(difSugerido))} kg ${difSugerido > 0 ? 'más' : 'menos'}</strong> de materia prima cruda por producción. Esto optimizaría el uso de ${prod.esProteina ? 'esta proteína (MP más cara)' : 'esta preparación'}.` });
+            }
+        }
+
+        const insightColors = { success:'#f0fdf4', warning:'#fffbeb', danger:'#fef2f2', info:'#eff6ff' };
+        const insightBorder = { success:'#10b981', warning:'#f59e0b', danger:'#dc2626', info:'#3b82f6' };
+        const insightText   = { success:'#065f46', warning:'#92400e', danger:'#991b1b', info:'#1e3a5f' };
+
+        // ── Tabla de producciones individuales ──
+        const filasHTML = prods.map((h,i) => {
+            const rendH  = h.kgProgramados > 0 ? (parseFloat(h.kgReales||0)/parseFloat(h.kgProgramados)*100) : 0;
+            const difH   = parseFloat(h.kgReales||0) - parseFloat(h.kgProgramados||0);
+            const tMin   = h.tiempoCoccion ? Math.round(h.tiempoCoccion/60) : null;
+            const tStd   = tiempoEstandar;
+            const tColor = tMin && tStd ? (tMin > tStd+15 ? '#dc2626' : tMin < tStd-10 ? '#f59e0b' : '#10b981') : '#374151';
+            const rColor = rendTeorico !== null ? (rendH >= rendTeorico-2 ? '#10b981' : rendH >= rendTeorico-5 ? '#f59e0b' : '#dc2626') : '#374151';
+            return `<tr style="background:${i%2===0?'white':'#f8fafc'};border-bottom:1px solid #f1f5f9;">
+                <td style="padding:.4rem .6rem;font-size:.78rem;color:#64748b;">${h._fecha || '—'}</td>
+                <td style="padding:.4rem .6rem;font-size:.78rem;color:#374151;">${h.equipoNombre||'—'}</td>
+                <td style="padding:.4rem .6rem;font-size:.78rem;color:#374151;">OP ${h.numeroOP||'—'}</td>
+                <td style="padding:.4rem .6rem;font-size:.78rem;color:#374151;">${h.operador||h.manipulador||'—'}</td>
+                <td style="padding:.4rem .6rem;text-align:center;font-size:.78rem;color:#374151;">${parseFloat(h.kgProgramados||0).toFixed(1)} kg</td>
+                <td style="padding:.4rem .6rem;text-align:center;font-size:.78rem;font-weight:700;color:#374151;">
+                    ${parseFloat(h.kgReales||0).toFixed(1)} kg
+                    <div style="font-size:.67rem;color:${difH>=0?'#10b981':'#dc2626'};font-weight:600;">${difH>=0?'+':''}${difH.toFixed(1)} kg</div>
+                </td>
+                <td style="padding:.4rem .6rem;text-align:center;font-size:.78rem;font-weight:700;color:#374151;">${parseFloat(h.kgFinales||0).toFixed(1)} kg</td>
+                <td style="padding:.4rem .6rem;text-align:center;font-size:.78rem;font-weight:700;color:${rColor};">${rendH.toFixed(1)}%
+                    ${rendTeorico !== null ? `<div style="font-size:.65rem;color:#9ca3af;">teo: ${rendTeorico}%</div>` : ''}
+                </td>
+                <td style="padding:.4rem .6rem;text-align:center;font-size:.78rem;color:${tColor};font-weight:700;">
+                    ${tMin !== null ? tMin+' min' : '—'}
+                    ${tStd !== null && tMin !== null ? `<div style="font-size:.65rem;color:#9ca3af;">std: ${tStd} min</div>` : ''}
+                </td>
+                <td style="padding:.4rem .6rem;font-size:.75rem;color:#64748b;max-width:140px;white-space:normal;">${h.observaciones||'—'}</td>
+            </tr>`;
+        }).join('');
+
+        return `
+        <div style="background:${bgCard};border-radius:12px;border:1px solid ${borderCard};border-left:5px solid ${prod.esProteina?'#8b5cf6':'#1f2937'};margin-bottom:1rem;overflow:hidden;">
+            <!-- Cabecera producto -->
+            <div style="padding:1rem 1.25rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem;border-bottom:1px solid ${borderCard};">
+                <div>
+                    <div style="display:flex;align-items:center;gap:.5rem;">
+                        ${prod.esProteina ? '<span style="background:#ede9fe;color:#5b21b6;font-size:.72rem;font-weight:700;padding:.15rem .5rem;border-radius:4px;">🥩 PROTEÍNA</span>' : ''}
+                        <div style="font-size:1rem;font-weight:800;color:#1f2937;">${prod.nombre}</div>
+                    </div>
+                    <div style="font-size:.75rem;color:#64748b;margin-top:.2rem;">${prods.length} producción(es) · ${labelPeriodo}</div>
+                </div>
+                <div style="display:flex;gap:1rem;flex-wrap:wrap;text-align:center;">
+                    <div>
+                        <div style="font-size:1.2rem;font-weight:800;color:#374151;">${kgProgTotal.toFixed(1)}<span style="font-size:.72rem;color:#9ca3af;"> kg prog.</span></div>
+                        <div style="font-size:.68rem;color:#9ca3af;">Programado</div>
+                    </div>
+                    <div>
+                        <div style="font-size:1.2rem;font-weight:800;color:#374151;">${kgRealTotal.toFixed(1)}<span style="font-size:.72rem;color:#9ca3af;"> kg</span></div>
+                        <div style="font-size:.68rem;color:#9ca3af;">Cocido real</div>
+                    </div>
+                    <div>
+                        <div style="font-size:1.2rem;font-weight:800;color:#059669;">${kgFinalTotal.toFixed(1)}<span style="font-size:.72rem;color:#9ca3af;"> kg</span></div>
+                        <div style="font-size:.68rem;color:#9ca3af;">Kg finales</div>
+                    </div>
+                    <div>
+                        <div style="font-size:1.2rem;font-weight:800;color:${colorRend};">${rendReal.toFixed(1)}%</div>
+                        <div style="font-size:.68rem;color:#9ca3af;">Rendimiento${rendTeorico!==null?` (teo: ${rendTeorico}%)`:''}</div>
+                    </div>
+                    <div>
+                        <div style="font-size:1.2rem;font-weight:800;color:${tiempoPromMin>0?'#374151':'#9ca3af'};">${tiempoPromMin>0?tiempoPromMin+' min':'—'}</div>
+                        <div style="font-size:.68rem;color:#9ca3af;">T. cocción prom.</div>
+                    </div>
+                </div>
+            </div>
+            <!-- Insights -->
+            <div style="padding:.75rem 1.25rem;background:#f8fafc;border-bottom:1px solid ${borderCard};">
+                <div style="font-size:.7rem;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.5rem;">🧠 Análisis de Rendimiento</div>
+                <div style="display:flex;flex-direction:column;gap:.45rem;">
+                    ${insights.map(ins => `
+                    <div style="background:${insightColors[ins.tipo]};border:1px solid ${insightBorder[ins.tipo]};border-left:4px solid ${insightBorder[ins.tipo]};border-radius:7px;padding:.45rem .85rem;display:flex;align-items:flex-start;gap:.5rem;">
+                        <span style="font-size:.9rem;flex-shrink:0;">${ins.icono}</span>
+                        <div>
+                            <div style="font-size:.75rem;font-weight:700;color:${insightText[ins.tipo]};margin-bottom:.1rem;">${ins.titulo}</div>
+                            <div style="font-size:.75rem;color:${insightText[ins.tipo]};line-height:1.5;">${ins.texto}</div>
+                        </div>
+                    </div>`).join('')}
+                </div>
+            </div>
+            <!-- Tabla producciones -->
+            <div style="padding:.5rem 1rem .85rem;">
+                <table style="width:100%;border-collapse:collapse;font-size:.78rem;margin-top:.5rem;">
+                    <thead>
+                        <tr style="background:#f1f5f9;">
+                            <th style="padding:.4rem .6rem;text-align:left;color:#64748b;font-weight:700;">Fecha</th>
+                            <th style="padding:.4rem .6rem;text-align:left;color:#64748b;font-weight:700;">Equipo</th>
+                            <th style="padding:.4rem .6rem;text-align:left;color:#64748b;font-weight:700;">OP</th>
+                            <th style="padding:.4rem .6rem;text-align:left;color:#64748b;font-weight:700;">Operador</th>
+                            <th style="padding:.4rem .6rem;text-align:center;color:#64748b;font-weight:700;">Kg Prog.</th>
+                            <th style="padding:.4rem .6rem;text-align:center;color:#64748b;font-weight:700;">Kg Cocido</th>
+                            <th style="padding:.4rem .6rem;text-align:center;color:#64748b;font-weight:700;">Kg Final</th>
+                            <th style="padding:.4rem .6rem;text-align:center;color:#64748b;font-weight:700;">Rendimiento</th>
+                            <th style="padding:.4rem .6rem;text-align:center;color:#64748b;font-weight:700;">T. Cocción</th>
+                            <th style="padding:.4rem .6rem;text-align:left;color:#64748b;font-weight:700;">Observaciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>${filasHTML}</tbody>
+                </table>
+            </div>
         </div>`;
+    }).join('');
+
+    cont.innerHTML = `
+        <!-- KPIs globales cocina -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin-bottom:1.25rem;">
+            <div style="background:white;border-radius:10px;border:1px solid #e5e7eb;border-left:4px solid #8b5cf6;padding:1rem;text-align:center;">
+                <div style="font-size:.68rem;font-weight:700;color:#9ca3af;text-transform:uppercase;margin-bottom:.3rem;">Período</div>
+                <div style="font-size:.9rem;font-weight:700;color:#1f2937;">${labelPeriodo}</div>
+            </div>
+            <div style="background:white;border-radius:10px;border:1px solid #e5e7eb;border-left:4px solid #374151;padding:1rem;text-align:center;">
+                <div style="font-size:.68rem;font-weight:700;color:#9ca3af;text-transform:uppercase;margin-bottom:.3rem;">Total Programado</div>
+                <div style="font-size:1.7rem;font-weight:700;color:#374151;">${totalKgProg.toFixed(1)}<span style="font-size:.75rem;color:#9ca3af;"> kg</span></div>
+            </div>
+            <div style="background:white;border-radius:10px;border:1px solid #e5e7eb;border-left:4px solid #2563eb;padding:1rem;text-align:center;">
+                <div style="font-size:.68rem;font-weight:700;color:#9ca3af;text-transform:uppercase;margin-bottom:.3rem;">Total Cocido</div>
+                <div style="font-size:1.7rem;font-weight:700;color:#2563eb;">${totalKgReales.toFixed(1)}<span style="font-size:.75rem;color:#9ca3af;"> kg</span></div>
+            </div>
+            <div style="background:white;border-radius:10px;border:1px solid #e5e7eb;border-left:4px solid #059669;padding:1rem;text-align:center;">
+                <div style="font-size:.68rem;font-weight:700;color:#9ca3af;text-transform:uppercase;margin-bottom:.3rem;">Total Finales</div>
+                <div style="font-size:1.7rem;font-weight:700;color:#059669;">${totalKgFinales.toFixed(1)}<span style="font-size:.75rem;color:#9ca3af;"> kg</span></div>
+            </div>
+            <div style="background:white;border-radius:10px;border:1px solid #e5e7eb;border-left:4px solid ${rendGlobal>=85?'#10b981':rendGlobal>=75?'#f59e0b':'#dc2626'};padding:1rem;text-align:center;">
+                <div style="font-size:.68rem;font-weight:700;color:#9ca3af;text-transform:uppercase;margin-bottom:.3rem;">Rendimiento Global</div>
+                <div style="font-size:1.7rem;font-weight:700;color:${rendGlobal>=85?'#10b981':rendGlobal>=75?'#f59e0b':'#dc2626'};">${rendGlobal.toFixed(1)}%</div>
+                <div style="font-size:.7rem;color:#9ca3af;">Cocido / Programado</div>
+            </div>
+            <div style="background:white;border-radius:10px;border:1px solid #e5e7eb;border-left:4px solid ${mermaGlobal<5?'#10b981':mermaGlobal<10?'#f59e0b':'#dc2626'};padding:1rem;text-align:center;">
+                <div style="font-size:.68rem;font-weight:700;color:#9ca3af;text-transform:uppercase;margin-bottom:.3rem;">Merma Global Cocción</div>
+                <div style="font-size:1.7rem;font-weight:700;color:${mermaGlobal<5?'#10b981':mermaGlobal<10?'#f59e0b':'#dc2626'};">${mermaGlobal.toFixed(1)}%</div>
+                <div style="font-size:.7rem;color:#9ca3af;">Cocido → Final</div>
+            </div>
+            <div style="background:white;border-radius:10px;border:1px solid #e5e7eb;border-left:4px solid #8b5cf6;padding:1rem;text-align:center;">
+                <div style="font-size:.68rem;font-weight:700;color:#9ca3af;text-transform:uppercase;margin-bottom:.3rem;">Producciones</div>
+                <div style="font-size:1.7rem;font-weight:700;color:#8b5cf6;">${registros.length}</div>
+                <div style="font-size:.7rem;color:#9ca3af;">${Object.keys(porProducto).length} preparación(es)</div>
+            </div>
+        </div>
+        <!-- Detalle por preparación -->
+        <div style="font-size:.82rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.65rem;">
+            🔬 Análisis por Preparación <span style="font-weight:400;font-size:.75rem;color:#9ca3af;">— Las proteínas aparecen primero</span>
+        </div>
+        ${productosHTML}
+    `;
 }
 
 function apRenderEnvasado() {
