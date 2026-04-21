@@ -21707,19 +21707,19 @@ async function apActualizar() {
     const cont = document.getElementById('apContenido');
     if (!cont) return;
 
-    // Mostrar loading
     cont.innerHTML = `<div style="text-align:center;padding:3rem;color:#9ca3af;">
         <div style="font-size:1.5rem;margin-bottom:.5rem;">⏳</div>
         <div>Cargando datos desde Firebase...</div>
     </div>`;
 
-    // Cargar ptRegistros frescos desde Firebase antes de analizar
     if (window.db && window.firestoreLoaded) {
         try {
             const { doc, getDoc } = window.firestoreFunctions;
-            const snap = await getDoc(doc(window.db, 'mes-data', 'control-pt'));
-            if (snap.exists()) {
-                const remoto = snap.data().registros || {};
+
+            // ── Cargar Control PT (para módulo envasado) ──
+            const snapPT = await getDoc(doc(window.db, 'mes-data', 'control-pt'));
+            if (snapPT.exists()) {
+                const remoto = snapPT.data().registros || {};
                 const merged = { ...(ptRegistros || {}) };
                 Object.keys(remoto).forEach(fecha => {
                     const rFilas = (remoto[fecha]?.filas || []).length;
@@ -21729,7 +21729,23 @@ async function apActualizar() {
                 ptRegistros = merged;
                 localStorage.setItem('mes_controlPT', JSON.stringify(ptRegistros));
             }
-        } catch(e) { console.warn('AP: no se pudo cargar Control PT:', e.message); }
+
+            // ── Cargar historial-produccion (para módulo cocina) ──
+            const snapHist = await getDoc(doc(window.db, 'mes-data', 'historial-produccion'));
+            if (snapHist.exists()) {
+                const histFirebase = snapHist.data().historialPorFecha || {};
+                const merged = { ...(historialPorFecha || {}) };
+                Object.keys(histFirebase).forEach(fecha => {
+                    const remotas = histFirebase[fecha] || [];
+                    const locales  = merged[fecha]     || [];
+                    if (remotas.length > locales.length) merged[fecha] = remotas;
+                });
+                historialPorFecha = merged;
+                localStorage.setItem('mes_historialPorFecha', JSON.stringify(historialPorFecha));
+                console.log('✅ AP: historial cocina cargado —', Object.keys(merged).length, 'fechas');
+            }
+
+        } catch(e) { console.warn('AP: error cargando Firebase:', e.message); }
     }
 
     const el = document.getElementById('apUltimaAct');
@@ -21749,15 +21765,41 @@ function apRenderCocina() {
 
     const fechas = apGetFechas();
 
+    // ── Normalizar claves de historialPorFecha — acepta YY-MM-DD y YYYY-MM-DD ──
+    function _apBuscarFecha(f) {
+        // Buscar exacto primero
+        if (historialPorFecha[f]) return historialPorFecha[f];
+        // Intentar formato corto YY-MM-DD → quitar los primeros 2 dígitos del año
+        const corto = f.slice(2); // "2026-04-16" → "26-04-16"
+        if (historialPorFecha[corto]) return historialPorFecha[corto];
+        // Intentar formato largo YYYY-MM-DD ← si la clave es YY-MM-DD
+        const largo = '20' + f; // "26-04-16" → "2026-04-16"
+        if (historialPorFecha[largo]) return historialPorFecha[largo];
+        return [];
+    }
+
     // ── Recopilar registros del historial de cocina para las fechas ──
     const registros = [];
     fechas.forEach(f => {
-        (historialPorFecha[f] || []).forEach(h => {
-            // Solo registros que pasaron por cocción (tienen kgProgramados o kgReales)
+        _apBuscarFecha(f).forEach(h => {
             if (h.kgProgramados || h.kgReales) {
                 registros.push({ ...h, _fecha: f });
             }
         });
+    });
+
+    // También buscar con claves cortas si el rango es amplio
+    // Recorrer todas las claves del historial y matchear
+    Object.keys(historialPorFecha).forEach(clave => {
+        // Normalizar clave a YYYY-MM-DD para comparar
+        const claveNorm = clave.length === 8 ? '20' + clave : clave;
+        if (fechas.includes(claveNorm) && !registros.some(r => r._fecha === claveNorm)) {
+            (historialPorFecha[clave] || []).forEach(h => {
+                if (h.kgProgramados || h.kgReales) {
+                    registros.push({ ...h, _fecha: claveNorm });
+                }
+            });
+        }
     });
 
     if (registros.length === 0) {
@@ -22102,7 +22144,10 @@ function apRenderEnvasado() {
     // ── Recopilar filas del registro Control PT para las fechas ──
     const filasPT = [];
     fechas.forEach(f => {
-        const reg = ptRegistros?.[f];
+        // Normalizar clave — ptRegistros usa YYYY-MM-DD
+        const reg = ptRegistros?.[f]
+            || ptRegistros?.['20'+f]   // YY-MM-DD → YYYY-MM-DD
+            || ptRegistros?.[f.slice(2)]; // YYYY-MM-DD → YY-MM-DD
         if (!reg) return;
         (reg.filas || []).forEach(fila => {
             if (fila.componentePT || fila.preparacion) {
