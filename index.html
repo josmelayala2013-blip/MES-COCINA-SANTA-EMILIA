@@ -17824,11 +17824,12 @@ function mostrarPopupGantt(eq) {
                         // Bloque gris "en espera"
                         const bloque2 = document.createElement('div');
                         bloque2.className = 'gantt-bloque';
-                        bloque2.style.cssText = `position:absolute;top:${top}px;left:${left}px;width:${width}px;height:${altura}px;background:#f1f5f9;border-left:4px solid #94a3b8;border-radius:0 6px 6px 0;padding:.25rem .4rem;overflow:hidden;z-index:4;box-shadow:0 1px 4px rgba(0,0,0,0.07);opacity:.85;`;
+                        bloque2.style.cssText = `position:absolute;top:${top}px;left:${left}px;width:${width}px;height:${altura}px;background:#f1f5f9;border-left:4px solid #667eea;border-radius:0 6px 6px 0;padding:.25rem .4rem;overflow:hidden;z-index:4;box-shadow:0 1px 4px rgba(0,0,0,0.1);opacity:.9;cursor:pointer;`;
                         bloque2.innerHTML = `
                             <div style="font-size:.72rem;font-weight:800;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${plan.componente}</div>
                             <div style="font-size:.65rem;color:#94a3b8;margin-top:.1rem;">OP ${plan.numeroOP}</div>
-                            <div style="font-size:.65rem;color:#94a3b8;font-weight:700;">⏳ En espera · ${durMinPlan} min</div>`;
+                            <div style="font-size:.65rem;color:#667eea;font-weight:700;">▶️ Toca para iniciar</div>`;
+                        bloque2.onclick = (e) => { e.stopPropagation(); iniciarDesdeGantt(eq.id, plan); };
                         contenedor.appendChild(bloque2);
                     });
                 }
@@ -17838,6 +17839,46 @@ function mostrarPopupGantt(eq) {
 
         // GANTT - Cronómetro en tiempo real (segundos)
         let ganttCronometroTimer = null;
+
+        function iniciarDesdeGantt(equipoId, plan) {
+            // Preseleccionar equipo
+            equipoSeleccionado = equipoId;
+            // Abrir modal (esto renderiza selects y equipos)
+            openModal('iniciarProduccion');
+            // Después de que el modal renderice, precargar datos del plan
+            setTimeout(() => {
+                // Si la OP del plan existe en el selector → usar modo OP
+                const opSel = document.getElementById('opVinculadaSelect');
+                if (opSel && plan.opVinculadaId) {
+                    // Buscar la opción que coincida con el id de la OP
+                    const opciones = Array.from(opSel.options);
+                    const match = opciones.find(o => o.value === plan.opVinculadaId);
+                    if (match) {
+                        switchModoProduccion('op');
+                        opSel.value = plan.opVinculadaId;
+                        cargarPlanDesdeOP();
+                        return;
+                    }
+                }
+                // Fallback: modo manual prellenado
+                switchModoProduccion('manual');
+                // Preseleccionar equipo visualmente
+                renderEquipmentSelector();
+                // Precargar OP
+                const numOpEl = document.getElementById('numeroOP');
+                if (numOpEl && plan.numeroOP) numOpEl.value = plan.numeroOP;
+                // Precargar producto/componente
+                const prodSel = document.getElementById('productoSelect');
+                if (prodSel && plan.componente) {
+                    const opts = Array.from(prodSel.options);
+                    const match = opts.find(o => o.text.toLowerCase().includes(plan.componente.toLowerCase()) || plan.componente.toLowerCase().includes(o.text.toLowerCase()));
+                    if (match) prodSel.value = match.value;
+                }
+                // Precargar kg
+                const kgEl = document.getElementById('kgProgramados');
+                if (kgEl && plan.kgProgramados) kgEl.value = plan.kgProgramados;
+            }, 350);
+        }
 
         function iniciarCronometroGantt() {
             if (ganttCronometroTimer) clearInterval(ganttCronometroTimer);
