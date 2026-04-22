@@ -5793,7 +5793,6 @@ function imprimirRegistroHACCPAbatimiento(d) {
 </body>
 </html>`;
   _imprimirContenido(html);
-  ventana.onload = () => { ventana.focus(); };
 }
 
 
@@ -6310,7 +6309,6 @@ ${d.acc ? `
 </body>
 </html>`;
   _imprimirContenido(html);
-  ventana.onload = () => { ventana.focus(); };
 }
 
 
@@ -7779,7 +7777,7 @@ function imprimirRegistroHACCP(d) {
   </thead>
   <tbody>
     ${filaIngredientes}
-    ${Array(Math.max(0, 5 - d.ingredientes.length)).fill('<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>').join('')}
+    ${Array(Math.max(0, 5 - (d.ingredientes || []).length)).fill('<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>').join('')}
   </tbody>
 </table>
 
