@@ -11296,6 +11296,7 @@ function imprimirRegistroHACCP(d) {
             localStorage.setItem('mes_procesosAbatimiento', JSON.stringify(procesosAbatimiento));
             localStorage.setItem('mes_historialPorFecha', JSON.stringify(historialPorFecha));
             localStorage.setItem('mes_historial_backup_ts', new Date().toISOString());
+            localStorage.setItem('mes_equipos_ts', new Date().toISOString());
             
             // Sincronizar con Firebase
             sincronizarFirebase();
@@ -11833,8 +11834,12 @@ function limpiarComponentesFriosDeEquipos() {
                         renderAbatimiento();
                     }
 
-                    // Equipos: SIEMPRE sincronizar (dashboard debe reflejar producción en tiempo real)
-                    if (data.equipos && data.equipos.length > 0) {
+                    // Equipos: sincronizar solo si Firebase es más reciente que el estado local
+                    // Evita que un snapshot atrasado pise cambios recientes (ej: reset manual de equipo)
+                    const _tsFirebase = data.ultimaActualizacion ? new Date(data.ultimaActualizacion).getTime() : 0;
+                    const _tsLocal = localStorage.getItem('mes_equipos_ts') ? new Date(localStorage.getItem('mes_equipos_ts')).getTime() : 0;
+                    const _firebaseEsMasReciente = _tsFirebase > _tsLocal;
+                    if (data.equipos && data.equipos.length > 0 && _firebaseEsMasReciente) {
                         const equiposBase = equipos;
                         equipos = equiposBase.map(eqBase => {
                             const eqFirebase = data.equipos.find(e => e.id === eqBase.id);
