@@ -22413,6 +22413,80 @@ function apRenderCocina() {
         </div>`;
     }).join('');
 
+    // ── Generar HTML de Rendimiento Aprendido (sin template literals anidados) ──
+    const _rendAprendido = _apCalcularRendimientoAprendido();
+    const _prepsList = Object.values(_rendAprendido).sort((a,b) => b.ops.length - a.ops.length);
+
+    function _apFilaRendimiento(prep, idx) {
+        const ops = prep.ops;
+        const nOps = ops.length;
+        const kgProgTotal = ops.reduce(function(s,o){ return s + o.kgProg; }, 0);
+        const opsCoccion = ops.filter(function(o){ return o.rendCoccion > 0; });
+        const opsTotal   = ops.filter(function(o){ return o.rendTotal   > 0; });
+        const avgRendCoccion = opsCoccion.length > 0
+            ? opsCoccion.reduce(function(s,o){ return s+o.rendCoccion; }, 0) / opsCoccion.length : null;
+        const avgRendTotal = opsTotal.length > 0
+            ? opsTotal.reduce(function(s,o){ return s+o.rendTotal; }, 0) / opsTotal.length : null;
+        const confianza    = nOps >= 5 ? '🟢' : nOps >= 2 ? '🟡' : '🔴';
+        const confianzaTxt = nOps >= 5 ? 'Alta' : nOps >= 2 ? 'Media' : 'Baja';
+        const sugerido     = avgRendTotal !== null ? avgRendTotal.toFixed(1) + '%'
+                           : avgRendCoccion !== null ? avgRendCoccion.toFixed(1) + '%' : '—';
+        const bgRow = idx % 2 === 0 ? 'white' : '#f9fafb';
+        const colorCoc = avgRendCoccion !== null
+            ? (avgRendCoccion>=95?'#10b981':avgRendCoccion>=85?'#f59e0b':'#ef4444') : '';
+        const colorTot = avgRendTotal !== null
+            ? (avgRendTotal>=70?'#10b981':avgRendTotal>=50?'#f59e0b':'#ef4444') : '';
+        const celCoc = avgRendCoccion !== null
+            ? '<span style="font-weight:700;color:'+colorCoc+'">'+avgRendCoccion.toFixed(1)+'%</span>'
+            : '<span style="color:#9ca3af;">—</span>';
+        const celTot = avgRendTotal !== null
+            ? '<span style="font-weight:700;color:'+colorTot+'">'+avgRendTotal.toFixed(1)+'%</span>'
+            : '<span style="color:#9ca3af;">—</span>';
+        return '<tr style="background:'+bgRow+';border-bottom:1px solid #f3f4f6;">'
+            + '<td style="padding:.6rem 1rem;font-weight:600;color:#1f2937;">'+prep.nombre+'</td>'
+            + '<td style="text-align:center;padding:.6rem .75rem;">'
+            +   '<span style="font-weight:700;color:#374151;">'+nOps+'</span>'
+            +   '<span style="font-size:.68rem;color:#9ca3af;margin-left:.25rem;">'+confianza+' '+confianzaTxt+'</span>'
+            + '</td>'
+            + '<td style="text-align:center;padding:.6rem .75rem;color:#374151;">'+kgProgTotal.toFixed(1)+' kg</td>'
+            + '<td style="text-align:center;padding:.6rem .75rem;">'+celCoc+'</td>'
+            + '<td style="text-align:center;padding:.6rem .75rem;">'+celTot+'</td>'
+            + '<td style="text-align:center;padding:.6rem .75rem;">'
+            +   '<span style="background:#d1fae5;color:#065f46;font-weight:700;padding:.2rem .6rem;border-radius:6px;font-size:.82rem;">'+sugerido+'</span>'
+            + '</td>'
+            + '</tr>';
+    }
+
+    let rendimientoAprendidoHTML = '';
+    if (_prepsList.length > 0) {
+        let filasHTML = '';
+        _prepsList.forEach(function(prep, idx){ filasHTML += _apFilaRendimiento(prep, idx); });
+        rendimientoAprendidoHTML = '<div style="margin-top:2rem;">'
+            + '<div style="font-size:.82rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.75rem;">'
+            +   '🧠 Rendimiento Aprendido por Preparación'
+            +   '<span style="font-weight:400;font-size:.73rem;color:#9ca3af;"> — Calculado automáticamente desde el historial productivo</span>'
+            + '</div>'
+            + '<div style="background:white;border-radius:14px;border:1px solid #e5e7eb;overflow:hidden;">'
+            +   '<table style="width:100%;border-collapse:collapse;font-size:.82rem;">'
+            +     '<thead><tr style="background:#f8fafc;border-bottom:2px solid #e5e7eb;">'
+            +       '<th style="text-align:left;padding:.65rem 1rem;font-weight:700;color:#374151;">Preparación</th>'
+            +       '<th style="text-align:center;padding:.65rem .75rem;font-weight:700;color:#374151;">OPs</th>'
+            +       '<th style="text-align:center;padding:.65rem .75rem;font-weight:700;color:#374151;">Kg prog. total</th>'
+            +       '<th style="text-align:center;padding:.65rem .75rem;font-weight:700;color:#374151;">Rend. cocción prom.</th>'
+            +       '<th style="text-align:center;padding:.65rem .75rem;font-weight:700;color:#374151;">Rend. total prom.</th>'
+            +       '<th style="text-align:center;padding:.65rem .75rem;font-weight:700;color:#10b981;">✅ Sugerido p/receta</th>'
+            +     '</tr></thead>'
+            +     '<tbody>' + filasHTML + '</tbody>'
+            +   '</table>'
+            +   '<div style="padding:.65rem 1rem;background:#f8fafc;border-top:1px solid #e5e7eb;font-size:.72rem;color:#9ca3af;">'
+            +     '🟢 Alta confianza (5+ OPs) &nbsp;·&nbsp; 🟡 Media (2-4 OPs) &nbsp;·&nbsp; 🔴 Baja (1 OP) &nbsp;·&nbsp;'
+            +     '<strong>Rend. cocción</strong> = kg cocidos / kg programados &nbsp;·&nbsp;'
+            +     '<strong>Rend. total</strong> = kg finales abatimiento / kg programados'
+            +   '</div>'
+            + '</div>'
+            + '</div>';
+    }
+
     cont.innerHTML = `
         <!-- KPIs globales cocina -->
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin-bottom:1.25rem;">
@@ -22453,7 +22527,64 @@ function apRenderCocina() {
             🔬 Análisis por Preparación <span style="font-weight:400;font-size:.75rem;color:#9ca3af;">— Las proteínas aparecen primero</span>
         </div>
         ${productosHTML}
+        ${rendimientoAprendidoHTML}
     `;
+}
+
+// ── Rendimiento Aprendido desde procesosAbatimiento ──
+function _apCalcularRendimientoAprendido() {
+    // Agrupar todos los procesos de abatimiento por componente
+    const porPrep = {};
+
+    (procesosAbatimiento || []).forEach(p => {
+        const nombre = (p.componente || p.producto || '').trim().toUpperCase();
+        if (!nombre) return;
+        const kgProg = parseFloat(p.kgProgramados || 0);
+        const kgReal = parseFloat(p.kgReales || 0);
+        // kg finales = suma de tandas de este proceso
+        const kgFinalTandas = (p.tandas || []).reduce((s, t) => s + parseFloat(t.kg || 0), 0);
+        const kgFinal = kgFinalTandas > 0 ? kgFinalTandas : parseFloat(p.kgAbatimiento || 0);
+
+        if (!porPrep[nombre]) porPrep[nombre] = { nombre: p.componente || p.producto, ops: [] };
+        if (kgProg > 0) {
+            porPrep[nombre].ops.push({
+                op: p.numeroOP || '—',
+                fecha: (p.inicioAbatimiento || p.inicio || '').split('T')[0],
+                kgProg,
+                kgReal,
+                kgFinal,
+                rendCoccion: kgReal > 0 ? (kgReal / kgProg * 100) : 0,
+                rendTotal:   kgFinal > 0 ? (kgFinal / kgProg * 100) : 0
+            });
+        }
+    });
+
+    // También incorporar historial finalizado que tenga kgProgramados reales
+    Object.values(historialPorFecha || {}).flat().forEach(h => {
+        if (!h.kgProgramados || !h.kgFinales) return;
+        if (h.tipoRegistro === 'rescate-cocina') return; // excluir registros manuales incompletos
+        const nombre = (h.componente || h.producto || '').trim().toUpperCase();
+        if (!nombre) return;
+        if (!porPrep[nombre]) porPrep[nombre] = { nombre: h.componente || h.producto, ops: [] };
+        const kgProg  = parseFloat(h.kgProgramados || 0);
+        const kgReal  = parseFloat(h.kgReales || 0);
+        const kgFinal = parseFloat(h.kgFinales || 0);
+        if (kgProg > 0) {
+            // evitar duplicados por OP
+            const yaExiste = porPrep[nombre].ops.some(o => String(o.op) === String(h.numeroOP));
+            if (!yaExiste) {
+                porPrep[nombre].ops.push({
+                    op: h.numeroOP || '—',
+                    fecha: h.fecha || h.fechaISO || '—',
+                    kgProg, kgReal, kgFinal,
+                    rendCoccion: kgReal > 0 ? (kgReal / kgProg * 100) : 0,
+                    rendTotal:   kgFinal > 0 ? (kgFinal / kgProg * 100) : 0
+                });
+            }
+        }
+    });
+
+    return porPrep;
 }
 
 function apRenderEnvasado() {
