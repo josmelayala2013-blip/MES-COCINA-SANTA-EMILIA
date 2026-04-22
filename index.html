@@ -8586,6 +8586,36 @@ function imprimirRegistroHACCP(d) {
         // ENVASADO POR TANDAS
         // ============================================
 
+        // ── Auxiliar: para procesos agrupados, retorna qué OP está envasando ahora ──
+        function _opActivaEnAgrupado(proceso) {
+            if (!proceso.esAgrupado || !proceso.componentesAgrupados?.length) return null;
+            const comps = proceso.componentesAgrupados;
+            // Kg ya envasados por OP (según opNumero asignado a cada tanda)
+            const kgPorOP = {};
+            comps.forEach(c => { kgPorOP[c.opNumero] = 0; });
+            (proceso.tandas || []).forEach(t => {
+                if (t.opNumero) kgPorOP[t.opNumero] = (kgPorOP[t.opNumero] || 0) + (t.kg || 0);
+            });
+            // Encontrar la primera OP que aún no está completa
+            for (const c of comps) {
+                const envasado = kgPorOP[c.opNumero] || 0;
+                if (envasado < c.kg - 0.1) {
+                    return {
+                        opNumero: c.opNumero,
+                        opNombre: c.opNombre,
+                        opId:     c.opId,
+                        nombre:   c.nombre,
+                        kgTotal:  c.kg,
+                        kgEnvasado: envasado,
+                        kgPendiente: Math.max(0, c.kg - envasado),
+                        indice:   comps.indexOf(c),
+                        total:    comps.length
+                    };
+                }
+            }
+            return null; // todas completadas
+        }
+
         function abrirRegistrarTanda(index) {
             const proceso = procesosEnvasado[index];
             procesoActual = index;
@@ -8599,6 +8629,23 @@ function imprimirRegistroHACCP(d) {
                 typeof item === 'string' ? item : item.nombre
             );
 
+            // ── Para agrupados: calcular OP activa ──
+            const opActiva = _opActivaEnAgrupado(proceso);
+            const bannerAgrupado = opActiva ? `
+                <div style="background:linear-gradient(135deg,#7c3aed,#5b21b6);border-radius:10px;padding:.9rem 1rem;margin-bottom:1rem;color:white;">
+                    <div style="font-size:.72rem;font-weight:700;opacity:.8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.25rem;">
+                        📋 Orden de Producción activa — ${opActiva.indice+1} de ${opActiva.total}
+                    </div>
+                    <div style="font-size:1.05rem;font-weight:800;">OP ${opActiva.opNumero} — ${opActiva.nombre}</div>
+                    <div style="font-size:.82rem;opacity:.9;margin-top:.2rem;">${opActiva.opNombre}</div>
+                    <div style="display:flex;gap:1.5rem;margin-top:.5rem;font-size:.82rem;">
+                        <span>Total OP: <strong>${opActiva.kgTotal.toFixed(1)} kg</strong></span>
+                        <span>Ya envasado: <strong>${opActiva.kgEnvasado.toFixed(1)} kg</strong></span>
+                        <span style="background:rgba(255,255,255,.2);border-radius:6px;padding:.1rem .5rem;">Pendiente: <strong>${opActiva.kgPendiente.toFixed(1)} kg</strong></span>
+                    </div>
+                    ${opActiva.indice < opActiva.total - 1 ? `<div style="font-size:.72rem;opacity:.75;margin-top:.4rem;">⚡ Al completar esta OP pasará automáticamente a la siguiente</div>` : '<div style="font-size:.72rem;opacity:.75;margin-top:.4rem;">✅ Esta es la última OP del grupo</div>'}
+                </div>` : '';
+
             document.getElementById('contenidoModalTanda').innerHTML = `
                 <div style="background:#f5f3ff;border-radius:10px;padding:.85rem;margin-bottom:1.25rem;font-size:.85rem;color:#5b21b6;">
                     <strong>📦 ${proceso.producto}</strong> · OP ${proceso.numeroOP}<br>
@@ -8606,18 +8653,7 @@ function imprimirRegistroHACCP(d) {
                     Ya envasado: <strong>${kgEnvasados.toFixed(1)} kg</strong> ·
                     Pendiente: <strong style="color:#dc2626;">${kgPendientes.toFixed(1)} kg</strong>
                 </div>
-                ${proceso.esAgrupado && proceso.componentesAgrupados?.length > 1 ? `
-                <div style="background:#faf5ff;border-radius:8px;padding:.7rem .85rem;margin-bottom:1.1rem;border:1.5px solid #c4b5fd;">
-                    <div style="font-size:.72rem;font-weight:700;color:#5b21b6;margin-bottom:.5rem;">📋 Desglose por OP — componentes agrupados</div>
-                    <div style="display:flex;flex-wrap:wrap;gap:.4rem;">
-                        ${proceso.componentesAgrupados.map(c => `
-                            <div style="background:white;border-radius:6px;padding:.3rem .65rem;border:1px solid #ddd8fe;font-size:.78rem;">
-                                <span style="font-weight:700;color:#7c3aed;">OP ${c.opNumero}</span>
-                                <span style="color:#1e293b;margin-left:.3rem;">${c.nombre}</span>
-                                <span style="color:#10b981;font-weight:700;margin-left:.3rem;">${c.kg.toFixed(1)} kg</span>
-                            </div>`).join('')}
-                    </div>
-                </div>` : ''}
+                ${bannerAgrupado}
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
                     <div>
                         <label style="font-size:.82rem;font-weight:700;color:#5b21b6;display:block;margin-bottom:.3rem;">👤 Operadora</label>
@@ -8637,7 +8673,7 @@ function imprimirRegistroHACCP(d) {
                     </div>
                     <div>
                         <label style="font-size:.82rem;font-weight:700;color:#5b21b6;display:block;margin-bottom:.3rem;">⚖️ Kg de esta tanda</label>
-                        <input type="number" id="tandaKg" value="${Math.min(kgPendientes, 30)}" step="0.1" min="0.1" oninput="calcularBolsas()"
+                        <input type="number" id="tandaKg" value="${opActiva ? Math.min(opActiva.kgPendiente, 30) : Math.min(kgPendientes, 30)}" step="0.1" min="0.1" oninput="calcularBolsas()"
                             style="width:100%;padding:.65rem;border-radius:8px;border:2px solid #ddd6fe;font-size:1rem;font-weight:700;box-sizing:border-box;color:#5b21b6;">
                     </div>
                     <div>
@@ -8722,6 +8758,12 @@ function imprimirRegistroHACCP(d) {
             const kgYaEnvasados = (proceso.tandas || []).reduce((s,t) => s+(t.kg||0), 0);
             const esUltimaTanda = (kgYaEnvasados + kg) >= (proceso.kgReales || 0) - 0.5;
 
+            // ── Para agrupados: determinar a qué OP pertenece esta tanda ──
+            const opActivaAhora = _opActivaEnAgrupado(proceso);
+            const opNumeroTanda = opActivaAhora ? opActivaAhora.opNumero : (proceso.numeroOP || '');
+            const opIdTanda     = opActivaAhora ? opActivaAhora.opId     : (proceso.opVinculadaId || null);
+            const opNombreTanda = opActivaAhora ? opActivaAhora.opNombre : '';
+
             // T° inicio solo en primera tanda
             const tempInicio = document.getElementById('tandaTempInicio')?.value;
             if (esPrimeraTanda && tempInicio) {
@@ -8731,7 +8773,6 @@ function imprimirRegistroHACCP(d) {
             // T° final — se puede registrar en cualquier tanda, OBLIGATORIA en la última
             const tempFin = document.getElementById('tandaTempFin')?.value;
             if (esUltimaTanda && !tempFin) {
-                // Mostrar popup de alerta — no guardar sin temperatura
                 _mostrarAlertaTempFinal(procesoActual);
                 return;
             }
@@ -8755,7 +8796,11 @@ function imprimirRegistroHACCP(d) {
                 takTime, operadora, obs,
                 tempInicio: esPrimeraTanda ? tempInicio : null,
                 tempFin: tempFin || null,
-                creadaEn: ahora.toLocaleString('es-CL')
+                creadaEn: ahora.toLocaleString('es-CL'),
+                // ── Campo clave para agrupados ──
+                opNumero: opNumeroTanda,
+                opId:     opIdTanda,
+                opNombre: opNombreTanda
             };
 
             if (!proceso.tandas) proceso.tandas = [];
@@ -8763,6 +8808,71 @@ function imprimirRegistroHACCP(d) {
 
             // Actualizar operadoraCierre con la operadora de esta tanda (siempre la más reciente)
             proceso.operadoraCierre = operadora;
+
+            // ── Para agrupados: verificar si se completó una OP con esta tanda ──
+            if (proceso.esAgrupado && proceso.componentesAgrupados?.length > 1 && opActivaAhora) {
+                const kgPorOPAhora = {};
+                proceso.componentesAgrupados.forEach(c => { kgPorOPAhora[c.opNumero] = 0; });
+                proceso.tandas.forEach(t => {
+                    if (t.opNumero) kgPorOPAhora[t.opNumero] = (kgPorOPAhora[t.opNumero] || 0) + (t.kg || 0);
+                });
+                const compActiva = proceso.componentesAgrupados.find(c => c.opNumero === opActivaAhora.opNumero);
+                const kgOPAhora = kgPorOPAhora[opActivaAhora.opNumero] || 0;
+                const opCompletada = compActiva && kgOPAhora >= compActiva.kg - 0.1;
+
+                if (opCompletada) {
+                    // Generar historial de producción separado para esta OP
+                    const _fechaHoy = new Date().toISOString().split('T')[0];
+                    if (!historialPorFecha[_fechaHoy]) historialPorFecha[_fechaHoy] = [];
+                    historialPorFecha[_fechaHoy].push({
+                        componente:   compActiva.nombre,
+                        producto:     `${opActivaAhora.opNombre} — OP ${compActiva.opNumero}`,
+                        numeroOP:     String(compActiva.opNumero),
+                        opVinculadaId: opIdTanda,
+                        equipoNombre: proceso.equipoNombre || '—',
+                        operador:     operadora,
+                        kgProgramados: compActiva.kg,
+                        kgReales:     compActiva.kg,
+                        kgFinales:    kgOPAhora,
+                        finEnvasado:  ahora.toISOString(),
+                        fechaISO:     _fechaHoy,
+                        _esSubOP:     true
+                    });
+
+                    // Generar HACCP envasado separado para esta OP
+                    const tandasOP = proceso.tandas.filter(t => t.opNumero === compActiva.opNumero);
+                    const primeraTemp = tandasOP.find(t => t.tempInicio)?.tempInicio || proceso.tempInicioEnvasado || '';
+                    const ultimaTemp  = tandasOP.slice().reverse().find(t => t.tempFin)?.tempFin || proceso.tempFinEnvasado || '';
+                    if (typeof guardarEnHistorialHACCP === 'function') {
+                        guardarEnHistorialHACCP('envasado', {
+                            lote:         `${_fechaHoy}-OP${compActiva.opNumero}`,
+                            fecha:        ahora.toLocaleDateString('es-CL'),
+                            responsable:  operadora,
+                            preparacion:  `${compActiva.nombre} (Agrupado)`,
+                            op:           String(compActiva.opNumero),
+                            equipoOrigen: proceso.equipoNombre || '—',
+                            cantidad:     kgOPAhora.toFixed(1),
+                            merma:        '0',
+                            formato:      formato,
+                            horaInicio:   tandasOP[0]?.horaInicio || horaInicio,
+                            tempInicio:   primeraTemp,
+                            horaFin:      horaFin,
+                            tempFin:      ultimaTemp,
+                            firmaNombre:  operadora,
+                            firmaTimestamp: ahora.toLocaleString('es-CL'),
+                            _esSubOP:     true
+                        });
+                    }
+
+                    // Notificar que esa OP está completa
+                    const sigComp = proceso.componentesAgrupados[opActivaAhora.indice + 1];
+                    if (sigComp) {
+                        setTimeout(() => mostrarNotificacion(`✅ OP ${compActiva.opNumero} completada (${kgOPAhora.toFixed(1)} kg) → Ahora: OP ${sigComp.opNumero} — ${sigComp.nombre} (${sigComp.kg.toFixed(1)} kg)`, 'success'), 400);
+                    } else {
+                        setTimeout(() => mostrarNotificacion(`✅ Todas las OPs del grupo completadas`, 'success'), 400);
+                    }
+                }
+            }
 
             // Enviar tanda a abatimiento inmediatamente
             const procesoAbat = {
@@ -8777,14 +8887,14 @@ function imprimirRegistroHACCP(d) {
             };
             procesosAbatimiento.push(procesoAbat);
 
-            // Enviar al nuevo módulo de abatimiento con vista 2D
-            // Enriquecer la tanda con producto y OP del proceso de envasado
+            // Enviar al nuevo módulo de abatimiento — para agrupados, usar OP de esta tanda
             if (typeof recibirTandaEnAbatimiento === 'function') {
                 recibirTandaEnAbatimiento({
                     ...tanda,
-                    // Usar componente (ej: "PANINI POLLO PESTO"), no producto que trae "NOMBRE — OP X"
                     producto: proceso.componente || proceso.producto || '—',
-                    numeroOP: proceso.numeroOP || '—'
+                    numeroOP: opNumeroTanda || proceso.numeroOP || '—',
+                    opNombre: opNombreTanda || '',
+                    esSubOP:  proceso.esAgrupado && !!opActivaAhora
                 });
             }
 
