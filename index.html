@@ -7649,7 +7649,7 @@ function generarPDFHACCP() {
 }
 
 function imprimirRegistroHACCP(d) {
-  const filaIngredientes = d.ingredientes.map(ing => `
+  const filaIngredientes = (d.ingredientes || []).map(ing => `
     <tr>
       <td>${ing.nombre}</td>
       <td style="text-align:center;">${ing.cantReal} ${ing.unidad}</td>
