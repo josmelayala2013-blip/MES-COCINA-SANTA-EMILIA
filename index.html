@@ -11833,9 +11833,7 @@ function limpiarComponentesFriosDeEquipos() {
                         renderAbatimiento();
                     }
 
-                    if (!esOtroDispositivo) return;
-
-                    console.log('🔄 estado-actual actualizado desde otro dispositivo...');
+                    // Equipos: SIEMPRE sincronizar (dashboard debe reflejar producción en tiempo real)
                     if (data.equipos && data.equipos.length > 0) {
                         const equiposBase = equipos;
                         equipos = equiposBase.map(eqBase => {
@@ -11845,21 +11843,24 @@ function limpiarComponentesFriosDeEquipos() {
                             }
                             return eqBase;
                         });
+                        recalcularTiemposCoccion();
+                        limpiarEsperasVencidas();
+                        renderEquipos();
+                        updateStats();
+                        if (document.getElementById('gantt')?.classList.contains('active')) {
+                            renderGanttBloques();
+                        }
                     }
-                    recalcularTiemposCoccion();
-                    limpiarEsperasVencidas();
+
+                    if (!esOtroDispositivo) return;
+
+                    console.log('🔄 estado-actual actualizado desde otro dispositivo...');
                     productos = data.productos || productos;
                     planDiario = data.planDiario || {};
 
                     // Refrescar UI módulos afectados
-                    renderEquipos();
                     renderProductosList();
                     renderProcesosActivos();
-                    updateStats();
-                    // Refrescar Gantt si está visible
-                    if (document.getElementById('gantt')?.classList.contains('active')) {
-                        renderGanttBloques();
-                    }
                     mostrarNotificacion('🔄 Dashboard actualizado en tiempo real', 'info');
                 });
 
@@ -14628,6 +14629,8 @@ function changeTabAcond(tab) {
   document.getElementById('btnProduccion')?.classList.add('active');
   // Cambiar tab
   changeTab(tab);
+  // Renderizar historial HACCP del día
+  setTimeout(() => renderHistorialHACCPPreTipo(tab), 300);
   // Inicializar módulo preelaborado
   if (tab === 'carnes' || tab === 'vegetales') {
     initPreelaboradoTab(tab);
@@ -17062,6 +17065,7 @@ function guardarHACCPPreCarnes(preId) {
     renderHACCPPendientesPre('carnes');
   }
   guardarEnHistorialHACCP('carnes', {...pre.haccp, preparacion: pre.ingrediente});
+  renderHistorialHACCPPreTipo('carnes');
   mostrarToastHACCP('carnes', pre.ingrediente);
   // Ofrecer impresión
   if (confirm('¿Deseas imprimir el registro HACCP ahora?')) {
@@ -17408,6 +17412,7 @@ function guardarHACCPPreVegetales(preId) {
     renderHACCPPendientesPre('vegetales');
   }
   guardarEnHistorialHACCP('vegetales', {...pre.haccp, preparacion: pre.ingrediente});
+  renderHistorialHACCPPreTipo('vegetales');
   mostrarToastHACCP('vegetales', pre.ingrediente);
   if (confirm('¿Deseas imprimir el registro HACCP ahora?')) {
     imprimirHACCPPreVegetales(pre);
@@ -17526,6 +17531,54 @@ function imprimirHACCPPreVegetales(pre) {
   </div>
 </div>
 </body></html>`);
+}
+
+function renderHistorialHACCPPreTipo(tipo) {
+  const hoy = new Date().toISOString().split('T')[0];
+  const panelId = tipo === 'carnes' ? 'historialHACCPCarnes' : 'historialHACCPVegetales';
+  const listaId = tipo === 'carnes' ? 'listaHistorialHACCPCarnes' : 'listaHistorialHACCPVegetales';
+  const color   = tipo === 'carnes' ? '#991b1b' : '#065f46';
+  const icono   = tipo === 'carnes' ? '🥩' : '🥗';
+  const panel   = document.getElementById(panelId);
+  const lista   = document.getElementById(listaId);
+  if (!panel || !lista) return;
+
+  const regs = (window._getRegistrosHACCP ? window._getRegistrosHACCP() : registrosHACCPHistorial)
+    .filter(r => r.tipo === tipo && r.fechaISO === hoy);
+
+  if (regs.length === 0) {
+    panel.style.display = 'none';
+    return;
+  }
+
+  panel.style.display = 'block';
+  lista.innerHTML = regs.map(r => {
+    const d = r.datos || {};
+    return `
+    <div style="background:white;border-radius:10px;padding:.85rem 1rem;margin-bottom:.6rem;border:1px solid ${tipo==='carnes'?'#fca5a5':'#86efac'};display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem;">
+      <div>
+        <div style="font-weight:700;color:#1e293b;font-size:.9rem;">${icono} ${r.producto || d.preparacion || '—'}</div>
+        <div style="font-size:.75rem;color:#64748b;margin-top:.15rem;">
+          OP: ${r.op || '—'} · ${d.kgNeto||d.kgBruto ? `${d.kgNeto||'—'} kg neto` : ''} · 👤 ${r.responsable || '—'}
+        </div>
+        <div style="font-size:.72rem;color:#94a3b8;margin-top:.1rem;">✅ Firmado ${r.firmadoEn || ''}</div>
+      </div>
+      <button onclick="imprimirHACCPHistorialPre('${r.id}','${tipo}')"
+        style="background:${color};color:white;border:none;border-radius:7px;padding:.35rem .8rem;cursor:pointer;font-size:.78rem;font-weight:700;">
+        🖨️ Imprimir
+      </button>
+    </div>`;
+  }).join('');
+}
+
+function imprimirHACCPHistorialPre(id, tipo) {
+  const regs = window._getRegistrosHACCP ? window._getRegistrosHACCP() : registrosHACCPHistorial;
+  const r = regs.find(x => x.id === id);
+  if (!r) return;
+  // Reconstruir el objeto pre mínimo para la función de impresión existente
+  const pre = { ingrediente: r.producto || r.datos?.preparacion || '—', haccp: r.datos || {} };
+  if (tipo === 'carnes') imprimirHACCPPreCarnes(pre);
+  else imprimirHACCPPreVegetales(pre);
 }
 
 function mostrarToastHACCP(tipo, ingrediente) {
