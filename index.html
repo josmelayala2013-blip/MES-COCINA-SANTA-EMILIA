@@ -7797,10 +7797,10 @@ function imprimirRegistroHACCP(d) {
   <div class="bloque">
     <div class="bloque-titulo">⑰ Aspectos de Calidad Final</div>
     <div class="calidad-grid">
-      <div class="calidad-item"><span>Aus. Elem. Ext.</span><strong>${d.calidad.ausExt}</strong></div>
-      <div class="calidad-item"><span>Aroma</span><strong>${d.calidad.aroma}</strong></div>
-      <div class="calidad-item"><span>Color</span><strong>${d.calidad.color}</strong></div>
-      <div class="calidad-item"><span>Textura</span><strong>${d.calidad.textura}</strong></div>
+      <div class="calidad-item"><span>Aus. Elem. Ext.</span><strong>${(d.calidad||{}).ausExt||'—'}</strong></div>
+      <div class="calidad-item"><span>Aroma</span><strong>${(d.calidad||{}).aroma||'—'}</strong></div>
+      <div class="calidad-item"><span>Color</span><strong>${(d.calidad||{}).color||'—'}</strong></div>
+      <div class="calidad-item"><span>Textura</span><strong>${(d.calidad||{}).textura||'—'}</strong></div>
     </div>
   </div>
   <div class="bloque">
