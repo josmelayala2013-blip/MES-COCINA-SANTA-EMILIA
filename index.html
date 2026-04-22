@@ -14539,8 +14539,8 @@ function mostrarPrepsFriasEnDashboard(preps) {
   const prepsPendientes = preps.filter(p => !p.completada);
   if (prepsPendientes.length === 0) { panel.style.display = 'none'; return; }
 
-  lista.innerHTML = prepsPendientes.map((p, i) => {
-    const idKey = `frioTimer_${i}_${(p.componente||'').replace(/[^a-zA-Z0-9]/g,'_')}`;
+  lista.innerHTML = prepsPendientes.map((p) => {
+    const idKey = `frioTimer_${(p.componente||'').replace(/[^a-zA-Z0-9]/g,'_')}_${(p.numeroOP||'').replace(/[^a-zA-Z0-9]/g,'_')}`;
     if (p.conTimer) {
       return `
       <div style="background:white;border-radius:10px;padding:.85rem;border-left:3px solid #0891b2;" id="card_${idKey}">
@@ -14552,11 +14552,15 @@ function mostrarPrepsFriasEnDashboard(preps) {
         <div style="font-size:.72rem;color:#64748b;margin-bottom:.5rem;">⏱ ${p.tiempoCoccionMin||0} min estimados</div>
         <div id="timer_${idKey}" style="font-size:1.4rem;font-weight:800;color:#0891b2;text-align:center;margin-bottom:.5rem;display:none;">00:00:00</div>
         <div style="display:flex;gap:.5rem;">
-          <button id="btnIniciar_${idKey}" onclick="iniciarTimerFrioCon('${idKey}',${p.tiempoCoccionMin||0},'${p.componente}','${p.numeroOP}')"
+          <button id="btnIniciar_${idKey}"
+            data-idkey="${idKey}" data-durmin="${p.tiempoCoccionMin||0}" data-comp="${p.componente}" data-op="${p.numeroOP}"
+            onclick="iniciarTimerFrioCon(this.dataset.idkey, Number(this.dataset.durmin), this.dataset.comp, this.dataset.op)"
             style="flex:1;padding:.45rem;background:linear-gradient(135deg,#0891b2,#06b6d4);color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.82rem;">
             ▶ Iniciar
           </button>
-          <button id="btnFinalizar_${idKey}" onclick="finalizarTimerFrioCon('${idKey}','${p.componente}','${p.numeroOP}','${p.opNombre}',${p.kgProgramados})"
+          <button id="btnFinalizar_${idKey}"
+            data-idkey="${idKey}" data-comp="${p.componente}" data-op="${p.numeroOP}" data-opnombre="${(p.opNombre||'').replace(/"/g,'&quot;')}" data-kg="${p.kgProgramados}"
+            onclick="finalizarTimerFrioCon(this.dataset.idkey, this.dataset.comp, this.dataset.op, this.dataset.opnombre, Number(this.dataset.kg))"
             style="flex:1;padding:.45rem;background:linear-gradient(135deg,#059669,#10b981);color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.82rem;display:none;">
             ✅ Finalizar
           </button>
@@ -14699,6 +14703,9 @@ function _confirmarFinPrepFria() {
   const modal = document.getElementById('_modalFinPrepFria');
   if (modal) modal.style.display = 'none';
 
+  // ── idKey estable (mismo que usa mostrarPrepsFriasEnDashboard) ──
+  const idKeyEstable = `frioTimer_${(ctx.componente||'').replace(/[^a-zA-Z0-9]/g,'_')}_${(String(ctx.op)||'').replace(/[^a-zA-Z0-9]/g,'_')}`;
+
   // ── Crear pendiente HACCP ──
   const pendiente = {
     id: Date.now().toString(),
@@ -14728,6 +14735,30 @@ function _confirmarFinPrepFria() {
   if (typeof guardarHACCPPendientes === 'function') guardarHACCPPendientes();
   if (typeof renderHACCPPendientes === 'function') renderHACCPPendientes();
 
+  // ── Guardar en historial HACCP cocina (Firebase) ──
+  if (typeof guardarEnHistorialHACCP === 'function') {
+    guardarEnHistorialHACCP('cocina', {
+      preparacion:    ctx.componente,
+      op:             String(ctx.op),
+      fecha:          new Date().toLocaleDateString('es-CL'),
+      fechaISO:       new Date().toISOString().split('T')[0],
+      lote:           pendiente.id,
+      kgFinales:      ctx.kg,
+      kgProgramados:  ctx.kg,
+      kgReales:       ctx.kg,
+      equipo:         '❄️ Preparación Fría',
+      equipoNombre:   '❄️ Preparación Fría',
+      operador:       manipulador || '—',
+      horaInicio:     ctx.horaInicioStr,
+      horaTermino:    ctx.horaFinStr,
+      tiempoCoccionFormateado: ctx.tiempoFormateado,
+      firmaNombre:    manipulador || '—',
+      firmaTimestamp: `${new Date().toLocaleDateString('es-CL')} ${ctx.horaFinStr}`,
+      esPrepFria:     true,
+      origen:         'Preparación Fría'
+    });
+  }
+
   // ── Pasar a Envasado si corresponde ──
   if (irEnvasado) {
     const procesoEnv = {
@@ -14753,7 +14784,7 @@ function _confirmarFinPrepFria() {
     mostrarNotificacion(`❄️ ${ctx.componente} pasó a Envasado`, 'success');
   }
 
-  // ── Agregar al historial de producción (para kg del día) ──
+  // ── Agregar al historial de producción (para kg del día y análisis) ──
   const _fechaHoy = new Date().toISOString().split('T')[0];
   if (!historialPorFecha[_fechaHoy]) historialPorFecha[_fechaHoy] = [];
   historialPorFecha[_fechaHoy].push({
@@ -14763,6 +14794,7 @@ function _confirmarFinPrepFria() {
     equipoNombre: '❄️ Preparación Fría',
     operador: manipulador || '—',
     kgProgramados: ctx.kg,
+    kgReales: ctx.kg,
     kgFinales: ctx.kg,
     inicio: ctx.inicio.toISOString(),
     finCoccion: ctx.fin.toISOString(),
@@ -14773,17 +14805,20 @@ function _confirmarFinPrepFria() {
   guardarDatos();
   updateStats();
 
-  // ── Marcar como completada en _prepsFriasJornada para que no vuelva a aparecer ──
+  // ── Marcar como completada en _prepsFriasJornada (por componente + numeroOP) ──
   if (window._prepsFriasJornada) {
     window._prepsFriasJornada = window._prepsFriasJornada.map(pf =>
-      pf.idKey === ctx.idKey ? { ...pf, completada: true } : pf
+      (pf.componente === ctx.componente && String(pf.numeroOP) === String(ctx.op))
+        ? { ...pf, completada: true }
+        : pf
     );
     localStorage.setItem('mes_prepsFriasJornada', JSON.stringify(window._prepsFriasJornada));
   }
 
   // ── Actualizar card en dashboard ──
-  delete window._timersFrioCon[ctx.idKey];
-  const card = document.getElementById('card_' + ctx.idKey);
+  delete window._timersFrioCon[idKeyEstable];
+  delete window._timersFrioCon[ctx.idKey]; // compatibilidad
+  const card = document.getElementById('card_' + idKeyEstable) || document.getElementById('card_' + ctx.idKey);
   if (card) {
     card.style.borderColor = '#10b981';
     card.style.background = '#f0fdf4';
