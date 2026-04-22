@@ -21726,8 +21726,6 @@ async function apActualizar() {
                     });
                 }
                 if (data.procesosAbatimiento) procesosAbatimiento = data.procesosAbatimiento;
-                console.log('🔧 AP DEBUG — Equipos desde Firebase:', (data.equipos||[]).map(e => ({id:e.id, nombre:e.nombre||'?', estado:e.estado, tieneProduccion:!!e.produccion})));
-                console.log('❄️ AP DEBUG — procesosAbatimiento:', data.procesosAbatimiento?.length || 0, JSON.stringify(data.procesosAbatimiento||[]));
             }
             const snapPT = await getDoc(doc(window.db, 'mes-data', 'control-pt'));
             if (snapPT.exists()) {
@@ -21755,9 +21753,6 @@ async function apActualizar() {
                 historialPorFecha = merged;
                 localStorage.setItem('mes_historialPorFecha', JSON.stringify(historialPorFecha));
                 console.log('✅ AP: historial cocina cargado —', Object.keys(merged).length, 'fechas');
-                console.log('📅 AP DEBUG — Claves en historial:', Object.keys(merged));
-                console.log('📅 AP DEBUG — Registros hoy (2026-04-21):', merged['2026-04-21'] || merged['26-04-21'] || 'VACÍO');
-                console.log('📅 AP DEBUG — Todos los registros:', JSON.stringify(merged, null, 2));
             }
 
         } catch(e) { console.warn('AP: error cargando Firebase:', e.message); }
@@ -21797,7 +21792,7 @@ function apRenderCocina() {
     const registros = [];
     fechas.forEach(f => {
         _apBuscarFecha(f).forEach(h => {
-            if (h.kgProgramados || h.kgReales) {
+            if (h.kgProgramados || h.kgReales || h.kgFinales) {
                 registros.push({ ...h, _fecha: f, _estado: 'finalizado' });
             }
         });
@@ -21808,7 +21803,7 @@ function apRenderCocina() {
         const claveNorm = clave.length === 8 ? '20' + clave : clave;
         if (fechas.includes(claveNorm) && !registros.some(r => r._fecha === claveNorm)) {
             (historialPorFecha[clave] || []).forEach(h => {
-                if (h.kgProgramados || h.kgReales) {
+                if (h.kgProgramados || h.kgReales || h.kgFinales) {
                     registros.push({ ...h, _fecha: claveNorm, _estado: 'finalizado' });
                 }
             });
