@@ -21262,6 +21262,43 @@ ${d._ingredientes.map(ing => `<tr>
                 bodegaRegistrarIngreso(proceso);
             }
 
+            // ── ESCRIBIR AL HISTORIAL POR FECHA ──
+            // Este es el paso crítico que registra el kg final en el análisis de cocina
+            const _fechaAbat = getHoy();
+            if (!historialPorFecha[_fechaAbat]) historialPorFecha[_fechaAbat] = [];
+            // Buscar el proceso original en procesosAbatimiento para obtener kgProgramados y kgReales
+            const _procOriginal = procesosAbatimiento.find(p =>
+                String(p.tandaId) === String(asig.tandaId) ||
+                (String(p.numeroOP) === String(asig.numeroOP) && p.esTanda)
+            );
+            const _kgFinalesTanda = asig.kgReales || asig.kg || 0;
+            const _yaExisteEnHistorial = historialPorFecha[_fechaAbat].some(h =>
+                String(h.numeroOP) === String(asig.numeroOP) && String(h.tandaId) === String(asig.tandaId)
+            );
+            if (!_yaExisteEnHistorial && _kgFinalesTanda > 0) {
+                historialPorFecha[_fechaAbat].push({
+                    componente:    asig.producto,
+                    producto:      asig.producto,
+                    numeroOP:      asig.numeroOP,
+                    operador:      asig.operador,
+                    equipo:        EQUIPOS_ABAT[asig.equipoId]?.nombre || asig.equipoId,
+                    fecha:         _fechaAbat,
+                    fechaISO:      _fechaAbat,
+                    kgProgramados: _procOriginal?.kgProgramados || asig.kg || 0,
+                    kgReales:      _procOriginal?.kgReales      || asig.kg || 0,
+                    kgFinales:     _kgFinalesTanda,
+                    tiempoCoccion: _procOriginal?.tiempoCoccion || 0,
+                    tiempoCoccionFormateado: _procOriginal?.tiempoCoccionFormateado || '—',
+                    tandaId:       asig.tandaId || asig.id,
+                    opVinculadaId: asig.opVinculadaId || null,
+                    hora:          new Date().toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'}),
+                    tempSalida:    asig.tempSalida,
+                    esTanda:       true
+                });
+                console.log('✅ Historial escrito para OP', asig.numeroOP, '— kg finales:', _kgFinalesTanda);
+            }
+
+            guardarDatos();
             guardarAbat();
             cerrarModalFinalizarAbatItem();
             renderAbatimiento();
@@ -22156,8 +22193,30 @@ function apRenderCocina() {
     }
 
     // ── Agrupar por componente/producto ──
-    const porProducto = {};
+    // ── Consolidar tandas de la misma OP en un solo registro ──
+    // Evita que múltiples tandas del mismo proceso inflen los kg
+    const _registrosConsolidados = [];
+    const _opVisto = {};
     registros.forEach(h => {
+        const opKey = String(h.numeroOP) + '_' + (h.componente || h.producto || '').trim().toUpperCase();
+        if (h.esTanda && _opVisto[opKey]) {
+            // Acumular kg finales en el registro existente
+            const existente = _registrosConsolidados.find(r =>
+                String(r.numeroOP) === String(h.numeroOP) &&
+                (r.componente || r.producto || '').trim().toUpperCase() === (h.componente || h.producto || '').trim().toUpperCase()
+            );
+            if (existente) {
+                existente.kgFinales = (existente.kgFinales || 0) + (h.kgFinales || 0);
+                return; // no agregar como registro separado
+            }
+        }
+        _opVisto[opKey] = true;
+        _registrosConsolidados.push({ ...h });
+    });
+    const registrosFinales = _registrosConsolidados;
+
+    const porProducto = {};
+    registrosFinales.forEach(h => {
         const key = (h.componente || h.producto || '—').trim().toUpperCase();
         if (!porProducto[key]) {
             porProducto[key] = {
@@ -22197,7 +22256,7 @@ function apRenderCocina() {
 
     // ── Totales globales ──
     let totalKgProg = 0, totalKgReales = 0, totalKgFinales = 0;
-    registros.forEach(h => {
+    registrosFinales.forEach(h => {
         totalKgProg   += parseFloat(h.kgProgramados||0);
         totalKgReales += parseFloat(h.kgReales||0);
         totalKgFinales+= parseFloat(h.kgFinales||0);
@@ -22547,7 +22606,7 @@ function apRenderCocina() {
             </div>
             <div style="background:white;border-radius:10px;border:1px solid #e5e7eb;border-left:4px solid #8b5cf6;padding:1rem;text-align:center;">
                 <div style="font-size:.68rem;font-weight:700;color:#9ca3af;text-transform:uppercase;margin-bottom:.3rem;">Producciones</div>
-                <div style="font-size:1.7rem;font-weight:700;color:#8b5cf6;">${registros.length}</div>
+                <div style="font-size:1.7rem;font-weight:700;color:#8b5cf6;">${registrosFinales.length}</div>
                 <div style="font-size:.7rem;color:#9ca3af;">${Object.keys(porProducto).length} preparación(es)</div>
             </div>
         </div>
