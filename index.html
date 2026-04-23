@@ -11299,20 +11299,17 @@ function imprimirRegistroHACCP(d) {
         // ── Limpia automáticamente equipos con producciones de jornadas anteriores ──
         // Se llama al cargar desde Firebase y en cada onSnapshot
         function _limpiarProduccionesAntiguas() {
-            const hoy = getHoy();
+            const ahora = Date.now();
+            const HORAS_LIMITE = 20; // solo limpiar si tiene más de 20 horas de antigüedad
             let huboCambios = false;
             equipos.forEach(eq => {
                 if (!eq.produccion) return;
-                // Obtener fecha de inicio de la producción
                 const inicioISO = eq.produccion.inicio || eq.produccion.inicioEnvasado || '';
                 if (!inicioISO) return;
-                // Convertir a fecha local (sin depender de UTC)
-                const d = new Date(inicioISO);
-                const fechaProd = d.getFullYear() + '-'
-                    + String(d.getMonth()+1).padStart(2,'0') + '-'
-                    + String(d.getDate()).padStart(2,'0');
-                if (fechaProd < hoy) {
-                    console.warn('🧹 Limpiando equipo con producción de día anterior:', eq.nombre, fechaProd, eq.produccion.producto);
+                const inicioMs = new Date(inicioISO).getTime();
+                const horasTranscurridas = (ahora - inicioMs) / (1000 * 60 * 60);
+                if (horasTranscurridas > HORAS_LIMITE) {
+                    console.warn('🧹 Limpiando equipo con producción de +20h:', eq.nombre, eq.produccion.producto, horasTranscurridas.toFixed(1) + 'h');
                     eq.estado = 'disponible';
                     eq.produccion = null;
                     huboCambios = true;
@@ -11320,7 +11317,7 @@ function imprimirRegistroHACCP(d) {
             });
             if (huboCambios) {
                 guardarDatos();
-                mostrarNotificacion('🧹 Equipos con producciones de ayer limpiados automáticamente', 'info');
+                mostrarNotificacion('🧹 Equipos con producciones antiguas limpiados automáticamente', 'info');
             }
         }
 
