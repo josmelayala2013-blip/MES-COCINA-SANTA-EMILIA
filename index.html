@@ -21285,7 +21285,7 @@ ${d._ingredientes.map(ing => `<tr>
                     fecha:         _fechaAbat,
                     fechaISO:      _fechaAbat,
                     kgProgramados: _procOriginal?.kgProgramados || asig.kg || 0,
-                    kgReales:      _procOriginal?.kgReales      || asig.kg || 0,
+                    kgReales:      _kgFinalesTanda, // kg reales = lo que realmente salió (suma de tandas)
                     kgFinales:     _kgFinalesTanda,
                     tiempoCoccion: _procOriginal?.tiempoCoccion || 0,
                     tiempoCoccionFormateado: _procOriginal?.tiempoCoccionFormateado || '—',
