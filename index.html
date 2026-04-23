@@ -198,9 +198,9 @@
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #111827;
-            color: #333;
+            font-family: 'DM Sans', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #eef2f7;
+            color: #1e293b;
             min-height: 100vh;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
@@ -208,47 +208,132 @@
             flex-direction: column;
         }
 
-        /* ── SIDEBAR ─────────────────────────────────────────── */
+        /* ── GOOGLE FONTS ARQETRA ── */
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap');
+
+        /* ── SIDEBAR ARQETRA v3 ─────────────────────────────── */
         #appSidebar {
-            width: 220px;
-            background: #1f2937;
+            width: 236px;
+            background: #050d1a;
             position: fixed;
             top: 0; left: 0;
             height: 100vh;
             display: flex;
             flex-direction: column;
             z-index: 200;
-            border-right: 1px solid rgba(255,255,255,.06);
+            border-right: 0.5px solid rgba(255,255,255,0.05);
             overflow-y: auto;
+            overflow-x: hidden;
+        }
+        #appSidebar::before {
+            content: '';
+            position: fixed;
+            top: -80px; left: -60px;
+            width: 280px; height: 280px;
+            background: radial-gradient(circle, rgba(0,119,255,0.1) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        #appSidebar::after {
+            content: '';
+            position: fixed;
+            bottom: 0; left: 100px;
+            width: 200px; height: 200px;
+            background: radial-gradient(circle, rgba(0,180,216,0.06) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
         }
         .sb-logo-area {
-            padding: 18px 16px 14px;
-            border-bottom: 1px solid rgba(255,255,255,.07);
+            padding: 18px 18px 14px;
+            border-bottom: 0.5px solid rgba(255,255,255,0.06);
+            position: relative;
+            z-index: 1;
         }
         .sb-logo-area h1 {
-            font-size: 13px !important;
-            font-weight: 700;
-            color: #f9fafb !important;
-            letter-spacing: .04em;
+            font-family: 'Rajdhani', 'Segoe UI', sans-serif !important;
+            font-size: 18px !important;
+            font-weight: 700 !important;
+            color: #ffffff !important;
+            letter-spacing: 3px !important;
             display: flex;
             align-items: center;
-            gap: .4rem;
+            gap: 10px;
+            line-height: 1;
         }
-        .sb-logo-sub { font-size: 10px; color: #6b7280; margin-top: 2px; }
-        .sb-section-title {
-            padding: 10px 14px 3px;
-            font-size: 9px;
-            font-weight: 700;
-            color: #4b5563;
-            letter-spacing: .1em;
+        .sb-logo-mark {
+            width: 34px; height: 34px; flex-shrink: 0;
+        }
+        .sb-logo-sub {
+            font-size: 7.5px;
+            color: #00b4d8;
+            margin-top: 3px;
+            letter-spacing: 4px;
             text-transform: uppercase;
+            opacity: 0.85;
+            font-family: 'DM Sans', sans-serif;
+        }
+        .sb-plant-wrap {
+            padding: 8px 14px;
+            position: relative;
+            z-index: 1;
+        }
+        .sb-plant-box {
+            background: rgba(255,255,255,0.03);
+            border: 0.5px solid rgba(255,255,255,0.08);
+            border-radius: 9px;
+            padding: 9px 12px;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+        }
+        .sb-online-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: #10b981;
+            flex-shrink: 0;
+            box-shadow: 0 0 0 0 rgba(16,185,129,0.4);
+            animation: sb-ping 2s ease-in-out infinite;
+        }
+        @keyframes sb-ping {
+            0%,100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.4); }
+            50% { box-shadow: 0 0 0 5px rgba(16,185,129,0); }
+        }
+        .sb-plant-info { flex: 1; min-width: 0; }
+        .sb-plant-lbl {
+            font-size: 7.5px; letter-spacing: 2.5px;
+            color: rgba(255,255,255,0.22); text-transform: uppercase;
+        }
+        .sb-plant-name {
+            font-size: 11.5px; color: rgba(255,255,255,0.8);
+            font-weight: 400; white-space: nowrap;
+            overflow: hidden; text-overflow: ellipsis;
+            margin-top: 2px;
+        }
+        .sb-section-title {
+            padding: 10px 18px 3px;
+            font-size: 7px;
+            font-weight: 600;
+            color: rgba(255,255,255,0.15);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+            z-index: 1;
+        }
+        .sb-section-title::after {
+            content: '';
+            flex: 1;
+            height: 0.5px;
+            background: rgba(255,255,255,0.06);
         }
         .nav-tabs {
             display: flex;
             flex-direction: column;
-            gap: 1px;
+            gap: 0;
             background: transparent;
-            padding: 0 8px;
+            padding: 0;
             border-radius: 0;
             box-shadow: none;
             flex-wrap: nowrap;
@@ -257,27 +342,20 @@
             z-index: 100;
             margin-bottom: 0;
         }
-        .nav-dropdown {
-            position: relative;
-            display: block;
-        }
+        .nav-dropdown { position: relative; display: block; }
         .nav-dropdown-menu {
             display: none;
             position: static;
-            background: rgba(0,0,0,.2);
+            background: rgba(0,0,0,0.15);
             border-radius: 0;
             box-shadow: none;
             z-index: auto;
             min-width: unset;
             border: none;
-            border-left: 2px solid rgba(220,38,38,.4);
-            padding: .2rem 0 .2rem .5rem;
-            margin: 2px 6px 2px 14px;
+            border-left: 1.5px solid rgba(0,119,255,0.3);
+            padding: .2rem 0 .2rem .4rem;
+            margin: 2px 8px 2px 18px;
             animation: none;
-        }
-        @keyframes dropFadeIn {
-            from { opacity: 0; }
-            to   { opacity: 1; }
         }
         .nav-dropdown-menu.open { display: block; }
         .nav-dropdown-item {
@@ -285,52 +363,60 @@
             align-items: center;
             gap: .5rem;
             width: 100%;
-            padding: .45rem .85rem;
+            padding: .4rem .85rem;
             border: none;
             background: transparent;
             text-align: left;
             cursor: pointer;
-            font-weight: 600;
-            font-size: .78rem;
-            color: #9ca3af;
-            transition: background .15s;
+            font-weight: 400;
+            font-size: .75rem;
+            color: rgba(255,255,255,0.35);
+            transition: all .15s;
             white-space: nowrap;
             box-sizing: border-box;
             border-radius: 5px;
+            font-family: 'DM Sans', sans-serif;
         }
-        .nav-dropdown-item:hover { background: rgba(220,38,38,.15); color: #fca5a5; }
-        .nav-dropdown-item.active { background: rgba(220,38,38,.2); color: #fca5a5; }
+        .nav-dropdown-item:hover { background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.8); }
+        .nav-dropdown-item.active { background: rgba(0,100,255,0.1); color: #fff; font-weight: 500; }
         .nav-tab {
-            padding: .55rem 1rem;
+            padding: .5rem 1rem;
             border: none;
+            border-left: 2px solid transparent;
             background: transparent;
-            border-radius: 7px;
+            border-radius: 0;
             cursor: pointer;
-            font-weight: 600;
-            font-size: .82rem;
-            transition: all .2s;
+            font-weight: 400;
+            font-size: .78rem;
+            transition: all .15s;
             white-space: nowrap;
-            color: #9ca3af;
+            color: rgba(255,255,255,0.35);
             text-align: left;
             width: 100%;
+            font-family: 'DM Sans', sans-serif;
+            letter-spacing: 0.2px;
+            position: relative;
+            z-index: 1;
         }
-        .nav-tab:hover { background: rgba(255,255,255,.06); color: #e5e7eb; }
-        .nav-tab.active { background: rgba(220,38,38,.2); color: #fca5a5; border-left: 3px solid #dc2626; }
+        .nav-tab:hover { background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.7); border-left-color: rgba(255,255,255,0.1); }
+        .nav-tab.active { background: rgba(0,100,255,0.1); color: #fff; font-weight: 500; border-left-color: #0077ff; }
 
-        /* ── TOPBAR ──────────────────────────────────────────── */
+        /* ── TOPBAR ARQETRA v3 ──────────────────────────────── */
         #appTopbar {
             position: fixed;
-            top: 0; left: 220px; right: 0;
-            min-height: 52px;
+            top: 0; left: 236px; right: 0;
+            min-height: 50px;
             height: auto;
-            background: #fff;
-            border-bottom: 2px solid #dc2626;
+            background: rgba(255,255,255,0.97);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 0.5px solid rgba(0,0,0,0.08);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 6px 14px;
+            padding: 6px 20px;
             z-index: 150;
-            box-shadow: 0 1px 4px rgba(0,0,0,.08);
+            box-shadow: 0 1px 8px rgba(0,0,0,0.06);
             flex-wrap: wrap;
             gap: 6px;
         }
@@ -350,7 +436,7 @@
 
         /* ── MAIN CONTENT ────────────────────────────────────── */
         #appMain {
-            margin-left: 220px;
+            margin-left: 236px;
             margin-top: 60px;
             padding: 1.25rem 1.5rem;
             min-height: calc(100vh - 60px);
@@ -393,24 +479,40 @@
         .time-display { font-size: 1.4rem; font-weight: bold; color: #dc2626; font-variant-numeric: tabular-nums; }
 
         /* ── KPI STATS ───────────────────────────────────────── */
+        /* ── STAT CARDS (KPIs) ARQETRA v3 ──────────────────── */
         .stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 1rem;
+            gap: 10px;
             margin-bottom: 1.25rem;
         }
         .stat-card {
-            background: white;
-            padding: 1.1rem 1.25rem;
-            border-radius: 10px;
-            border: 1px solid #e5e7eb;
-            border-left: 3px solid #dc2626;
-            text-align: center;
-            transition: box-shadow .2s;
+            background: #fff;
+            padding: 13px 14px 11px;
+            border-radius: 11px;
+            border: 0.5px solid #e2e8ef;
+            position: relative;
+            overflow: hidden;
+            transition: box-shadow .2s, transform .2s;
         }
-        .stat-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.1); }
-        .stat-card h3 { font-size: .75rem; color: #9ca3af; margin-bottom: .4rem; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; }
-        .stat-card .value { font-size: 1.8rem; font-weight: 700; color: #111827; }
+        .stat-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.06); transform: translateY(-1px); }
+        .stat-card::after {
+            content: ''; position: absolute;
+            bottom: 0; left: 0; right: 0; height: 2.5px;
+        }
+        .stat-card:nth-child(1)::after { background: linear-gradient(90deg,#10b981,#34d399); }
+        .stat-card:nth-child(2)::after { background: linear-gradient(90deg,#0077ff,#38bdf8); }
+        .stat-card:nth-child(3)::after { background: linear-gradient(90deg,#f59e0b,#fcd34d); }
+        .stat-card:nth-child(4)::after { background: linear-gradient(90deg,#8b5cf6,#c084fc); }
+        .stat-card h3 {
+            font-size: 8px; color: #94a3b8; margin-bottom: 8px;
+            text-transform: uppercase; letter-spacing: 2px; font-weight: 600;
+            font-family: 'DM Sans', sans-serif;
+        }
+        .stat-card .value {
+            font-family: 'Rajdhani', 'Segoe UI', sans-serif;
+            font-size: 2rem; font-weight: 700; color: #0f172a; line-height: 1;
+        }
 
         /* ── EQUIPMENT CARDS ─────────────────────────────────── */
         .equipment-grid {
@@ -419,49 +521,107 @@
             gap: 1rem;
             margin-bottom: 1.5rem;
         }
+        /* ── EQUIPMENT CARDS ARQETRA v3 ─────────────────────── */
         .equipment-card {
-            background: white;
-            border-radius: 12px;
-            padding: 1.25rem;
-            border: 1px solid #e5e7eb;
-            transition: box-shadow .2s;
+            background: #fff;
+            border-radius: 11px;
+            padding: 0;
+            border: 0.5px solid #e2e8ef;
+            transition: box-shadow .2s, transform .2s, border-color .3s;
             position: relative;
             overflow: hidden;
         }
-        .equipment-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.1); }
-        .equipment-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; }
-        .equipment-card.disponible::before { background: #10b981; }
-        .equipment-card.activa::before { background: #f59e0b; }
-        .equipment-card.limpieza::before { background: #6366f1; }
+        .equipment-card:hover { box-shadow: 0 6px 24px rgba(0,0,0,0.07); transform: translateY(-1px); }
+        .equipment-card::before {
+            content: '';
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 3px;
+            transition: all .3s;
+        }
+        /* Acento por tipo de equipo */
+        .equipment-card[data-tipo="sarton"]::before,
+        .equipment-card.sarton::before { background: linear-gradient(90deg,#f97316,#fdba74); }
+        .equipment-card[data-tipo="horno"]::before,
+        .equipment-card.horno::before { background: linear-gradient(90deg,#ef4444,#fca5a5); }
+        .equipment-card[data-tipo="marmita"]::before,
+        .equipment-card.marmita::before { background: linear-gradient(90deg,#0077ff,#7dd3fc); }
+        /* Estado disponible — acento verde */
+        .equipment-card.disponible::before { background: linear-gradient(90deg,#10b981,#34d399); }
+        /* Estado activa/coccion — acento azul animado */
+        .equipment-card.activa::before,
+        .equipment-card.coccion::before {
+            background: linear-gradient(90deg,#0077ff,#00e5ff,#0077ff);
+            background-size: 200% 100%;
+            animation: shimmer-stripe 2s linear infinite;
+        }
+        @keyframes shimmer-stripe {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        .equipment-card.limpieza::before { background: linear-gradient(90deg,#8b5cf6,#c084fc); }
         .equipment-card.limpieza.alerta::before { background: #dc2626; animation: pulse-alert 1s infinite; }
-        .equipment-card.desmechado { border-top: 4px solid #d97706 !important; }
-        .equipment-card.desmechado::before { background: #d97706; }
+        .equipment-card.desmechado::before { background: linear-gradient(90deg,#d97706,#fbbf24); }
         @keyframes pulse-alert { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        .equipment-card.alerta { animation: shake 0.5s infinite; border: 2px solid #dc2626; }
+        .equipment-card.alerta { animation: shake 0.5s infinite; border-color: #dc2626; }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
-        .equipment-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: .85rem; }
-        .equipment-name { font-size: 1.1rem; font-weight: 700; color: #111827; }
+        /* Card activa: fondo y borde azul sutil */
+        .equipment-card.activa,
+        .equipment-card.coccion { border-color: #bfdbfe; background: #fafcff; }
+        /* Transición de estado */
+        .equipment-card { transition: all .35s cubic-bezier(.4,0,.2,1); }
+
+        .equipment-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: .85rem 1rem .65rem;
+            border-bottom: 0.5px solid #f1f5f9;
+        }
+        .equipment-card.activa .equipment-header,
+        .equipment-card.coccion .equipment-header { background: linear-gradient(135deg,#f0f7ff,#e8f4ff); }
+        .equipment-name { font-size: 13px; font-weight: 600; color: #0f172a; }
         .op-badge {
-            background: #1f2937;
-            color: #f9fafb;
-            padding: .2rem .65rem;
-            border-radius: 12px;
-            font-size: .72rem;
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 0.5px solid #bfdbfe;
+            padding: .15rem .55rem;
+            border-radius: 5px;
+            font-size: .7rem;
             font-weight: 700;
             margin-top: .2rem;
             display: inline-block;
         }
-        .status-badge { padding: .35rem .85rem; border-radius: 20px; font-size: .78rem; font-weight: 700; text-transform: uppercase; }
-        .status-badge.disponible { background: #d1fae5; color: #065f46; }
-        .status-badge.activa { background: #fef3c7; color: #92400e; }
-        .status-badge.limpieza { background: #ede9fe; color: #4338ca; }
-        .status-badge.en_espera { background: #ede9fe; color: #5b21b6; animation: pulse 2s infinite; }
-        .status-badge.limpieza.alerta { background: #fee2e2; color: #991b1b; animation: pulse-alert 1s infinite; }
-        .equipment-details { margin-top: .85rem; }
-        .detail-row { display: flex; justify-content: space-between; padding: .4rem 0; border-bottom: 1px solid #f1f5f9; }
-        .detail-label { color: #9ca3af; font-size: .85rem; }
-        .detail-value { font-weight: 600; color: #111827; }
-        .timer { font-size: 1.1rem; color: #dc2626; font-weight: 700; font-family: monospace; }
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: .28rem .75rem; border-radius: 20px;
+            font-size: .72rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .status-badge::before {
+            content: ''; width: 5px; height: 5px;
+            border-radius: 50%; background: currentColor;
+        }
+        .status-badge.disponible { background: #f0fdf4; color: #166534; border: 0.5px solid #bbf7d0; }
+        .status-badge.activa { background: #eff6ff; color: #1d4ed8; border: 0.5px solid #bfdbfe; }
+        .status-badge.activa::before { animation: blink-dot 1.2s ease-in-out infinite; }
+        .status-badge.coccion { background: #eff6ff; color: #1d4ed8; border: 0.5px solid #bfdbfe; }
+        .status-badge.coccion::before { animation: blink-dot 1.2s ease-in-out infinite; }
+        @keyframes blink-dot { 0%,100%{opacity:1} 50%{opacity:0.2} }
+        .status-badge.limpieza { background: #f5f3ff; color: #4338ca; border: 0.5px solid #ddd6fe; }
+        .status-badge.en_espera { background: #f5f3ff; color: #5b21b6; border: 0.5px solid #ddd6fe; animation: pulse 2s infinite; }
+        .status-badge.limpieza.alerta { background: #fef2f2; color: #991b1b; animation: pulse-alert 1s infinite; }
+
+        .equipment-details { padding: .75rem 1rem; }
+        .detail-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: .35rem 0; border-bottom: 0.5px solid #f8fafc;
+        }
+        .detail-row:last-child { border-bottom: none; }
+        .detail-label { color: #94a3b8; font-size: .82rem; }
+        .detail-value { font-weight: 600; color: #0f172a; font-size: .85rem; }
+        .timer {
+            font-size: 1.1rem; color: #dc2626; font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 1px;
+        }
         .timer.warning { color: #f59e0b; }
         .timer.danger { color: #dc2626; animation: pulse-alert 1s infinite; }
         .alert-box-card {
@@ -642,6 +802,82 @@
             0%, 100% { opacity: 1; }
             50% { opacity: 0.4; }
         }
+
+        /* ── GANTT ARQETRA v3 ────────────────────────────────── */
+        #ganttLineaRoja {
+            position: relative;
+        }
+        #ganttLineaRoja td {
+            background: linear-gradient(90deg, rgba(220,38,38,0.06), rgba(220,38,38,0.03)) !important;
+            border-top: 1.5px solid rgba(220,38,38,0.4) !important;
+        }
+        #ganttLineaRoja td:first-child {
+            position: relative;
+        }
+        #ganttLineaRoja td:first-child::before {
+            content: '▶ AHORA';
+            position: absolute;
+            left: 2px; top: 50%;
+            transform: translateY(-50%);
+            font-size: 7px;
+            font-weight: 700;
+            color: #dc2626;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+        /* Gantt table styling */
+        #gantt table {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        #gantt tbody tr:hover td {
+            background: rgba(0,119,255,0.02) !important;
+        }
+        #gantt tbody tr td:first-child {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 500;
+            color: #64748b;
+            background: #f8fafc;
+            text-align: center;
+        }
+        /* Gantt bloque de producción */
+        .gantt-bloque {
+            border-radius: 6px !important;
+            font-size: 10px !important;
+            font-weight: 600 !important;
+            padding: 4px 8px !important;
+            border: none !important;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1) !important;
+        }
+
+        /* ── VISTA EJECUTIVO ARQETRA v3 ──────────────────────── */
+        #ejecutivo .analytics-section {
+            background: #fff;
+            border-radius: 14px;
+            border: 0.5px solid #e2e8ef;
+            box-shadow: none;
+        }
+
+        /* ── MODAL mejorado ──────────────────────────────────── */
+        .modal-content {
+            border-top: 3px solid #0077ff !important;
+        }
+
+        /* ── VERSION BADGE ───────────────────────────────────── */
+        .version-badge {
+            font-size: 8px !important;
+            letter-spacing: 1px;
+            font-weight: 700;
+        }
+
+        /* ── EQUIPMENT GRID padding fix ──────────────────────── */
+        .equipment-details {
+            padding: .65rem 1rem .85rem !important;
+        }
+        .equipment-card .btn {
+            margin: .65rem 0 0 !important;
+        }
     </style>
 </head>
 <body>
@@ -665,10 +901,25 @@
     <!-- SIDEBAR -->
     <div id="appSidebar">
         <div class="sb-logo-area">
-            <h1>🏭 MES Cocina</h1>
-            <div class="sb-logo-sub">Alimentos Santa Emilia</div>
-            <div style="margin-top:6px;">
-                <span class="version-badge">v4.0 MULTI-DEVICE</span>
+            <h1>
+                <svg class="sb-logo-mark" viewBox="0 0 34 34" fill="none">
+                    <circle cx="17" cy="17" r="16" stroke="rgba(0,180,216,0.25)" stroke-width="0.8"/>
+                    <circle cx="17" cy="17" r="11" stroke="rgba(0,119,255,0.3)" stroke-width="0.8"/>
+                    <polygon points="17,6 23,22 17,19 11,22" fill="url(#sb-grad)"/>
+                    <defs><linearGradient id="sb-grad" x1="17" y1="6" x2="17" y2="22" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#00e5ff"/><stop offset="100%" stop-color="#0044cc"/></linearGradient></defs>
+                </svg>
+                ARQETRA
+            </h1>
+            <div class="sb-logo-sub">Manufacturing OS</div>
+        </div>
+        <div class="sb-plant-wrap">
+            <div class="sb-plant-box">
+                <div class="sb-online-dot"></div>
+                <div class="sb-plant-info">
+                    <div class="sb-plant-lbl">Planta activa</div>
+                    <div class="sb-plant-name">Alimentos Santa Emilia</div>
+                </div>
+                <span class="version-badge" style="font-size:8px;padding:2px 6px;background:rgba(0,180,216,0.1);border:0.5px solid rgba(0,180,216,0.2);color:#00b4d8;border-radius:4px;letter-spacing:1px;font-weight:700;white-space:nowrap;">v4.0</span>
             </div>
         </div>
         <div class="sb-section-title">Producción</div>
@@ -679,7 +930,7 @@
         <div class="nav-tabs" id="navGestion"></div>
         <div class="sb-section-title">Calidad</div>
         <div class="nav-tabs" id="navCalidad"></div>
-        <div style="margin-top:auto;padding:8px 8px 12px;border-top:1px solid rgba(255,255,255,.06);">
+        <div style="margin-top:auto;padding:8px 8px 12px;border-top:0.5px solid rgba(255,255,255,0.05);">
             <div class="nav-tabs" id="navExtra"></div>
         </div>
     </div>
@@ -687,29 +938,32 @@
     <!-- TOPBAR -->
     <div id="appTopbar">
         <div class="topbar-left">
-            <div id="firebaseStatus" style="display:flex;align-items:center;gap:.4rem;padding:.3rem .7rem;background:#10b981;color:white;border-radius:6px;font-size:.75rem;font-weight:700;white-space:nowrap;">
-                <span style="width:6px;height:6px;background:white;border-radius:50%;animation:pulse 2s infinite;"></span>
+            <div id="firebaseStatus" style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;background:rgba(16,185,129,0.08);border:0.5px solid rgba(16,185,129,0.25);border-radius:6px;font-size:10.5px;font-weight:600;color:#059669;white-space:nowrap;font-family:'DM Sans',sans-serif;">
+                <span style="width:5px;height:5px;background:#10b981;border-radius:50%;animation:pulse 2s infinite;"></span>
                 Sincronizado
             </div>
-            <button onclick="recuperarDatosFirebase()" style="background:#f1f5f9;color:#374151;border:1px solid #e5e7eb;border-radius:6px;padding:.3rem .7rem;cursor:pointer;font-size:.75rem;font-weight:700;white-space:nowrap;">
-                🔄 Recargar
+            <button onclick="recuperarDatosFirebase()" style="display:inline-flex;align-items:center;gap:4px;background:#fff;color:#64748b;border:0.5px solid #dde3ec;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:10.5px;font-weight:500;white-space:nowrap;font-family:'DM Sans',sans-serif;transition:all .12s;">
+                ↺ Recargar
             </button>
-            <button onclick="subirHistorialAFirebase()" style="background:#dc2626;color:white;border:none;border-radius:6px;padding:.3rem .7rem;cursor:pointer;font-size:.75rem;font-weight:700;white-space:nowrap;">
-                ⬆️ Subir Firebase
+            <div style="width:0.5px;height:18px;background:#dde3ec;margin:0 3px;"></div>
+            <button onclick="subirHistorialAFirebase()" style="display:inline-flex;align-items:center;gap:4px;background:rgba(220,38,38,0.05);color:#dc2626;border:0.5px solid rgba(220,38,38,0.25);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:10.5px;font-weight:500;white-space:nowrap;font-family:'DM Sans',sans-serif;">
+                ↑ Firebase
             </button>
-            <button class="btn btn-primary" onclick="openModal('iniciarProduccion')" style="margin-top:0;padding:.3rem .8rem;font-size:.75rem;white-space:nowrap;">
-                ▶️ Iniciar Producción
+            <button onclick="openModal('iniciarProduccion')" style="display:inline-flex;align-items:center;gap:5px;background:#0f172a;color:#fff;border:none;border-radius:7px;padding:6px 13px;cursor:pointer;font-size:11px;font-weight:600;white-space:nowrap;font-family:'DM Sans',sans-serif;letter-spacing:0.3px;">
+                ▶ Iniciar Producción
             </button>
-            <button onclick="abrirModalAgrupar()" style="background:#1f2937;color:white;border:none;border-radius:6px;padding:.3rem .7rem;cursor:pointer;font-weight:700;font-size:.75rem;white-space:nowrap;">
-                🔀 Agrupar
+            <button onclick="abrirModalAgrupar()" style="display:inline-flex;align-items:center;gap:4px;background:#fff;color:#64748b;border:0.5px solid #dde3ec;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:10.5px;font-weight:500;white-space:nowrap;font-family:'DM Sans',sans-serif;">
+                ⊞ Agrupar
             </button>
-            <button onclick="abrirRescateDia()" style="background:#dc2626;color:white;border:none;border-radius:6px;padding:.3rem .7rem;cursor:pointer;font-weight:700;font-size:.75rem;white-space:nowrap;">
-                🔧 Registros del Día
+            <button onclick="abrirRescateDia()" style="display:inline-flex;align-items:center;gap:4px;background:rgba(220,38,38,0.05);color:#dc2626;border:0.5px solid rgba(220,38,38,0.25);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:10.5px;font-weight:500;white-space:nowrap;font-family:'DM Sans',sans-serif;">
+                ✱ Registros del Día
             </button>
         </div>
         <div class="topbar-right">
-            <div class="time-display" id="currentTime" style="font-size:1.2rem;">00:00:00</div>
-            <span id="userEmailDisplay" style="font-size:.72rem;color:#6b7280;white-space:nowrap;"></span>
+            <div style="text-align:right;">
+                <div class="time-display" id="currentTime" style="font-family:'Rajdhani','Segoe UI',sans-serif;font-size:1.25rem;font-weight:600;color:#dc2626;letter-spacing:1px;line-height:1;">00:00:00</div>
+                <span id="userEmailDisplay" style="font-size:9px;color:#94a3b8;white-space:nowrap;letter-spacing:0.3px;"></span>
+            </div>
             <button class="logout-btn" onclick="window.signOut()">🚪</button>
         </div>
     </div>
@@ -918,14 +1172,14 @@
                 <!-- HEADER: equipos -->
                 <thead>
                   <tr>
-                    <th style="width:70px;padding:.6rem;background:#f8f9ff;border:1px solid #e5e7eb;font-size:.75rem;color:#94a3b8;font-weight:700;">HORA</th>
-                    <th style="padding:.6rem;background:#f8f9ff;border:1px solid #e5e7eb;font-size:.82rem;color:#1e293b;font-weight:700;min-width:150px;">🔥 Sartén 1</th>
-                    <th style="padding:.6rem;background:#f8f9ff;border:1px solid #e5e7eb;font-size:.82rem;color:#1e293b;font-weight:700;min-width:150px;">🔥 Sartén 2</th>
-                    <th style="padding:.6rem;background:#f8f9ff;border:1px solid #e5e7eb;font-size:.82rem;color:#1e293b;font-weight:700;min-width:150px;">🔥 Sartén 3</th>
-                    <th style="padding:.6rem;background:#f8f9ff;border:1px solid #e5e7eb;font-size:.82rem;color:#1e293b;font-weight:700;min-width:150px;">🍖 Horno 1</th>
-                    <th style="padding:.6rem;background:#f8f9ff;border:1px solid #e5e7eb;font-size:.82rem;color:#1e293b;font-weight:700;min-width:150px;">🍖 Horno 2</th>
-                    <th style="padding:.6rem;background:#f8f9ff;border:1px solid #e5e7eb;font-size:.82rem;color:#1e293b;font-weight:700;min-width:150px;">🥘 Marmita 1</th>
-                    <th style="padding:.6rem;background:#f8f9ff;border:1px solid #e5e7eb;font-size:.82rem;color:#1e293b;font-weight:700;min-width:150px;">🥘 Marmita 2</th>
+                    <th style="width:65px;padding:.55rem .6rem;background:#f0f4f8;border:0.5px solid #e2e8ef;font-size:8px;color:#94a3b8;font-weight:700;letter-spacing:2px;text-transform:uppercase;">HORA</th>
+                    <th style="padding:.55rem .75rem;background:#fff7f0;border:0.5px solid #e2e8ef;font-size:.78rem;color:#c2410c;font-weight:600;min-width:150px;border-top:2px solid #f97316;">🔥 Sartén 1</th>
+                    <th style="padding:.55rem .75rem;background:#fff7f0;border:0.5px solid #e2e8ef;font-size:.78rem;color:#c2410c;font-weight:600;min-width:150px;border-top:2px solid #f97316;">🔥 Sartén 2</th>
+                    <th style="padding:.55rem .75rem;background:#fff7f0;border:0.5px solid #e2e8ef;font-size:.78rem;color:#c2410c;font-weight:600;min-width:150px;border-top:2px solid #f97316;">🔥 Sartén 3</th>
+                    <th style="padding:.55rem .75rem;background:#fff5f5;border:0.5px solid #e2e8ef;font-size:.78rem;color:#b91c1c;font-weight:600;min-width:150px;border-top:2px solid #ef4444;">🍖 Horno 1</th>
+                    <th style="padding:.55rem .75rem;background:#fff5f5;border:0.5px solid #e2e8ef;font-size:.78rem;color:#b91c1c;font-weight:600;min-width:150px;border-top:2px solid #ef4444;">🍖 Horno 2</th>
+                    <th style="padding:.55rem .75rem;background:#eff6ff;border:0.5px solid #e2e8ef;font-size:.78rem;color:#1d4ed8;font-weight:600;min-width:150px;border-top:2px solid #0077ff;">🥘 Marmita 1</th>
+                    <th style="padding:.55rem .75rem;background:#eff6ff;border:0.5px solid #e2e8ef;font-size:.78rem;color:#1d4ed8;font-weight:600;min-width:150px;border-top:2px solid #0077ff;">🥘 Marmita 2</th>
                   </tr>
                 </thead>
 
@@ -943,10 +1197,11 @@
         <div id="ejecutivo" class="tab-content">
             <div class="analytics-section">
                 <!-- HEADER -->
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;background:linear-gradient(135deg,#667eea,#764ba2);padding:1.5rem 2rem;border-radius:15px;color:white;flex-wrap:wrap;gap:1rem;">
-                    <div>
-                        <h1 style="font-size:2rem;margin-bottom:.25rem;">👔 Vista Ejecutivo</h1>
-                        <p style="font-size:.95rem;opacity:.85;">Resumen de producción — <span id="labelPeriodoEjec">Hoy</span></p>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;background:linear-gradient(135deg,#050d1a,#0a1628);padding:1.5rem 2rem;border-radius:14px;color:white;flex-wrap:wrap;gap:1rem;border:0.5px solid rgba(0,119,255,0.2);position:relative;overflow:hidden;">
+                    <div style="position:absolute;top:-40px;left:-40px;width:180px;height:180px;background:radial-gradient(circle,rgba(0,119,255,0.12) 0%,transparent 70%);pointer-events:none;"></div>
+                    <div style="position:relative;">
+                        <div style="font-family:'Rajdhani',sans-serif;font-size:1.8rem;font-weight:700;letter-spacing:2px;margin-bottom:.2rem;">VISTA EJECUTIVO</div>
+                        <p style="font-size:.85rem;opacity:.6;letter-spacing:1px;text-transform:uppercase;font-size:10px;">Resumen de producción — <span id="labelPeriodoEjec">Hoy</span></p>
                     </div>
                     <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;">
                         <div id="contadorTurno" style="text-align:center;background:rgba(255,255,255,0.2);padding:1rem 1.5rem;border-radius:12px;min-width:160px;">
