@@ -11296,6 +11296,34 @@ function imprimirRegistroHACCP(d) {
         // PERSISTENCIA DE DATOS
         // ============================================
         
+        // ── Limpia automáticamente equipos con producciones de jornadas anteriores ──
+        // Se llama al cargar desde Firebase y en cada onSnapshot
+        function _limpiarProduccionesAntiguas() {
+            const hoy = getHoy();
+            let huboCambios = false;
+            equipos.forEach(eq => {
+                if (!eq.produccion) return;
+                // Obtener fecha de inicio de la producción
+                const inicioISO = eq.produccion.inicio || eq.produccion.inicioEnvasado || '';
+                if (!inicioISO) return;
+                // Convertir a fecha local (sin depender de UTC)
+                const d = new Date(inicioISO);
+                const fechaProd = d.getFullYear() + '-'
+                    + String(d.getMonth()+1).padStart(2,'0') + '-'
+                    + String(d.getDate()).padStart(2,'0');
+                if (fechaProd < hoy) {
+                    console.warn('🧹 Limpiando equipo con producción de día anterior:', eq.nombre, fechaProd, eq.produccion.producto);
+                    eq.estado = 'disponible';
+                    eq.produccion = null;
+                    huboCambios = true;
+                }
+            });
+            if (huboCambios) {
+                guardarDatos();
+                mostrarNotificacion('🧹 Equipos con producciones de ayer limpiados automáticamente', 'info');
+            }
+        }
+
         function guardarDatos() {
             // Guardar localmente PRIMERO (backup inmediato)
             localStorage.setItem('mes_equipos', JSON.stringify(equipos));
@@ -11569,6 +11597,9 @@ function imprimirRegistroHACCP(d) {
                     }
                     recalcularTiemposCoccion();
                     limpiarEsperasVencidas();
+                    // ── Limpiar equipos con producciones de días anteriores ──
+                    // Evita que Firebase restaure fantasmas de jornadas pasadas
+                    _limpiarProduccionesAntiguas();
                     productos = data.productos || productos;
                     procesosEnvasado = data.procesosEnvasado || [];
                     procesosAbatimiento = data.procesosAbatimiento || [];
@@ -11858,6 +11889,7 @@ function limpiarComponentesFriosDeEquipos() {
                         });
                         recalcularTiemposCoccion();
                         limpiarEsperasVencidas();
+                        _limpiarProduccionesAntiguas();
                         renderEquipos();
                         updateStats();
                         if (document.getElementById('gantt')?.classList.contains('active')) {
