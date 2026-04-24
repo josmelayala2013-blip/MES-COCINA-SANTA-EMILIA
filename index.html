@@ -242,6 +242,7 @@
             background: radial-gradient(circle, rgba(0,119,255,0.1) 0%, transparent 70%);
             pointer-events: none;
             z-index: 0;
+            animation: sb-glow-pulse 4s ease-in-out infinite;
         }
         #appSidebar::after {
             content: '';
@@ -251,6 +252,33 @@
             background: radial-gradient(circle, rgba(0,180,216,0.06) 0%, transparent 70%);
             pointer-events: none;
             z-index: 0;
+        }
+        @keyframes sb-glow-pulse {
+            0%, 100% { opacity: 0.6; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.1); }
+        }
+        /* Logo glow animado */
+        .sb-logo-area img {
+            filter: drop-shadow(0 0 8px rgba(0,180,216,0.3));
+            animation: logo-glow 3s ease-in-out infinite;
+        }
+        @keyframes logo-glow {
+            0%, 100% { filter: drop-shadow(0 0 6px rgba(0,180,216,0.25)); }
+            50% { filter: drop-shadow(0 0 14px rgba(0,180,216,0.5)); }
+        }
+        /* Separador secciones mejorado */
+        .sb-section-title::after {
+            content: '';
+            flex: 1;
+            height: 0.5px;
+            background: linear-gradient(90deg, rgba(255,255,255,0.1), rgba(255,255,255,0.02));
+        }
+        /* Scroll indicator del nav */
+        #appSidebar .nav-tabs:last-of-type { padding-bottom: 4px; }
+        /* User box hover */
+        #sidebarUserBox:hover {
+            background: rgba(255,255,255,0.06) !important;
+            border-color: rgba(0,119,255,0.2) !important;
         }
         .sb-logo-area {
             padding: 18px 18px 14px;
@@ -372,32 +400,44 @@
             align-items: center;
             gap: .5rem;
             width: 100%;
-            padding: .4rem .85rem;
+            padding: .38rem .85rem;
             border: none;
+            border-left: 1.5px solid transparent;
             background: transparent;
             text-align: left;
             cursor: pointer;
             font-weight: 400;
-            font-size: .75rem;
-            color: rgba(255,255,255,0.35);
-            transition: all .15s;
+            font-size: .74rem;
+            color: rgba(255,255,255,0.3);
+            transition: all .18s cubic-bezier(.4,0,.2,1);
             white-space: nowrap;
             box-sizing: border-box;
-            border-radius: 5px;
+            border-radius: 0 6px 6px 0;
             font-family: 'DM Sans', sans-serif;
+            margin-right: 6px;
         }
-        .nav-dropdown-item:hover { background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.8); }
-        .nav-dropdown-item.active { background: rgba(0,100,255,0.1); color: #fff; font-weight: 500; }
+        .nav-dropdown-item:hover {
+            background: rgba(255,255,255,0.04);
+            color: rgba(255,255,255,0.75);
+            border-left-color: rgba(0,180,216,0.3);
+            transform: translateX(2px);
+        }
+        .nav-dropdown-item.active {
+            background: linear-gradient(90deg, rgba(0,100,255,0.12), rgba(0,100,255,0.03));
+            color: #e0f0ff;
+            font-weight: 500;
+            border-left-color: #00b4d8;
+        }
         .nav-tab {
-            padding: .5rem 1rem;
+            padding: .48rem .85rem .48rem 1rem;
             border: none;
             border-left: 2px solid transparent;
             background: transparent;
-            border-radius: 0;
+            border-radius: 0 7px 7px 0;
             cursor: pointer;
             font-weight: 400;
             font-size: .78rem;
-            transition: all .15s;
+            transition: all .18s cubic-bezier(.4,0,.2,1);
             white-space: nowrap;
             color: rgba(255,255,255,0.35);
             text-align: left;
@@ -406,9 +446,44 @@
             letter-spacing: 0.2px;
             position: relative;
             z-index: 1;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            margin-right: 8px;
         }
-        .nav-tab:hover { background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.7); border-left-color: rgba(255,255,255,0.1); }
-        .nav-tab.active { background: rgba(0,100,255,0.1); color: #fff; font-weight: 500; border-left-color: #0077ff; }
+        .nav-tab:hover {
+            background: rgba(255,255,255,0.04);
+            color: rgba(255,255,255,0.75);
+            border-left-color: rgba(255,255,255,0.12);
+            transform: translateX(2px);
+        }
+        .nav-tab.active {
+            background: linear-gradient(90deg, rgba(0,100,255,0.15), rgba(0,100,255,0.04));
+            color: #fff;
+            font-weight: 500;
+            border-left-color: #0077ff;
+            transform: translateX(0);
+        }
+        .nav-tab.active::after {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, #00b4d8, #0077ff);
+            border-radius: 0 2px 2px 0;
+            box-shadow: 0 0 8px rgba(0,119,255,0.5);
+        }
+        /* Ícono del nav-tab */
+        .nav-tab .nt-icon {
+            width: 15px; height: 15px;
+            flex-shrink: 0;
+            opacity: 0.3;
+            transition: opacity .18s;
+        }
+        .nav-tab:hover .nt-icon { opacity: 0.7; }
+        .nav-tab.active .nt-icon { opacity: 1; filter: drop-shadow(0 0 3px rgba(0,180,216,0.4)); }
+        .nav-tab .nt-arrow { margin-left: auto; font-size: 9px; color: rgba(255,255,255,0.15); transition: transform .2s; }
+        .nav-tab.open .nt-arrow { transform: rotate(180deg); }
 
         /* ── TOPBAR ARQETRA v3 ──────────────────────────────── */
         #appTopbar {
@@ -1004,13 +1079,13 @@
         <!-- NAV SIDEBAR — distribuido en secciones por JS init -->
         <div id="navTabsOriginal" style="display:none;">
             <!-- Dashboard siempre visible -->
-            <button class="nav-tab active" data-modulo="dashboard" onclick="changeTab('dashboard',this)">📊 Dashboard</button>
+            <button class="nav-tab active" data-modulo="dashboard" onclick="changeTab('dashboard',this)"><svg class="nt-icon" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1" fill="#00b4d8"/><rect x="8" y="1" width="5" height="5" rx="1" fill="#00b4d8" opacity=".5"/><rect x="1" y="8" width="5" height="5" rx="1" fill="#00b4d8" opacity=".4"/><rect x="8" y="8" width="5" height="5" rx="1" fill="#00b4d8" opacity=".2"/></svg>Dashboard</button>
 
             <!-- PRODUCCIÓN -->
             <div class="nav-dropdown" id="dropdownProduccion" data-modulo="produccion">
                 <button class="nav-tab" onclick="toggleDropdownProduccion(event)" id="btnProduccion"
                     style="display:flex;align-items:center;gap:.4rem;">
-                    🏭 Producción <span style="font-size:.7rem;">▼</span>
+                    <svg class="nt-icon" viewBox="0 0 14 14" fill="none"><path d="M2 10V5.5L7 2l5 3.5V10l-5 2-5-2z" stroke="currentColor" stroke-width="1.1" fill="none"/></svg>Producción<span class="nt-arrow">▾</span>
                 </button>
                 <div class="nav-dropdown-menu" id="menuProduccion">
                     <button class="nav-dropdown-item" onclick="changeTab('gantt',this);cerrarDropdownProduccion()">📅 Gantt</button>
@@ -1027,7 +1102,7 @@
             <div class="nav-dropdown" id="dropdownPlanificacion" data-modulo="planificacion">
                 <button class="nav-tab" onclick="toggleDropdownPlanificacion(event)" id="btnPlanificacion"
                     style="display:flex;align-items:center;gap:.4rem;">
-                    📋 Planificación <span style="font-size:.7rem;">▼</span>
+                    <svg class="nt-icon" viewBox="0 0 14 14" fill="none"><rect x="1" y="2" width="12" height="11" rx="1.5" stroke="currentColor" stroke-width="1.1" fill="none"/><path d="M4 1v2M10 1v2M1 5.5h12" stroke="currentColor" stroke-width="1.1"/></svg>Planificación<span class="nt-arrow">▾</span>
                 </button>
                 <div class="nav-dropdown-menu" id="menuPlanificacion">
                     <button class="nav-dropdown-item" onclick="changeTab('planificador',this);cerrarDropdownPlanificacion()">📅 Planificador</button>
@@ -1043,7 +1118,7 @@
             <div class="nav-dropdown" id="dropdownGestion" data-modulo="gestion">
                 <button class="nav-tab" onclick="toggleDropdownGestion(event)" id="btnGestion"
                     style="display:flex;align-items:center;gap:.4rem;">
-                    🗂️ Gestión <span style="font-size:.7rem;">▼</span>
+                    <svg class="nt-icon" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.1" fill="none"/><path d="M4 5h6M4 7.5h4M4 10h3" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg>Gestión<span class="nt-arrow">▾</span>
                 </button>
                 <div class="nav-dropdown-menu" id="menuGestion">
                     <div style="font-size:.7rem;color:#6b7280;padding:.3rem 1rem .1rem;font-weight:600;text-transform:uppercase;">Productos y Recetas</div>
@@ -1073,13 +1148,13 @@
             </div>
 
             <!-- Admin -->
-            <button class="nav-tab" id="btnAdmin" data-modulo="administracion" style="display:none;" onclick="changeTab('administracion')">⚙️ Admin</button>
+            <button class="nav-tab" id="btnAdmin" data-modulo="administracion" style="display:none;" onclick="changeTab('administracion')"><svg class="nt-icon" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="4.5" r="2.5" stroke="currentColor" stroke-width="1.1" fill="none"/><path d="M2 12c0-2.761 2.239-5 5-5s5 2.239 5 5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" fill="none"/></svg>Admin</button>
 
             <!-- CALIDAD -->
             <div class="nav-dropdown" id="dropdownCalidad" style="display:none;">
                 <button class="nav-tab" onclick="toggleDropdownCalidad(event)" id="btnCalidad"
                     style="display:flex;align-items:center;gap:.4rem;">
-                    🔬 Calidad <span style="font-size:.7rem;">▼</span>
+                    <svg class="nt-icon" viewBox="0 0 14 14" fill="none"><path d="M7 1l1.5 3 3.5.5-2.5 2.5.5 3.5L7 9 4 10.5l.5-3.5L2 4.5 5.5 4z" stroke="currentColor" stroke-width="1" fill="none"/></svg>Calidad<span class="nt-arrow">▾</span>
                 </button>
                 <div class="nav-dropdown-menu" id="menuCalidad">
                     <button class="nav-dropdown-item" onclick="changeTabCalidad('pcc1');cerrarDropdownCalidad()">🪣 Almacenamiento (PCC1)</button>
