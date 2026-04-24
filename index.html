@@ -901,42 +901,7 @@
     <!-- SIDEBAR -->
     <div id="appSidebar">
         <div class="sb-logo-area" style="display:flex;align-items:center;gap:12px;padding:16px 18px;">
-            <svg width="44" height="44" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                    <linearGradient id="cL" x1="50" y1="10" x2="28" y2="75" gradientUnits="userSpaceOnUse">
-                        <stop offset="0%" stop-color="#00e5ff"/>
-                        <stop offset="100%" stop-color="#1a3a8a"/>
-                    </linearGradient>
-                    <linearGradient id="cR" x1="50" y1="10" x2="72" y2="75" gradientUnits="userSpaceOnUse">
-                        <stop offset="0%" stop-color="#38bdf8"/>
-                        <stop offset="100%" stop-color="#0f2460"/>
-                    </linearGradient>
-                    <linearGradient id="cB" x1="28" y1="75" x2="72" y2="75" gradientUnits="userSpaceOnUse">
-                        <stop offset="0%" stop-color="#0a1f5c"/>
-                        <stop offset="100%" stop-color="#0f2460"/>
-                    </linearGradient>
-                    <linearGradient id="rG" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
-                        <stop offset="0%" stop-color="#00e5ff"/>
-                        <stop offset="100%" stop-color="#0055cc"/>
-                    </linearGradient>
-                </defs>
-                <!-- Anillo exterior con apertura inferior izquierda como el logo -->
-                <path d="M50 6 A44 44 0 1 1 14 72" stroke="url(#rG)" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.85"/>
-                <!-- Anillo interior -->
-                <path d="M50 18 A32 32 0 1 1 23 67" stroke="#38bdf8" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0.5"/>
-                <!-- Cristal izquierdo -->
-                <path d="M50 12 L28 72 L50 62 Z" fill="url(#cL)"/>
-                <!-- Cristal derecho -->
-                <path d="M50 12 L72 72 L50 62 Z" fill="url(#cR)"/>
-                <!-- Base cristal -->
-                <path d="M28 72 L50 62 L72 72 Z" fill="url(#cB)"/>
-                <!-- Reflejo izquierdo -->
-                <path d="M50 12 L42 40 L50 36 Z" fill="rgba(255,255,255,0.4)"/>
-                <!-- Reflejo derecho sutil -->
-                <path d="M50 12 L58 40 L50 36 Z" fill="rgba(255,255,255,0.15)"/>
-                <!-- Highlight punta -->
-                <circle cx="50" cy="12" r="2.5" fill="#00e5ff" opacity="0.8"/>
-            </svg>
+            <img src="data:image/png;base64,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" width="52" height="52" style="object-fit:contain;flex-shrink:0;">
             <div>
                 <div class="sb-logo-sub" style="font-size:9px;letter-spacing:3px;color:#00b4d8;text-transform:uppercase;font-weight:600;">Manufacturing OS</div>
             </div>
