@@ -8687,7 +8687,7 @@ function imprimirRegistroHACCP(d) {
                         eq.estado = 'activa';
                         eq.produccion.enEspera = false;
                         eq.produccion.inicio = new Date().toISOString();
-                        guardarDatos();
+                        guardarEquipos();
                         renderEquipos();
                         updateStats();
                         mostrarNotificacion('🚀 ' + eq.nombre + ': ' + producto + ' ha iniciado automáticamente', 'success');
@@ -8708,7 +8708,7 @@ function imprimirRegistroHACCP(d) {
                 }
             }
 
-            guardarDatos();
+            guardarEquipos();
             renderEquipos();
             updateStats();
             closeModal('iniciarProduccion');
@@ -8806,7 +8806,7 @@ function imprimirRegistroHACCP(d) {
             // Crear HACCP pendiente
             crearHACCPPendiente(equipo);
             
-            guardarDatos();
+            guardarEquipos();
             renderEquipos();
             renderProcesosActivos();
             renderEnvasado(); // ← asegurar que envasado se actualiza
@@ -8864,7 +8864,7 @@ function imprimirRegistroHACCP(d) {
                 crearHACCPPendiente(equipo);
             }
 
-            guardarDatos();
+            guardarEquipos();
             renderEquipos();
             renderProcesosActivos();
             renderEnvasado(); // ← asegurar que la UI de envasado refleja el nuevo proceso
@@ -8915,7 +8915,7 @@ function imprimirRegistroHACCP(d) {
             equipo.estado = 'disponible';
             equipo.produccion = null;
 
-            guardarDatos();
+            guardarEquipos();
             renderEquipos();
             updateStats();
             closeModal('equipoLimpio');
@@ -11656,11 +11656,23 @@ function imprimirRegistroHACCP(d) {
                 }
             });
             if (huboCambios) {
-                guardarDatos();
+                guardarEquipos();
                 mostrarNotificacion('🧹 Equipos con producciones antiguas limpiados automáticamente', 'info');
             }
         }
 
+        // ── guardarEquipos(): llamar SOLO cuando cambia el estado de un equipo ──
+        // Actualiza mes_equipos_ts para que el onSnapshot sepa que este dispositivo
+        // tiene datos más recientes y no debe ser pisado por snapshots de otros.
+        function guardarEquipos() {
+            localStorage.setItem('mes_equipos', JSON.stringify(equipos));
+            localStorage.setItem('mes_equipos_ts', new Date().toISOString());
+            sincronizarFirebase();
+        }
+
+        // ── guardarDatos(): guarda todo pero NO actualiza mes_equipos_ts ──
+        // Usar para guardar productos, historial, planDiario, etc.
+        // NO actualiza el timestamp de equipos para no bloquear sincronización de otros dispositivos.
         function guardarDatos() {
             // Guardar localmente PRIMERO (backup inmediato)
             localStorage.setItem('mes_equipos', JSON.stringify(equipos));
@@ -11669,7 +11681,8 @@ function imprimirRegistroHACCP(d) {
             localStorage.setItem('mes_procesosAbatimiento', JSON.stringify(procesosAbatimiento));
             localStorage.setItem('mes_historialPorFecha', JSON.stringify(historialPorFecha));
             localStorage.setItem('mes_historial_backup_ts', new Date().toISOString());
-            localStorage.setItem('mes_equipos_ts', new Date().toISOString());
+            // ⚠️ NO actualizar mes_equipos_ts aquí — solo guardarEquipos() lo hace
+            // Esto evita que guardar productos/historial bloquee sincronización de equipos
             
             // Sincronizar con Firebase
             sincronizarFirebase();
@@ -12094,7 +12107,7 @@ function limpiarComponentesFriosDeEquipos() {
                 }
             });
             if (huboLimpieza) {
-                guardarDatos();
+                guardarEquipos();
                 renderEquipos();
                 mostrarNotificacion('❄️ Componentes fríos removidos de equipos de cocción', 'info');
             }
@@ -12124,7 +12137,7 @@ function limpiarComponentesFriosDeEquipos() {
                             eqRef.estado = 'activa';
                             eqRef.produccion.enEspera = false;
                             eqRef.produccion.inicio = new Date().toISOString();
-                            guardarDatos();
+                            guardarEquipos();
                             renderEquipos();
                             updateStats();
                             mostrarNotificacion('🚀 ' + eqRef.nombre + ': ' + _producto + ' ha iniciado automáticamente', 'success');
@@ -12134,7 +12147,7 @@ function limpiarComponentesFriosDeEquipos() {
                     console.log('⏳ Re-programado:', eq.nombre, 'inicia en', Math.round(msHastaInicio/60000), 'min');
                 }
             });
-            if (hubocambios) guardarDatos();
+            if (hubocambios) guardarEquipos();
         }
 
         function recalcularTiemposCoccion() {
@@ -12210,12 +12223,15 @@ function limpiarComponentesFriosDeEquipos() {
                         renderAbatimiento();
                     }
 
-                    // Equipos: sincronizar solo si Firebase es más reciente que el estado local
-                    // Evita que un snapshot atrasado pise cambios recientes (ej: reset manual de equipo)
+                    // ── Sincronización de equipos ──
+                    // Lógica: si viene de OTRO dispositivo → siempre aplicar (multi-device)
+                    //         si viene del MISMO dispositivo → solo si Firebase es más reciente
+                    //         (evita rebote de nuestros propios datos)
                     const _tsFirebase = data.ultimaActualizacion ? new Date(data.ultimaActualizacion).getTime() : 0;
                     const _tsLocal = localStorage.getItem('mes_equipos_ts') ? new Date(localStorage.getItem('mes_equipos_ts')).getTime() : 0;
-                    const _firebaseEsMasReciente = _tsFirebase > _tsLocal;
-                    if (data.equipos && data.equipos.length > 0 && _firebaseEsMasReciente) {
+                    const _debeAplicarEquipos = esOtroDispositivo || (_tsFirebase > _tsLocal);
+                    
+                    if (data.equipos && data.equipos.length > 0 && _debeAplicarEquipos) {
                         const equiposBase = equipos;
                         equipos = equiposBase.map(eqBase => {
                             const eqFirebase = data.equipos.find(e => e.id === eqBase.id);
@@ -12224,6 +12240,10 @@ function limpiarComponentesFriosDeEquipos() {
                             }
                             return eqBase;
                         });
+                        // Actualizar timestamp local para que futuras comparaciones sean correctas
+                        if (esOtroDispositivo) {
+                            localStorage.setItem('mes_equipos_ts', data.ultimaActualizacion || new Date().toISOString());
+                        }
                         recalcularTiemposCoccion();
                         limpiarEsperasVencidas();
                         _limpiarProduccionesAntiguas();
@@ -14805,7 +14825,7 @@ function guardarEdicionBloque(equipoId, planIdx) {
   recalcularCascada(eq);
 
   document.getElementById('modalEditarBloque')?.remove();
-  guardarDatos();
+  guardarEquipos();
   renderGanttBloques();
   mostrarNotificacion('✅ Bloque actualizado y cascada recalculada', 'success');
 }
@@ -14820,7 +14840,7 @@ function eliminarBloqueProgramado(equipoId, planIdx) {
   eq.planificaciones = eq.planificaciones.filter(p => p !== plan);
   recalcularCascada(eq);
   document.getElementById('modalEditarBloque')?.remove();
-  guardarDatos();
+  guardarEquipos();
   renderGanttBloques();
   mostrarNotificacion('🗑️ Bloque eliminado', 'success');
 }
@@ -15723,7 +15743,7 @@ function confirmarInicioJornada() {
 
   limpiarComponentesFriosDeEquipos();
   guardarOPs();
-  guardarDatos();
+  guardarEquipos();
   cerrarModalJornada();
   renderListaOPs();
   renderVistaSemanal();
