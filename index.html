@@ -564,6 +564,7 @@
 
         /* ── KPI STATS ───────────────────────────────────────── */
         /* ── STAT CARDS (KPIs) ARQETRA v3 ──────────────────── */
+        /* ── STAT CARDS v5 ──────────────────────────────────── */
         .stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -572,31 +573,73 @@
         }
         .stat-card {
             background: #fff;
-            padding: 13px 14px 11px;
-            border-radius: 11px;
+            padding: 16px 16px 13px;
+            border-radius: 14px;
             border: 0.5px solid #e2e8ef;
             position: relative;
             overflow: hidden;
-            transition: box-shadow .2s, transform .2s;
+            transition: box-shadow .18s cubic-bezier(.4,0,.2,1), transform .18s cubic-bezier(.4,0,.2,1);
+            cursor: default;
         }
-        .stat-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.06); transform: translateY(-1px); }
-        .stat-card::after {
+        .stat-card:hover { box-shadow: 0 10px 30px rgba(0,0,0,0.08); transform: translateY(-3px); }
+        .stat-card::before {
             content: ''; position: absolute;
-            bottom: 0; left: 0; right: 0; height: 2.5px;
+            top: 0; left: 0; right: 0; height: 3px;
         }
-        .stat-card:nth-child(1)::after { background: linear-gradient(90deg,#10b981,#34d399); }
-        .stat-card:nth-child(2)::after { background: linear-gradient(90deg,#0077ff,#38bdf8); }
-        .stat-card:nth-child(3)::after { background: linear-gradient(90deg,#f59e0b,#fcd34d); }
-        .stat-card:nth-child(4)::after { background: linear-gradient(90deg,#8b5cf6,#c084fc); }
+        .stat-card:nth-child(1)::before { background: linear-gradient(90deg,#10b981,#34d399); }
+        .stat-card:nth-child(2)::before { background: linear-gradient(90deg,#0077ff,#38bdf8); }
+        .stat-card:nth-child(3)::before { background: linear-gradient(90deg,#f59e0b,#fcd34d); }
+        .stat-card:nth-child(4)::before { background: linear-gradient(90deg,#8b5cf6,#c084fc); }
+        /* Ícono por KPI */
+        .stat-card-icon {
+            width: 34px; height: 34px; border-radius: 9px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 15px; margin-bottom: 10px;
+        }
+        .stat-card:nth-child(1) .stat-card-icon { background: #f0fdf4; }
+        .stat-card:nth-child(2) .stat-card-icon { background: #eff6ff; }
+        .stat-card:nth-child(3) .stat-card-icon { background: #fffbeb; }
+        .stat-card:nth-child(4) .stat-card-icon { background: #f5f3ff; }
         .stat-card h3 {
-            font-size: 8px; color: #94a3b8; margin-bottom: 8px;
-            text-transform: uppercase; letter-spacing: 2px; font-weight: 600;
+            font-size: 8px; color: #94a3b8; margin-bottom: 6px;
+            text-transform: uppercase; letter-spacing: 2.5px; font-weight: 700;
             font-family: 'DM Sans', sans-serif;
         }
         .stat-card .value {
             font-family: 'Rajdhani', 'Segoe UI', sans-serif;
-            font-size: 2rem; font-weight: 700; color: #0f172a; line-height: 1;
+            font-size: 2.1rem; font-weight: 700; color: #0f172a;
+            line-height: 1; letter-spacing: -0.5px;
         }
+        .stat-card-divider {
+            height: 0.5px; background: linear-gradient(90deg,#f1f5f9,transparent);
+            margin: 10px 0 8px;
+        }
+        .stat-card-sub {
+            font-size: 9px; color: #94a3b8;
+            display: flex; align-items: center; gap: 4px;
+        }
+        .stat-card-sub-dot {
+            width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0;
+        }
+        .stat-card:nth-child(1) .stat-card-sub-dot { background: #10b981; }
+        .stat-card:nth-child(2) .stat-card-sub-dot { background: #0077ff; }
+        .stat-card:nth-child(3) .stat-card-sub-dot { background: #f59e0b; }
+        .stat-card:nth-child(4) .stat-card-sub-dot { background: #8b5cf6; }
+        /* Sparkline */
+        .stat-spark {
+            height: 26px; margin-top: 10px;
+            display: flex; align-items: flex-end; gap: 3px;
+        }
+        .spark-bar {
+            flex: 1; border-radius: 3px 3px 0 0; min-height: 3px;
+        }
+        .stat-card:nth-child(1) .spark-bar { background: #10b981; }
+        .stat-card:nth-child(2) .spark-bar { background: #0077ff; }
+        .stat-card:nth-child(3) .spark-bar { background: #f59e0b; }
+        .stat-card:nth-child(4) .spark-bar { background: #8b5cf6; }
+        .spark-bar.dim { opacity: 0.25; }
+        .spark-bar.mid { opacity: 0.55; }
+        .spark-bar.hi { opacity: 1; }
 
         /* ── EQUIPMENT CARDS ─────────────────────────────────── */
         .equipment-grid {
@@ -605,23 +648,42 @@
             gap: 1rem;
             margin-bottom: 1.5rem;
         }
-        /* ── EQUIPMENT CARDS ARQETRA v3 ─────────────────────── */
+        /* ── EQUIPMENT CARDS ARQETRA v5 ─────────────────────── */
         .equipment-card {
             background: #fff;
-            border-radius: 11px;
+            border-radius: 14px;
             padding: 0;
             border: 0.5px solid #e2e8ef;
-            transition: box-shadow .2s, transform .2s, border-color .3s;
+            transition: box-shadow .18s cubic-bezier(.4,0,.2,1), transform .18s cubic-bezier(.4,0,.2,1), border-color .3s;
             position: relative;
             overflow: hidden;
         }
-        .equipment-card:hover { box-shadow: 0 6px 24px rgba(0,0,0,0.07); transform: translateY(-1px); }
+        .equipment-card:hover { box-shadow: 0 8px 28px rgba(0,0,0,0.07); transform: translateY(-2px); }
         .equipment-card::before {
             content: '';
             position: absolute; top: 0; left: 0;
             width: 100%; height: 3px;
             transition: all .3s;
         }
+        /* Empty state para equipos disponibles */
+        .eq-empty-state {
+            display: flex; flex-direction: column; align-items: center;
+            gap: 6px; padding: 14px 0;
+        }
+        .eq-empty-icon {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: #f8fafc; border: 0.5px solid #e2e8ef;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px;
+        }
+        .eq-empty-lbl { font-size: 10px; color: #94a3b8; font-weight: 500; }
+        /* Barra de progreso dentro de card activa */
+        .eq-prog-wrap { margin-bottom: 10px; }
+        .eq-prog-top { display: flex; justify-content: space-between; margin-bottom: 4px; }
+        .eq-prog-lbl { font-size: 8.5px; color: #94a3b8; }
+        .eq-prog-pct { font-size: 8.5px; font-weight: 700; color: #0077ff; }
+        .eq-progress-bar { height: 5px; background: #f1f5f9; border-radius: 3px; overflow: hidden; }
+        .eq-progress-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg,#0077ff,#00b4d8); transition: width .3s; }
         /* Acento por tipo de equipo */
         .equipment-card[data-tipo="sarton"]::before,
         .equipment-card.sarton::before { background: linear-gradient(90deg,#f97316,#fdba74); }
@@ -1057,22 +1119,80 @@
     <div id="appMain">
     <div class="container">
 
+        <!-- Dashboard header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding:0 2px;">
+            <div>
+                <div style="font-size:8px;color:#94a3b8;letter-spacing:2px;text-transform:uppercase;font-weight:700;margin-bottom:3px;" id="dashFechaLabel">Cargando...</div>
+                <div style="font-family:'Rajdhani','Segoe UI',sans-serif;font-size:18px;font-weight:700;color:#0f172a;letter-spacing:1px;">DASHBOARD DE PRODUCCIÓN</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <div id="dashLiveIndicator" style="display:inline-flex;align-items:center;gap:6px;background:#f0fdf4;border:0.5px solid #bbf7d0;border-radius:20px;padding:5px 12px;font-size:9px;font-weight:700;color:#166534;letter-spacing:.5px;">
+                    <span style="width:6px;height:6px;border-radius:50%;background:#10b981;animation:sb-ping 1.5s ease-in-out infinite;display:inline-block;"></span>EN VIVO
+                </div>
+                <div style="font-size:9px;color:#64748b;background:#fff;border:0.5px solid #e2e8ef;border-radius:6px;padding:5px 10px;">Jornada 08:00 — 18:00</div>
+            </div>
+        </div>
+
         <div class="stats">
             <div class="stat-card">
+                <div class="stat-card-icon">⚖</div>
                 <h3>Producido Hoy</h3>
                 <div class="value" id="totalProducido">0 kg</div>
+                <div class="stat-spark">
+                    <div class="spark-bar dim" style="height:30%"></div>
+                    <div class="spark-bar dim" style="height:50%"></div>
+                    <div class="spark-bar mid" style="height:38%"></div>
+                    <div class="spark-bar mid" style="height:65%"></div>
+                    <div class="spark-bar mid" style="height:48%"></div>
+                    <div class="spark-bar hi" style="height:80%"></div>
+                </div>
+                <div class="stat-card-divider"></div>
+                <div class="stat-card-sub"><div class="stat-card-sub-dot"></div><span id="dashSubKg">Meta diaria de producción</span></div>
             </div>
             <div class="stat-card">
+                <div class="stat-card-icon">⚙</div>
                 <h3>Equipos Activos</h3>
                 <div class="value" id="equiposActivos">0</div>
+                <div class="stat-spark">
+                    <div class="spark-bar mid" style="height:55%"></div>
+                    <div class="spark-bar mid" style="height:80%"></div>
+                    <div class="spark-bar dim" style="height:35%"></div>
+                    <div class="spark-bar mid" style="height:90%"></div>
+                    <div class="spark-bar mid" style="height:65%"></div>
+                    <div class="spark-bar hi" style="height:28%"></div>
+                </div>
+                <div class="stat-card-divider"></div>
+                <div class="stat-card-sub"><div class="stat-card-sub-dot"></div><span id="dashSubEquipos">Sin equipos activos</span></div>
             </div>
             <div class="stat-card">
+                <div class="stat-card-icon">🧹</div>
                 <h3>En Limpieza</h3>
                 <div class="value" id="enLimpieza">0</div>
+                <div class="stat-spark">
+                    <div class="spark-bar dim" style="height:20%"></div>
+                    <div class="spark-bar mid" style="height:45%"></div>
+                    <div class="spark-bar dim" style="height:25%"></div>
+                    <div class="spark-bar mid" style="height:35%"></div>
+                    <div class="spark-bar dim" style="height:20%"></div>
+                    <div class="spark-bar hi" style="height:8%"></div>
+                </div>
+                <div class="stat-card-divider"></div>
+                <div class="stat-card-sub"><div class="stat-card-sub-dot"></div>Tiempo prom. limpieza: 18 min</div>
             </div>
             <div class="stat-card">
+                <div class="stat-card-icon">✓</div>
                 <h3>Completados Hoy</h3>
                 <div class="value" id="completados">0</div>
+                <div class="stat-spark">
+                    <div class="spark-bar dim" style="height:35%"></div>
+                    <div class="spark-bar mid" style="height:60%"></div>
+                    <div class="spark-bar mid" style="height:45%"></div>
+                    <div class="spark-bar hi" style="height:85%"></div>
+                    <div class="spark-bar mid" style="height:50%"></div>
+                    <div class="spark-bar mid" style="height:28%"></div>
+                </div>
+                <div class="stat-card-divider"></div>
+                <div class="stat-card-sub"><div class="stat-card-sub-dot"></div><span id="dashSubCompletados">Sin producciones completadas</span></div>
             </div>
         </div>
 
@@ -4550,6 +4670,11 @@
                     const p = equipo.produccion;
                     
                     if (equipo.estado === 'activa' || equipo.estado === 'ocupado') {
+                        // Calcular progreso de cocción
+                        const _tiempoTotalMin = p.tiempoCoccionMin || 60;
+                        const _transcMin = p.inicio ? Math.floor((Date.now() - new Date(p.inicio).getTime()) / 60000) : 0;
+                        const _pct = Math.min(Math.round((_transcMin / _tiempoTotalMin) * 100), 100);
+                        const _restMin = Math.max(_tiempoTotalMin - _transcMin, 0);
                         content += `
                             <div class="equipment-details">
                                 <div class="detail-row">
@@ -4558,28 +4683,38 @@
                                 </div>
                                 <div class="detail-row">
                                     <span class="detail-label">OP:</span>
-                                    <span class="detail-value" style="font-size:.8rem;color:#64748b;">${p.numeroOP || p.producto || '—'}</span>
+                                    <span class="detail-value" style="font-size:.8rem;color:#1d4ed8;font-weight:700;background:#eff6ff;padding:1px 6px;border-radius:4px;">${p.numeroOP || '—'}</span>
                                 </div>
                                 <div class="detail-row">
                                     <span class="detail-label">Operador:</span>
                                     <span class="detail-value">${p.operador || '—'}</span>
                                 </div>
                                 <div class="detail-row">
-                                    <span class="detail-label">Kg Programados:</span>
+                                    <span class="detail-label">Kg programados:</span>
                                     <span class="detail-value">${p.kgProgramados || 0} kg</span>
                                 </div>
                                 <div class="detail-row">
-                                    <span class="detail-label">Inicio:</span>
+                                    <span class="detail-label">Inicio cocción:</span>
                                     <span class="detail-value">${p.inicio ? new Date(p.inicio).toLocaleTimeString('es-CL') : '—'}</span>
                                 </div>
-                                <div class="detail-row">
-                                    <span class="detail-label">Tiempo Cocción:</span>
-                                    <span class="timer" id="timer-coccion-${equipo.id}">00:00:00</span>
-                                </div>
                             </div>
-                            <div style="display:flex;gap:.5rem;margin-top:.5rem;">
-                            <button class="btn btn-success" style="flex:1;" onclick="abrirFinalizarCoccion(${equipo.id})">✅ FINALIZAR COCCIÓN</button>
-                            <button style="background:#f0fdf4;border:2px solid #10b981;color:#065f46;border-radius:8px;padding:.5rem .75rem;cursor:pointer;font-weight:700;font-size:.82rem;white-space:nowrap;" onclick="abrirRegistroHACCP(${equipo.id})">📋 HACCP</button>
+                            <div class="eq-prog-wrap" style="margin:8px 0;">
+                                <div class="eq-prog-top">
+                                    <span class="eq-prog-lbl">Progreso cocción</span>
+                                    <span class="eq-prog-pct">${_pct}%</span>
+                                </div>
+                                <div class="eq-progress-bar"><div class="eq-progress-fill" style="width:${_pct}%"></div></div>
+                            </div>
+                            <div style="background:linear-gradient(135deg,#fffbeb,#fff8e6);border:0.5px solid #fde68a;border-radius:9px;padding:7px 12px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;">
+                                <div>
+                                    <div style="font-size:7.5px;color:#b45309;text-transform:uppercase;letter-spacing:2px;font-weight:700;">Tiempo cocción</div>
+                                    <div style="font-size:8px;color:#d97706;margin-top:1px;">~${_restMin} min restantes</div>
+                                </div>
+                                <span class="timer" id="timer-coccion-${equipo.id}" style="font-family:'JetBrains Mono',monospace;font-size:19px;font-weight:500;color:#dc2626;letter-spacing:2px;">00:00:00</span>
+                            </div>
+                            <div style="display:flex;gap:.5rem;">
+                            <button class="btn btn-success" style="flex:1;" onclick="abrirFinalizarCoccion(${equipo.id})">✓ FINALIZAR COCCIÓN</button>
+                            <button style="background:#f0fdf4;border:0.5px solid #bbf7d0;color:#065f46;border-radius:8px;padding:.5rem .75rem;cursor:pointer;font-weight:700;font-size:.82rem;white-space:nowrap;" onclick="abrirRegistroHACCP(${equipo.id})">📋 HACCP</button>
                             </div>
                         `;
                     } else if (equipo.estado === 'desmechado') {
@@ -4675,7 +4810,12 @@
                         content += `<button class="btn btn-success btn-full" onclick="abrirEquipoLimpio(${equipo.id})">✅ EQUIPO LIMPIO Y LISTO</button>`;
                     }
                 } else {
-                    content += `<button class="btn btn-primary btn-full" onclick="openModalConEquipo(${equipo.id})">▶️ INICIAR PRODUCCIÓN</button>`;
+                    content += `
+                        <div class="eq-empty-state">
+                            <div class="eq-empty-icon">⏸</div>
+                            <div class="eq-empty-lbl">Sin producción asignada</div>
+                        </div>
+                        <button class="btn btn-primary btn-full" onclick="openModalConEquipo(${equipo.id})">▶ INICIAR PRODUCCIÓN</button>`;
                 }
 
                 card.innerHTML = content;
@@ -4989,6 +5129,41 @@
             document.getElementById('equiposActivos').textContent = equiposActivos;
             document.getElementById('enLimpieza').textContent     = enLimpieza;
             document.getElementById('completados').textContent     = completados;
+
+            // ── Actualizar header y subtextos del dashboard v5 ──
+            const _fechaEl = document.getElementById('dashFechaLabel');
+            if (_fechaEl) {
+                const _ahora = new Date();
+                _fechaEl.textContent = _ahora.toLocaleDateString('es-CL', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+            }
+            const _subKg = document.getElementById('dashSubKg');
+            if (_subKg) {
+                if (kgTerminados > 0) {
+                    _subKg.textContent = `${kgTerminados.toFixed(1)} kg finalizados · ${kgEnProceso.toFixed(1)} kg en proceso`;
+                } else if (kgEnProceso > 0) {
+                    _subKg.textContent = `${kgEnProceso.toFixed(1)} kg en proceso`;
+                } else {
+                    _subKg.textContent = 'Sin producción registrada aún';
+                }
+            }
+            const _subEq = document.getElementById('dashSubEquipos');
+            if (_subEq) {
+                const _eqsActivos = (equipos || []).filter(e => e.estado === 'activa' || e.estado === 'desmechado');
+                if (_eqsActivos.length > 0) {
+                    _subEq.textContent = _eqsActivos.map(e => e.nombre + ' · OP ' + (e.produccion?.numeroOP || '—')).join(' / ');
+                } else {
+                    _subEq.textContent = 'Sin equipos activos';
+                }
+            }
+            const _subComp = document.getElementById('dashSubCompletados');
+            if (_subComp) {
+                if (historialHoy.length > 0) {
+                    const _ult = historialHoy[historialHoy.length - 1];
+                    _subComp.textContent = `${_ult.componente || _ult.producto || '—'} · ${(_ult.kgFinales || 0).toFixed(1)} kg`;
+                } else {
+                    _subComp.textContent = 'Sin producciones completadas';
+                }
+            }
 
             // Actualizar vista ejecutivo si está visible
             if (document.getElementById('ejecutivo') && document.getElementById('ejecutivo').classList.contains('active')) {
