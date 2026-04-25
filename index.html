@@ -700,6 +700,8 @@
             background-size: 200% 100%;
             animation: shimmer-stripe 2s linear infinite;
         }
+        .rec-card-hover { transition: transform .18s cubic-bezier(.4,0,.2,1), box-shadow .18s; }
+        .rec-card-hover:hover { transform: translateY(-3px); box-shadow: 0 14px 40px rgba(0,0,0,.1); }
         @keyframes shimmer-stripe {
             0% { background-position: 200% 0; }
             100% { background-position: -200% 0; }
@@ -2868,42 +2870,71 @@
         </div>
 
         <!-- ============ MÓDULO RECETAS ============ -->
-        <div id="recetas" class="tab-content">
-        <div class="analytics-section">
-        <div class="analytics-header">
-        <h2>📋 Gestión de Recetas</h2>
-        <p>Administra tus recetas por SKU, analiza rendimientos y aplica sugerencias de la IA</p>
+        <div id="recetas" class="tab-content" style="background:#e8edf5;padding:22px 24px;min-height:600px;">
+
+        <!-- ── HEADER RECETAS v3 ── -->
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:16px;flex-wrap:wrap;">
+            <div>
+                <div style="display:flex;align-items:center;gap:7px;font-size:7.5px;letter-spacing:3.5px;color:#00b4d8;text-transform:uppercase;font-weight:700;margin-bottom:4px;">
+                    <div style="width:20px;height:1.5px;background:linear-gradient(90deg,#00b4d8,transparent);"></div>
+                    Módulo de gestión
+                </div>
+                <div style="font-family:'Rajdhani','Segoe UI',sans-serif;font-size:22px;font-weight:700;letter-spacing:2px;color:#0f172a;line-height:1;">RECETAS</div>
+                <div style="font-size:9px;color:#94a3b8;margin-top:3px;letter-spacing:.3px;">Administra SKUs · Componentes · Rendimientos · Sugerencias IA</div>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start;padding-top:4px;">
+                <button onclick="forzarRecargaRecetas()" style="display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:8px;background:#ecfeff;color:#0e7490;border:.5px solid #a5f3fc;font-size:10px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;">↺ Sincronizar</button>
+                <button onclick="abrirModalReceta()" style="display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:8px;background:#0f172a;color:#fff;border:none;font-size:10px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;">+ Plato</button>
+                <button onclick="abrirModalRecetaSandwich()" style="display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:8px;background:#fffbeb;color:#92400e;border:.5px solid #fde68a;font-size:10px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;">+ Sándwich</button>
+                <button onclick="abrirModalRecetaAveMayo()" style="display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:8px;background:#f0fdf4;color:#166534;border:.5px solid #bbf7d0;font-size:10px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;">+ Ave Mayo</button>
+                <button onclick="abrirModalRecetaSalsa()" style="display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:8px;background:#fff1f2;color:#9f1239;border:.5px solid #fecdd3;font-size:10px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;">+ Salsa</button>
+                <button onclick="analizarRendimientosIA()" style="display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:8px;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;border:none;font-size:10px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;box-shadow:0 2px 8px rgba(99,102,241,.3);white-space:nowrap;">✦ Analizar IA</button>
+                <label style="display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:8px;background:#fff;color:#475569;border:.5px solid #dde3ec;font-size:10px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;">
+                    ↓ Excel <input type="file" id="importarExcelRecetas" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarRecetasExcel(event)">
+                </label>
+                <button onclick="exportarRecetasExcel()" style="display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:8px;background:#fff;color:#475569;border:.5px solid #dde3ec;font-size:10px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;">↑ Exportar</button>
+            </div>
         </div>
 
-        <!-- Botones principales -->
-        <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem;">
-        <button class="btn" onclick="forzarRecargaRecetas()" style="background:linear-gradient(135deg,#0891b2,#06b6d4);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">🔄 Sincronizar Recetas</button>
-        <button class="btn" onclick="abrirModalReceta()" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">➕ Nueva Receta Plato</button>
-        <button class="btn" onclick="abrirModalRecetaSandwich()" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">🥪 Nueva Receta Sándwich</button>
-        <button class="btn" onclick="abrirModalRecetaAveMayo()" style="background:linear-gradient(135deg,#10b981,#059669);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">🥗 Nueva Receta Ave Mayo</button>
-        <button class="btn" onclick="abrirModalRecetaSalsa()" style="background:linear-gradient(135deg,#e11d48,#be123c);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">🥫 Nueva Receta Salsas</button>
-        <label style="background:linear-gradient(135deg,#43e97b,#38f9d7);color:white;padding:.75rem 1.5rem;border-radius:10px;cursor:pointer;font-size:1rem;">
-        📥 Importar Excel
-        <input type="file" id="importarExcelRecetas" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarRecetasExcel(event)">
-        </label>
-        <button class="btn" onclick="exportarRecetasExcel()" style="background:linear-gradient(135deg,#f093fb,#f5576c);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">📤 Exportar Excel</button>
-        <button class="btn" onclick="analizarRendimientosIA()" style="background:linear-gradient(135deg,#4facfe,#00f2fe);color:white;padding:.75rem 1.5rem;border-radius:10px;border:none;cursor:pointer;font-size:1rem;">🧠 Analizar con IA</button>
+        <!-- ── STATS BAR ── -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;">
+            <div style="background:#fff;border-radius:12px;border:.5px solid #e2e8ef;padding:11px 14px;display:flex;align-items:center;gap:11px;">
+                <div style="width:32px;height:32px;border-radius:9px;background:#f5f3ff;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">📋</div>
+                <div><div id="recStatTotal" style="font-family:'Rajdhani','Segoe UI',sans-serif;font-size:22px;font-weight:700;color:#0f172a;line-height:1;">0</div><div style="font-size:7.5px;color:#94a3b8;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-top:1px;">Total recetas</div></div>
+            </div>
+            <div style="background:#fff;border-radius:12px;border:.5px solid #e2e8ef;padding:11px 14px;display:flex;align-items:center;gap:11px;">
+                <div style="width:32px;height:32px;border-radius:9px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">✓</div>
+                <div><div id="recStatConRend" style="font-family:'Rajdhani','Segoe UI',sans-serif;font-size:22px;font-weight:700;color:#0f172a;line-height:1;">0</div><div style="font-size:7.5px;color:#94a3b8;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-top:1px;">Con rendimiento</div></div>
+            </div>
+            <div style="background:#fff;border-radius:12px;border:.5px solid #e2e8ef;padding:11px 14px;display:flex;align-items:center;gap:11px;">
+                <div style="width:32px;height:32px;border-radius:9px;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">⚙</div>
+                <div><div id="recStatComps" style="font-family:'Rajdhani','Segoe UI',sans-serif;font-size:22px;font-weight:700;color:#0f172a;line-height:1;">0</div><div style="font-size:7.5px;color:#94a3b8;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-top:1px;">Componentes</div></div>
+            </div>
+            <div style="background:#fff;border-radius:12px;border:.5px solid #e2e8ef;padding:11px 14px;display:flex;align-items:center;gap:11px;">
+                <div style="width:32px;height:32px;border-radius:9px;background:#fffbeb;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">⚠</div>
+                <div><div id="recStatSinRend" style="font-family:'Rajdhani','Segoe UI',sans-serif;font-size:22px;font-weight:700;color:#f59e0b;line-height:1;">0</div><div style="font-size:7.5px;color:#94a3b8;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-top:1px;">Sin rendimiento</div></div>
+            </div>
         </div>
 
-        <!-- Filtros + Buscador -->
-        <div style="display:flex;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap;align-items:center;">
-          <div style="display:flex;gap:.4rem;">
-            <button id="filtroTodoR" onclick="setFiltroReceta('todo')" style="padding:.45rem 1rem;border-radius:20px;border:2px solid #667eea;background:#667eea;color:white;font-weight:700;cursor:pointer;font-size:.82rem;">Todos</button>
-            <button id="filtroPlatoR" onclick="setFiltroReceta('plato')" style="padding:.45rem 1rem;border-radius:20px;border:2px solid #667eea;background:white;color:#667eea;font-weight:700;cursor:pointer;font-size:.82rem;">🍽️ Platos</button>
-            <button id="filtroSandwichR" onclick="setFiltroReceta('sandwich')" style="padding:.45rem 1rem;border-radius:20px;border:2px solid #f59e0b;background:white;color:#f59e0b;font-weight:700;cursor:pointer;font-size:.82rem;">🥪 Sándwiches</button>
-            <button id="filtroAveMayoR" onclick="setFiltroReceta('avemayo')" style="padding:.45rem 1rem;border-radius:20px;border:2px solid #10b981;background:white;color:#10b981;font-weight:700;cursor:pointer;font-size:.82rem;">🥗 Ave Mayo</button>
-            <button id="filtroSalsaR" onclick="setFiltroReceta('salsa')" style="padding:.45rem 1rem;border-radius:20px;border:2px solid #e11d48;background:white;color:#e11d48;font-weight:700;cursor:pointer;font-size:.82rem;">🥫 Salsas</button>
-          </div>
-          <input type="text" id="buscarReceta" placeholder="🔍 Buscar receta por nombre o SKU..." oninput="filtrarRecetas()" style="flex:1;min-width:200px;padding:.6rem 1rem;border-radius:10px;border:1px solid #ddd;font-size:1rem;">
+        <!-- ── TOOLBAR FILTROS ── -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;background:#fff;border-radius:12px;border:.5px solid #e2e8ef;padding:8px 12px;flex-wrap:wrap;">
+            <div style="display:flex;gap:4px;">
+                <button id="filtroTodoR" onclick="setFiltroReceta('todo')" style="padding:5px 13px;border-radius:20px;font-size:8.5px;font-weight:700;letter-spacing:.8px;cursor:pointer;border:none;background:#0f172a;color:#fff;font-family:'DM Sans',sans-serif;">TODOS</button>
+                <button id="filtroPlatoR" onclick="setFiltroReceta('plato')" style="padding:5px 13px;border-radius:20px;font-size:8.5px;font-weight:700;letter-spacing:.8px;cursor:pointer;border:none;background:transparent;color:#64748b;font-family:'DM Sans',sans-serif;">PLATOS</button>
+                <button id="filtroSandwichR" onclick="setFiltroReceta('sandwich')" style="padding:5px 13px;border-radius:20px;font-size:8.5px;font-weight:700;letter-spacing:.8px;cursor:pointer;border:none;background:transparent;color:#64748b;font-family:'DM Sans',sans-serif;">SÁNDWICHES</button>
+                <button id="filtroAveMayoR" onclick="setFiltroReceta('avemayo')" style="padding:5px 13px;border-radius:20px;font-size:8.5px;font-weight:700;letter-spacing:.8px;cursor:pointer;border:none;background:transparent;color:#64748b;font-family:'DM Sans',sans-serif;">AVE MAYO</button>
+                <button id="filtroSalsaR" onclick="setFiltroReceta('salsa')" style="padding:5px 13px;border-radius:20px;font-size:8.5px;font-weight:700;letter-spacing:.8px;cursor:pointer;border:none;background:transparent;color:#64748b;font-family:'DM Sans',sans-serif;">SALSAS</button>
+            </div>
+            <div style="width:.5px;height:20px;background:#e2e8ef;margin:0 4px;"></div>
+            <div style="flex:1;display:flex;align-items:center;gap:8px;">
+                <span style="color:#94a3b8;font-size:12px;">🔍</span>
+                <input type="text" id="buscarReceta" placeholder="Buscar por nombre o SKU..." oninput="filtrarRecetas()" style="border:none;outline:none;font-size:11px;color:#0f172a;background:transparent;width:100%;font-family:'DM Sans',sans-serif;">
+            </div>
+            <div id="recContador" style="font-size:9px;color:#94a3b8;white-space:nowrap;padding:3px 8px;background:#f8fafc;border-radius:6px;border:.5px solid #e2e8ef;">0 recetas</div>
         </div>
 
-        <!-- Lista de recetas -->
-        <div id="listaRecetas" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1rem;"></div>
+        <!-- ── LISTA DE RECETAS ── -->
+        <div id="listaRecetas" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:10px;"></div>
         </div>
 
         <!-- Modal Sándwich -->
@@ -13680,43 +13711,101 @@ function renderListaRecetas() {
     return coincideTexto && coincideTipo;
   });
 
+  // Actualizar stats bar
+  const total = recetas.length;
+  const conRend = recetas.filter(r => r.rendimientoEsperado > 0).length;
+  const totalComps = recetas.reduce((s,r) => s + (r.componentes||[]).length, 0);
+  const sinRend = total - conRend;
+  const _el = id => document.getElementById(id);
+  if(_el('recStatTotal')) _el('recStatTotal').textContent = total;
+  if(_el('recStatConRend')) _el('recStatConRend').textContent = conRend;
+  if(_el('recStatComps')) _el('recStatComps').textContent = totalComps;
+  if(_el('recStatSinRend')) _el('recStatSinRend').textContent = sinRend;
+  if(_el('recContador')) _el('recContador').textContent = lista.length + ' receta' + (lista.length !== 1 ? 's' : '');
+
   if (lista.length === 0) {
-    cont.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem;color:#999;"><div style="font-size:3rem;">📋</div><p>No hay recetas aún. Crea una nueva o importa desde Excel.</p></div>';
+    cont.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem;background:#fff;border-radius:14px;border:.5px solid #e2e8ef;">'
+      + '<div style="font-size:2.5rem;margin-bottom:10px;">📋</div>'
+      + '<div style="font-family:Rajdhani,sans-serif;font-size:16px;font-weight:700;color:#0f172a;letter-spacing:1px;">SIN RECETAS</div>'
+      + '<div style="font-size:11px;color:#94a3b8;margin-top:5px;">Crea una nueva o importa desde Excel</div>'
+      + '</div>';
     return;
   }
 
+  // Colores por tipo
+  const tipoConfig = {
+    plato:    { stripe: 'linear-gradient(90deg,#6366f1,#a78bfa,#6366f1)', skuBg: '#ede9fe', skuC: '#4338ca', badgeBg: '#ede9fe', badgeC: '#4338ca', dot: '#8b5cf6', headBg: 'rgba(99,102,241,.04)', label: 'PLATO' },
+    sandwich: { stripe: 'linear-gradient(90deg,#f59e0b,#fbbf24,#f59e0b)', skuBg: '#fef3c7', skuC: '#92400e', badgeBg: '#fef3c7', badgeC: '#92400e', dot: '#f59e0b', headBg: 'rgba(245,158,11,.04)', label: 'SÁNDWICH' },
+    avemayo:  { stripe: 'linear-gradient(90deg,#10b981,#34d399,#10b981)', skuBg: '#dcfce7', skuC: '#166534', badgeBg: '#dcfce7', badgeC: '#166534', dot: '#10b981', headBg: 'rgba(16,185,129,.04)', label: 'AVE MAYO' },
+    salsa:    { stripe: 'linear-gradient(90deg,#e11d48,#fb7185,#e11d48)', skuBg: '#ffe4e6', skuC: '#9f1239', badgeBg: '#ffe4e6', badgeC: '#9f1239', dot: '#e11d48', headBg: 'rgba(225,29,72,.04)', label: 'SALSA' },
+  };
+
   cont.innerHTML = lista.map(r => {
+    const tipo = r.tipo || 'plato';
+    const cfg = tipoConfig[tipo] || tipoConfig.plato;
     const historial = r.historialRendimientos || [];
     const ultRend = historial.length > 0 ? historial[historial.length-1].rendimientoReal : null;
-    const diff = ultRend ? (ultRend - r.rendimientoEsperado).toFixed(1) : null;
-    const diffColor = diff === null ? '#666' : (parseFloat(diff) >= 0 ? '#27ae60' : '#e74c3c');
+    const rend = r.rendimientoEsperado || 0;
+    const rendColor = rend >= 85 ? '#10b981' : rend >= 60 ? '#f59e0b' : rend > 0 ? '#ef4444' : '';
     const tieneSugerencia = historial.some(h => h.sugerencia && !h.aprobada);
+    const nComps = (r.componentes||[]).length;
+    const editFn = tipo==='sandwich' ? `abrirModalRecetaSandwich('${r.id}')` : tipo==='avemayo' ? `abrirModalRecetaAveMayo('${r.id}')` : tipo==='salsa' ? `abrirModalRecetaSalsa('${r.id}')` : `abrirModalReceta('${r.id}')`;
 
-    return `
-      <div style="background:white;border-radius:15px;padding:1.5rem;box-shadow:0 4px 15px rgba(0,0,0,0.1);border-top:4px solid ${r.tipo==='sandwich'?'#f59e0b':r.tipo==='avemayo'?'#10b981':r.tipo==='salsa'?'#e11d48':'#667eea'};position:relative;">
-        ${tieneSugerencia ? '<div style="position:absolute;top:.75rem;right:.75rem;background:#f39c12;color:white;border-radius:20px;padding:.2rem .6rem;font-size:.75rem;">⚠️ Sugerencia IA</div>' : ''}
-        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem;">
-          <h3 style="color:#333;margin:0;font-size:1.05rem;">${r.nombre}</h3>
-          ${r.tipo==='sandwich'?'<span style="background:#fef3c7;color:#92400e;border-radius:20px;padding:.1rem .5rem;font-size:.7rem;font-weight:700;">🥪 Sándwich</span>':r.tipo==='avemayo'?'<span style="background:#d1fae5;color:#065f46;border-radius:20px;padding:.1rem .5rem;font-size:.7rem;font-weight:700;">🥗 Ave Mayo</span>':r.tipo==='salsa'?'<span style="background:#ffe4e6;color:#9f1239;border-radius:20px;padding:.1rem .5rem;font-size:.7rem;font-weight:700;">🥫 Salsa</span>':'<span style="background:#eef2ff;color:#4338ca;border-radius:20px;padding:.1rem .5rem;font-size:.7rem;font-weight:700;">🍽️ Plato</span>'}
-        </div>
-        <div style="font-size:.8rem;color:#667eea;font-weight:600;margin-bottom:.4rem;">🏷️ ${r.sku || 'Sin SKU'}</div>
-        <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:.75rem;font-size:.85rem;color:#666;">
-          <span>🍽️ ${r.gramaje}gr + ${r.envase}gr envase</span>
-          <span>🧩 ${r.componentes.length} componentes</span>
-          <span>📅 v${r.version}</span>
-        </div>
-        <div style="display:flex;gap:.5rem;justify-content:space-between;align-items:center;background:#f8f9ff;border-radius:8px;padding:.5rem .75rem;margin-bottom:.75rem;font-size:.85rem;">
-          <span>🎯 Rend. esperado: <strong>${r.rendimientoEsperado}%</strong></span>
-          ${ultRend ? `<span>📊 Último real: <strong style="color:${diffColor}">${ultRend}% (${diff > 0 ? '+' : ''}${diff}%)</strong></span>` : '<span style="color:#aaa">Sin historial aún</span>'}
-        </div>
-        <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
-          <button onclick="verDetalleReceta('${r.id}')" style="flex:1;background:#e8edff;color:#667eea;border:none;border-radius:8px;padding:.5rem;cursor:pointer;font-size:.85rem;">👁️ Ver</button>
-          <button onclick="${r.tipo==='sandwich'?`abrirModalRecetaSandwich('${r.id}')`:(r.tipo==='avemayo'?`abrirModalRecetaAveMayo('${r.id}')`:(r.tipo==='salsa'?`abrirModalRecetaSalsa('${r.id}')`:`abrirModalReceta('${r.id}')`))}" style="flex:1;background:#fff3e0;color:#f39c12;border:none;border-radius:8px;padding:.5rem;cursor:pointer;font-size:.85rem;">✏️ Editar</button>
-          <button onclick="registrarRendimiento('${r.id}')" style="flex:1;background:#e8fff0;color:#27ae60;border:none;border-radius:8px;padding:.5rem;cursor:pointer;font-size:.85rem;">📊 Rendimiento</button>
-          <button onclick="eliminarReceta('${r.id}')" style="background:#ffe8e8;color:#e74c3c;border:none;border-radius:8px;padding:.5rem .75rem;cursor:pointer;font-size:.85rem;">🗑️</button>
-        </div>
-      </div>
-    `;
+    // Componentes HTML
+    const compsHtml = (r.componentes||[]).slice(0,3).map(c => {
+      const esDesmechado = c.requiereDesmechado ? '<span style="font-size:7px;padding:2px 6px;border-radius:4px;font-weight:700;background:#fff7ed;color:#c2410c;margin-left:4px;">CALIENTE</span>' : '<span style="font-size:7px;padding:2px 6px;border-radius:4px;font-weight:700;background:#f1f5f9;color:#475569;margin-left:4px;">INSUMO</span>';
+      const kg = c.kgPorUnidad ? c.kgPorUnidad + ' kg' : c.porcentaje ? c.porcentaje + '%' : '—';
+      return '<div style="display:flex;align-items:center;gap:8px;padding:5px 10px;border-radius:8px;margin-bottom:3px;background:#f8fafc;border:.5px solid #f1f5f9;">'
+        + '<div style="width:7px;height:7px;border-radius:50%;background:' + cfg.dot + ';flex-shrink:0;"></div>'
+        + '<span style="font-size:10px;color:#374151;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (c.nombre||'—') + '</span>'
+        + esDesmechado
+        + '<span style="font-family:JetBrains Mono,monospace;font-size:10px;font-weight:500;color:#0f172a;min-width:38px;text-align:right;flex-shrink:0;">' + kg + '</span>'
+        + '</div>';
+    }).join('');
+    const masComps = nComps > 3 ? '<div style="font-size:9px;color:#94a3b8;text-align:center;padding:3px 0;">+' + (nComps-3) + ' más</div>' : '';
+
+    return '<div style="background:#fff;border-radius:14px;overflow:hidden;transition:transform .18s,box-shadow .18s;position:relative;border:.5px solid #e2e8ef;" class="rec-card-hover">'
+      // Stripe animado
+      + '<div style="height:3px;background:' + cfg.stripe + ';background-size:200%;animation:shimmer-stripe 3s linear infinite;"></div>'
+      // Badge sugerencia IA
+      + (tieneSugerencia ? '<div style="position:absolute;top:12px;right:12px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border-radius:20px;padding:2px 9px;font-size:8px;font-weight:700;z-index:1;">✦ Sugerencia IA</div>' : '')
+      // Head
+      + '<div style="padding:13px 16px 11px;border-bottom:.5px solid #f8fafc;background:linear-gradient(135deg,' + cfg.headBg + ',transparent);">'
+      +   '<div style="font-family:JetBrains Mono,monospace;font-size:8.5px;padding:2px 8px;border-radius:4px;margin-bottom:6px;display:inline-block;background:' + cfg.skuBg + ';color:' + cfg.skuC + ';">' + (r.sku||'SIN-SKU') + '</div>'
+      +   '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">'
+      +     '<div style="font-size:13.5px;font-weight:600;color:#0f172a;line-height:1.3;">' + r.nombre + '</div>'
+      +     '<span style="font-size:7px;font-weight:700;padding:4px 10px;border-radius:20px;letter-spacing:1px;white-space:nowrap;background:' + cfg.badgeBg + ';color:' + cfg.badgeC + ';display:inline-flex;align-items:center;gap:4px;flex-shrink:0;">'
+      +       '<span style="width:5px;height:5px;border-radius:50%;background:currentColor;display:inline-block;"></span>' + cfg.label
+      +     '</span>'
+      +   '</div>'
+      + '</div>'
+      // Body
+      + '<div style="padding:12px 16px;">'
+      // Meta grid
+      +   '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:12px;">'
+      +     '<div style="background:#f8fafc;border-radius:8px;padding:7px 10px;border:.5px solid #f1f5f9;"><div style="font-size:7px;color:#94a3b8;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;">Tiempo</div><div style="font-family:Rajdhani,sans-serif;font-size:14px;font-weight:600;color:#0f172a;margin-top:3px;">' + (r.tiempoCoccionMin||r.tiempoCoccion||'—') + ' min</div></div>'
+      +     '<div style="background:#f8fafc;border-radius:8px;padding:7px 10px;border:.5px solid #f1f5f9;"><div style="font-size:7px;color:#94a3b8;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;">Componentes</div><div style="font-family:Rajdhani,sans-serif;font-size:14px;font-weight:600;color:#0f172a;margin-top:3px;">' + nComps + ' items</div></div>'
+      +     '<div style="background:#f8fafc;border-radius:8px;padding:7px 10px;border:.5px solid #f1f5f9;"><div style="font-size:7px;color:#94a3b8;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;">Versión</div><div style="font-family:Rajdhani,sans-serif;font-size:14px;font-weight:600;color:#0f172a;margin-top:3px;">v' + (r.version||1) + '</div></div>'
+      +   '</div>'
+      // Componentes
+      +   '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;">'
+      +     '<span style="font-size:7px;color:#94a3b8;text-transform:uppercase;letter-spacing:2px;font-weight:700;">Componentes</span>'
+      +     '<span style="font-size:8px;font-weight:700;padding:2px 8px;border-radius:10px;background:' + cfg.skuBg + ';color:' + cfg.skuC + ';">' + nComps + ' items</span>'
+      +   '</div>'
+      +   compsHtml + masComps
+      + '</div>'
+      // Footer rendimiento
+      + '<div style="padding:10px 16px 12px;border-top:.5px solid #f8fafc;display:flex;align-items:center;justify-content:space-between;gap:10px;">'
+      +   (rend > 0
+          ? '<div style="flex:1;"><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="font-size:7.5px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;font-weight:700;">Rendimiento teórico</span><span style="font-size:11px;font-weight:700;color:' + rendColor + ';">' + rend + '%</span></div><div style="height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden;"><div style="height:100%;border-radius:3px;width:' + Math.min(rend,100) + '%;background:linear-gradient(90deg,' + rendColor + ',' + rendColor + '99);"></div></div></div>'
+          : '<div style="font-size:8px;font-weight:700;color:#d97706;display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:#fffbeb;border:.5px solid #fde68a;border-radius:7px;">⚠ Sin rendimiento — ver análisis IA</div>'
+        )
+      +   '<div style="display:flex;gap:5px;flex-shrink:0;">'
+      +     '<button onclick="' + editFn + '" style="padding:6px 12px;border-radius:7px;font-size:9.5px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;border:.5px solid #e2e8ef;background:#f8fafc;color:#374151;">✏ Editar</button>'
+      +     '<button onclick="eliminarReceta(\'' + r.id + '\')" style="padding:6px 8px;border-radius:7px;font-size:9.5px;cursor:pointer;background:transparent;border:.5px solid #fee2e2;color:#dc2626;">🗑</button>'
+      +   '</div>'
+      + '</div>'
+      + '</div>';
   }).join('');
 }
 
@@ -13726,17 +13815,21 @@ function filtrarRecetas() { renderListaRecetas(); }
 window._filtroTipoReceta = 'todo';
 function setFiltroReceta(tipo) {
   window._filtroTipoReceta = tipo;
+  const colorMap = {
+    filtroTodoR: '#0f172a', filtroPlatoR: '#0f172a',
+    filtroSandwichR: '#f59e0b', filtroAveMayoR: '#10b981', filtroSalsaR: '#e11d48'
+  };
+  const activeMap = {
+    todo: 'filtroTodoR', plato: 'filtroPlatoR',
+    sandwich: 'filtroSandwichR', avemayo: 'filtroAveMayoR', salsa: 'filtroSalsaR'
+  };
   ['filtroTodoR','filtroPlatoR','filtroSandwichR','filtroAveMayoR','filtroSalsaR'].forEach(id => {
     const btn = document.getElementById(id);
     if (!btn) return;
-    const color = id==='filtroSandwichR' ? '#f59e0b' : id==='filtroAveMayoR' ? '#10b981' : '#667eea';
-    const activo = (tipo === 'todo' && id === 'filtroTodoR') ||
-                   (tipo === 'plato' && id === 'filtroPlatoR') ||
-                   (tipo === 'sandwich' && id === 'filtroSandwichR') ||
-                   (tipo === 'avemayo' && id === 'filtroAveMayoR') ||
-                   (tipo === 'salsa' && id === 'filtroSalsaR');
-    btn.style.background = activo ? color : 'white';
-    btn.style.color = activo ? 'white' : color;
+    const activo = activeMap[tipo] === id;
+    btn.style.background = activo ? colorMap[id] : 'transparent';
+    btn.style.color = activo ? '#fff' : '#64748b';
+    btn.style.borderRadius = '20px';
   });
   renderListaRecetas();
 }
