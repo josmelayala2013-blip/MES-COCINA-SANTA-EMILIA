@@ -97,8 +97,6 @@
         window.firestoreFunctions = {
             collection, doc, setDoc, getDoc, getDocs, onSnapshot, query, orderBy, deleteDoc
         };
-        
-        console.log('🔥 Firebase inicializado correctamente');
     </script>
 
     <style>
@@ -2627,7 +2625,7 @@
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
             <h2 style="color:#667eea;">📅 Planificador Visual</h2>
             <div style="display:flex; gap:1rem; align-items:center;">
-                <input type="date" id="fechaPlan" style="padding:0.5rem 1rem; border:2px solid #e5e7eb; border-radius:8px; font-size:1rem;">
+                <input type="date" id="fechaPlanGuardar" style="padding:0.5rem 1rem; border:2px solid #e5e7eb; border-radius:8px; font-size:1rem;">
                 <button class="btn btn-success" onclick="guardarPlan()">💾 Guardar Plan</button>
             </div>
         </div>
@@ -4525,7 +4523,6 @@
             setInterval(() => {
                 if (window.db && window.firestoreLoaded) {
                     sincronizarFirebase();
-                    console.log('🔄 Sincronización periódica ejecutada:', new Date().toLocaleTimeString('es-CL'));
                 }
             }, 5 * 60 * 1000);
 
@@ -4547,7 +4544,6 @@
                 const prodPollo = productos.find(p => p.id === 6 || p.nombre === 'Desmechada Pollo');
                 if (prodPollo && prodPollo.vsm && prodPollo.vsm.totalProducciones < 5) {
                     prodPollo.vsm = { promCoccion: null, promEnvasado: null, promAbatimiento: null, totalProducciones: 0 };
-                    console.log('🔄 VSM Desmechada Pollo reseteado — usando tiempo base de receta');
                 }
             }, 500);
             setTimeout(() => cargarHACCPHistorialFirebase().then(() => { renderHACCPCompletados(); renderRegistrosFirmadosEnModulo('cocina'); }), 1000);
@@ -4917,62 +4913,7 @@
             }
         }
         
-        function reproducirSonido(tipo) {
-            inicializarAudio();
-            
-            const oscilador = audioContext.createOscillator();
-            const ganancia = audioContext.createGain();
-            oscilador.connect(ganancia);
-            ganancia.connect(audioContext.destination);
-            
-            // Diferentes tonos según tipo de alerta
-            switch(tipo) {
-                case 'critico': // Limpieza excedida
-                    oscilador.frequency.value = 880; // La5
-                    ganancia.gain.setValueAtTime(0.3, audioContext.currentTime);
-                    ganancia.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-                    oscilador.start(audioContext.currentTime);
-                    oscilador.stop(audioContext.currentTime + 0.5);
-                    // Repetir 3 veces
-                    setTimeout(() => reproducirSonido('critico-eco'), 200);
-                    break;
-                    
-                case 'critico-eco':
-                    oscilador.frequency.value = 880;
-                    ganancia.gain.setValueAtTime(0.2, audioContext.currentTime);
-                    ganancia.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-                    oscilador.start(audioContext.currentTime);
-                    oscilador.stop(audioContext.currentTime + 0.3);
-                    break;
-                    
-                case 'advertencia': // Proceso por terminar
-                    oscilador.frequency.value = 523; // Do5
-                    ganancia.gain.setValueAtTime(0.2, audioContext.currentTime);
-                    ganancia.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
-                    oscilador.start(audioContext.currentTime);
-                    oscilador.stop(audioContext.currentTime + 0.4);
-                    break;
-                    
-                case 'exito': // Proceso completado
-                    oscilador.frequency.value = 659; // Mi5
-                    ganancia.gain.setValueAtTime(0.15, audioContext.currentTime);
-                    ganancia.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-                    oscilador.start(audioContext.currentTime);
-                    oscilador.stop(audioContext.currentTime + 0.15);
-                    setTimeout(() => {
-                        const osc2 = audioContext.createOscillator();
-                        const gan2 = audioContext.createGain();
-                        osc2.connect(gan2);
-                        gan2.connect(audioContext.destination);
-                        osc2.frequency.value = 783; // Sol5
-                        gan2.gain.setValueAtTime(0.15, audioContext.currentTime);
-                        gan2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-                        osc2.start(audioContext.currentTime);
-                        osc2.stop(audioContext.currentTime + 0.3);
-                    }, 150);
-                    break;
-            }
-        }
+        // reproducirSonido V1 eliminada — V2 usa AudioContext local con try/catch
         
         function mostrarAlertaGrande(titulo, mensaje, tipo = 'critico') {
             const alertId = `${titulo}-${Date.now()}`;
@@ -5632,13 +5573,7 @@
         setInterval(actualizarContadorTurno, 60000);
 
 // ---- DROPDOWN ACONDICIONAMIENTO ----
-function toggleDropdownAcond(e) {
-  e.stopPropagation();
-  const menu = document.getElementById('menuAcondicionamiento');
-  const isOpen = menu.classList.contains('open');
-  document.querySelectorAll('.nav-dropdown-menu').forEach(m => m.classList.remove('open'));
-  if (!isOpen) { _posicionarDropdown('btnAcondicionamiento','menuAcondicionamiento'); menu.classList.add('open'); }
-}
+        // toggleDropdownAcond V1 eliminada — idéntica a V2
 
 function cerrarDropdownAcond() {
   document.getElementById('menuAcondicionamiento')?.classList.remove('open');
@@ -6843,18 +6778,7 @@ ${d.acc ? `
   <!-- ============================================================ -->
   <!-- MODAL REGISTRO HACCP ABATIMIENTO                             -->
   <!-- ============================================================ -->
-  <div id="modalHACCPAbatimiento" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;overflow-y:auto;">
-    <div style="background:white;max-width:950px;margin:1.5rem auto;border-radius:16px;padding:0;overflow:hidden;">
-      <div style="background:linear-gradient(135deg,#0e7490,#06b6d4);padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
-        <div>
-          <div style="color:white;font-weight:800;font-size:1.1rem;" id="tituloModalHACCPAbat">❄️ Registro HACCP — Control de Proceso Abatimiento</div>
-          <div style="color:rgba(255,255,255,.75);font-size:.8rem;margin-top:.2rem;" id="codigoModalHACCPAbat">R-POE-03-GF-05(A) · Versión 03 · Vigencia: 15-12-2025</div>
-        </div>
-        <button onclick="cerrarModalHACCPAbatimiento()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
-      </div>
-      <div style="padding:1.5rem;" id="contenidoModalHACCPAbatimiento"></div>
-    </div>
-  </div>
+<!-- modalHACCPAbatimiento eliminado (duplicado) -->
 
     </div> <!-- /appContent -->
 </body>
@@ -7639,11 +7563,6 @@ function abrirRegistroHACCP(equipoId) {
     }
   }
 
-  console.log('HACCP Debug — componente buscado:', nombreBuscar,
-    '| receta:', receta?.nombre, '| tipo:', receta?.tipo,
-    '| comp encontrado:', comp?.nombre,
-    '| ingredientes:', comp?.ingredientes?.length || 0);
-
   const ingredientes = comp?.ingredientes || [];
   const platos = op?.platos || 0;
 
@@ -8387,34 +8306,12 @@ function imprimirRegistroHACCP(d) {
   <!-- ============================================================ -->
   <!-- MODAL REGISTRO HACCP ENVASADO                                -->
   <!-- ============================================================ -->
-  <div id="modalHACCPEnvasado" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;overflow-y:auto;">
-    <div style="background:white;max-width:900px;margin:1.5rem auto;border-radius:16px;padding:0;overflow:hidden;">
-      <div style="background:linear-gradient(135deg,#5b21b6,#7c3aed);padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
-        <div>
-          <div style="color:white;font-weight:800;font-size:1.1rem;">📋 Registro HACCP — Control de Proceso Envasado</div>
-          <div style="color:rgba(255,255,255,.75);font-size:.8rem;margin-top:.2rem;">R-POE-03-GF-04 · Versión v-02 · Vigencia: 15-12-2025</div>
-        </div>
-        <button onclick="cerrarModalHACCPEnvasado()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
-      </div>
-      <div style="padding:1.5rem;" id="contenidoModalHACCPEnvasado"></div>
-    </div>
-  </div>
+<!-- modalHACCPEnvasado eliminado (duplicado) -->
 
   <!-- ============================================================ -->
   <!-- MODAL REGISTRO HACCP ABATIMIENTO                             -->
   <!-- ============================================================ -->
-  <div id="modalHACCPAbatimiento" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;overflow-y:auto;">
-    <div style="background:white;max-width:950px;margin:1.5rem auto;border-radius:16px;padding:0;overflow:hidden;">
-      <div style="background:linear-gradient(135deg,#0e7490,#06b6d4);padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
-        <div>
-          <div style="color:white;font-weight:800;font-size:1.1rem;" id="tituloModalHACCPAbat">❄️ Registro HACCP — Control de Proceso Abatimiento</div>
-          <div style="color:rgba(255,255,255,.75);font-size:.8rem;margin-top:.2rem;" id="codigoModalHACCPAbat">R-POE-03-GF-05(A) · Versión 03 · Vigencia: 15-12-2025</div>
-        </div>
-        <button onclick="cerrarModalHACCPAbatimiento()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
-      </div>
-      <div style="padding:1.5rem;" id="contenidoModalHACCPAbatimiento"></div>
-    </div>
-  </div>
+<!-- modalHACCPAbatimiento eliminado (duplicado) -->
 
     </div> <!-- /appContent -->
 </body>
@@ -10153,42 +10050,7 @@ function imprimirRegistroHACCP(d) {
             return formatTime(seg);
         }
 
-        function renderAbatimiento() {
-            const cont = document.getElementById('contenidoAbatimiento');
-            const badge = document.getElementById('badgeAbatimiento');
-            if (!cont) return;
-            if (badge) badge.textContent = procesosAbatimiento.length + ' activo' + (procesosAbatimiento.length !== 1 ? 's' : '');
-
-            if (procesosAbatimiento.length === 0) {
-                cont.innerHTML = '<div style="text-align:center;color:#999;padding:3rem;"><div style="font-size:3rem;">❄️</div><p style="margin-top:1rem;">No hay procesos de abatimiento activos</p></div>';
-                return;
-            }
-
-            cont.innerHTML = procesosAbatimiento.map((proceso, index) => {
-                const tiempoAbatimiento = Math.floor((new Date() - new Date(proceso.inicioAbatimiento)) / 1000);
-                return `
-                    <div class="parallel-process-card" style="border-left:4px solid #06b6d4;margin-bottom:1rem;">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-                            <div>
-                                <strong style="font-size:1.1rem;color:#06b6d4;">❄️ ${proceso.producto}</strong>
-                                <div class="op-badge" style="background:#06b6d4;margin-top:.4rem;">OP: ${proceso.numeroOP}</div>
-                            </div>
-                            <span class="timer" id="timer-abatimiento-${index}">${formatTime(tiempoAbatimiento)}</span>
-                        </div>
-                        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem;font-size:.9rem;margin-bottom:1rem;">
-                            <div><strong>Kg Abatimiento:</strong> ${proceso.kgAbatimiento} kg</div>
-                            <div><strong>Inicio:</strong> ${new Date(proceso.inicioAbatimiento).toLocaleTimeString('es-CL')}</div>
-                            <div><strong>Manipulador:</strong> ${proceso.manipulador}</div>
-                            <div><strong>Equipo origen:</strong> ${proceso.equipoNombre}</div>
-                        </div>
-                        <div style="display:flex;gap:.5rem;margin-top:.5rem;">
-                            <button class="btn btn-success" style="flex:1;" onclick="abrirFinalizarAbatimiento(${index})">✅ FINALIZAR ABATIMIENTO</button>
-                            <button style="background:#ecfeff;border:2px solid #06b6d4;color:#0e7490;border-radius:8px;padding:.5rem .75rem;cursor:pointer;font-weight:700;font-size:.82rem;white-space:nowrap;" onclick="abrirRegistroHACCPAbatimiento(${index})">📋 HACCP</button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
+        // renderAbatimiento V1 eliminada — reemplazada por V2 (línea ~17020)
 
         // ============================================
         // HISTORIAL MULTI-DÍA
@@ -10947,7 +10809,6 @@ function imprimirRegistroHACCP(d) {
                     // Log diagnóstico
                     const totalRegistros = Object.values(historialPorFecha).flat().length;
                     const fechasConDatos = Object.keys(historialPorFecha).filter(f => historialPorFecha[f].length > 0);
-                    console.log('📊 Analytics — Historial cargado:', totalRegistros, 'registros en', fechasConDatos.length, 'fechas:', fechasConDatos);
 
                 } catch(e) { console.error('Error sync historial:', e); }
             } else {
@@ -11908,7 +11769,6 @@ function imprimirRegistroHACCP(d) {
 
         async function sincronizarFirebase() {
             if (!window.db || !window.firestoreLoaded) {
-                console.log('⚠️ Firebase no disponible, usando solo localStorage');
                 return;
             }
 
@@ -11962,8 +11822,6 @@ function imprimirRegistroHACCP(d) {
                     historialPorFecha: historialParaGuardar,
                     ultimaActualizacion: new Date().toISOString()
                 }));
-                
-                console.log('✅ Datos sincronizados con Firebase');
                 mostrarNotificacion('✅ Sincronizado', 'success');
             } catch (error) {
                 console.error('❌ Error sincronizando:', error);
@@ -12012,8 +11870,6 @@ function imprimirRegistroHACCP(d) {
 
                 if (snap.exists()) {
                     const data = snap.data();
-                    console.log('📦 Firebase estado-actual keys:', Object.keys(data));
-                    console.log('📦 ultimaActualizacion:', data.ultimaActualizacion);
 
                     // historialPorFecha ahora está en documento separado
                     // Solo leer del estado-actual si aún no migró
@@ -12044,7 +11900,6 @@ function imprimirRegistroHACCP(d) {
                             const locales = histRecuperado[fecha] || [];
                             if (remotas.length > locales.length) histRecuperado[fecha] = remotas;
                         });
-                        console.log('📦 Historial producción cargado:', Object.keys(hProd).length, 'fechas');
                     }
                 } catch(eHist) { console.warn('Sin historial-produccion separado aún:', eHist.message); }
 
@@ -12053,11 +11908,9 @@ function imprimirRegistroHACCP(d) {
                     const snapHACCP = await getDoc(doc(window.db, 'mes-data', 'haccp-historial'));
                     if (snapHACCP.exists()) {
                         const hData = snapHACCP.data();
-                        console.log('📦 HACCP historial keys:', Object.keys(hData));
                         const registrosCocina = hData.cocina || [];
-                        console.log('📦 Registros cocina en HACCP:', registrosCocina.length);
                     }
-                } catch(e2) { console.log('Sin haccp-historial:', e2.message); }
+                } catch(e2) { }
 
                 // Aplicar historial recuperado
                 if (Object.keys(histRecuperado).length > 0) {
@@ -12090,22 +11943,13 @@ function imprimirRegistroHACCP(d) {
                 mostrarNotificacion(histHoy.length > 0 ? '✅ ' + msg : '⚠️ ' + msg, histHoy.length > 0 ? 'success' : 'warning');
 
                 // Diagnóstico completo en consola
-                console.log('🔍 DIAGNÓSTICO COMPLETO:');
-                console.log('Historial hoy:', histHoy);
-                console.log('Todas las fechas:', Object.keys(historialPorFecha));
-                console.log('Total producciones hoy:', histHoy.length);
-                histHoy.forEach((h,i) => console.log(`  ${i+1}. ${h.componente||h.producto} — ${h.kgFinales||0}kg`));
-
-                // Si no hay datos en Firebase, intentar recuperar desde localStorage local
+                                // Si no hay datos en Firebase, intentar recuperar desde localStorage local
                 if (histHoy.length === 0) {
                     const lsHist = localStorage.getItem('mes_historialPorFecha');
-                    console.log('📦 localStorage historial RAW:', lsHist ? lsHist.substring(0,200) : 'VACÍO');
                     if (lsHist) {
                         try {
                             const parsed = JSON.parse(lsHist);
                             const fechas = Object.keys(parsed);
-                            console.log('📦 Fechas en localStorage:', fechas);
-                            fechas.forEach(f => console.log(`  ${f}: ${parsed[f].length} producciones`));
                             if (fechas.length > 0) {
                                 historialPorFecha = parsed;
                                 renderEquipos();
@@ -12126,7 +11970,6 @@ function imprimirRegistroHACCP(d) {
 
         async function cargarDesdeFirebase() {
             if (!window.db || !window.firestoreLoaded) {
-                console.log('Firebase no disponible');
                 return false;
             }
             
@@ -12175,8 +12018,6 @@ function imprimirRegistroHACCP(d) {
                     planDiario = data.planDiario || {};
                     // Recetas NO se cargan desde estado-actual, tienen su propio doc 'mes-data/recetas'
                     // Esto evita que una versión vieja sobreescriba tiempos manuales de componentes
-                    
-                    console.log('✅ Datos cargados desde Firebase');
                     mostrarNotificacion('✅ Datos sincronizados desde la nube', 'success');
                     return true;
                 }
@@ -12216,7 +12057,6 @@ function imprimirRegistroHACCP(d) {
                             tandasPendientesAbatQueue = d.queue;
                             localStorage.setItem('mes_abat_queue', JSON.stringify(tandasPendientesAbatQueue));
                         }
-                        console.log('✅ Abatimiento cargado desde Firebase');
                     }
                 } catch(e) { console.error('Error cargando abatimiento:', e); }
 
@@ -12237,7 +12077,6 @@ function imprimirRegistroHACCP(d) {
                         historialPorFecha = merged;
                         localStorage.setItem('mes_historialPorFecha', JSON.stringify(historialPorFecha));
                         const totalRegs = Object.values(merged).reduce((s,a) => s + a.length, 0);
-                        console.log(`✅ Historial producción cargado: ${Object.keys(merged).length} fechas, ${totalRegs} registros`);
                     }
                 } catch(eHist) { console.warn('Sin historial-produccion:', eHist.message); }
             }
@@ -12306,7 +12145,6 @@ function limpiarComponentesFriosDeEquipos() {
                 // Buscar en todas las recetas si este componente es frío
                 const esFrio = esComponenteFrio(nombreComp);
                 if (esFrio) {
-                    console.log('❄️ Liberando equipo con componente frío:', eq.nombre, '-', nombreComp);
                     eq.estado = 'disponible';
                     eq.produccion = null;
                     huboLimpieza = true;
@@ -12331,7 +12169,6 @@ function limpiarComponentesFriosDeEquipos() {
                     eq.produccion.enEspera = false;
                     eq.produccion.inicio = inicioProgram.toISOString(); // mantener inicio original
                     hubocambios = true;
-                    console.log('✅ Producción activada automáticamente:', eq.nombre, eq.produccion.producto);
                 } else {
                     // Aún no ha llegado la hora, re-programar el setTimeout
                     const msHastaInicio = inicioProgram - ahora;
@@ -12350,7 +12187,6 @@ function limpiarComponentesFriosDeEquipos() {
                             if (document.getElementById('ganttBody')) renderGanttBloques();
                         }
                     }, msHastaInicio);
-                    console.log('⏳ Re-programado:', eq.nombre, 'inicia en', Math.round(msHastaInicio/60000), 'min');
                 }
             });
             if (hubocambios) guardarEquipos();
@@ -12388,7 +12224,6 @@ function limpiarComponentesFriosDeEquipos() {
                     // Si estamos en medio de un guardado, ignorar este snapshot
                     // (es el rebote de nuestros propios datos — evita sobreescribir estado local)
                     if (window._guardandoEnFirebase) {
-                        console.log('⏸️ onSnapshot ignorado — guardado en progreso');
                         return;
                     }
 
@@ -12461,8 +12296,6 @@ function limpiarComponentesFriosDeEquipos() {
                     }
 
                     if (!esOtroDispositivo) return;
-
-                    console.log('🔄 estado-actual actualizado desde otro dispositivo...');
                     productos = data.productos || productos;
                     planDiario = data.planDiario || {};
 
@@ -12483,8 +12316,6 @@ function limpiarComponentesFriosDeEquipos() {
                     const tsRemoto = data.ultimaActualizacion || '';
                     const tsLocal = window._ultimaActualizacionOPs || '';
                     if (tsRemoto && tsLocal && tsRemoto <= tsLocal) return;
-
-                    console.log('🔄 OPs actualizadas desde otro dispositivo...');
                     ordenesProduccion = data.ops;
                     localStorage.setItem('mes_ops', JSON.stringify(ordenesProduccion));
                     window._ultimaActualizacionOPs = tsRemoto;
@@ -12644,8 +12475,6 @@ function limpiarComponentesFriosDeEquipos() {
                         mpActualizarProyeccion();
                     }
                 });
-
-                console.log('👀 Escuchando cambios en tiempo real — TODOS los módulos sincronizados');
             } catch (error) {
                 console.error('Error configurando listener:', error);
             }
@@ -13361,19 +13190,16 @@ REGLAS IMPORTANTES:
         // Crear Service Worker inline que funciona con file://
         function registrarServiceWorker() {
             if (!('serviceWorker' in navigator)) {
-                console.log('⚠️ Service Worker no soportado en este navegador');
                 return;
             }
 
             // Service Worker inline simplificado
             const swInlineCode = `
                 self.addEventListener('install', (e) => {
-                    console.log('SW: Instalado');
                     self.skipWaiting();
                 });
                 
                 self.addEventListener('activate', (e) => {
-                    console.log('SW: Activado');
                     e.waitUntil(clients.claim());
                 });
                 
@@ -13393,14 +13219,8 @@ REGLAS IMPORTANTES:
                 const swBlob = new Blob([swInlineCode], { type: 'application/javascript' });
                 const swDataUrl = 'data:application/javascript;base64,' + btoa(swInlineCode);
                 
-                navigator.serviceWorker.register(swDataUrl, { scope: './' })
-                    .then(reg => console.log('✅ Service Worker registrado'))
-                    .catch(err => {
-                        // Si falla, la app funciona igual, solo sin cache offline
-                        console.log('ℹ️ SW no disponible (la app funciona igual):', err.message);
-                    });
+                navigator.serviceWorker.register(swDataUrl, { scope: './' });
             } catch (error) {
-                console.log('ℹ️ SW no disponible en este contexto');
             }
         }
 
@@ -13443,7 +13263,6 @@ REGLAS IMPORTANTES:
         setTimeout(mostrarBotonInstalar, 2000);
 
         window.addEventListener('appinstalled', () => {
-            console.log('✅ App instalada correctamente');
             const btn = document.getElementById('btnInstalar');
             if (btn) btn.remove();
         });
@@ -13483,7 +13302,6 @@ async function sincronizarRecetasFirebase(intentos = 0) {
     });
     // Actualizar timestamp local para que cargarRecetasFirebase sepa que ya tenemos esta versión
     localStorage.setItem('mes_recetas_ts', ts);
-    console.log('✅ Recetas sincronizadas con Firebase:', recetas.length);
   } catch(e) { 
     console.error('❌ Error Firebase recetas:', e); 
   }
@@ -15793,8 +15611,6 @@ function planificarJornadaEnGantt(opIds, fechaStr) {
         }
       }
     }
-
-    console.log(`🥘 calcularKgCrudosMarmita: ${comp.nombre} → ${ingredientes.length} ingredientes, ${platos} platos`);
     if (ingredientes.length === 0) {
       // Si no hay ingredientes pero es claramente una carne, estimar por kg terminados
       // usando ratio típico: 1 kg terminado ≈ 1.4 kg crudo (desmechada pierde ~30%)
@@ -15802,7 +15618,6 @@ function planificarJornadaEnGantt(opIds, fechaStr) {
       const esCarnePrincipal = PALABRAS_CARNE_CRUDA.some(p => _n.includes(p));
       if (esCarnePrincipal && comp.kgTerminados > 0) {
         const estimado = Math.round(comp.kgTerminados * 1.4 * 100) / 100;
-        console.log(`🥘 Sin ingredientes — estimando: ${estimado} kg crudo`);
         return estimado;
       }
       return 0;
@@ -15989,7 +15804,6 @@ function confirmarInicioJornada() {
       if (primero && ahoraMin >= primero.inicioMin) {
         if (esComponenteFrio(primero.componente)) {
           primero.estado = 'ignorado';
-          console.log('❄️ Saltando componente frío en jornada:', primero.componente);
         } else {
           // Ya es hora — pedir operador antes de iniciar
           primero.estado = 'programado';
@@ -16787,16 +16601,9 @@ function diagnosticoPreelaborado() {
   const hoy = new Date().toISOString().split('T')[0];
   const manana = new Date(); manana.setDate(manana.getDate() + 1);
   const mananaStr = manana.toISOString().split('T')[0];
-
-  console.log('=== DIAGNÓSTICO PREELABORADO ===');
-  console.log('Hoy (YYYY-MM-DD):', hoy);
-  console.log('Mañana (YYYY-MM-DD):', mananaStr);
-  console.log('Total OPs:', ordenesProduccion.length);
   ordenesProduccion.forEach(op => {
-    console.log(`OP ${op.numeroOp} | fecha: "${op.fecha}" | componentes: ${op.componentes?.length}`);
     (op.componentes || []).forEach(c => {
       (c.ingredientes || []).forEach(ing => {
-        console.log(`  → ${ing.nombre} | tipoPreelaborado: "${ing.tipoPreelaborado || 'SIN TIPO'}"`);
       });
     });
   });
@@ -18366,9 +18173,7 @@ async function cargarRecetasFirebase(intentos = 0) {
         recetas = recetasFirebase;
         localStorage.setItem('mes_recetas', JSON.stringify(recetas));
         localStorage.setItem('mes_recetas_ts', tsFirebase);
-        console.log('✅ Recetas cargadas desde Firebase:', recetas.length);
       } else {
-        console.log('ℹ️ Recetas locales más recientes (' + recetasLocal.length + ' vs ' + recetasFirebase.length + ' en Firebase)');
       }
       cargarSelectorOPsSimple();
     }
@@ -19150,7 +18955,6 @@ function mostrarPopupGantt(eq) {
                 localStorage.setItem('mes_haccp_pendientes', JSON.stringify(haccpPendientes));
                 renderHACCPPendientes();
                 renderHACCPCompletados();
-                console.log('✅ HACCP cocina sincronizado:', haccpPendientes.length, 'registros');
             } catch(e) { console.error('Error sync HACCP cocina:', e); }
         }
 
@@ -20850,7 +20654,6 @@ ${d._ingredientes.map(ing => `<tr>
                         renderHACCPPendientesPre('vegetales');
                     }
                 }
-                console.log('✅ HACCP Pre carnes/vegetales sincronizados desde Firebase');
             } catch(e) { console.error('Error sync HACCP Pre:', e); }
         }
 
@@ -21923,7 +21726,6 @@ ${d._ingredientes.map(ing => `<tr>
                     tempSalida:    asig.tempSalida,
                     esTanda:       true
                 });
-                console.log('✅ Historial escrito para OP', asig.numeroOP, '— kg finales:', _kgFinalesTanda);
             }
 
             guardarDatos();
@@ -22697,7 +22499,6 @@ async function apActualizar() {
                 });
                 historialPorFecha = merged;
                 localStorage.setItem('mes_historialPorFecha', JSON.stringify(historialPorFecha));
-                console.log('✅ AP: historial cocina cargado —', Object.keys(merged).length, 'fechas');
             }
 
         } catch(e) { console.warn('AP: error cargando Firebase:', e.message); }
@@ -23846,7 +23647,6 @@ function bodegaRegistrarIngreso(proceso) {
 
     bodegaValesIngreso.unshift(ingreso);
     guardarBodega();
-    console.log('📦 Bodega: ingreso registrado —', ingreso.producto, ingreso.kg, 'kg · Vale:', ingreso.nVale);
 }
 
 // ── Tabs del módulo ──
@@ -25118,11 +24918,7 @@ function guardarTunel() {
     const {doc,setDoc}=window.firestoreFunctions;
     const datos = _limpiarParaFirebase({registros:registrosTunel, ts:new Date().toISOString()});
     setDoc(doc(window.db,'mes-data','calidad-tunel'), datos)
-      .then(() => console.log('✅ Túnel guardado en Firebase'))
-      .catch(e => {
-        console.error('❌ Error guardando túnel:', e.message);
-        mostrarNotificacion('⚠️ Guardado local OK — Error Firebase: ' + e.message, 'warning');
-      });
+      .catch(() => { mostrarNotificacion('⚠️ Guardado local OK — Error Firebase: ' + e.message, 'warning'); });
   }
 }
 function guardarTransito() {
@@ -25131,11 +24927,7 @@ function guardarTransito() {
     const {doc,setDoc}=window.firestoreFunctions;
     const datos = _limpiarParaFirebase({registros:registrosTransito, ts:new Date().toISOString()});
     setDoc(doc(window.db,'mes-data','calidad-transito'), datos)
-      .then(() => console.log('✅ Tránsito guardado en Firebase'))
-      .catch(e => {
-        console.error('❌ Error guardando tránsito:', e.message);
-        mostrarNotificacion('⚠️ Guardado local OK — Error Firebase: ' + e.message, 'warning');
-      });
+      .catch(() => { mostrarNotificacion('⚠️ Guardado local OK — Error Firebase: ' + e.message, 'warning'); });
   }
 }
 
@@ -26570,7 +26362,6 @@ async function initControlPT() {
                     ptRegistros = merged;
                     localStorage.setItem('mes_controlPT', JSON.stringify(ptRegistros));
                     ptRenderTabla(); // re-render con datos nuevos
-                    console.log('🔄 Control PT actualizado desde Firebase');
                 }
             });
         } catch(e) {
@@ -27368,14 +27159,12 @@ function ptDescontarEnLineas(fecha) {
     // ── Si ya se descontó antes, REVERTIR primero ──────────────────────────
     const descuentosAnteriores = ptRegistros[fecha]._descuentosAplicados || [];
     if (descuentosAnteriores.length > 0) {
-        console.log('🔄 Revirtiendo descuentos anteriores:', descuentosAnteriores.length, 'item(s)');
         descuentosAnteriores.forEach(d => {
             const idx = lineasStock.findIndex(s => s.producto === d.producto && s.linea === d.linea);
             if (idx !== -1) {
                 lineasStock[idx].kg = Math.round((lineasStock[idx].kg + d.kgDescontado) * 100) / 100;
                 const kgBolsa = parseFloat(lineasStock[idx].formato) || 3;
                 lineasStock[idx].bolsas = Math.max(0, Math.ceil(lineasStock[idx].kg / kgBolsa));
-                console.log(`  ↩️ Revertido ${d.producto}: +${d.kgDescontado} kg`);
             }
         });
         // Eliminar los movimientos anteriores de este registro del historial de líneas
@@ -27401,7 +27190,6 @@ function ptDescontarEnLineas(fecha) {
 
         const idx = _ptBuscarEnLineas(compPT, opPT);
         if (idx === -1) {
-            console.log(`  ⚠️ Sin coincidencia en lineasStock para: "${compPT}" OP "${opPT}"`);
             return;
         }
 
@@ -27446,7 +27234,6 @@ function ptDescontarEnLineas(fecha) {
         lineasStock = lineasStock.filter(s => s.kg > 0);
         guardarBodega();
         if (huboDescuentos) {
-            console.log('✅ Bodega Líneas actualizada desde Control PT:', resumen);
             mostrarNotificacion(`📦 Bodega Líneas actualizada: ${resumen.length} componente(s) descontado(s)`, 'success');
         } else {
             mostrarNotificacion('🔄 Bodega Líneas: descuentos anteriores revertidos (sin nuevos)', 'info');
@@ -29772,7 +29559,6 @@ async function bodegaGuardarEditarStock() {
     if (nuevoLote && nuevoLote !== loteAnterior) {
         item.lote   = nuevoLote;
         item.codigo = bodegaGenerarCodigo(item.producto, nuevoLote, item.kg, item.numeroOP);
-        console.log(`🏷️ Lote actualizado: ${loteAnterior} → ${nuevoLote} | nuevo código: ${item.codigo}`);
     }
 
     // Registrar en auditoría de bodega
@@ -30538,34 +30324,12 @@ async function batchConfirmarRegistros() {
   <!-- ============================================================ -->
   <!-- MODAL REGISTRO HACCP ENVASADO                                -->
   <!-- ============================================================ -->
-  <div id="modalHACCPEnvasado" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;overflow-y:auto;">
-    <div style="background:white;max-width:900px;margin:1.5rem auto;border-radius:16px;padding:0;overflow:hidden;">
-      <div style="background:linear-gradient(135deg,#5b21b6,#7c3aed);padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
-        <div>
-          <div style="color:white;font-weight:800;font-size:1.1rem;">📋 Registro HACCP — Control de Proceso Envasado</div>
-          <div style="color:rgba(255,255,255,.75);font-size:.8rem;margin-top:.2rem;">R-POE-03-GF-04 · Versión v-02 · Vigencia: 15-12-2025</div>
-        </div>
-        <button onclick="cerrarModalHACCPEnvasado()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
-      </div>
-      <div style="padding:1.5rem;" id="contenidoModalHACCPEnvasado"></div>
-    </div>
-  </div>
+<!-- modalHACCPEnvasado eliminado (duplicado) -->
 
   <!-- ============================================================ -->
   <!-- MODAL REGISTRO HACCP ABATIMIENTO                             -->
   <!-- ============================================================ -->
-  <div id="modalHACCPAbatimiento" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;overflow-y:auto;">
-    <div style="background:white;max-width:950px;margin:1.5rem auto;border-radius:16px;padding:0;overflow:hidden;">
-      <div style="background:linear-gradient(135deg,#0e7490,#06b6d4);padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
-        <div>
-          <div style="color:white;font-weight:800;font-size:1.1rem;" id="tituloModalHACCPAbat">❄️ Registro HACCP — Control de Proceso Abatimiento</div>
-          <div style="color:rgba(255,255,255,.75);font-size:.8rem;margin-top:.2rem;" id="codigoModalHACCPAbat">R-POE-03-GF-05(A) · Versión 03 · Vigencia: 15-12-2025</div>
-        </div>
-        <button onclick="cerrarModalHACCPAbatimiento()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
-      </div>
-      <div style="padding:1.5rem;" id="contenidoModalHACCPAbatimiento"></div>
-    </div>
-  </div>
+<!-- modalHACCPAbatimiento eliminado (duplicado) -->
 
   <!-- MODAL HACCP PREELABORADO CARNES -->
   <div id="modalHACCPPreCarnes" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;overflow-y:auto;">
