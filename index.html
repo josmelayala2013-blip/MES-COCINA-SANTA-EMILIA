@@ -9039,9 +9039,10 @@ function imprimirRegistroHACCP(d) {
             const equipo = equipos.find(e => e.id === equipoActual);
             
             const tiempoLimpieza = Math.floor((new Date() - new Date(equipo.produccion.inicioLimpieza)) / 1000);
-            
+            const ahora = new Date().toISOString();
+
             if (equipo.produccion) {
-                equipo.produccion.finLimpieza = new Date().toISOString();
+                equipo.produccion.finLimpieza = ahora;
                 equipo.produccion.tiempoLimpieza = tiempoLimpieza;
                 equipo.produccion.tiempoLimpiezaFormateado = formatTime(tiempoLimpieza);
                 equipo.produccion.observacionesLimpieza = observaciones;
@@ -9049,6 +9050,10 @@ function imprimirRegistroHACCP(d) {
 
             equipo.estado = 'disponible';
             equipo.produccion = null;
+
+            // Registrar timestamp de liberación para proteger contra snapshots atrasados de otros dispositivos
+            if (!window._equipoLiberadoTs) window._equipoLiberadoTs = {};
+            window._equipoLiberadoTs[equipoActual] = ahora;
 
             guardarEquipos();
             renderEquipos();
@@ -12329,13 +12334,9 @@ function limpiarComponentesFriosDeEquipos() {
                     // Lógica: si viene de OTRO dispositivo → siempre aplicar (multi-device)
                     //         si viene del MISMO dispositivo → solo si Firebase es más reciente
                     //         (evita rebote de nuestros propios datos)
-                    // ── FIX: Para el mismo dispositivo, NUNCA sobreescribir equipos desde onSnapshot.
-                    // guardarEquipos() ya subió el estado correcto; cualquier snapshot posterior
-                    // del mismo dispositivo (ej. guardarDatos() que también sube equipos) puede
-                    // tener un _tsFirebase más reciente pero datos de equipos de una versión anterior,
-                    // lo que causaba que el equipo volviera a estado 'limpieza' después de confirmarlo.
-                    // Solo aplicar equipos desde onSnapshot cuando viene de OTRO dispositivo.
-                    const _debeAplicarEquipos = esOtroDispositivo;
+                    const _tsFirebase = data.ultimaActualizacion ? new Date(data.ultimaActualizacion).getTime() : 0;
+                    const _tsLocal = localStorage.getItem('mes_equipos_ts') ? new Date(localStorage.getItem('mes_equipos_ts')).getTime() : 0;
+                    const _debeAplicarEquipos = esOtroDispositivo || (_tsFirebase > _tsLocal);
                     
                     if (data.equipos && data.equipos.length > 0 && _debeAplicarEquipos) {
                         const equiposBase = equipos;
@@ -12365,6 +12366,25 @@ function limpiarComponentesFriosDeEquipos() {
                                 const tsFirebaseProd = eqFirebase.produccion?.inicio ? new Date(eqFirebase.produccion.inicio).getTime() : 0;
                                 if (tsLocalProd > tsFirebaseProd) {
                                     console.warn('⚠️ onSnapshot: prod local más reciente, protegiendo:', eqBase.nombre);
+                                    return eqBase;
+                                }
+                            }
+
+                            // PROTECCIÓN NUEVA: si este dispositivo ya liberó el equipo (confirmarEquipoLimpio),
+                            // no permitir que un snapshot atrasado de otro dispositivo lo devuelva a limpieza/activa.
+                            // Se compara el timestamp de liberación local con el inicio de producción remoto.
+                            const localDisponible = eqBase.estado === 'disponible' && !eqBase.produccion;
+                            const remotoActivo = eqFirebase.estado && eqFirebase.estado !== 'disponible';
+                            if (localDisponible && remotoActivo) {
+                                const tsLiberado = window._equipoLiberadoTs?.[eqBase.id]
+                                    ? new Date(window._equipoLiberadoTs[eqBase.id]).getTime() : 0;
+                                const tsRemotoProd = eqFirebase.produccion?.inicio
+                                    ? new Date(eqFirebase.produccion.inicio).getTime() : 0;
+                                if (tsLiberado > 0 && tsRemotoProd <= tsLiberado) {
+                                    // El remoto tiene una producción anterior a cuando liberamos el equipo
+                                    // → ignorar, es un snapshot atrasado
+                                    console.warn('⚠️ onSnapshot: ignorando snapshot atrasado de', eqBase.nombre,
+                                        '(equipo liberado en', window._equipoLiberadoTs[eqBase.id], 'remoto inicio:', eqFirebase.produccion?.inicio, ')');
                                     return eqBase;
                                 }
                             }
