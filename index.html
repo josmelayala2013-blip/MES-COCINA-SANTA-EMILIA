@@ -9051,9 +9051,13 @@ function imprimirRegistroHACCP(d) {
             equipo.estado = 'disponible';
             equipo.produccion = null;
 
-            // Registrar timestamp de liberación para proteger contra snapshots atrasados de otros dispositivos
-            if (!window._equipoLiberadoTs) window._equipoLiberadoTs = {};
-            window._equipoLiberadoTs[equipoActual] = ahora;
+            // ── Persistir timestamp de liberación en localStorage ──
+            // Sobrevive recargas de página, protege contra snapshots atrasados de otros dispositivos.
+            try {
+                const _lib = JSON.parse(localStorage.getItem('mes_equipos_liberados') || '{}');
+                _lib[equipoActual] = ahora;
+                localStorage.setItem('mes_equipos_liberados', JSON.stringify(_lib));
+            } catch(e) {}
 
             guardarEquipos();
             renderEquipos();
@@ -12040,9 +12044,26 @@ function imprimirRegistroHACCP(d) {
                     // Esto evita perder equipos nuevos (ej: Marmita 1/2) cuando Firebase tiene versión vieja
                     if (data.equipos && data.equipos.length > 0) {
                         const equiposBase = equipos; // lista maestra del código
+                        // Leer timestamps de liberación persistidos
+                        let _eqLibLocal = {};
+                        try { _eqLibLocal = JSON.parse(localStorage.getItem('mes_equipos_liberados') || '{}'); } catch(e) {}
                         equipos = equiposBase.map(eqBase => {
                             const eqFirebase = data.equipos.find(e => e.id === eqBase.id);
                             if (eqFirebase) {
+                                // PROTECCIÓN: si este dispositivo liberó el equipo y Firebase trae
+                                // un estado activo/limpieza cuya producción es anterior a la liberación,
+                                // no restaurar ese estado fantasma (puede ocurrir tras recarga de página).
+                                const remotoEsActivo = eqFirebase.estado && eqFirebase.estado !== 'disponible';
+                                if (remotoEsActivo && _eqLibLocal[eqBase.id]) {
+                                    const tsLiberado = new Date(_eqLibLocal[eqBase.id]).getTime();
+                                    const tsRemotoProd = eqFirebase.produccion?.inicio
+                                        ? new Date(eqFirebase.produccion.inicio).getTime() : 0;
+                                    if (tsRemotoProd <= tsLiberado) {
+                                        console.warn('🔄 cargarDesdeFirebase: ignorando estado fantasma para', eqBase.nombre,
+                                            '| liberado:', _eqLibLocal[eqBase.id]);
+                                        return { ...eqBase, estado: 'disponible', produccion: null };
+                                    }
+                                }
                                 // Actualizar estado operativo desde Firebase, preservar datos base
                                 return { ...eqBase, estado: eqFirebase.estado, produccion: eqFirebase.produccion, planificaciones: eqFirebase.planificaciones };
                             }
@@ -12334,9 +12355,14 @@ function limpiarComponentesFriosDeEquipos() {
                     // Lógica: si viene de OTRO dispositivo → siempre aplicar (multi-device)
                     //         si viene del MISMO dispositivo → solo si Firebase es más reciente
                     //         (evita rebote de nuestros propios datos)
+                    // Para el mismo dispositivo: solo aplicar si Firebase es más reciente que nuestro último guardarEquipos()
+                    // Para otro dispositivo: siempre aplicar (multi-device sync)
                     const _tsFirebase = data.ultimaActualizacion ? new Date(data.ultimaActualizacion).getTime() : 0;
                     const _tsLocal = localStorage.getItem('mes_equipos_ts') ? new Date(localStorage.getItem('mes_equipos_ts')).getTime() : 0;
                     const _debeAplicarEquipos = esOtroDispositivo || (_tsFirebase > _tsLocal);
+                    // Cargar timestamps de liberación persistidos (sobreviven recargas)
+                    let _equiposLiberados = {};
+                    try { _equiposLiberados = JSON.parse(localStorage.getItem('mes_equipos_liberados') || '{}'); } catch(e) {}
                     
                     if (data.equipos && data.equipos.length > 0 && _debeAplicarEquipos) {
                         const equiposBase = equipos;
@@ -12344,24 +12370,16 @@ function limpiarComponentesFriosDeEquipos() {
                             const eqFirebase = data.equipos.find(e => e.id === eqBase.id);
                             if (!eqFirebase) return eqBase;
 
-                            // PROTECCIÓN CRÍTICA: no pisar un equipo activo local
-                            // con datos remotos que lo muestran como disponible
-                            // (puede ser un snapshot anterior al inicio de producción)
+                            // PROTECCIÓN 1: no pisar equipo activo local con remoto=disponible (mismo dispositivo)
                             const localActivo = eqBase.estado === 'activa' || eqBase.estado === 'en_espera' || eqBase.estado === 'limpieza';
                             const remotoDisponible = eqFirebase.estado === 'disponible' || !eqFirebase.estado;
-                            
                             if (localActivo && remotoDisponible && !esOtroDispositivo) {
-                                // Mismo dispositivo: confiar en datos locales
                                 console.warn('⚠️ onSnapshot: protegiendo equipo activo local:', eqBase.nombre, '(remoto dice disponible)');
                                 return eqBase;
                             }
 
-                            // Si viene de otro dispositivo Y el remoto tiene producción activa → aplicar
-                            // Si viene de otro dispositivo Y el remoto dice disponible → solo aplicar si 
-                            // el local también está disponible (evitar limpiar producciones de otro device)
+                            // PROTECCIÓN 2: otro dispositivo, remoto=disponible pero local=activo → comparar timestamps
                             if (esOtroDispositivo && localActivo && remotoDisponible) {
-                                // El otro dispositivo dice que está libre pero nosotros lo vemos activo
-                                // Confiar en el más reciente según timestamp de producción
                                 const tsLocalProd = eqBase.produccion?.inicio ? new Date(eqBase.produccion.inicio).getTime() : 0;
                                 const tsFirebaseProd = eqFirebase.produccion?.inicio ? new Date(eqFirebase.produccion.inicio).getTime() : 0;
                                 if (tsLocalProd > tsFirebaseProd) {
@@ -12370,21 +12388,21 @@ function limpiarComponentesFriosDeEquipos() {
                                 }
                             }
 
-                            // PROTECCIÓN NUEVA: si este dispositivo ya liberó el equipo (confirmarEquipoLimpio),
-                            // no permitir que un snapshot atrasado de otro dispositivo lo devuelva a limpieza/activa.
-                            // Se compara el timestamp de liberación local con el inicio de producción remoto.
-                            const localDisponible = eqBase.estado === 'disponible' && !eqBase.produccion;
-                            const remotoActivo = eqFirebase.estado && eqFirebase.estado !== 'disponible';
-                            if (localDisponible && remotoActivo) {
-                                const tsLiberado = window._equipoLiberadoTs?.[eqBase.id]
-                                    ? new Date(window._equipoLiberadoTs[eqBase.id]).getTime() : 0;
+                            // PROTECCIÓN 3 (KEY FIX): este dispositivo ya liberó el equipo (confirmó limpieza)
+                            // pero llega un snapshot (de cualquier dispositivo) con estado activo/limpieza.
+                            // Si el inicio de producción remoto es ANTERIOR a cuando liberamos el equipo
+                            // → es un snapshot atrasado, ignorarlo.
+                            // Este timestamp se persiste en localStorage y sobrevive recargas de página.
+                            const localEsDisponible = eqBase.estado === 'disponible' && !eqBase.produccion;
+                            const remotoEsActivo = eqFirebase.estado && eqFirebase.estado !== 'disponible';
+                            if (localEsDisponible && remotoEsActivo && _equiposLiberados[eqBase.id]) {
+                                const tsLiberado = new Date(_equiposLiberados[eqBase.id]).getTime();
                                 const tsRemotoProd = eqFirebase.produccion?.inicio
                                     ? new Date(eqFirebase.produccion.inicio).getTime() : 0;
-                                if (tsLiberado > 0 && tsRemotoProd <= tsLiberado) {
-                                    // El remoto tiene una producción anterior a cuando liberamos el equipo
-                                    // → ignorar, es un snapshot atrasado
-                                    console.warn('⚠️ onSnapshot: ignorando snapshot atrasado de', eqBase.nombre,
-                                        '(equipo liberado en', window._equipoLiberadoTs[eqBase.id], 'remoto inicio:', eqFirebase.produccion?.inicio, ')');
+                                if (tsRemotoProd <= tsLiberado) {
+                                    console.warn('⚠️ onSnapshot: ignorando snapshot atrasado para', eqBase.nombre,
+                                        '| liberado:', _equiposLiberados[eqBase.id],
+                                        '| remoto inicio prod:', eqFirebase.produccion?.inicio);
                                     return eqBase;
                                 }
                             }
