@@ -6779,7 +6779,6 @@ ${d.acc ? `
   <!-- ============================================================ -->
   <!-- MODAL REGISTRO HACCP ABATIMIENTO                             -->
   <!-- ============================================================ -->
-<!-- modalHACCPAbatimiento eliminado (duplicado) -->
 
     </div> <!-- /appContent -->
 </body>
@@ -8307,12 +8306,33 @@ function imprimirRegistroHACCP(d) {
   <!-- ============================================================ -->
   <!-- MODAL REGISTRO HACCP ENVASADO                                -->
   <!-- ============================================================ -->
-<!-- modalHACCPEnvasado eliminado (duplicado) -->
+<!-- MODAL REGISTRO HACCP ENVASADO -->
+  <div id="modalHACCPEnvasado" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;overflow-y:auto;">
+    <div style="background:white;max-width:900px;margin:1.5rem auto;border-radius:16px;padding:0;overflow:hidden;">
+      <div style="background:linear-gradient(135deg,#5b21b6,#7c3aed);padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="color:white;font-weight:800;font-size:1.1rem;">📋 Registro HACCP — Control de Proceso Envasado</div>
+          <div style="color:rgba(255,255,255,.75);font-size:.8rem;margin-top:.2rem;">R-POE-03-GF-04 · Versión v-02 · Vigencia: 15-12-2025</div>
+        </div>
+        <button onclick="cerrarModalHACCPEnvasado()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
+      </div>
+      <div style="padding:1.5rem;" id="contenidoModalHACCPEnvasado"></div>
+    </div>
+  </div>
 
-  <!-- ============================================================ -->
-  <!-- MODAL REGISTRO HACCP ABATIMIENTO                             -->
-  <!-- ============================================================ -->
-<!-- modalHACCPAbatimiento eliminado (duplicado) -->
+  <!-- MODAL REGISTRO HACCP ABATIMIENTO -->
+  <div id="modalHACCPAbatimiento" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;overflow-y:auto;">
+    <div style="background:white;max-width:950px;margin:1.5rem auto;border-radius:16px;padding:0;overflow:hidden;">
+      <div style="background:linear-gradient(135deg,#0e7490,#06b6d4);padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="color:white;font-weight:800;font-size:1.1rem;" id="tituloModalHACCPAbat">❄️ Registro HACCP — Control de Proceso Abatimiento</div>
+          <div style="color:rgba(255,255,255,.75);font-size:.8rem;margin-top:.2rem;" id="codigoModalHACCPAbat">R-POE-03-GF-05(A) · Versión 03 · Vigencia: 15-12-2025</div>
+        </div>
+        <button onclick="cerrarModalHACCPAbatimiento()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
+      </div>
+      <div style="padding:1.5rem;" id="contenidoModalHACCPAbatimiento"></div>
+    </div>
+  </div>
 
     </div> <!-- /appContent -->
 </body>
@@ -8365,8 +8385,19 @@ function imprimirRegistroHACCP(d) {
         }
 
         function openModalConEquipo(equipoId) {
+            // Verificar que el equipoId corresponde a un equipo real
+            const equipoReal = equipos.find(e => e.id === equipoId);
+            if (!equipoReal) {
+                console.error('❌ Equipo no encontrado:', equipoId);
+                return;
+            }
             equipoSeleccionado = equipoId;
+            console.log('✅ Equipo seleccionado:', equipoReal.nombre, '(id:', equipoId, ')');
             openModal('iniciarProduccion');
+            // Re-renderizar selector para asegurar que el equipo correcto está seleccionado
+            setTimeout(() => {
+                if (typeof renderEquipmentSelector === 'function') renderEquipmentSelector();
+            }, 100);
         }
 
         function closeModal(modalName) {
@@ -9498,10 +9529,13 @@ function imprimirRegistroHACCP(d) {
             // Crear pendiente HACCP con nota de cierre parcial
             crearHACCPPendienteModulo('envasado', proceso);
 
+            window._enviandoAAbatimiento = true;
             procesosEnvasado.splice(index, 1);
             guardarDatos();
             renderProcesosActivos();
+            renderEnvasado();
             updateStats();
+            setTimeout(() => { window._enviandoAAbatimiento = false; }, 6000);
             mostrarNotificacion(`⚠️ Cierre parcial registrado — ${kgTotal.toFixed(1)} kg envasados · Motivo: ${motivo}`, 'success');
         }
 
@@ -9533,12 +9567,15 @@ function imprimirRegistroHACCP(d) {
             // Crear pendiente HACCP envasado
             crearHACCPPendienteModulo('envasado', proceso);
 
-            // Remover de envasado activo
+            // Remover de envasado activo — flag para que onSnapshot no restaure
+            window._enviandoAAbatimiento = true;
             procesosEnvasado.splice(index, 1);
 
             guardarDatos();
             renderProcesosActivos();
+            renderEnvasado();
             updateStats();
+            setTimeout(() => { window._enviandoAAbatimiento = false; }, 6000);
             mostrarNotificacion(`✅ Ciclo de envasado cerrado — ${proceso.producto} · Lead time: ${leadTime}`, 'success');
         }
 
@@ -12277,8 +12314,11 @@ function limpiarComponentesFriosDeEquipos() {
                     // (no depende del dispositivo — cocina puede finalizar y envasado/abatimiento
                     //  deben verse actualizados aunque sea el mismo dispositivo)
                     if (Array.isArray(data.procesosEnvasado)) {
-                        procesosEnvasado = data.procesosEnvasado;
+                        // PROTECCIÓN: no restaurar envasado si estamos en medio de un envío a abatimiento
+                        if (!window._enviandoAAbatimiento) {
+                            procesosEnvasado = data.procesosEnvasado;
                         renderEnvasado();
+                        }
                     }
                     if (Array.isArray(data.procesosAbatimiento)) {
                         procesosAbatimiento = data.procesosAbatimiento;
@@ -12297,10 +12337,35 @@ function limpiarComponentesFriosDeEquipos() {
                         const equiposBase = equipos;
                         equipos = equiposBase.map(eqBase => {
                             const eqFirebase = data.equipos.find(e => e.id === eqBase.id);
-                            if (eqFirebase) {
-                                return { ...eqBase, estado: eqFirebase.estado, produccion: eqFirebase.produccion, planificaciones: eqFirebase.planificaciones };
+                            if (!eqFirebase) return eqBase;
+
+                            // PROTECCIÓN CRÍTICA: no pisar un equipo activo local
+                            // con datos remotos que lo muestran como disponible
+                            // (puede ser un snapshot anterior al inicio de producción)
+                            const localActivo = eqBase.estado === 'activa' || eqBase.estado === 'en_espera' || eqBase.estado === 'limpieza';
+                            const remotoDisponible = eqFirebase.estado === 'disponible' || !eqFirebase.estado;
+                            
+                            if (localActivo && remotoDisponible && !esOtroDispositivo) {
+                                // Mismo dispositivo: confiar en datos locales
+                                console.warn('⚠️ onSnapshot: protegiendo equipo activo local:', eqBase.nombre, '(remoto dice disponible)');
+                                return eqBase;
                             }
-                            return eqBase;
+
+                            // Si viene de otro dispositivo Y el remoto tiene producción activa → aplicar
+                            // Si viene de otro dispositivo Y el remoto dice disponible → solo aplicar si 
+                            // el local también está disponible (evitar limpiar producciones de otro device)
+                            if (esOtroDispositivo && localActivo && remotoDisponible) {
+                                // El otro dispositivo dice que está libre pero nosotros lo vemos activo
+                                // Confiar en el más reciente según timestamp de producción
+                                const tsLocalProd = eqBase.produccion?.inicio ? new Date(eqBase.produccion.inicio).getTime() : 0;
+                                const tsFirebaseProd = eqFirebase.produccion?.inicio ? new Date(eqFirebase.produccion.inicio).getTime() : 0;
+                                if (tsLocalProd > tsFirebaseProd) {
+                                    console.warn('⚠️ onSnapshot: prod local más reciente, protegiendo:', eqBase.nombre);
+                                    return eqBase;
+                                }
+                            }
+
+                            return { ...eqBase, estado: eqFirebase.estado, produccion: eqFirebase.produccion, planificaciones: eqFirebase.planificaciones };
                         });
                         // Actualizar timestamp local para que futuras comparaciones sean correctas
                         if (esOtroDispositivo) {
@@ -30418,12 +30483,33 @@ async function batchConfirmarRegistros() {
   <!-- ============================================================ -->
   <!-- MODAL REGISTRO HACCP ENVASADO                                -->
   <!-- ============================================================ -->
-<!-- modalHACCPEnvasado eliminado (duplicado) -->
+<!-- MODAL REGISTRO HACCP ENVASADO -->
+  <div id="modalHACCPEnvasado" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;overflow-y:auto;">
+    <div style="background:white;max-width:900px;margin:1.5rem auto;border-radius:16px;padding:0;overflow:hidden;">
+      <div style="background:linear-gradient(135deg,#5b21b6,#7c3aed);padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="color:white;font-weight:800;font-size:1.1rem;">📋 Registro HACCP — Control de Proceso Envasado</div>
+          <div style="color:rgba(255,255,255,.75);font-size:.8rem;margin-top:.2rem;">R-POE-03-GF-04 · Versión v-02 · Vigencia: 15-12-2025</div>
+        </div>
+        <button onclick="cerrarModalHACCPEnvasado()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
+      </div>
+      <div style="padding:1.5rem;" id="contenidoModalHACCPEnvasado"></div>
+    </div>
+  </div>
 
-  <!-- ============================================================ -->
-  <!-- MODAL REGISTRO HACCP ABATIMIENTO                             -->
-  <!-- ============================================================ -->
-<!-- modalHACCPAbatimiento eliminado (duplicado) -->
+  <!-- MODAL REGISTRO HACCP ABATIMIENTO -->
+  <div id="modalHACCPAbatimiento" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;overflow-y:auto;">
+    <div style="background:white;max-width:950px;margin:1.5rem auto;border-radius:16px;padding:0;overflow:hidden;">
+      <div style="background:linear-gradient(135deg,#0e7490,#06b6d4);padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="color:white;font-weight:800;font-size:1.1rem;" id="tituloModalHACCPAbat">❄️ Registro HACCP — Control de Proceso Abatimiento</div>
+          <div style="color:rgba(255,255,255,.75);font-size:.8rem;margin-top:.2rem;" id="codigoModalHACCPAbat">R-POE-03-GF-05(A) · Versión 03 · Vigencia: 15-12-2025</div>
+        </div>
+        <button onclick="cerrarModalHACCPAbatimiento()" style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;padding:.4rem .8rem;cursor:pointer;font-size:1.1rem;">✕</button>
+      </div>
+      <div style="padding:1.5rem;" id="contenidoModalHACCPAbatimiento"></div>
+    </div>
+  </div>
 
   <!-- MODAL HACCP PREELABORADO CARNES -->
   <div id="modalHACCPPreCarnes" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000;overflow-y:auto;">
