@@ -11748,6 +11748,10 @@ function imprimirRegistroHACCP(d) {
             localStorage.setItem('mes_procesosAbatimiento', JSON.stringify(procesosAbatimiento));
             localStorage.setItem('mes_historialPorFecha', JSON.stringify(historialPorFecha));
             localStorage.setItem('mes_historial_backup_ts', new Date().toISOString());
+            // Guardar planDiario como backup adicional en localStorage
+            if (planDiario && Object.keys(planDiario).length > 0) {
+                localStorage.setItem('mes_planDiario', JSON.stringify(planDiario));
+            }
             // ⚠️ NO actualizar mes_equipos_ts aquí — solo guardarEquipos() lo hace
             // Esto evita que guardar productos/historial bloquee sincronización de equipos
             
@@ -11886,7 +11890,11 @@ function imprimirRegistroHACCP(d) {
                     }
                     if (Array.isArray(data.procesosEnvasado)) procesosEnvasado = data.procesosEnvasado;
                     if (Array.isArray(data.procesosAbatimiento)) procesosAbatimiento = data.procesosAbatimiento;
-                    if (data.planDiario) planDiario = data.planDiario;
+                    // planDiario: solo sobreescribir si Firebase tiene datos reales
+                    if (data.planDiario && Object.keys(data.planDiario).length > 0) {
+                        planDiario = data.planDiario;
+                        localStorage.setItem('mes_planDiario', JSON.stringify(planDiario));
+                    }
                 }
 
                 // Leer historial desde documento separado (nueva estructura)
@@ -12015,7 +12023,15 @@ function imprimirRegistroHACCP(d) {
                         historialPorFecha = merged;
                         localStorage.setItem('mes_historialPorFecha', JSON.stringify(historialPorFecha));
                     }
-                    planDiario = data.planDiario || {};
+                    // planDiario: solo sobreescribir si Firebase tiene datos
+                    if (data.planDiario && Object.keys(data.planDiario).length > 0) {
+                        planDiario = data.planDiario;
+                        localStorage.setItem('mes_planDiario', JSON.stringify(planDiario));
+                    } else {
+                        // Firebase vacío — recuperar desde localStorage
+                        const _lsPlan = localStorage.getItem('mes_planDiario');
+                        if (_lsPlan) try { const _p = JSON.parse(_lsPlan); if (Object.keys(_p).length > 0) planDiario = _p; } catch(e) {}
+                    }
                     // Recetas NO se cargan desde estado-actual, tienen su propio doc 'mes-data/recetas'
                     // Esto evita que una versión vieja sobreescriba tiempos manuales de componentes
                     mostrarNotificacion('✅ Datos sincronizados desde la nube', 'success');
@@ -12297,7 +12313,15 @@ function limpiarComponentesFriosDeEquipos() {
 
                     if (!esOtroDispositivo) return;
                     productos = data.productos || productos;
-                    planDiario = data.planDiario || {};
+                    // planDiario: solo sobreescribir si Firebase tiene datos
+                    if (data.planDiario && Object.keys(data.planDiario).length > 0) {
+                        planDiario = data.planDiario;
+                        localStorage.setItem('mes_planDiario', JSON.stringify(planDiario));
+                    } else {
+                        // Firebase vacío — recuperar desde localStorage
+                        const _lsPlan = localStorage.getItem('mes_planDiario');
+                        if (_lsPlan) try { const _p = JSON.parse(_lsPlan); if (Object.keys(_p).length > 0) planDiario = _p; } catch(e) {}
+                    }
 
                     // Refrescar UI módulos afectados
                     renderProductosList();
