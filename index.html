@@ -12329,9 +12329,13 @@ function limpiarComponentesFriosDeEquipos() {
                     // Lógica: si viene de OTRO dispositivo → siempre aplicar (multi-device)
                     //         si viene del MISMO dispositivo → solo si Firebase es más reciente
                     //         (evita rebote de nuestros propios datos)
-                    const _tsFirebase = data.ultimaActualizacion ? new Date(data.ultimaActualizacion).getTime() : 0;
-                    const _tsLocal = localStorage.getItem('mes_equipos_ts') ? new Date(localStorage.getItem('mes_equipos_ts')).getTime() : 0;
-                    const _debeAplicarEquipos = esOtroDispositivo || (_tsFirebase > _tsLocal);
+                    // ── FIX: Para el mismo dispositivo, NUNCA sobreescribir equipos desde onSnapshot.
+                    // guardarEquipos() ya subió el estado correcto; cualquier snapshot posterior
+                    // del mismo dispositivo (ej. guardarDatos() que también sube equipos) puede
+                    // tener un _tsFirebase más reciente pero datos de equipos de una versión anterior,
+                    // lo que causaba que el equipo volviera a estado 'limpieza' después de confirmarlo.
+                    // Solo aplicar equipos desde onSnapshot cuando viene de OTRO dispositivo.
+                    const _debeAplicarEquipos = esOtroDispositivo;
                     
                     if (data.equipos && data.equipos.length > 0 && _debeAplicarEquipos) {
                         const equiposBase = equipos;
