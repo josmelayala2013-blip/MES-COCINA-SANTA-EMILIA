@@ -2744,6 +2744,7 @@
                   <button onclick="navegarSemana(1)" style="padding:.4rem .8rem;border-radius:8px;border:2px solid #c7d2fe;background:white;color:#667eea;font-weight:700;cursor:pointer;font-size:1rem;">›</button>
                 </div>
                 <button onclick="irSemanaHoy()" style="padding:.4rem 1rem;border-radius:8px;border:2px solid #667eea;background:white;color:#667eea;font-weight:700;cursor:pointer;font-size:.82rem;">Semana actual</button>
+                <button onclick="recuperarOPsDeBackup()" title="Recuperar OPs perdidas desde backup local" style="padding:.4rem 1rem;border-radius:8px;border:2px solid #ef4444;background:white;color:#ef4444;font-weight:700;cursor:pointer;font-size:.82rem;">🔄 Recuperar OPs</button>
               </div>
               <div id="gridSemana" style="display:grid;grid-template-columns:repeat(7,1fr);gap:.5rem;"></div>
             </div>
@@ -11810,8 +11811,12 @@ function imprimirRegistroHACCP(d) {
                     tandas: (p.tandas || []).slice(-5)
                 })));
 
+                // PROTECCIÓN: no guardar equipos vacíos si hay producción activa
+                const _equiposParaGuardar = equipos;
+                const _equiposFirebase = _sanitizarParaFirebase(_equiposParaGuardar);
+                
                 await setDoc(doc(window.db, 'mes-data', 'estado-actual'), _sanitizarParaFirebase({
-                    equipos,
+                    equipos: _equiposFirebase,
                     productos,
                     procesosEnvasado: procesosEnvLimpios,
                     procesosAbatimiento,
@@ -12335,6 +12340,12 @@ function limpiarComponentesFriosDeEquipos() {
                     if (!snap.exists()) return;
                     const data = snap.data();
                     if (!data.ops || !Array.isArray(data.ops)) return;
+
+                    // PROTECCIÓN: no aplicar array vacío si localmente hay OPs
+                    if (data.ops.length === 0 && ordenesProduccion.length > 0) {
+                        console.warn('⚠️ Firebase envió 0 OPs pero hay', ordenesProduccion.length, 'locales — ignorando');
+                        return;
+                    }
 
                     // Comparar timestamps para evitar actualizar con datos propios
                     const tsRemoto = data.ultimaActualizacion || '';
@@ -14587,15 +14598,74 @@ function exportarRecetasExcel() {
 
 let ordenesProduccion = JSON.parse(localStorage.getItem('mes_ops') || '[]');
 
+
+// ── RECUPERACIÓN DE EMERGENCIA DE OPs ──
+function recuperarOPsDeBackup() {
+  const hoy = new Date().toISOString().slice(0,10);
+  // Buscar backups de los últimos 7 días
+  let mejorBackup = null;
+  let mejorFecha = '';
+  for (let i = 0; i < 7; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const fechaStr = d.toISOString().slice(0,10);
+    const backup = localStorage.getItem('mes_ops_backup_' + fechaStr);
+    if (backup) {
+      try {
+        const ops = JSON.parse(backup);
+        if (ops.length > 0 && fechaStr > mejorFecha) {
+          mejorBackup = ops;
+          mejorFecha = fechaStr;
+        }
+      } catch(e) {}
+    }
+  }
+  // También revisar mes_ops normal
+  const opsNormal = localStorage.getItem('mes_ops');
+  if (opsNormal) {
+    try {
+      const ops = JSON.parse(opsNormal);
+      if (ops.length > 0) {
+        if (!mejorBackup || ops.length >= mejorBackup.length) {
+          mejorBackup = ops;
+          mejorFecha = 'localStorage';
+        }
+      }
+    } catch(e) {}
+  }
+  if (mejorBackup && mejorBackup.length > 0) {
+    if (confirm(`Se encontraron ${mejorBackup.length} OPs en backup (${mejorFecha}). ¿Restaurar?`)) {
+      ordenesProduccion = mejorBackup;
+      guardarOPs();
+      renderListaOPs();
+      renderVistaSemanal();
+      actualizarContadorOPs();
+      mostrarNotificacion(`✅ ${mejorBackup.length} OPs restauradas desde backup del ${mejorFecha}`, 'success');
+    }
+  } else {
+    alert('No se encontraron backups disponibles en este dispositivo.');
+  }
+}
+
 function guardarOPs() {
+  // PROTECCIÓN CRÍTICA: nunca guardar array vacío si antes había OPs
+  const _opsAntes = JSON.parse(localStorage.getItem('mes_ops') || '[]');
+  if (ordenesProduccion.length === 0 && _opsAntes.length > 0) {
+    console.warn('⚠️ PROTECCIÓN: se intentó guardar 0 OPs cuando antes había', _opsAntes.length, '— operación bloqueada');
+    mostrarNotificacion('⚠️ Protección activa: no se borraron las OPs', 'warning');
+    ordenesProduccion = _opsAntes; // restaurar
+    return;
+  }
   localStorage.setItem('mes_ops', JSON.stringify(ordenesProduccion));
+  // Backup adicional con timestamp
+  localStorage.setItem('mes_ops_backup_' + new Date().toISOString().slice(0,10), JSON.stringify(ordenesProduccion));
   if (window.db && window.firestoreLoaded) {
     try {
       const { doc, setDoc } = window.firestoreFunctions;
       const ts = new Date().toISOString();
-      window._ultimaActualizacionOPs = ts; // marcar timestamp local para no procesar propio cambio
+      window._ultimaActualizacionOPs = ts;
       setDoc(doc(window.db, 'mes-data', 'ordenes-produccion'), { ops: ordenesProduccion, ultimaActualizacion: ts });
-    } catch(e) {}
+    } catch(e) { console.error('Error guardando OPs:', e); }
   }
 }
 
