@@ -527,6 +527,31 @@
 
         .container { max-width: 1400px; margin: 0 auto; }
 
+        /* ── Tabs fuera de #appMain: aplicar mismo layout que appMain ── */
+        /* pcc1, tempCoccionEnvasado, tempTunel, tempTransito, administracion, controlPT */
+        #pcc1.tab-content.active,
+        #tempCoccionEnvasado.tab-content.active,
+        #tempTunel.tab-content.active,
+        #tempTransito.tab-content.active,
+        #administracion.tab-content.active,
+        #controlPT.tab-content.active {
+            margin-left: 236px;
+            margin-top: 60px;
+            padding: 1.25rem 1.5rem;
+            min-height: calc(100vh - 60px);
+            background: #f1f3f6;
+            box-sizing: border-box;
+        }
+        /* Secciones internas: overflow para tablas anchas */
+        #pcc1 .analytics-section,
+        #tempCoccionEnvasado .analytics-section,
+        #tempTunel .analytics-section,
+        #tempTransito .analytics-section,
+        #administracion .analytics-section,
+        #controlPT .analytics-section {
+            overflow-x: auto;
+        }
+
         /* ── HEADER (legacy — ahora es topbar) ──────────────── */
         .header {
             background: transparent;
