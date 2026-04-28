@@ -11781,7 +11781,7 @@ function imprimirRegistroHACCP(d) {
         function guardarEquipos() {
             localStorage.setItem('mes_equipos', JSON.stringify(equipos));
             localStorage.setItem('mes_equipos_ts', new Date().toISOString());
-            sincronizarFirebase();
+            sincronizarFirebase(true); // ← único caller autorizado a subir equipos a Firebase
         }
 
         // ── guardarDatos(): guarda todo pero NO actualiza mes_equipos_ts ──
@@ -11818,7 +11818,7 @@ function imprimirRegistroHACCP(d) {
         // Flag global: bloquea onSnapshot mientras guardamos para evitar rebote
         window._guardandoEnFirebase = false;
 
-        async function sincronizarFirebase() {
+        async function sincronizarFirebase(incluirEquipos = false) {
             if (!window.db || !window.firestoreLoaded) {
                 return;
             }
@@ -11857,12 +11857,10 @@ function imprimirRegistroHACCP(d) {
                     tandas: (p.tandas || []).slice(-5)
                 })));
 
-                // PROTECCIÓN: no guardar equipos vacíos si hay producción activa
-                const _equiposParaGuardar = equipos;
-                const _equiposFirebase = _sanitizarParaFirebase(_equiposParaGuardar);
-                
-                await setDoc(doc(window.db, 'mes-data', 'estado-actual'), _sanitizarParaFirebase({
-                    equipos: _equiposFirebase,
+                // ── PROTECCIÓN ARQUITECTURAL: equipos solo se sube cuando guardarEquipos() lo pide ──
+                // guardarDatos(), guardarDatosExtra() y el setInterval de 5 min NO suben equipos.
+                // Esto evita que dispositivos con estado stale sobreescriban el estado correcto en Firebase.
+                const _payload = {
                     productos,
                     procesosEnvasado: procesosEnvLimpios,
                     procesosAbatimiento,
@@ -11870,7 +11868,15 @@ function imprimirRegistroHACCP(d) {
                     ultimaActualizacion: new Date().toISOString(),
                     dispositivoId: window._dispositivoId || localStorage.getItem('mes_dispositivo_id') || 'unknown',
                     dispositivo: navigator.userAgent.substring(0, 50)
-                }));
+                };
+                if (incluirEquipos) {
+                    _payload.equipos = _sanitizarParaFirebase(equipos);
+                    // Reemplazar documento completo cuando incluimos equipos (escritura autoritativa)
+                    await setDoc(doc(window.db, 'mes-data', 'estado-actual'), _sanitizarParaFirebase(_payload));
+                } else {
+                    // Solo actualizar campos no-equipos; preservar equipos existente en Firestore
+                    await setDoc(doc(window.db, 'mes-data', 'estado-actual'), _sanitizarParaFirebase(_payload), { merge: true });
+                }
 
                 // ── Guardar historial en documento separado ──
                 await setDoc(doc(window.db, 'mes-data', 'historial-produccion'), _sanitizarParaFirebase({
