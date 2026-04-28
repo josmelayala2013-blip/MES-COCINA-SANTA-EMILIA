@@ -4236,6 +4236,41 @@
         </div>
     </div>
 
+    <!-- MODAL: FINALIZAR PREPARACIÓN FRÍA -->
+    <div id="modalFinalizarPrepFria" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>❄️ Finalizar Preparación Fría</h2>
+                <button class="close-btn" onclick="closeModal('finalizarPrepFria')">&times;</button>
+            </div>
+            <div id="prepFriaFinalizarInfo"></div>
+            <div class="form-group">
+                <label>Kg Reales Producidos:</label>
+                <input type="number" id="pfKgReales" placeholder="Ej: 15" min="0" step="0.1" required>
+            </div>
+            <div class="form-group">
+                <label>Temperatura de preparación (°C):</label>
+                <input type="number" id="pfTemperatura" placeholder="Ej: 18" step="0.1">
+            </div>
+            <div class="form-group">
+                <label>Manipulador:</label>
+                <select id="pfManipulador">
+                    <option value="">— Selecciona manipulador —</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Observaciones (opcional):</label>
+                <textarea id="pfObservaciones" rows="2" placeholder="Notas sobre la preparación..."></textarea>
+            </div>
+            <div class="alert alert-info" style="font-size:.85rem;">
+                ℹ️ Al finalizar, esta preparación pasará directamente a <strong>Envasado</strong> y se generará el registro HACCP de cocina.
+            </div>
+            <button class="btn btn-success btn-full" onclick="confirmarFinalizarPrepFria()">
+                ✅ FINALIZAR Y PASAR A ENVASADO
+            </button>
+        </div>
+    </div>
+
     <!-- MODAL: FINALIZAR COCCIÓN -->
     <div id="modalFinalizarCoccion" class="modal">
         <div class="modal-content">
@@ -4647,7 +4682,7 @@
         function renderEquipos() {
             const grid = document.getElementById('equipmentGrid');
             grid.innerHTML = '';
-            // Mostrar preps frías — restaurar desde localStorage si es necesario
+            // Mostrar preps frías legacy (inicio jornada) — restaurar desde localStorage si es necesario
             if (!window._prepsFriasJornada || window._prepsFriasJornada.length === 0) {
               const saved = localStorage.getItem('mes_prepsFriasJornada');
               if (saved) window._prepsFriasJornada = JSON.parse(saved);
@@ -4655,6 +4690,12 @@
             if (window._prepsFriasJornada && window._prepsFriasJornada.length > 0) {
               mostrarPrepsFriasEnDashboard(window._prepsFriasJornada);
             }
+            // ── Renderizar tarjetas virtuales de preps frías activas (nuevo sistema) ──
+            if (!window._prepsFriasActivas || window._prepsFriasActivas.length === 0) {
+              const saved = localStorage.getItem('mes_prepsFriasActivas');
+              if (saved) try { window._prepsFriasActivas = JSON.parse(saved); } catch(e) {}
+            }
+            _renderPrepsFriasVirtuales();
             renderHACCPCompletados();
 
             equipos.forEach(equipo => {
@@ -8840,6 +8881,8 @@ function imprimirRegistroHACCP(d) {
                     op.equipoAsignado = equipo.nombre;
                     op.inicioProduccion = new Date().toISOString();
                     guardarOPs();
+                    // ── Detectar preparaciones frías de esta OP y agregarlas al dashboard ──
+                    _detectarYRegistrarPrepsFrias(op);
                 }
             }
 
@@ -11775,6 +11818,254 @@ function imprimirRegistroHACCP(d) {
             }
         }
 
+        // ══════════════════════════════════════════════════════════════════
+        // PREPARACIONES FRÍAS ACTIVAS — Sistema de tarjetas virtuales
+        // ══════════════════════════════════════════════════════════════════
+
+        // Inicializar array desde localStorage al cargar
+        if (!window._prepsFriasActivas) {
+            try { window._prepsFriasActivas = JSON.parse(localStorage.getItem('mes_prepsFriasActivas') || '[]'); }
+            catch(e) { window._prepsFriasActivas = []; }
+        }
+
+        // Detectar preps frías de una OP recién iniciada y agregarlas si no existen ya
+        function _detectarYRegistrarPrepsFrias(op) {
+            if (!op || !op.componentes) return;
+            const recetaOp = recetas.find(r => r.id === op.recetaId);
+            let huboNuevas = false;
+            (op.componentes || []).forEach(comp => {
+                const compReceta = recetaOp?.componentes?.find(c =>
+                    (c.nombre||'').toLowerCase().trim() === (comp.nombre||'').toLowerCase().trim()
+                );
+                const esInsumo = comp.esInsumo === true || compReceta?.esInsumo === true;
+                if (esInsumo) return;
+                const esFria = comp.preparacionFria === true || compReceta?.preparacionFria === true;
+                if (!esFria) return;
+                // ¿Ya existe esta prep fría para esta OP?
+                const yaExiste = (window._prepsFriasActivas || []).find(p =>
+                    p.opId === op.id &&
+                    (p.componente||'').toLowerCase().trim() === (comp.nombre||'').toLowerCase().trim() &&
+                    p.estado !== 'completada'
+                );
+                if (yaExiste) return;
+                const nueva = {
+                    id: Date.now().toString() + '_' + Math.random().toString(36).substr(2,5),
+                    componente: comp.nombre,
+                    numeroOP: op.numeroOp || op.nombre,
+                    opId: op.id,
+                    opNombre: op.nombre,
+                    kg: comp.kgTerminados || 0,
+                    estado: 'pendiente', // pendiente → en_prep → completada
+                    inicio: null,
+                    fin: null,
+                    manipulador: null,
+                    kgReales: null,
+                    temperatura: null,
+                    observaciones: null,
+                    creadaEn: new Date().toISOString()
+                };
+                if (!window._prepsFriasActivas) window._prepsFriasActivas = [];
+                window._prepsFriasActivas.push(nueva);
+                huboNuevas = true;
+            });
+            if (huboNuevas) {
+                localStorage.setItem('mes_prepsFriasActivas', JSON.stringify(window._prepsFriasActivas));
+                guardarDatos(); // sube a Firebase via merge — todos los dispositivos la verán
+                mostrarNotificacion('❄️ Preparación fría detectada — aparece en el dashboard', 'info');
+            }
+        }
+
+        // Renderizar tarjetas virtuales de preps frías en el equipmentGrid
+        function _renderPrepsFriasVirtuales() {
+            const grid = document.getElementById('equipmentGrid');
+            if (!grid) return;
+            const activas = (window._prepsFriasActivas || []).filter(p => p.estado !== 'completada');
+            activas.forEach(pf => {
+                const card = document.createElement('div');
+                card.className = 'equipment-card';
+                card.style.cssText = 'border: 2px solid #0F6E56; position: relative;';
+                const badge = '<span style="position:absolute;top:-10px;left:12px;background:#0F6E56;color:white;font-size:10px;font-weight:700;padding:2px 10px;border-radius:20px;letter-spacing:.3px;">❄ PREP FRÍA</span>';
+                if (pf.estado === 'pendiente') {
+                    card.innerHTML = `
+                        ${badge}
+                        <div class="equipment-header" style="margin-top:6px;">
+                            <span class="equipment-name">❄️ ${pf.componente}</span>
+                            <span class="status-badge" style="background:#d1fae5;color:#065f46;">pendiente</span>
+                        </div>
+                        <div style="font-size:.78rem;color:#6b7280;margin:.3rem 0;">OP ${pf.numeroOP} · ${pf.opNombre}</div>
+                        <div style="font-size:.82rem;color:#374151;margin-bottom:.5rem;">${pf.kg} kg programados</div>
+                        <div style="font-size:.75rem;color:#9ca3af;text-align:center;padding:.5rem 0;">Sin equipo físico — Preparar en frío</div>
+                        <button class="btn btn-primary btn-full" style="background:linear-gradient(135deg,#059669,#10b981);margin-top:.5rem;"
+                            onclick="_iniciarPrepFria('${pf.id}')">▶ Iniciar preparación</button>`;
+                } else if (pf.estado === 'en_prep') {
+                    const inicioMs = pf.inicio ? new Date(pf.inicio).getTime() : Date.now();
+                    const seg = Math.floor((Date.now() - inicioMs) / 1000);
+                    const hh = String(Math.floor(seg/3600)).padStart(2,'0');
+                    const mm = String(Math.floor((seg%3600)/60)).padStart(2,'0');
+                    const ss = String(seg%60).padStart(2,'0');
+                    card.innerHTML = `
+                        ${badge}
+                        <div class="equipment-header" style="margin-top:6px;">
+                            <span class="equipment-name">❄️ ${pf.componente}</span>
+                            <span class="status-badge" style="background:#cffafe;color:#0e7490;">en prep.</span>
+                        </div>
+                        <div style="font-size:.78rem;color:#6b7280;margin:.3rem 0;">OP ${pf.numeroOP} · ${pf.opNombre}</div>
+                        <div style="font-size:.82rem;color:#374151;margin-bottom:.25rem;">${pf.kg} kg programados</div>
+                        <div id="pf_timer_${pf.id}" style="font-size:1.6rem;font-weight:700;color:#0891b2;text-align:center;margin:.5rem 0;">${hh}:${mm}:${ss}</div>
+                        <button class="btn btn-success btn-full" style="margin-top:.5rem;"
+                            onclick="_abrirFinalizarPrepFria('${pf.id}')">✅ Finalizar — ingresar kg</button>`;
+                    // Iniciar timer de pantalla
+                    if (!window._pfTimers) window._pfTimers = {};
+                    if (!window._pfTimers[pf.id]) {
+                        window._pfTimers[pf.id] = setInterval(() => {
+                            const el = document.getElementById('pf_timer_' + pf.id);
+                            if (!el) { clearInterval(window._pfTimers[pf.id]); delete window._pfTimers[pf.id]; return; }
+                            const s = Math.floor((Date.now() - inicioMs) / 1000);
+                            el.textContent = String(Math.floor(s/3600)).padStart(2,'0') + ':' +
+                                String(Math.floor((s%3600)/60)).padStart(2,'0') + ':' +
+                                String(s%60).padStart(2,'0');
+                        }, 1000);
+                    }
+                }
+                grid.appendChild(card);
+            });
+        }
+
+        // Iniciar una prep fría — el operador decide el momento
+        function _iniciarPrepFria(pfId) {
+            const pf = (window._prepsFriasActivas || []).find(p => p.id === pfId);
+            if (!pf) return;
+            pf.estado = 'en_prep';
+            pf.inicio = new Date().toISOString();
+            localStorage.setItem('mes_prepsFriasActivas', JSON.stringify(window._prepsFriasActivas));
+            guardarDatos();
+            renderEquipos();
+            mostrarNotificacion('❄️ ' + pf.componente + ' — Preparación iniciada', 'success');
+        }
+
+        // Abrir modal de finalizar prep fría
+        let _pfActualId = null;
+        function _abrirFinalizarPrepFria(pfId) {
+            const pf = (window._prepsFriasActivas || []).find(p => p.id === pfId);
+            if (!pf) return;
+            _pfActualId = pfId;
+            const tiempoSeg = pf.inicio ? Math.floor((Date.now() - new Date(pf.inicio).getTime()) / 1000) : 0;
+            const hh = String(Math.floor(tiempoSeg/3600)).padStart(2,'0');
+            const mm = String(Math.floor((tiempoSeg%3600)/60)).padStart(2,'0');
+            document.getElementById('prepFriaFinalizarInfo').innerHTML = `
+                <div class="alert alert-info">
+                    <strong>Componente:</strong> ${pf.componente}<br>
+                    <strong>OP:</strong> ${pf.numeroOP} · ${pf.opNombre}<br>
+                    <strong>Kg programados:</strong> ${pf.kg} kg<br>
+                    <strong>Tiempo preparación:</strong> ${hh}h ${mm}m
+                </div>`;
+            // Cargar manipuladores de cocina
+            const sel = document.getElementById('pfManipulador');
+            sel.innerHTML = '<option value="">— Selecciona manipulador —</option>';
+            const personal_lista = [...(personal.cocina||[]), ...(personal.preelaborado||[])];
+            personal_lista.forEach(item => {
+                const nombre = typeof item === 'string' ? item : (item.nombre || item);
+                if (nombre) sel.innerHTML += `<option value="${nombre}">${nombre}</option>`;
+            });
+            document.getElementById('pfKgReales').value = '';
+            document.getElementById('pfTemperatura').value = '';
+            document.getElementById('pfObservaciones').value = '';
+            openModal('finalizarPrepFria');
+        }
+
+        // Confirmar finalización de prep fría — genera HACCP y pasa a envasado
+        function confirmarFinalizarPrepFria() {
+            const pf = (window._prepsFriasActivas || []).find(p => p.id === _pfActualId);
+            if (!pf) return;
+            const kgReales = parseFloat(document.getElementById('pfKgReales').value);
+            const temperatura = document.getElementById('pfTemperatura').value;
+            const manipulador = document.getElementById('pfManipulador').value;
+            const observaciones = document.getElementById('pfObservaciones').value;
+            if (!kgReales || kgReales <= 0) { alert('Ingresa los kg reales producidos'); return; }
+            if (!manipulador) { alert('Selecciona el manipulador'); return; }
+            const ahora = new Date();
+            const horaFin = ahora.toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'});
+            const horaInicio = pf.inicio
+                ? (d => String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'))(new Date(pf.inicio))
+                : horaFin;
+            const tiempoSeg = pf.inicio ? Math.floor((ahora.getTime() - new Date(pf.inicio).getTime()) / 1000) : 0;
+            const tiempoFormateado = String(Math.floor(tiempoSeg/3600)).padStart(2,'0') + ':' +
+                String(Math.floor((tiempoSeg%3600)/60)).padStart(2,'0') + ':' +
+                String(tiempoSeg%60).padStart(2,'0');
+            // Actualizar estado de la prep fría
+            pf.estado = 'completada';
+            pf.fin = ahora.toISOString();
+            pf.manipulador = manipulador;
+            pf.kgReales = kgReales;
+            pf.temperatura = temperatura ? parseFloat(temperatura) : null;
+            pf.observaciones = observaciones;
+            pf.tiempoFormateado = tiempoFormateado;
+            // ── Crear HACCP pendiente de cocina ──
+            const haccpPend = {
+                id: Date.now().toString() + '_pf',
+                fecha: ahora.toLocaleDateString('es-CL'),
+                fechaISO: ahora.toISOString().split('T')[0],
+                horaFinCoccion: horaFin,
+                equipoId: null,
+                equipoNombre: '❄️ Prep. Fría',
+                producto: pf.componente + ' — ' + pf.opNombre,
+                componente: pf.componente,
+                numeroOP: pf.numeroOP,
+                opVinculadaId: pf.opId,
+                operador: manipulador,
+                kgProgramados: pf.kg,
+                kgReales: kgReales,
+                horaInicio: horaInicio,
+                horaTermino: horaFin,
+                tiempoCoccionFormateado: tiempoFormateado,
+                temperatura: pf.temperatura,
+                esPrepFria: true,
+                estado: 'pendiente',
+                completadoPor: null,
+                completadoEn: null,
+                datosHACCP: null
+            };
+            if (window._haccpPendientesRef) {
+                const lista = window._haccpPendientesRef.get();
+                lista.push(haccpPend);
+                window._haccpPendientesRef.set(lista);
+                if (window._guardarHACCPPendientes) window._guardarHACCPPendientes();
+            }
+            // ── Pasar a envasado igual que una producción caliente ──
+            procesosEnvasado.push({
+                numeroOP: pf.numeroOP,
+                producto: pf.componente + ' — ' + pf.opNombre,
+                componente: pf.componente,
+                opVinculadaId: pf.opId,
+                kgReales: kgReales,
+                kgProgramados: pf.kg,
+                operador: manipulador,
+                manipulador: manipulador,
+                equipoNombre: '❄️ Prep. Fría',
+                equipoId: null,
+                inicio: pf.inicio || ahora.toISOString(),
+                finCoccion: ahora.toISOString(),
+                inicioEnvasado: ahora.toISOString(),
+                fase: 'envasado',
+                esPrepFria: true,
+                tiempoCoccionFormateado: tiempoFormateado,
+                temperatura: pf.temperatura,
+                observaciones: observaciones
+            });
+            localStorage.setItem('mes_prepsFriasActivas', JSON.stringify(window._prepsFriasActivas));
+            // Limpiar timer si existe
+            if (window._pfTimers && window._pfTimers[_pfActualId]) {
+                clearInterval(window._pfTimers[_pfActualId]);
+                delete window._pfTimers[_pfActualId];
+            }
+            guardarDatos();
+            renderEquipos();
+            renderEnvasado();
+            updateStats();
+            closeModal('finalizarPrepFria');
+            mostrarNotificacion('✅ ' + pf.componente + ' finalizado — pasando a Envasado', 'success');
+        }
+
         // ── guardarEquipos(): llamar SOLO cuando cambia el estado de un equipo ──
         // Actualiza mes_equipos_ts para que el onSnapshot sepa que este dispositivo
         // tiene datos más recientes y no debe ser pisado por snapshots de otros.
@@ -11865,6 +12156,7 @@ function imprimirRegistroHACCP(d) {
                     procesosEnvasado: procesosEnvLimpios,
                     procesosAbatimiento,
                     planDiario,
+                    prepsFriasActivas: _sanitizarParaFirebase(window._prepsFriasActivas || []),
                     ultimaActualizacion: new Date().toISOString(),
                     dispositivoId: window._dispositivoId || localStorage.getItem('mes_dispositivo_id') || 'unknown',
                     dispositivo: navigator.userAgent.substring(0, 50)
@@ -12355,6 +12647,27 @@ function limpiarComponentesFriosDeEquipos() {
                     if (Array.isArray(data.procesosAbatimiento)) {
                         procesosAbatimiento = data.procesosAbatimiento;
                         renderAbatimiento();
+                    }
+                    // prepsFriasActivas: sincronizar siempre — todos los dispositivos deben ver las preps frías
+                    if (Array.isArray(data.prepsFriasActivas)) {
+                        // Merge: preservar estados locales más avanzados (en_prep no volver a pendiente)
+                        const remotas = data.prepsFriasActivas;
+                        const locales = window._prepsFriasActivas || [];
+                        window._prepsFriasActivas = remotas.map(r => {
+                            const local = locales.find(l => l.id === r.id);
+                            // Si localmente está más avanzada (en_prep o completada), conservar estado local
+                            if (local && local.estado === 'en_prep' && r.estado === 'pendiente') return local;
+                            if (local && local.estado === 'completada' && r.estado !== 'completada') return local;
+                            return r;
+                        });
+                        // Agregar locales que no existan en remotas (recién creadas, aún no sincronizadas)
+                        locales.forEach(l => {
+                            if (!window._prepsFriasActivas.find(r => r.id === l.id)) {
+                                window._prepsFriasActivas.push(l);
+                            }
+                        });
+                        localStorage.setItem('mes_prepsFriasActivas', JSON.stringify(window._prepsFriasActivas));
+                        renderEquipos(); // refresca tarjetas virtuales
                     }
 
                     // ── Sincronización de equipos ──
