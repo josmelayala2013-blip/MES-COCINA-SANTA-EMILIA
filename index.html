@@ -10911,13 +10911,19 @@ function imprimirRegistroHACCP(d) {
                         }
                     }
                     
-                    // Sincronizar OPs
+                    // Sincronizar OPs — comparar por timestamp, no por cantidad
                     const snapOPs = await getDoc(doc(window.db, 'mes-data', 'ordenes-produccion'));
                     if (snapOPs.exists() && Array.isArray(snapOPs.data().ops)) {
-                        const remoteOPs = snapOPs.data().ops;
-                        if (remoteOPs.length >= ordenesProduccion.length) {
+                        const remoteOPs   = snapOPs.data().ops;
+                        const tsRemotoOPs = snapOPs.data().ultimaActualizacion || '';
+                        const tsLocalOPs  = localStorage.getItem('mes_ops_ts') || window._ultimaActualizacionOPs || '';
+                        // Firebase gana solo si su timestamp es estrictamente más reciente
+                        // (o si no hay timestamp local — primera carga limpia)
+                        if (remoteOPs.length > 0 && (!tsLocalOPs || tsRemotoOPs > tsLocalOPs)) {
                             ordenesProduccion = remoteOPs;
                             localStorage.setItem('mes_ops', JSON.stringify(ordenesProduccion));
+                            localStorage.setItem('mes_ops_ts', tsRemotoOPs);
+                            window._ultimaActualizacionOPs = tsRemotoOPs;
                         }
                     }
 
@@ -12798,12 +12804,17 @@ function limpiarComponentesFriosDeEquipos() {
                         return;
                     }
 
-                    // Comparar timestamps para evitar actualizar con datos propios
+                    // Comparar timestamps — usar localStorage como fuente persistente
+                    // (window._ultimaActualizacionOPs se pierde en cada recarga)
                     const tsRemoto = data.ultimaActualizacion || '';
-                    const tsLocal = window._ultimaActualizacionOPs || '';
-                    if (tsRemoto && tsLocal && tsRemoto <= tsLocal) return;
+                    const tsLocal  = localStorage.getItem('mes_ops_ts') || window._ultimaActualizacionOPs || '';
+                    if (tsRemoto && tsLocal && tsRemoto <= tsLocal) {
+                        console.log('⏭ onSnapshot OPs ignorado — remoto no es más reciente:', tsRemoto, '<=', tsLocal);
+                        return;
+                    }
                     ordenesProduccion = data.ops;
                     localStorage.setItem('mes_ops', JSON.stringify(ordenesProduccion));
+                    localStorage.setItem('mes_ops_ts', tsRemoto);
                     window._ultimaActualizacionOPs = tsRemoto;
 
                     // Refrescar UI según módulo activo
@@ -15115,6 +15126,7 @@ function guardarOPs() {
       const { doc, setDoc } = window.firestoreFunctions;
       const ts = new Date().toISOString();
       window._ultimaActualizacionOPs = ts;
+      localStorage.setItem('mes_ops_ts', ts);
       setDoc(doc(window.db, 'mes-data', 'ordenes-produccion'), { ops: ordenesProduccion, ultimaActualizacion: ts });
     } catch(e) { console.error('Error guardando OPs:', e); }
   }
