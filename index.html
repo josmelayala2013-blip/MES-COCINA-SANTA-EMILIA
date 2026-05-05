@@ -16,7 +16,7 @@
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-        import { getFirestore, collection, doc, setDoc, getDoc, getDocs, onSnapshot, query, orderBy, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+        import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, doc, setDoc, getDoc, getDocs, onSnapshot, query, orderBy, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
         
         const firebaseConfig = {
@@ -29,8 +29,35 @@
         };
         
         const app = initializeApp(firebaseConfig);
-        window.db = getFirestore(app);
+        // PERSISTENCIA OFFLINE: Firestore guarda datos en IndexedDB del navegador.
+        // Cuando Firebase pierde conexión, onSnapshot sigue funcionando con datos locales
+        // y los setDoc se encolan — se sincronizan automáticamente cuando vuelve la red.
+        // Esto elimina la pérdida de estado activo por cortes de conexión.
+        try {
+            window.db = initializeFirestore(app, {
+                localCache: persistentLocalCache({
+                    tabManager: persistentMultipleTabManager()
+                })
+            });
+        } catch(e) {
+            // Fallback: si persistentLocalCache no está disponible, usar getFirestore normal
+            console.warn('⚠️ Persistencia offline no disponible, usando Firestore estándar:', e.message);
+            window.db = getFirestore(app);
+        }
         window.firestoreLoaded = true;
+
+        // DETECTOR DE CONEXIÓN: muestra alerta visible cuando Firebase está offline
+        // para que el operador NO recargue la tablet durante una desconexión
+        window.addEventListener('online',  () => { document.getElementById('_offlineBanner')?.remove(); });
+        window.addEventListener('offline', () => {
+            if (!document.getElementById('_offlineBanner')) {
+                const b = document.createElement('div');
+                b.id = '_offlineBanner';
+                b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#dc2626;color:white;text-align:center;padding:.6rem;font-weight:700;font-size:.95rem;letter-spacing:.02em;';
+                b.innerHTML = '⚠️ SIN CONEXIÓN A INTERNET — NO RECARGUES LA TABLET — Los datos se guardarán automáticamente cuando vuelva la red';
+                document.body.prepend(b);
+            }
+        });
         
         // Auth
         const auth = getAuth(app);
@@ -12497,9 +12524,6 @@ function imprimirRegistroHACCP(d) {
                     }
                     recalcularTiemposCoccion();
                     limpiarEsperasVencidas();
-                    // ── Limpiar equipos con producciones de días anteriores ──
-                    // Evita que Firebase restaure fantasmas de jornadas pasadas
-                    _limpiarProduccionesAntiguas();
                     productos = data.productos || productos;
                     procesosEnvasado = data.procesosEnvasado || [];
                     procesosAbatimiento = data.procesosAbatimiento || [];
@@ -12861,7 +12885,6 @@ function limpiarComponentesFriosDeEquipos() {
                         }
                         recalcularTiemposCoccion();
                         limpiarEsperasVencidas();
-                        _limpiarProduccionesAntiguas();
                         renderEquipos();
                         updateStats();
                         if (document.getElementById('gantt')?.classList.contains('active')) {
