@@ -12212,9 +12212,11 @@ function imprimirRegistroHACCP(d) {
                 const msg = error?.message || error?.code || 'Error desconocido';
                 mostrarNotificacion(`⚠️ Error al sincronizar: ${msg.slice(0,60)}`, 'warning');
             } finally {
-                // Liberar bloqueo después de 3 segundos (tiempo suficiente para que
-                // Firebase procese la escritura y el onSnapshot se dispare con datos nuevos)
-                setTimeout(() => { window._guardandoEnFirebase = false; }, 3000);
+                // P3 FIX: liberar bloqueo cuando Firebase confirma (await completó)
+                // no con timeout fijo — si Firebase tardó más de 3s el timeout anterior
+                // liberaba antes de que llegara el snapshot, causando rebote
+                // Pequeño delay mínimo (500ms) para que el onSnapshot procese antes de liberar
+                setTimeout(() => { window._guardandoEnFirebase = false; }, 500);
             }
         }
         
@@ -12798,18 +12800,27 @@ function limpiarComponentesFriosDeEquipos() {
                     const data = snap.data();
                     if (!data.ops || !Array.isArray(data.ops)) return;
 
-                    // PROTECCIÓN: no aplicar array vacío si localmente hay OPs
-                    if (data.ops.length === 0 && ordenesProduccion.length > 0) {
-                        console.warn('⚠️ Firebase envió 0 OPs pero hay', ordenesProduccion.length, 'locales — ignorando');
-                        return;
-                    }
-
                     // Comparar timestamps — usar localStorage como fuente persistente
                     // (window._ultimaActualizacionOPs se pierde en cada recarga)
                     const tsRemoto = data.ultimaActualizacion || '';
                     const tsLocal  = localStorage.getItem('mes_ops_ts') || window._ultimaActualizacionOPs || '';
                     if (tsRemoto && tsLocal && tsRemoto <= tsLocal) {
                         console.log('⏭ onSnapshot OPs ignorado — remoto no es más reciente:', tsRemoto, '<=', tsLocal);
+                        return;
+                    }
+
+                    // P4 FIX: protección contra reducción de OPs
+                    // Firebase puede enviar menos OPs que las locales si otro dispositivo
+                    // guardó una versión anterior. Solo aceptamos si:
+                    // (a) el remoto tiene más OPs, o
+                    // (b) el remoto tiene el mismo número o menos pero su timestamp es estrictamente más nuevo
+                    // En caso (b) es una eliminación legítima hecha por el usuario
+                    if (data.ops.length === 0 && ordenesProduccion.length > 0) {
+                        console.warn('⚠️ P4: Firebase envió 0 OPs pero hay', ordenesProduccion.length, 'locales — ignorando');
+                        return;
+                    }
+                    if (data.ops.length < ordenesProduccion.length && tsRemoto && tsLocal && tsRemoto <= tsLocal) {
+                        console.warn('⚠️ P4: Firebase envió', data.ops.length, 'OPs vs', ordenesProduccion.length, 'locales con timestamp no más reciente — ignorando reducción');
                         return;
                     }
                     ordenesProduccion = data.ops;
