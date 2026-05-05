@@ -1259,6 +1259,18 @@
                 </div>
             </div>
 
+            <!-- COMPRAS -->
+            <div class="nav-dropdown" id="dropdownCompras" data-modulo="compras">
+                <button class="nav-tab" onclick="toggleDropdownCompras(event)" id="btnCompras"
+                    style="display:flex;align-items:center;gap:.4rem;">
+                    <svg class="nt-icon" viewBox="0 0 14 14" fill="none"><path d="M2 2h1.5l1.5 6h5l1.5-4H5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/><circle cx="7" cy="11.5" r="1" fill="currentColor"/><circle cx="10.5" cy="11.5" r="1" fill="currentColor"/></svg>Compras<span class="nt-arrow">▾</span>
+                </button>
+                <div class="nav-dropdown-menu" id="menuCompras">
+                    <div style="font-size:.7rem;color:#6b7280;padding:.3rem 1rem .1rem;font-weight:600;text-transform:uppercase;">Órdenes de Compra</div>
+                    <button class="nav-dropdown-item" data-modulo="compras" onclick="changeTab('compras',this);cerrarDropdownCompras()">🛒 Módulo Compras</button>
+                </div>
+            </div>
+
             <!-- GESTIÓN -->
             <div class="nav-dropdown" id="dropdownGestion" data-modulo="gestion">
                 <button class="nav-tab" onclick="toggleDropdownGestion(event)" id="btnGestion"
@@ -3152,6 +3164,46 @@
 
 
         <!-- TAB: CONTROL DE MATERIAS PRIMAS -->
+        <!-- ══════════════════════════════════════════════════════
+             MÓDULO COMPRAS
+        ══════════════════════════════════════════════════════ -->
+        <div id="compras" class="tab-content">
+        <div class="analytics-section">
+
+        <!-- HEADER -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.4rem;flex-wrap:wrap;gap:.8rem;">
+          <div>
+            <h2 style="margin:0;font-size:1.4rem;font-weight:700;color:#1e293b;">🛒 Módulo de Compras</h2>
+            <p style="margin:.2rem 0 0;font-size:.85rem;color:#64748b;">Órdenes de compra · Proveedores · Recepciones · Trazabilidad</p>
+          </div>
+          <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
+            <button onclick="comprasNuevaOCManual()" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:700;cursor:pointer;font-size:.85rem;">+ Nueva OC</button>
+            <button onclick="ocAbrirProveedores()" style="background:linear-gradient(135deg,#0891b2,#0369a1);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">🏭 Proveedores</button>
+            <button onclick="comprasActualizar()" style="background:linear-gradient(135deg,#475569,#334155);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">↻ Actualizar</button>
+          </div>
+        </div>
+
+        <!-- KPIs COMPRAS -->
+        <div id="comprasKpisContainer" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.85rem;margin-bottom:1.4rem;"></div>
+
+        <!-- TABS ESTADOS -->
+        <div style="display:flex;gap:.4rem;margin-bottom:1rem;flex-wrap:wrap;border-bottom:2px solid #f1f5f9;padding-bottom:.6rem;">
+          <button id="comprasTabTodas" onclick="comprasFiltrarEstado('todas',this)" style="padding:.4rem 1rem;border-radius:8px;border:none;background:#7c3aed;color:white;font-weight:700;cursor:pointer;font-size:.82rem;">📋 Todas</button>
+          <button id="comprasTabBorrador" onclick="comprasFiltrarEstado('borrador',this)" style="padding:.4rem 1rem;border-radius:8px;border:none;background:#f8fafc;color:#374151;font-weight:600;cursor:pointer;font-size:.82rem;">✏️ Borrador</button>
+          <button id="comprasTabAprobada" onclick="comprasFiltrarEstado('aprobada',this)" style="padding:.4rem 1rem;border-radius:8px;border:none;background:#f8fafc;color:#374151;font-weight:600;cursor:pointer;font-size:.82rem;">✅ Aprobadas</button>
+          <button id="comprasTabEnviada" onclick="comprasFiltrarEstado('enviada',this)" style="padding:.4rem 1rem;border-radius:8px;border:none;background:#f8fafc;color:#374151;font-weight:600;cursor:pointer;font-size:.82rem;">📤 Enviadas</button>
+          <button id="comprasTabRecibida" onclick="comprasFiltrarEstado('recibida',this)" style="padding:.4rem 1rem;border-radius:8px;border:none;background:#f8fafc;color:#374151;font-weight:600;cursor:pointer;font-size:.82rem;">📦 Recibidas</button>
+          <button id="comprasTabRechazada" onclick="comprasFiltrarEstado('rechazada',this)" style="padding:.4rem 1rem;border-radius:8px;border:none;background:#f8fafc;color:#374151;font-weight:600;cursor:pointer;font-size:.82rem;">❌ Rechazadas</button>
+          <div style="flex:1;"></div>
+          <input id="comprasBuscador" type="text" placeholder="🔍 Buscar OC, proveedor, ítem..." oninput="comprasRenderTabla()" style="padding:.4rem .85rem;border-radius:8px;border:1.5px solid #e2e8f0;font-size:.83rem;min-width:220px;">
+        </div>
+
+        <!-- TABLA OCs -->
+        <div id="comprasTablaOC" style="background:white;border-radius:14px;border:1px solid #e2e8f0;overflow:hidden;"></div>
+
+        </div><!-- /analytics-section -->
+        </div><!-- /tab compras -->
+
         <div id="materiasprimas" class="tab-content">
         <div class="analytics-section">
 
@@ -3165,8 +3217,6 @@
             <button onclick="mpAbrirRecepcionQR()" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:700;cursor:pointer;font-size:.85rem;">📷 Recepción MP</button>
             <button onclick="mpAbrirIngreso()" style="background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">+ Ingreso Manual</button>
             <button onclick="mpAbrirCatalogo()" style="background:linear-gradient(135deg,#0891b2,#0e7490);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">📚 Catálogo</button>
-            <button onclick="ocAbrirProveedores()" style="background:linear-gradient(135deg,#0891b2,#0369a1);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">🏭 Proveedores</button>
-            <button onclick="ocAbrirBandeja()" id="btnBandejaOC" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:700;cursor:pointer;font-size:.85rem;">📋 OC Pendientes <span id="badgeBandejaOC" style="display:none;background:white;color:#d97706;border-radius:20px;padding:.05rem .45rem;font-size:.75rem;font-weight:800;margin-left:.3rem;"></span></button>
             <button onclick="mpAbrirCostosProduccion()" style="background:linear-gradient(135deg,#059669,#047857);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">💰 Costos</button>
             <button onclick="mpAbrirAjuste()" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">⚖️ Ajuste</button>
             <button onclick="mpVerMovimientos()" style="background:linear-gradient(135deg,#6366f1,#4f46e5);color:white;border:none;border-radius:10px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;font-size:.85rem;">📋 Movimientos</button>
@@ -11788,6 +11838,7 @@ function imprimirRegistroHACCP(d) {
             else if (tabName === 'acondicionamiento') { sincronizarHACCPPreDesdeFirebase(); }
             else if (tabName === 'analytics') { _sincronizarHistorialYRenderizar('analytics'); }
             else if (tabName === 'bodega') { initBodega(); }
+            else if (tabName === 'compras') { ocCargarDesdeFirebase().then(() => { comprasRenderKpis(); comprasRenderTabla(); }); }
             else if (tabName === 'materiasprimas') { mpCargarDesdeFirebase().then(() => { mpCargarCatalogoFirebase().then(() => { mpRenderStock(); mpRenderKpis(); mpActualizarProyeccion(); }); }); }
             else if (tabName === 'personal') { 
                 renderListaPersonal('cocina'); 
@@ -25431,6 +25482,123 @@ function cerrarDropdownPlanificacion() {
 }
 
 // ── Dropdown Gestión ──
+function toggleDropdownCompras(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('menuCompras');
+  const isOpen = menu.classList.contains('open');
+  document.querySelectorAll('.nav-dropdown-menu').forEach(m => m.classList.remove('open'));
+  if (!isOpen) { _posicionarDropdown('btnCompras','menuCompras'); menu.classList.add('open'); }
+}
+function cerrarDropdownCompras() {
+  document.getElementById('menuCompras')?.classList.remove('open');
+}
+
+// ══════════════════════════════════════════════════════
+// MÓDULO COMPRAS — funciones principales
+// ══════════════════════════════════════════════════════
+
+let _comprasFiltroEstado = 'todas';
+
+function comprasActualizar() {
+    ocCargarDesdeFirebase().then(() => {
+        comprasRenderKpis();
+        comprasRenderTabla();
+    });
+}
+
+function comprasRenderKpis() {
+    const todas = [...ocPendientes, ...ocHistorial];
+    const borrador  = todas.filter(o => o.estado === 'borrador').length;
+    const aprobadas = todas.filter(o => o.estado === 'aprobada').length;
+    const enviadas  = todas.filter(o => o.estado === 'enviada').length;
+    const recibidas = todas.filter(o => o.estado === 'recibida').length;
+    const totalGasto = ocHistorial.filter(o => o.estado === 'recibida')
+        .reduce((s, o) => s + (o.totalRecibido || o.total || 0), 0);
+    const kpis = [
+        { label: 'Pendientes aprobación', valor: borrador, color: '#d97706', bg: '#fffbeb', icon: '✏️' },
+        { label: 'Aprobadas — por enviar', valor: aprobadas, color: '#2563eb', bg: '#eff6ff', icon: '✅' },
+        { label: 'Enviadas — por recibir', valor: enviadas, color: '#7c3aed', bg: '#faf5ff', icon: '📤' },
+        { label: 'Recibidas este mes', valor: recibidas, color: '#059669', bg: '#f0fdf4', icon: '📦' },
+        { label: 'Gasto total recibido', valor: '$' + totalGasto.toLocaleString('es-CL'), color: '#0f172a', bg: '#f8fafc', icon: '💰' },
+    ];
+    const cont = document.getElementById('comprasKpisContainer');
+    if (!cont) return;
+    cont.innerHTML = kpis.map(k => `
+        <div style="background:${k.bg};border-radius:12px;padding:1rem 1.2rem;border:1px solid ${k.color}22;">
+            <div style="font-size:1.4rem;margin-bottom:.3rem;">${k.icon}</div>
+            <div style="font-size:1.5rem;font-weight:800;color:${k.color};">${k.valor}</div>
+            <div style="font-size:.75rem;color:#64748b;font-weight:600;margin-top:.2rem;">${k.label}</div>
+        </div>`).join('');
+}
+
+function comprasFiltrarEstado(estado, btn) {
+    _comprasFiltroEstado = estado;
+    document.querySelectorAll('[id^="comprasTab"]').forEach(b => {
+        b.style.background = '#f8fafc'; b.style.color = '#374151';
+    });
+    if (btn) { btn.style.background = '#7c3aed'; btn.style.color = 'white'; }
+    comprasRenderTabla();
+}
+
+function comprasRenderTabla() {
+    const cont = document.getElementById('comprasTablaOC');
+    if (!cont) return;
+    const busq = (document.getElementById('comprasBuscador')?.value || '').toLowerCase();
+    let todas = [...ocPendientes, ...ocHistorial].sort((a,b) => (b.creadaEn||'') > (a.creadaEn||'') ? 1 : -1);
+    if (_comprasFiltroEstado !== 'todas') todas = todas.filter(o => o.estado === _comprasFiltroEstado);
+    if (busq) todas = todas.filter(o =>
+        (o.numero?.toString()||'').includes(busq) ||
+        (o.proveedor?.nombre||'').toLowerCase().includes(busq) ||
+        (o.items||[]).some(i => i.nombre?.toLowerCase().includes(busq)) ||
+        (o.opNombre||'').toLowerCase().includes(busq)
+    );
+    if (!todas.length) {
+        cont.innerHTML = `<div style="text-align:center;padding:2.5rem;color:#94a3b8;"><div style="font-size:2.5rem;">🛒</div><div style="font-weight:600;margin-top:.5rem;">Sin órdenes de compra</div><div style="font-size:.82rem;margin-top:.3rem;">Crea una nueva OC o genera desde una OP en Planificación</div></div>`;
+        return;
+    }
+    const cE = { borrador:'#d97706', aprobada:'#2563eb', enviada:'#7c3aed', recibida:'#059669', rechazada:'#dc2626' };
+    const bE = { borrador:'#fffbeb', aprobada:'#eff6ff', enviada:'#faf5ff', recibida:'#f0fdf4', rechazada:'#fef2f2' };
+    const etiq = { borrador:'✏️ Borrador', aprobada:'✅ Aprobada', enviada:'📤 Enviada', recibida:'📦 Recibida', rechazada:'❌ Rechazada' };
+    cont.innerHTML = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:.83rem;">
+        <thead><tr style="background:#1e293b;color:white;">
+            <th style="padding:.65rem 1rem;text-align:left;">N° OC</th>
+            <th style="padding:.65rem 1rem;text-align:left;">Proveedor</th>
+            <th style="padding:.65rem 1rem;text-align:left;">Ítems</th>
+            <th style="padding:.65rem 1rem;text-align:right;">Total</th>
+            <th style="padding:.65rem 1rem;">Fecha OC</th>
+            <th style="padding:.65rem 1rem;">Entrega</th>
+            <th style="padding:.65rem 1rem;text-align:center;">Estado</th>
+            <th style="padding:.65rem 1rem;text-align:center;">Acciones</th>
+        </tr></thead>
+        <tbody>${todas.map((oc, i) => {
+            const c = cE[oc.estado]||'#64748b';
+            const b = bE[oc.estado]||'#f8fafc';
+            const itemsResumen = (oc.items||[]).slice(0,2).map(it=>it.nombre).join(', ') + ((oc.items||[]).length > 2 ? ` +${(oc.items||[]).length-2} más` : '');
+            return `<tr style="border-bottom:1px solid #f1f5f9;${i%2===0?'':'background:#fafafa'}">
+                <td style="padding:.6rem 1rem;font-weight:800;color:#5b21b6;">N°${oc.numero}</td>
+                <td style="padding:.6rem 1rem;font-weight:600;">${oc.proveedor?.nombre||'<span style="color:#f59e0b;">⚠️ Sin proveedor</span>'}</td>
+                <td style="padding:.6rem 1rem;color:#64748b;font-size:.78rem;">${itemsResumen||'—'}</td>
+                <td style="padding:.6rem 1rem;text-align:right;font-weight:700;">$${(oc.total||0).toLocaleString('es-CL')}</td>
+                <td style="padding:.6rem 1rem;color:#64748b;text-align:center;">${oc.fechaOC||'—'}</td>
+                <td style="padding:.6rem 1rem;color:#64748b;text-align:center;">${oc.fechaEntrega||'—'}</td>
+                <td style="padding:.6rem 1rem;text-align:center;"><span style="background:${b};color:${c};border-radius:8px;padding:.2rem .65rem;font-weight:700;font-size:.75rem;">${etiq[oc.estado]||oc.estado}</span></td>
+                <td style="padding:.6rem 1rem;text-align:center;display:flex;gap:.3rem;justify-content:center;">
+                    <button onclick="ocVerOC('${oc.id}')" style="background:#eff6ff;color:#2563eb;border:none;border-radius:6px;padding:.3rem .6rem;cursor:pointer;font-size:.75rem;font-weight:600;">Ver</button>
+                    ${oc.estado==='borrador'?`<button onclick="ocAprobarOC('${oc.id}');setTimeout(comprasActualizar,300)" style="background:#f0fdf4;color:#059669;border:none;border-radius:6px;padding:.3rem .6rem;cursor:pointer;font-size:.75rem;font-weight:600;">✅</button>`:''}
+                    ${oc.estado==='aprobada'?`<button onclick="ocEnviarOC('${oc.id}');setTimeout(comprasActualizar,300)" style="background:#faf5ff;color:#7c3aed;border:none;border-radius:6px;padding:.3rem .6rem;cursor:pointer;font-size:.75rem;font-weight:600;">📤</button>`:''}
+                    ${oc.estado==='enviada'?`<button onclick="ocAbrirRecepcion('${oc.id}')" style="background:#f0fdf4;color:#059669;border:none;border-radius:6px;padding:.3rem .6rem;cursor:pointer;font-size:.75rem;font-weight:700;">📦 Recibir</button>`:''}
+                </td>
+            </tr>`;
+        }).join('')}</tbody>
+    </table></div>`;
+}
+
+function comprasNuevaOCManual() {
+    // Abrir bandeja de OC para crear una nueva manualmente
+    ocAbrirBandeja();
+    mostrarNotificacion('💡 Para crear una OC manual, genera una OP desde Planificación o usa "Generar OC" desde Bodega MPs', 'info');
+}
+
 function toggleDropdownGestion(e) {
   e.stopPropagation();
   const menu = document.getElementById('menuGestion');
@@ -29913,6 +30081,8 @@ function ocConfirmarRecepcion() {
     mpRenderStock();
     mpRenderKpis();
     ocRenderBandeja();
+    comprasRenderKpis();
+    comprasRenderTabla();
     document.getElementById('mpModalRecepcionOC').style.display = 'none';
     mostrarNotificacion(`✅ Recepción OC N°${oc.numero} registrada — ${itemsRecibidos.length} ítem(s) ingresados a Bodega`, 'success');
     setTimeout(() => mostrarNotificacion(`📦 Stock actualizado en ${bodega === 'camara_carnes' ? 'Cámara Carnes' : bodega === 'camara_vegetales' ? 'Cámara Vegetales' : bodega === 'congelados' ? 'Congelados' : 'Despensa'}`, 'info'), 1800);
